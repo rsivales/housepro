@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
@@ -14,13 +14,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  axes: ["opsz", "SOFT"],
+});
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.housepro.pt"),
   title: {
-    default: "HousePro — Home services, professionally managed",
+    default: "HousePro — Imobiliária | Comprar, arrendar e avaliar casas",
     template: "%s · HousePro",
   },
   description:
-    "HousePro is the platform that connects homeowners with trusted professionals and keeps every job on track.",
+    "Encontre a sua próxima casa com a HousePro. Imóveis selecionados, agentes dedicados e uma avaliação gratuita à distância de um clique.",
+  openGraph: {
+    type: "website",
+    locale: "pt_PT",
+    siteName: "HousePro",
+    title: "HousePro — Imobiliária",
+    description:
+      "Imóveis selecionados, agentes dedicados e avaliação gratuita.",
+  },
 };
 
 export default function RootLayout({
@@ -29,11 +45,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="pt" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable}`}
+      >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >

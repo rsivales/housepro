@@ -101,7 +101,7 @@ sync agendado do feed.
 ## Estado
 
 - [x] **M1 — Scaffold + design system**
-- [~] **M2 — Dados + Auth** _(em curso: esquema Supabase + RLS + Storage em `supabase/migrations/0001_init.sql`; falta gerar tipos, camada de dados e Auth)_
+- [~] **M2 — Dados + Auth** _(esquema + RLS + Storage (`supabase/migrations/`); Auth (login `/entrar`, callback, sign-out) + área profissional protegida `/app`; camada de dados `src/lib/db/repo.ts` com fallback para mock. Falta: gerar tipos do Supabase e migrar as páginas públicas do mock para o repo.)_
 - [ ] M3 · [ ] M4 · [ ] M5 · [ ] M6 · [ ] M7 · [ ] M8 · [ ] M9 · [ ] M10
 
 ## Correr localmente

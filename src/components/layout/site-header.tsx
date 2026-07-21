@@ -42,6 +42,9 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-1.5">
           <ModeToggle />
+          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
+            <Link href="/entrar">Entrar</Link>
+          </Button>
           <Button variant="brand" size="sm" className="hidden sm:inline-flex" asChild>
             <Link href="/vender">Avaliação gratuita</Link>
           </Button>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -107,9 +108,9 @@ export function CreditSimulator() {
           </div>
         </dl>
         <Button variant="brand" size="lg" className="w-full" asChild>
-          <a href="/vender#contacto">
+          <Link href="/vender#contacto">
             Falar com um consultor <ArrowRight className="size-4" />
-          </a>
+          </Link>
         </Button>
       </div>
 

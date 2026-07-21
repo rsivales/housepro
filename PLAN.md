@@ -110,3 +110,35 @@ pnpm install
 cp .env.example .env.local   # valores do projeto Supabase
 pnpm dev                     # http://localhost:3000
 ```
+
+---
+
+## Montras, configuração e atribuição de leads (registo de requisitos)
+
+Adicionado a pedido do cliente. Mecanismo demonstrado no M1 com dados mock;
+persistência real (por agência) + autenticação chegam no M2/M5.
+
+### Configuração pela marca/coordenador (back office — M5)
+- A secção **"Mais imóveis para si"** da homepage tem uma **regra escolhível**
+  (mais recentes, preço, mais procurados, algoritmo de destaque). Editável no
+  **/admin** (protótipo, guardado no browser; depois persistido no Supabase).
+
+### Montra por agência — `/agencia/[slug]`
+- Imóveis da agência (por defeito **mais recentes / do mês**).
+- Linha de **últimos vendidos** (prova social).
+- Equipa de consultores da agência.
+
+### Página do consultor — `/consultor/[id]`
+- **Os seus imóveis** + botão **"Mais imóveis"**.
+- Pode **enviar um imóvel a um cliente** a partir da sua área — o link gerado
+  leva a sua atribuição (`?ref=<consultor>`), mesmo para imóveis de colegas.
+
+### Modelo de atribuição de leads (regra de negócio)
+- Convenção `?ref=<consultorId>` em links de imóvel.
+- Se o cliente chega a um imóvel **através de um consultor** (página do
+  consultor ou link partilhado), o **contacto/lead fica com esse consultor**
+  (quem o levou lá) e **não com o angariador** do imóvel.
+- Sem `ref`, o contacto é do agente angariador.
+- No detalhe (`/imovel/[id]`) e nos cartões, o WhatsApp e o rótulo
+  "Apresentado por" refletem essa atribuição.
+- No M2/M5 isto passa a registar a lead no CRM/pipeline do consultor certo.

@@ -19,11 +19,21 @@ export type EnergyRating =
   | "E"
   | "F";
 
+export interface Agency {
+  id: string;
+  name: string;
+  /** Public montra slug, e.g. "algarve". */
+  slug: string;
+  region: string;
+}
+
 export interface Agent {
   id: string;
   name: string;
   role: string;
   agency: string;
+  /** Link to the Agency this consultant belongs to. */
+  agencyId: string;
   /** Full international phone for wa.me click-to-chat, digits only. */
   whatsapp: string;
   /** Accent color token for the initials-avatar fallback. */
@@ -59,4 +69,6 @@ export interface Property {
   interest?: number;
   /** ISO date the listing went live, for recency ranking. */
   listedAt?: string;
+  /** ISO date sold — present only when status is "vendido". */
+  soldAt?: string;
 }

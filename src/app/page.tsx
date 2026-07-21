@@ -7,12 +7,15 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import Link from "next/link";
+
 import { FadeIn } from "@/components/motion/fade-in";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { CreditBanner } from "@/components/layout/credit-banner";
 import { SearchBar } from "@/components/property/search-bar";
 import { PropertyCard } from "@/components/property/property-card";
+import { MoreProperties } from "@/components/property/more-properties";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
@@ -124,7 +127,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Restantes imóveis */}
+        {/* Restantes imóveis — regra configurável no admin */}
         <section id="imoveis" className="scroll-mt-20 py-16 sm:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <FadeIn>
@@ -136,20 +139,14 @@ export default async function Home() {
                   </h2>
                 </div>
                 <Button variant="outline" asChild>
-                  <a href="/imoveis">
+                  <Link href="/imoveis">
                     Ver todos os imóveis <ArrowRight className="size-4" />
-                  </a>
+                  </Link>
                 </Button>
               </div>
             </FadeIn>
 
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {restantes.map((property, i) => (
-                <FadeIn key={property.id} delay={(i % 3) * 0.08}>
-                  <PropertyCard property={property} />
-                </FadeIn>
-              ))}
-            </div>
+            <MoreProperties properties={restantes} />
           </div>
         </section>
 

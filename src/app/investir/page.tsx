@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Building2, Hammer, Repeat, TrendingUp } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
@@ -76,7 +77,7 @@ export default function InvestirPage() {
               perfil? Fale com um consultor especializado.
             </p>
             <Button variant="brand" size="lg" asChild>
-              <a href="/vender#contacto">Falar com um consultor</a>
+              <Link href="/vender#contacto">Falar com um consultor</Link>
             </Button>
           </div>
         </section>

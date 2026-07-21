@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { BedDouble, Bath, Heart, MapPin, Maximize2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { formatArea, formatPrice, whatsappLink } from "@/lib/format";
 import { agentById } from "@/lib/data/mock";
-import type { Property } from "@/lib/data/types";
+import type { Agent, Property } from "@/lib/data/types";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 
@@ -40,12 +41,21 @@ function StatusBadge({ status }: { status: NonNullable<Property["status"]> }) {
 export function PropertyCard({
   property,
   className,
+  referrer,
 }: {
   property: Property;
   className?: string;
+  /**
+   * Consultant who brought the client to this listing. When set, the contact
+   * (and lead) is attributed to the referrer — not the listing agent
+   * (angariador) — and the card links carry ?ref=<referrer>.
+   */
+  referrer?: Agent;
 }) {
   const [favorite, setFavorite] = React.useState(false);
-  const agent = agentById(property.agentId);
+  const listingAgent = agentById(property.agentId);
+  const contact = referrer ?? listingAgent;
+  const href = `/imovel/${property.id}${referrer ? `?ref=${referrer.id}` : ""}`;
 
   return (
     <motion.article
@@ -58,16 +68,17 @@ export function PropertyCard({
     >
       {/* Media */}
       <div className="relative aspect-[4/3] overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={property.image}
-          alt={`${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}`}
-          className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
-          loading="lazy"
-        />
+        <Link href={href} aria-label={property.title}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={property.image}
+            alt={`${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}`}
+            className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
+            loading="lazy"
+          />
+        </Link>
 
-        {/* Top row: status + favorite */}
-        <div className="absolute inset-x-3 top-3 flex items-start justify-between">
+        <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between">
           <div className="flex gap-2">
             {property.status && <StatusBadge status={property.status} />}
           </div>
@@ -76,7 +87,7 @@ export function PropertyCard({
             onClick={() => setFavorite((v) => !v)}
             aria-pressed={favorite}
             aria-label={favorite ? "Remover dos favoritos" : "Guardar nos favoritos"}
-            className="grid size-9 place-items-center rounded-full bg-background/85 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background"
+            className="pointer-events-auto grid size-9 place-items-center rounded-full bg-background/85 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background"
           >
             <Heart
               className={cn(
@@ -87,7 +98,6 @@ export function PropertyCard({
           </button>
         </div>
 
-        {/* Operation chip */}
         <span className="absolute bottom-3 left-3 rounded-full bg-background/85 px-2.5 py-1 text-xs font-medium capitalize text-foreground shadow-sm backdrop-blur">
           {property.operation}
         </span>
@@ -105,7 +115,9 @@ export function PropertyCard({
         </div>
 
         <h3 className="line-clamp-1 font-display text-lg leading-snug">
-          {property.title}
+          <Link href={href} className="transition-colors hover:text-primary">
+            {property.title}
+          </Link>
         </h3>
 
         <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -131,20 +143,22 @@ export function PropertyCard({
           </span>
         </div>
 
-        {/* Agent + WhatsApp */}
+        {/* Contact (referrer takes precedence over the listing agent) */}
         <div className="mt-auto flex items-center justify-between gap-3 pt-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <AgentAvatar agent={agent} />
+            <AgentAvatar agent={contact} />
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{agent.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{agent.agency}</p>
+              <p className="truncate text-sm font-medium">{contact.name}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {referrer ? "Apresentado por si" : contact.agency}
+              </p>
             </div>
           </div>
           <a
-            href={whatsappLink(agent.whatsapp, property)}
+            href={whatsappLink(contact.whatsapp, property)}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Falar com ${agent.name} por WhatsApp sobre ${property.reference}`}
+            aria-label={`Falar com ${contact.name} por WhatsApp sobre ${property.reference}`}
             className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white shadow-sm transition-transform hover:scale-105 active:scale-95"
           >
             <WhatsappIcon className="size-5" />

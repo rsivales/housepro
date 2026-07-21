@@ -1,9 +1,22 @@
-import type { Agent, Property } from "./types";
+import type { Agency, Agent, Property } from "./types";
 
 /**
  * Temporary in-memory data used to build and approve the UI in Milestone 1.
  * Replaced by Supabase queries (RLS por agência) from Milestone 2 onwards.
  */
+
+export const agencies: Agency[] = [
+  { id: "lisboa", name: "HousePro Lisboa", slug: "lisboa", region: "Lisboa" },
+  { id: "porto", name: "HousePro Porto", slug: "porto", region: "Porto" },
+  { id: "cascais", name: "HousePro Cascais", slug: "cascais", region: "Cascais" },
+  { id: "braga", name: "HousePro Braga", slug: "braga", region: "Braga" },
+];
+
+export const agencyBySlug = (slug: string): Agency | undefined =>
+  agencies.find((a) => a.slug === slug);
+
+export const agencyById = (id: string): Agency | undefined =>
+  agencies.find((a) => a.id === id);
 
 export const agents: Agent[] = [
   {
@@ -11,6 +24,7 @@ export const agents: Agent[] = [
     name: "Ana Marques",
     role: "Consultora sénior",
     agency: "HousePro Lisboa",
+    agencyId: "lisboa",
     whatsapp: "351910000001",
     accent: "var(--brand)",
   },
@@ -19,6 +33,7 @@ export const agents: Agent[] = [
     name: "Rui Tavares",
     role: "Consultor",
     agency: "HousePro Porto",
+    agencyId: "porto",
     whatsapp: "351910000002",
     accent: "var(--gold)",
   },
@@ -27,6 +42,7 @@ export const agents: Agent[] = [
     name: "Sofia Nunes",
     role: "Coordenadora",
     agency: "HousePro Cascais",
+    agencyId: "cascais",
     whatsapp: "351910000003",
     accent: "oklch(0.55 0.09 230)",
   },
@@ -35,6 +51,7 @@ export const agents: Agent[] = [
     name: "Miguel Costa",
     role: "Consultor",
     agency: "HousePro Braga",
+    agencyId: "braga",
     whatsapp: "351910000004",
     accent: "oklch(0.62 0.12 40)",
   },
@@ -42,6 +59,9 @@ export const agents: Agent[] = [
 
 export const agentById = (id: string): Agent =>
   agents.find((a) => a.id === id) ?? agents[0];
+
+export const agentsByAgency = (agencyId: string): Agent[] =>
+  agents.filter((a) => a.agencyId === agencyId);
 
 export const properties: Property[] = [
   {
@@ -164,6 +184,85 @@ export const properties: Property[] = [
     interest: 88,
     listedAt: "2026-07-19",
   },
+  {
+    id: "v1",
+    reference: "HP-0990",
+    title: "Apartamento renovado junto ao rio",
+    operation: "venda",
+    type: "Apartamento",
+    typology: "T2",
+    price: 465000,
+    area: 98,
+    beds: 2,
+    baths: 2,
+    parish: "Belém",
+    municipality: "Lisboa",
+    energy: "B",
+    status: "vendido",
+    image: "/properties/sage-day.svg",
+    agentId: "ana",
+    listedAt: "2026-05-02",
+    soldAt: "2026-07-10",
+  },
+  {
+    id: "v2",
+    reference: "HP-0991",
+    title: "Moradia com jardim em zona calma",
+    operation: "venda",
+    type: "Moradia",
+    typology: "T4",
+    price: 720000,
+    area: 260,
+    beds: 4,
+    baths: 3,
+    parish: "Aldoar",
+    municipality: "Porto",
+    energy: "A",
+    status: "vendido",
+    image: "/properties/warm-sand.svg",
+    agentId: "rui",
+    listedAt: "2026-04-18",
+    soldAt: "2026-06-28",
+  },
+  {
+    id: "v3",
+    reference: "HP-0992",
+    title: "T3 com vista serra e garagem",
+    operation: "venda",
+    type: "Apartamento",
+    typology: "T3",
+    price: 389000,
+    area: 120,
+    beds: 3,
+    baths: 2,
+    parish: "Nogueira",
+    municipality: "Braga",
+    energy: "B-",
+    status: "vendido",
+    image: "/properties/olive.svg",
+    agentId: "miguel",
+    listedAt: "2026-03-30",
+    soldAt: "2026-06-12",
+  },
 ];
 
-export const featuredProperties = properties;
+/** Available (not sold) listings, used across public montras. */
+export const availableProperties = properties.filter(
+  (p) => p.status !== "vendido"
+);
+
+export const soldProperties = properties.filter((p) => p.status === "vendido");
+
+export const featuredProperties = availableProperties;
+
+export const propertiesByAgent = (agentId: string): Property[] =>
+  availableProperties.filter((p) => p.agentId === agentId);
+
+export const propertiesByAgency = (agencyId: string): Property[] =>
+  availableProperties.filter((p) => agentById(p.agentId).agencyId === agencyId);
+
+export const soldByAgency = (agencyId: string): Property[] =>
+  soldProperties.filter((p) => agentById(p.agentId).agencyId === agencyId);
+
+export const propertyById = (id: string): Property | undefined =>
+  properties.find((p) => p.id === id);

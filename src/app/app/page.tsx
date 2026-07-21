@@ -6,7 +6,7 @@ import {
   Award,
   LayoutGrid,
   LogOut,
-  Plus,
+  Presentation,
   Target,
   TrendingUp,
   Upload,
@@ -74,7 +74,7 @@ export default async function AppPage() {
           <Action icon={Upload} title="Carregar imóvel" href="/app" note="Fotos pelo telemóvel" />
           <Action icon={LayoutGrid} title="A minha montra" href={`/consultor/${agent.id}`} note="Página pública" />
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
-          <Action icon={Plus} title="Novo lead" href="/app" note="CRM · pipeline" />
+          <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />
         </div>
 
         {/* Objetivos */}

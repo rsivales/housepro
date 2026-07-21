@@ -179,3 +179,31 @@ do **comprador**, do **vendedor** e do **agente/equipa** — infografia/stepper 
 Tabelas: `deals`, `deal_participants` (equipa de consultores), `deal_documents`,
 `deal_events`. RLS por participante + por agência. Ver
 `supabase/migrations/0002_transactions.sql`.
+
+---
+
+## Reunião Uau (módulo de apresentações — área do consultor)
+
+Gerador de apresentações personalizadas para **Comprador**, **Vendedor** e
+**Investidor**, com simulações, PDF e registo de resultado.
+
+**Fluxo:** escolher tipo → cliente → associar imóveis → dados → pré-visualizar →
+gerar PDF → registar resultado e próximo passo. Guardar como rascunho e editar.
+
+**Arquitetura (regras cumpridas):**
+- **Cálculos em funções puras** (`src/lib/reuniao/calc.ts`) — IMT (Continente,
+  HPP/secundária), Imposto do Selo, escritura, prestação, comissão+IVA,
+  mais-valias, yields bruta/líquida, cash-flow, ROE, cenários. **Nunca dentro
+  dos componentes visuais.**
+- **Notas internas separadas** e **nunca no PDF** (bloco próprio no editor;
+  a apresentação não as renderiza; coluna `internal_notes` nunca selecionada
+  para o cliente).
+- **Todos os valores marcados como estimativas** + **aviso legal** no documento.
+- Secções da apresentação **escolhidas pelo consultor** (toggles).
+- **Guardar / editar / duplicar / apresentar / gerar PDF** (PDF via impressão do
+  navegador na vista `/reuniao/[id]/apresentacao`, que exclui notas internas).
+- **Registo de resultado**: resultado, objeções, interesse e próxima ação.
+
+**Rotas:** `/app/reuniao` (lista + criar), `/app/reuniao/[id]` (editor),
+`/reuniao/[id]/apresentacao` (apresentação/PDF).
+**BD:** `supabase/migrations/0003_reunioes.sql` (RLS: dono + coordenação da agência).

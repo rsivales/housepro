@@ -8,8 +8,11 @@ import {
   Copy,
   Eye,
   FileDown,
+  Link2,
   Lock,
   Save,
+  Search,
+  X,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -21,7 +24,9 @@ import {
   TYPE_LABEL,
   defaultSections,
   reuniaoById,
+  reuniaoTotal,
   runCalc,
+  type ExternalProperty,
   type Field,
   type Reuniao,
   type ReuniaoType,
@@ -66,6 +71,10 @@ export default function ReuniaoEditor() {
 
   const [r, setR] = React.useState<Reuniao>(initial);
   const [saved, setSaved] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const [linkUrl, setLinkUrl] = React.useState("");
+  const [pending, setPending] = React.useState<ExternalProperty | null>(null);
+  const [importing, setImporting] = React.useState(false);
 
   React.useEffect(() => {
     const s = localStorage.getItem(`reuniao:${id}`);
@@ -78,11 +87,64 @@ export default function ReuniaoEditor() {
     }
   }, [id]);
 
-  const propsTotal = r.propertyIds.reduce(
-    (sum, pid) => sum + (propertyById(pid)?.price ?? 0),
-    0
-  );
+  const propsTotal = reuniaoTotal(r);
   const calc = React.useMemo(() => runCalc(r, propsTotal), [r, propsTotal]);
+
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? availableProperties.filter((p) =>
+        `${p.title} ${p.parish} ${p.municipality} ${p.reference}`
+          .toLowerCase()
+          .includes(q)
+      )
+    : availableProperties;
+
+  async function addByLink() {
+    const url = linkUrl.trim();
+    if (!url) return;
+    // Link interno → resolve para o imóvel do catálogo.
+    try {
+      const u = new URL(url, window.location.origin);
+      const m = u.pathname.match(/\/imovel\/([^/?#]+)/);
+      if (m && propertyById(m[1])) {
+        if (!r.propertyIds.includes(m[1]))
+          patch({ propertyIds: [...r.propertyIds, m[1]] });
+        setLinkUrl("");
+        return;
+      }
+    } catch {
+      /* não é URL absoluto */
+    }
+    // Externo → tenta extrair foto/info; sempre editável antes de adicionar.
+    setImporting(true);
+    let data: { title?: string; image?: string; price?: number } = {};
+    try {
+      const res = await fetch(`/api/importar-imovel?url=${encodeURIComponent(url)}`);
+      if (res.ok) data = await res.json();
+    } catch {
+      /* egress bloqueado — preenchimento manual */
+    }
+    setImporting(false);
+    setPending({
+      id: `ext-${Date.now()}`,
+      url,
+      title: data.title ?? "",
+      price: data.price ?? 0,
+      image: data.image ?? "",
+      location: "",
+    });
+  }
+
+  function confirmExternal() {
+    if (!pending) return;
+    const ext: ExternalProperty = {
+      ...pending,
+      image: pending.image || "/properties/dusty-blue.svg",
+    };
+    patch({ externalProperties: [...(r.externalProperties ?? []), ext] });
+    setPending(null);
+    setLinkUrl("");
+  }
 
   function patch(p: Partial<Reuniao>) {
     setR((prev) => ({ ...prev, ...p }));
@@ -201,8 +263,18 @@ export default function ReuniaoEditor() {
 
           {/* Imóveis */}
           <Section title="Imóveis associados">
-            <div className="grid gap-2 sm:grid-cols-2">
-              {availableProperties.map((p) => (
+            {/* Pesquisa no catálogo (não fica restrito a uma lista curta) */}
+            <div className="mb-3 flex items-center gap-2 rounded-md border border-input px-3">
+              <Search className="size-4 shrink-0 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Pesquisar por título, zona ou referência…"
+                className="h-9 w-full bg-transparent text-sm outline-none"
+              />
+            </div>
+            <div className="grid max-h-72 gap-2 overflow-auto sm:grid-cols-2">
+              {filtered.map((p) => (
                 <label
                   key={p.id}
                   className={cn(
@@ -224,6 +296,95 @@ export default function ReuniaoEditor() {
                   </span>
                 </label>
               ))}
+              {filtered.length === 0 && (
+                <p className="text-sm text-muted-foreground">Sem resultados.</p>
+              )}
+            </div>
+
+            {/* Adicionar por link (interno ou de outro portal) */}
+            <div className="mt-4 border-t pt-4">
+              <Label htmlFor="link">Adicionar por link</Label>
+              <p className="mb-1.5 text-xs text-muted-foreground">
+                Cole o link de um imóvel — interno ou de outro portal. O sistema
+                tenta obter foto e dados automaticamente.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  id="link"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://…/imovel/…"
+                />
+                <Button type="button" variant="outline" onClick={addByLink} disabled={importing}>
+                  <Link2 className="size-4" /> {importing ? "A obter…" : "Adicionar"}
+                </Button>
+              </div>
+
+              {pending && (
+                <div className="mt-3 space-y-2 rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Confirme os dados obtidos do link (edite se necessário):
+                  </p>
+                  <Input
+                    placeholder="Título"
+                    value={pending.title}
+                    onChange={(e) => setPending({ ...pending, title: e.target.value })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Preço €"
+                      value={pending.price || ""}
+                      onChange={(e) => setPending({ ...pending, price: Number(e.target.value) || 0 })}
+                    />
+                    <Input
+                      placeholder="Localização"
+                      value={pending.location}
+                      onChange={(e) => setPending({ ...pending, location: e.target.value })}
+                    />
+                  </div>
+                  <Input
+                    placeholder="URL da foto (opcional)"
+                    value={pending.image}
+                    onChange={(e) => setPending({ ...pending, image: e.target.value })}
+                  />
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={confirmExternal}>
+                      Adicionar ao dossier
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setPending(null)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {(r.externalProperties ?? []).length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {r.externalProperties!.map((e) => (
+                    <div
+                      key={e.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border bg-secondary/40 p-2 text-sm"
+                    >
+                      <span className="min-w-0 truncate">
+                        🔗 {e.title || e.url} · {formatEuro(e.price)}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Remover"
+                        onClick={() =>
+                          patch({
+                            externalProperties: r.externalProperties!.filter((x) => x.id !== e.id),
+                          })
+                        }
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </Section>
 

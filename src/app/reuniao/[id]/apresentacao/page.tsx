@@ -8,13 +8,15 @@ import { Logo } from "@/components/brand/logo";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { Button } from "@/components/ui/button";
 import { PhoneNote } from "@/components/legal/phone-note";
-import { agentById, propertyById } from "@/lib/data/mock";
-import { formatArea, formatCalc, formatEuro, formatPrice } from "@/lib/format";
+import { agentById } from "@/lib/data/mock";
+import { formatArea, formatCalc, formatEuro } from "@/lib/format";
 import {
   DISCLAIMER,
   FIELDS,
   TYPE_LABEL,
   reuniaoById,
+  reuniaoDisplayProps,
+  reuniaoTotal,
   runCalc,
   type Reuniao,
 } from "@/lib/reuniao/model";
@@ -44,8 +46,8 @@ export default function Apresentacao() {
   }
 
   const on = (k: string) => r.sections[k] ?? true;
-  const props = r.propertyIds.map((pid) => propertyById(pid)).filter(Boolean);
-  const propsTotal = props.reduce((s, p) => s + (p?.price ?? 0), 0);
+  const props = reuniaoDisplayProps(r);
+  const propsTotal = reuniaoTotal(r);
   const calc = runCalc(r, propsTotal);
   const consultant = agentById(r.consultantId);
   const resumoFields = FIELDS[r.type].filter((f) => f.resumo && r.data[f.key]);
@@ -101,15 +103,24 @@ export default function Apresentacao() {
           <Block title="Imóveis selecionados">
             <div className="space-y-3">
               {props.map((p) => (
-                <div key={p!.id} className="flex items-center gap-4 rounded-xl border p-3">
+                <div key={p.key} className="flex items-center gap-4 rounded-xl border p-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p!.image} alt="" className="size-20 shrink-0 rounded-lg object-cover" />
+                  <img src={p.image} alt="" className="size-20 shrink-0 rounded-lg object-cover" />
                   <div className="min-w-0">
-                    <p className="font-medium">{p!.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {p!.parish}, {p!.municipality} · {p!.typology} · {formatArea(p!.area)}
+                    <p className="font-medium">
+                      {p.title}
+                      {p.external && (
+                        <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                          externo
+                        </span>
+                      )}
                     </p>
-                    <p className="text-sm font-semibold">{formatPrice(p!)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {p.location}
+                      {p.typology ? ` · ${p.typology}` : ""}
+                      {p.area ? ` · ${formatArea(p.area)}` : ""}
+                    </p>
+                    <p className="text-sm font-semibold">{formatEuro(p.price)}</p>
                   </div>
                 </div>
               ))}
@@ -132,11 +143,11 @@ export default function Apresentacao() {
                 </thead>
                 <tbody>
                   {props.map((p) => (
-                    <tr key={p!.id} className="border-t">
-                      <td className="py-1.5 pr-3">{p!.reference}</td>
-                      <td className="py-1.5 pr-3">{p!.typology}</td>
-                      <td className="py-1.5 pr-3">{formatArea(p!.area)}</td>
-                      <td className="py-1.5">{formatPrice(p!)}</td>
+                    <tr key={p.key} className="border-t">
+                      <td className="py-1.5 pr-3">{p.reference}</td>
+                      <td className="py-1.5 pr-3">{p.typology ?? "—"}</td>
+                      <td className="py-1.5 pr-3">{p.area ? formatArea(p.area) : "—"}</td>
+                      <td className="py-1.5">{formatEuro(p.price)}</td>
                     </tr>
                   ))}
                 </tbody>

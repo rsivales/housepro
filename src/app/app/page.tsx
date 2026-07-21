@@ -71,7 +71,7 @@ export default async function AppPage() {
 
         {/* Quick actions */}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Action icon={Upload} title="Carregar imóvel" href="/app" note="Fotos pelo telemóvel" />
+          <Action icon={Upload} title="Carregar imóvel" href="/app/imovel/novo" note="Fotos + marca de água" />
           <Action icon={LayoutGrid} title="A minha montra" href={`/consultor/${agent.id}`} note="Página pública" />
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />

@@ -207,3 +207,27 @@ gerar PDF → registar resultado e próximo passo. Guardar como rascunho e edita
 **Rotas:** `/app/reuniao` (lista + criar), `/app/reuniao/[id]` (editor),
 `/reuniao/[id]/apresentacao` (apresentação/PDF).
 **BD:** `supabase/migrations/0003_reunioes.sql` (RLS: dono + coordenação da agência).
+
+---
+
+## Carregamento de imóvel (área do consultor)
+
+Formulário rico em `/app/imovel/novo`:
+- **Fotos com marca de água automática** (composição no browser: mosaico
+  "HousePro" + selo de canto) — não é preciso marcar cada foto manualmente;
+  toggle liga/desliga e reprocessa.
+- **Descrição curta** + descrição completa + **SEO** (título, slug automático,
+  meta descrição, palavras-chave).
+- **Características**: operação, tipo, tipologia, preço, área, quartos, WC,
+  **ano de construção**, certificado energético, **elevador**, **rampa/
+  acessível**, **estacionamento**, **vista**, **equipamentos** (multi) e
+  **comunidade/envolvente** (texto com exemplos).
+- **Documentos & planta**: upload (caderneta, cert. energético, planta, outros)
+  e **"ler para validar"** (OCR no servidor em produção — extrai área/morada/
+  certificado; aqui marca como validado para demonstração).
+- **Exportação Idealista/Imovirtual**: `src/lib/imovel/idealista.ts` gera o
+  **feed XML** com o mapeamento dos campos (operação, tipo, preço, área,
+  features, SEO, imagens, documentos) — download direto e pré-visualização.
+
+**BD:** `supabase/migrations/0004_imovel_rich.sql` (colunas ricas em `properties`,
+`property_documents` com resultado de OCR, bucket privado `property-docs`).

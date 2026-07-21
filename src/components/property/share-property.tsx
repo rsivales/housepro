@@ -4,12 +4,14 @@ import * as React from "react";
 import { Check, Link2, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { WhatsappIcon } from "@/components/icons/whatsapp";
 
 /**
  * Lets a consultant send a listing to a client from their professional area.
  * The generated link carries ?ref=<consultant>, so the client's contact is
  * attributed to THIS consultant — even for a colleague's listing.
+ *
+ * URLs are built at click time (client-only) to avoid SSR/CSR hydration
+ * mismatches on window.location.
  */
 export function ShareProperty({
   propertyId,
@@ -23,9 +25,7 @@ export function ShareProperty({
   const [copied, setCopied] = React.useState(false);
 
   function shareUrl() {
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : "https://www.housepro.pt";
-    return `${origin}/imovel/${propertyId}?ref=${consultantId}`;
+    return `${window.location.origin}/imovel/${propertyId}?ref=${consultantId}`;
   }
 
   async function copy() {
@@ -38,9 +38,10 @@ export function ShareProperty({
     }
   }
 
-  const waHref = `https://wa.me/?text=${encodeURIComponent(
-    `Veja este imóvel (${reference}) que selecionei para si: ${shareUrl()}`
-  )}`;
+  function sendToClient() {
+    const text = `Veja este imóvel (${reference}) que selecionei para si: ${shareUrl()}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+  }
 
   return (
     <div className="flex gap-2">
@@ -55,14 +56,9 @@ export function ShareProperty({
           </>
         )}
       </Button>
-      <Button size="sm" className="flex-1" asChild>
-        <a href={waHref} target="_blank" rel="noopener noreferrer">
-          <Send className="size-4" /> Enviar a cliente
-        </a>
+      <Button size="sm" className="flex-1" onClick={sendToClient}>
+        <Send className="size-4" /> Enviar a cliente
       </Button>
-      <span className="sr-only">
-        <WhatsappIcon />
-      </span>
     </div>
   );
 }

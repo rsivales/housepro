@@ -129,7 +129,7 @@ export function blankImovel(id: string): ImovelDraft {
     slug: "",
     keywords: "",
     watermark: true,
-    watermarkSize: 18,
+    watermarkSize: 5,
     watermarkPos: "bottom-right",
     fotosCount: 0,
     planta: false,

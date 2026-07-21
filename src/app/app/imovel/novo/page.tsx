@@ -232,8 +232,8 @@ export default function NovoImovel() {
                 </div>
                 <input
                   type="range"
-                  min={6}
-                  max={40}
+                  min={2}
+                  max={14}
                   value={d.watermarkSize}
                   onChange={(e) => patch({ watermarkSize: Number(e.target.value) })}
                   className="mt-2 w-full accent-primary"

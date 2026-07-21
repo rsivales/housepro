@@ -51,8 +51,8 @@ export default async function Home() {
           <div className="relative h-[86vh] min-h-[560px] w-full overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/properties/coastal-banner.svg"
-              alt="Imóveis com vista mar no Algarve"
+              src="/properties/villa-aerial.jpg"
+              alt="Moradia de luxo com vista mar no Algarve"
               className="absolute inset-0 size-full object-cover motion-safe:animate-kenburns"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-transparent" />

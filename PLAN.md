@@ -100,8 +100,9 @@ sync agendado do feed.
 
 ## Estado
 
-- [x] **M1 — Scaffold + design system** _(em curso)_
-- [ ] M2 · [ ] M3 · [ ] M4 · [ ] M5 · [ ] M6 · [ ] M7 · [ ] M8 · [ ] M9 · [ ] M10
+- [x] **M1 — Scaffold + design system**
+- [~] **M2 — Dados + Auth** _(em curso: esquema Supabase + RLS + Storage em `supabase/migrations/0001_init.sql`; falta gerar tipos, camada de dados e Auth)_
+- [ ] M3 · [ ] M4 · [ ] M5 · [ ] M6 · [ ] M7 · [ ] M8 · [ ] M9 · [ ] M10
 
 ## Correr localmente
 

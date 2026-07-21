@@ -143,3 +143,39 @@ persistência real (por agência) + autenticação chegam no M2/M5.
 - No detalhe (`/imovel/[id]`) e nos cartões, o WhatsApp e o rótulo
   "Apresentado por" refletem essa atribuição.
 - No M2/M5 isto passa a registar a lead no CRM/pipeline do consultor certo.
+
+---
+
+## Papéis e finalização de transações (M2 estrutura · M5/M8 UI)
+
+### Papéis (múltiplos por utilizador)
+- Um utilizador **pode acumular papéis** (tabela `user_roles`): ex.: um **admin
+  que também é coordenador**.
+- **`has_role(r)`** devolve verdadeiro se o utilizador tem o papel `r` **ou é
+  admin** — ou seja, o **admin tem implicitamente os poderes de coordenador**.
+- Papéis: `admin` (marca) · `coordenador` (agência) · `agente`.
+
+### Finalização do negócio (transação)
+Só a **coordenação** (ou admin) da agência faz avançar as etapas, via funções
+`advance_deal` / `advance_credit` (SQL, security definer):
+
+- **Via transacional:** proposta enviada → **proposta aceite** → **reserva**
+  (recolha de informação + documentos + sinal) → **CPCV** → **escritura** →
+  concluído. Percentagem: 10/30/50/75/95/100.
+- **Via crédito (paralela):** pedido → aprovação → avaliação → escritura marcada.
+
+Cada avanço regista um evento (`deal_events`) e **reflete a percentagem** na área
+do **comprador**, do **vendedor** e do **agente/equipa** — infografia/stepper em
+`/processo/[id]`. Documentos em bucket privado `deal-docs`.
+
+### Quem vê / quem faz (matriz)
+| Ação | admin | coordenador | agente (participante) | comprador/vendedor |
+|------|:---:|:---:|:---:|:---:|
+| Ver a transação | ✓ | ✓ (agência) | ✓ (se envolvido) | ✓ (a sua) |
+| Avançar etapas / finalizar | ✓ | ✓ | — | — |
+| Carregar documentos | ✓ | ✓ | ✓ | ✓ (os pedidos) |
+| Recolher info / acompanhar | ✓ | ✓ | ✓ | acompanha |
+
+Tabelas: `deals`, `deal_participants` (equipa de consultores), `deal_documents`,
+`deal_events`. RLS por participante + por agência. Ver
+`supabase/migrations/0002_transactions.sql`.

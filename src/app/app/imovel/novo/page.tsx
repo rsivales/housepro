@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  Camera,
   Check,
   FileDown,
   FileText,
@@ -23,10 +24,12 @@ import {
   TIPOS,
   TIPOLOGIAS,
   VISTAS,
+  WATERMARK_POSITIONS,
   blankImovel,
   slugify,
   type ImovelDoc,
   type ImovelDraft,
+  type WatermarkPos,
 } from "@/lib/imovel/model";
 import { toIdealistaXML } from "@/lib/imovel/idealista";
 
@@ -41,8 +44,12 @@ function readFile(file: File): Promise<string> {
   });
 }
 
-/** Aplica marca de água "HousePro" em mosaico + selo de canto (client-side). */
-async function watermark(dataUrl: string): Promise<string> {
+/** Marca de água única "HousePro", com tamanho e posição configuráveis. */
+async function watermark(
+  dataUrl: string,
+  sizePct: number,
+  pos: WatermarkPos
+): Promise<string> {
   const img = new Image();
   img.src = dataUrl;
   await img.decode();
@@ -52,35 +59,32 @@ async function watermark(dataUrl: string): Promise<string> {
   const ctx = c.getContext("2d")!;
   ctx.drawImage(img, 0, 0);
 
-  // Mosaico diagonal
-  ctx.save();
-  ctx.translate(c.width / 2, c.height / 2);
-  ctx.rotate(-Math.atan2(c.height, c.width));
-  const fs = Math.max(22, c.width * 0.028);
-  ctx.font = `700 ${fs}px sans-serif`;
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(255,255,255,0.22)";
-  const text = "HousePro";
-  const stepX = ctx.measureText(text).width + fs * 2.2;
-  for (let y = -c.height; y < c.height; y += fs * 3.2) {
-    for (let x = -c.width; x < c.width; x += stepX) {
-      ctx.fillText(text, x, y);
-    }
-  }
-  ctx.restore();
-
-  // Selo de canto
-  const pad = Math.max(10, c.width * 0.012);
-  const bh = Math.max(26, c.width * 0.038);
-  ctx.font = `700 ${bh * 0.55}px sans-serif`;
   const label = "HousePro";
-  const bw = ctx.measureText(label).width + bh;
-  ctx.fillStyle = "rgba(20,40,32,0.72)";
-  ctx.fillRect(pad, c.height - bh - pad, bw, bh);
-  ctx.fillStyle = "#fff";
-  ctx.textAlign = "left";
+  const fs = Math.max(14, (c.width * sizePct) / 100);
+  ctx.font = `700 ${fs}px sans-serif`;
+  const tw = ctx.measureText(label).width;
+  const padX = fs * 0.5;
+  const padY = fs * 0.35;
+  const bw = tw + padX * 2;
+  const bh = fs + padY * 2;
+  const margin = Math.max(10, c.width * 0.02);
+
+  const horiz = pos.endsWith("left") ? "left" : pos.endsWith("right") ? "right" : "center";
+  const vert = pos.startsWith("top") ? "top" : pos.startsWith("bottom") ? "bottom" : "center";
+  const x = horiz === "left" ? margin : horiz === "right" ? c.width - bw - margin : (c.width - bw) / 2;
+  const y = vert === "top" ? margin : vert === "bottom" ? c.height - bh - margin : (c.height - bh) / 2;
+
+  const r = bh * 0.25;
+  ctx.fillStyle = "rgba(20,40,32,0.55)";
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") ctx.roundRect(x, y, bw, bh, r);
+  else ctx.rect(x, y, bw, bh);
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(255,255,255,0.94)";
   ctx.textBaseline = "middle";
-  ctx.fillText(label, pad + bh * 0.5, c.height - bh / 2 - pad);
+  ctx.textAlign = "left";
+  ctx.fillText(label, x + padX, y + bh / 2);
 
   return c.toDataURL("image/jpeg", 0.85);
 }
@@ -92,19 +96,22 @@ export default function NovoImovel() {
   const [processing, setProcessing] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const [xml, setXml] = React.useState<string | null>(null);
+  const [docKind, setDocKind] = React.useState("caderneta");
 
   function patch(p: Partial<ImovelDraft>) {
     setD((prev) => ({ ...prev, ...p }));
     setSaved(false);
   }
 
-  // Reprocessa fotos quando a marca de água liga/desliga
+  // Reprocessa fotos quando a marca de água / tamanho / posição mudam
   React.useEffect(() => {
     let alive = true;
     (async () => {
       setProcessing(true);
       const out = await Promise.all(
-        originals.map((o) => (d.watermark ? watermark(o) : Promise.resolve(o)))
+        originals.map((o) =>
+          d.watermark ? watermark(o, d.watermarkSize, d.watermarkPos) : Promise.resolve(o)
+        )
       );
       if (alive) {
         setFotos(out);
@@ -114,7 +121,7 @@ export default function NovoImovel() {
     return () => {
       alive = false;
     };
-  }, [originals, d.watermark]);
+  }, [originals, d.watermark, d.watermarkSize, d.watermarkPos]);
 
   async function onPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -194,22 +201,66 @@ export default function NovoImovel() {
 
         {/* Fotos + marca de água */}
         <Card title="Fotografias">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
               <ImagePlus className="size-4" /> Adicionar fotos
               <input type="file" accept="image/*" multiple onChange={onPhotos} className="hidden" />
             </label>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
+              <Camera className="size-4" /> Tirar foto
+              <input type="file" accept="image/*" capture="environment" onChange={onPhotos} className="hidden" />
+            </label>
+            <label className="ml-auto flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={d.watermark}
                 onChange={(e) => patch({ watermark: e.target.checked })}
                 className="size-4 accent-primary"
               />
-              Marca de água automática
+              Marca de água
               {processing && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
             </label>
           </div>
+
+          {/* Controlos da marca de água: tamanho + posição */}
+          {d.watermark && (
+            <div className="mt-4 grid gap-5 rounded-xl border bg-secondary/30 p-4 sm:grid-cols-2">
+              <div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Tamanho</span>
+                  <span className="text-muted-foreground">{d.watermarkSize}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={6}
+                  max={40}
+                  value={d.watermarkSize}
+                  onChange={(e) => patch({ watermarkSize: Number(e.target.value) })}
+                  className="mt-2 w-full accent-primary"
+                />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Posição</p>
+                <div className="mt-2 grid w-24 grid-cols-3 gap-1">
+                  {WATERMARK_POSITIONS.map((pos) => (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => patch({ watermarkPos: pos })}
+                      aria-label={pos}
+                      className={cn(
+                        "aspect-square rounded-sm border transition-colors",
+                        d.watermarkPos === pos
+                          ? "border-primary bg-primary"
+                          : "border-border bg-background hover:bg-secondary"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {fotos.length > 0 && (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {fotos.map((src, i) => (
@@ -352,11 +403,49 @@ export default function NovoImovel() {
 
         {/* Documentos & planta */}
         <Card title="Documentos & planta">
-          <div className="flex flex-wrap gap-2">
-            <DocInput label="Caderneta predial" kind="caderneta" onChange={onDocs} />
-            <DocInput label="Certificado energético" kind="cert_energetico" onChange={onDocs} />
-            <DocInput label="Planta" kind="planta" onChange={onDocs} />
-            <DocInput label="Outro" kind="outro" onChange={onDocs} />
+          <p className="text-sm text-muted-foreground">Tipo de documento</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {[
+              ["caderneta", "Caderneta predial"],
+              ["cert_energetico", "Certificado energético"],
+              ["planta", "Planta"],
+              ["mandato", "Mandato"],
+              ["outro", "Outro"],
+            ].map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setDocKind(k)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                  docKind === k ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
+              <Camera className="size-4" /> Tirar foto ao documento
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => onDocs(e, docKind)}
+              />
+            </label>
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
+              <Upload className="size-4" /> Carregar ficheiro (PDF/imagem)
+              <input
+                type="file"
+                accept="application/pdf,image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => onDocs(e, docKind)}
+              />
+            </label>
           </div>
           {d.documentos.length > 0 && (
             <ul className="mt-4 space-y-2">
@@ -421,19 +510,3 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-function DocInput({
-  label,
-  kind,
-  onChange,
-}: {
-  label: string;
-  kind: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>, kind: string) => void;
-}) {
-  return (
-    <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
-      <Upload className="size-4" /> {label}
-      <input type="file" multiple className="hidden" onChange={(e) => onChange(e, kind)} />
-    </label>
-  );
-}

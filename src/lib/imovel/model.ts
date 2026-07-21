@@ -7,6 +7,29 @@ export interface ImovelDoc {
   validated?: boolean;
 }
 
+export type WatermarkPos =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "center-left"
+  | "center"
+  | "center-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
+
+export const WATERMARK_POSITIONS: WatermarkPos[] = [
+  "top-left",
+  "top-center",
+  "top-right",
+  "center-left",
+  "center",
+  "center-right",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
+];
+
 export interface ImovelDraft {
   id: string;
   reference: string;
@@ -38,6 +61,10 @@ export interface ImovelDraft {
   keywords: string;
   // Media & docs (URLs/Storage em produção)
   watermark: boolean;
+  /** Tamanho da marca de água em % da largura da foto (~6–40). */
+  watermarkSize: number;
+  /** Posição: top-left | top-center | … | center | … | bottom-right. */
+  watermarkPos: WatermarkPos;
   fotosCount: number;
   planta: boolean;
   documentos: ImovelDoc[];
@@ -102,6 +129,8 @@ export function blankImovel(id: string): ImovelDraft {
     slug: "",
     keywords: "",
     watermark: true,
+    watermarkSize: 18,
+    watermarkPos: "bottom-right",
     fotosCount: 0,
     planta: false,
     documentos: [],

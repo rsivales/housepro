@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfe3ea"/>
+      <stop offset="0.55" stop-color="#e7eef0"/>
+      <stop offset="1" stop-color="#eef2ee"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fb9c4"/>
+      <stop offset="1" stop-color="#a9cbcf"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffe7a8" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffe7a8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbf7f0"/>
+      <stop offset="1" stop-color="#ece2d2"/>
+    </linearGradient>
+    <linearGradient id="pool" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#bfe0df"/>
+      <stop offset="1" stop-color="#93c1c1"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1180" cy="230" r="240" fill="url(#sun)"/>
+  <circle cx="1180" cy="230" r="70" fill="#ffe9b0"/>
+
+  <!-- sea -->
+  <rect x="0" y="360" width="1600" height="220" fill="url(#sea)"/>
+  <g fill="#ffffff" opacity="0.35">
+    <rect x="60" y="430" width="220" height="4" rx="2"/>
+    <rect x="360" y="470" width="180" height="4" rx="2"/>
+    <rect x="820" y="450" width="240" height="4" rx="2"/>
+  </g>
+
+  <!-- headland -->
+  <path d="M0 520 Q 260 470 520 512 T 1040 500 L 1040 900 L 0 900 Z" fill="#c3d2b7"/>
+  <path d="M1000 540 Q 1240 500 1600 528 L 1600 900 L 1000 900 Z" fill="#b3c4a4"/>
+
+  <!-- villa -->
+  <g>
+    <rect x="560" y="470" width="470" height="240" fill="url(#wall)"/>
+    <rect x="560" y="470" width="470" height="16" fill="#e2d7c4"/>
+    <rect x="1000" y="430" width="220" height="280" fill="#f0e7d7"/>
+    <polygon points="1000,432 1110,360 1220,432" fill="#c9b79a"/>
+    <g fill="#8fa7ad">
+      <rect x="600" y="516" width="80" height="120" rx="3"/>
+      <rect x="710" y="516" width="80" height="120" rx="3"/>
+      <rect x="820" y="516" width="80" height="120" rx="3"/>
+      <rect x="1040" y="474" width="140" height="150" rx="3"/>
+    </g>
+    <rect x="930" y="612" width="66" height="98" fill="#c7b498"/>
+  </g>
+
+  <!-- pool + deck -->
+  <rect x="470" y="726" width="820" height="174" fill="#d9ccb5"/>
+  <rect x="560" y="748" width="430" height="120" rx="10" fill="url(#pool)"/>
+
+  <!-- palms -->
+  <g fill="#6f8468">
+    <rect x="500" y="560" width="14" height="150"/><ellipse cx="507" cy="548" rx="52" ry="30"/>
+    <rect x="1250" y="600" width="12" height="130"/><ellipse cx="1256" cy="590" rx="44" ry="26"/>
+  </g>
+</svg>

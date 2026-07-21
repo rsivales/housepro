@@ -26,8 +26,10 @@ export interface Agent {
   agency: string;
   /** Full international phone for wa.me click-to-chat, digits only. */
   whatsapp: string;
-  /** Accent color token for the initials avatar. */
+  /** Accent color token for the initials-avatar fallback. */
   accent: string;
+  /** Headshot under /public/agents; falls back to initials when absent. */
+  photo?: string;
 }
 
 export interface Property {
@@ -48,7 +50,13 @@ export interface Property {
   municipality: string;
   energy: EnergyRating;
   status: PropertyStatus | null;
-  /** Path under /public/properties. */
+  /** Cover image path under /public/properties. */
   image: string;
+  /** Optional gallery (real photos); cover first. */
+  gallery?: string[];
   agentId: string;
+  /** Engagement proxy 0–100 (visitas + leads + favoritos) for ranking. */
+  interest?: number;
+  /** ISO date the listing went live, for recency ranking. */
+  listedAt?: string;
 }

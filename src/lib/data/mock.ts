@@ -61,6 +61,8 @@ export const properties: Property[] = [
     status: "destaque",
     image: "/properties/terracotta-dusk.svg",
     agentId: "ana",
+    interest: 84,
+    listedAt: "2026-07-12",
   },
   {
     id: "2",
@@ -79,6 +81,8 @@ export const properties: Property[] = [
     status: "novo",
     image: "/properties/sage-day.svg",
     agentId: "sofia",
+    interest: 71,
+    listedAt: "2026-07-18",
   },
   {
     id: "3",
@@ -97,6 +101,8 @@ export const properties: Property[] = [
     status: "reduzido",
     image: "/properties/dusty-blue.svg",
     agentId: "rui",
+    interest: 90,
+    listedAt: "2026-07-05",
   },
   {
     id: "4",
@@ -115,6 +121,8 @@ export const properties: Property[] = [
     status: null,
     image: "/properties/warm-sand.svg",
     agentId: "miguel",
+    interest: 52,
+    listedAt: "2026-06-20",
   },
   {
     id: "5",
@@ -133,6 +141,8 @@ export const properties: Property[] = [
     status: "destaque",
     image: "/properties/twilight.svg",
     agentId: "ana",
+    interest: 80,
+    listedAt: "2026-07-16",
   },
   {
     id: "6",
@@ -151,6 +161,8 @@ export const properties: Property[] = [
     status: "novo",
     image: "/properties/olive.svg",
     agentId: "rui",
+    interest: 88,
+    listedAt: "2026-07-19",
   },
 ];
 

@@ -3,8 +3,7 @@ import type { Agent } from "@/lib/data/types";
 import { initials } from "@/lib/format";
 
 /**
- * Initials avatar for an agent. Real photos (Supabase Storage) drop in later;
- * the tinted initials keep agents visually present until then.
+ * Agent avatar: real headshot when available, tinted initials otherwise.
  */
 export function AgentAvatar({
   agent,
@@ -13,6 +12,21 @@ export function AgentAvatar({
   agent: Agent;
   className?: string;
 }) {
+  if (agent.photo) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={agent.photo}
+        alt={agent.name}
+        loading="lazy"
+        className={cn(
+          "size-9 shrink-0 rounded-full object-cover ring-2 ring-background",
+          className
+        )}
+      />
+    );
+  }
+
   return (
     <span
       className={cn(

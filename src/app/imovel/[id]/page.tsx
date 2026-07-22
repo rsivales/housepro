@@ -10,8 +10,10 @@ import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { PropertyActions } from "@/components/property/property-actions";
+import { ContactDialog } from "@/components/property/contact-dialog";
 import { propertyById, agentById } from "@/lib/data/mock";
-import { formatArea, formatPrice, whatsappLink } from "@/lib/format";
+import { formatArea, formatPhone, formatPrice, telLink, whatsappLink } from "@/lib/format";
+import { Phone } from "lucide-react";
 
 export async function generateMetadata({
   params,
@@ -130,9 +132,26 @@ export default async function ImovelPage({
               >
                 <WhatsappIcon className="size-4" /> Falar por WhatsApp
               </a>
-              <p className="mt-2 text-center">
+
+              {/* Telefone direto */}
+              <a
+                href={telLink(contact.whatsapp)}
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
+              >
+                <Phone className="size-4" /> {formatPhone(contact.whatsapp)}
+              </a>
+              <p className="mt-1.5 text-center">
                 <PhoneNote />
               </p>
+
+              {/* Mensagem / pedir visita */}
+              <div className="mt-4 border-t pt-4">
+                <ContactDialog
+                  propertyId={property.id}
+                  referrerId={ref}
+                  reference={property.reference}
+                />
+              </div>
             </div>
 
             <PropertyActions

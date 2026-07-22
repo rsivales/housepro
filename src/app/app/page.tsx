@@ -4,16 +4,22 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Award,
+  CalendarClock,
+  Inbox,
   LayoutGrid,
   LogOut,
+  MessageSquare,
   Presentation,
   Target,
   TrendingUp,
   Upload,
+  UserPlus,
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
-import { listPropertiesByAgent } from "@/lib/db/repo";
+import { listPropertiesByAgent, listLeadsByAgent } from "@/lib/db/repo";
+import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
+import { formatPhone } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { PropertyCard } from "@/components/property/property-card";
 import { ShareProperty } from "@/components/property/share-property";
@@ -33,6 +39,8 @@ export default async function AppPage() {
   const { agent, demo } = session;
 
   const mine = await listPropertiesByAgent(agent.id);
+  const leads = await listLeadsByAgent(agent.id);
+  const novas = leads.filter((l) => l.status === "novo").length;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -76,6 +84,99 @@ export default async function AppPage() {
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />
         </div>
+
+        {/* Contactos & pedidos de visita */}
+        <section className="mt-10">
+          <div className="flex items-end justify-between">
+            <h2 className="flex items-center gap-2 font-display text-xl">
+              <Inbox className="size-5 text-primary" /> Contactos & pedidos de visita
+            </h2>
+            {novas > 0 && (
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                {novas} nova{novas > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+
+          {leads.length > 0 ? (
+            <ul className="mt-4 space-y-3">
+              {leads.map((l) => (
+                <li
+                  key={l.id}
+                  className="rounded-2xl border bg-card p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+                        {l.intent === "visita" ? (
+                          <CalendarClock className="size-4.5" />
+                        ) : (
+                          <MessageSquare className="size-4.5" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium leading-none">{l.name}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {l.contact.includes("@") ? l.contact : formatPhone(l.contact)}
+                          {l.propertyRef && <> · Ref. {l.propertyRef}</>}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={
+                        "shrink-0 rounded-full px-2.5 py-1 text-xs font-medium " +
+                        (l.status === "novo"
+                          ? "bg-primary/10 text-primary"
+                          : "bg-secondary text-muted-foreground")
+                      }
+                    >
+                      {LEAD_STATUS_LABEL[l.status]}
+                    </span>
+                  </div>
+
+                  {l.message && (
+                    <p className="mt-3 rounded-lg bg-secondary/50 px-3 py-2 text-sm text-muted-foreground">
+                      “{l.message}”
+                    </p>
+                  )}
+
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span>
+                      {l.intent === "visita" ? "Pedido de visita" : "Mensagem"}
+                    </span>
+                    {l.preferredAt && (
+                      <span>
+                        Preferência:{" "}
+                        {new Date(l.preferredAt).toLocaleString("pt-PT", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    )}
+                    {l.referrerId && (
+                      <span className="inline-flex items-center gap-1 font-medium text-primary">
+                        <UserPlus className="size-3.5" /> Atribuído a si (trouxe o cliente)
+                      </span>
+                    )}
+                    <span className="ml-auto">
+                      {new Date(l.createdAt).toLocaleDateString("pt-PT", {
+                        day: "2-digit",
+                        month: "short",
+                      })}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 rounded-2xl border bg-card p-6 text-center text-sm text-muted-foreground">
+              Ainda sem contactos. Partilhe a sua montra para começar a receber
+              mensagens e pedidos de visita.
+            </p>
+          )}
+        </section>
 
         {/* Objetivos */}
         <section className="mt-10">

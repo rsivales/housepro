@@ -5,6 +5,8 @@ import {
   propertiesByAgent as mockByAgent,
   propertyById as mockById,
 } from "@/lib/data/mock";
+import { leadsByOwner } from "@/lib/data/leads";
+import type { Lead } from "@/lib/data/leads";
 import type { Property } from "@/lib/data/types";
 
 /**
@@ -74,4 +76,74 @@ export async function listProperties(): Promise<Property[]> {
     .neq("status", "vendido")
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
+}
+
+// --- Leads -----------------------------------------------------------------
+
+export interface NewLead {
+  propertyId?: string;
+  ownerId: string;
+  referrerId?: string;
+  name: string;
+  contact: string;
+  email?: string;
+  intent: Lead["intent"];
+  message?: string;
+  preferredAt?: string;
+  source?: Lead["source"];
+}
+
+/** Regista uma lead. Grava no Supabase quando configurado; caso contrário
+ *  devolve-a (modo demo) para o fluxo poder ser testado ponta a ponta. */
+export async function createLead(input: NewLead): Promise<Lead> {
+  const lead: Lead = {
+    id: `l-${Date.now()}`,
+    status: "novo",
+    source: input.source ?? "site",
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+
+  if (!isSupabaseConfigured()) return lead;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("leads")
+    .insert({
+      property_id: input.propertyId ?? null,
+      owner_id: input.ownerId,
+      referrer_id: input.referrerId ?? null,
+      name: input.name,
+      contact: input.contact,
+      message: input.message ?? null,
+      source: input.source ?? "site",
+    })
+    .select("id, created_at")
+    .single();
+  return { ...lead, id: data ? String(data.id) : lead.id };
+}
+
+export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
+  if (!isSupabaseConfigured()) return leadsByOwner(agentId);
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("owner_id", agentId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map((r: Row) => ({
+    id: String(r.id),
+    propertyId: (r.property_id as string) ?? undefined,
+    ownerId: String(r.owner_id ?? ""),
+    referrerId: (r.referrer_id as string) ?? undefined,
+    name: String(r.name ?? ""),
+    contact: String(r.contact ?? ""),
+    intent: (r.intent as Lead["intent"]) ?? "mensagem",
+    message: (r.message as string) ?? undefined,
+    preferredAt: (r.preferred_at as string) ?? undefined,
+    source: (r.source as Lead["source"]) ?? "site",
+    status: (r.status as Lead["status"]) ?? "novo",
+    createdAt: String(r.created_at ?? new Date().toISOString()),
+  }));
 }

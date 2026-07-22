@@ -37,6 +37,21 @@ export function whatsappLink(whatsapp: string, property: Pick<Property, "referen
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(text)}`;
 }
 
+/** "351910000001" → "+351 910 000 001" (número PT em grupos de 3). */
+export function formatPhone(digits: string) {
+  const clean = String(digits).replace(/\D/g, "");
+  if (clean.startsWith("351") && clean.length === 12) {
+    const n = clean.slice(3);
+    return `+351 ${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`;
+  }
+  return `+${clean}`;
+}
+
+/** Ligação clicável para telefone. */
+export function telLink(digits: string) {
+  return `tel:+${String(digits).replace(/\D/g, "")}`;
+}
+
 export function initials(name: string) {
   return name
     .split(" ")

@@ -1,5 +1,5 @@
 export type LeadSource = "site" | "whatsapp" | "facebook" | "portal" | "consultor";
-export type LeadIntent = "mensagem" | "visita";
+export type LeadIntent = "mensagem" | "visita" | "custos";
 export type LeadStatus = "novo" | "contactado" | "agendado" | "perdido" | "convertido";
 
 export interface Lead {

@@ -8,32 +8,20 @@ import { BedDouble, Bath, Heart, MapPin, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatArea, formatPrice, whatsappLink } from "@/lib/format";
 import { agentById } from "@/lib/data/mock";
+import { STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
 import type { Agent, Property } from "@/lib/data/types";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 
-const statusLabel: Record<string, string> = {
-  novo: "Novo",
-  destaque: "Destaque",
-  reduzido: "Preço reduzido",
-  vendido: "Vendido",
-};
-
 function StatusBadge({ status }: { status: NonNullable<Property["status"]> }) {
-  const styles: Record<string, string> = {
-    novo: "bg-primary text-primary-foreground",
-    destaque: "bg-gold text-gold-foreground",
-    reduzido: "bg-destructive text-destructive-foreground",
-    vendido: "bg-foreground text-background",
-  };
   return (
     <span
       className={cn(
         "rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm backdrop-blur",
-        styles[status]
+        STATUS_STYLE[status]
       )}
     >
-      {statusLabel[status]}
+      {STATUS_LABEL[status]}
     </span>
   );
 }

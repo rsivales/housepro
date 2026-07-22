@@ -153,7 +153,7 @@ export const properties: Property[] = [
     parish: "São Vítor",
     municipality: "Braga",
     energy: "C",
-    status: null,
+    status: "reservado",
     image: "/properties/warm-sand.svg",
     agentId: "miguel",
     interest: 52,
@@ -213,9 +213,19 @@ export const properties: Property[] = [
     parish: "Olhos de Água",
     municipality: "Albufeira",
     energy: "A+",
-    status: "destaque",
+    status: "oportunidade",
     image: "/properties/villa-aerial.jpg",
     gallery: ["/properties/villa-aerial.jpg"],
+    shortDescription:
+      "Moradia isolada de arquitetura contemporânea, a poucos minutos da praia de Olhos de Água, com piscina privativa, amplos terraços e vistas desafogadas sobre o mar.",
+    description:
+      "Implantada num lote generoso e virada a sul, esta moradia T5 distribui-se por três pisos servidos por elevador. O piso social abre-se para uma sala com pé-direito duplo e envidraçados de correr que ligam ao terraço e à piscina de água salgada. A cozinha, totalmente equipada com eletrodomésticos de gama alta, comunica com uma zona de refeições exterior coberta. Os cinco quartos são todos suites, com roupeiros embutidos e casas de banho revestidas a materiais nobres. Completam o imóvel garagem para três viaturas, painéis solares, domótica e sistema de videovigilância. Uma oportunidade rara na zona premium do Algarve.",
+    areaUtil: 420,
+    areaDependente: 120,
+    landArea: 1250,
+    garage: true,
+    elevator: true,
+    constructionYear: 2021,
     agentId: "carla",
     interest: 95,
     listedAt: "2026-07-20",
@@ -237,6 +247,16 @@ export const properties: Property[] = [
     status: "novo",
     image: "/properties/casapt-aerial.jpg",
     gallery: ["/properties/casapt-aerial.jpg", "/properties/casapt-wc.jpg"],
+    shortDescription:
+      "Casa tipicamente algarvia recuperada com bom gosto, com quintal, piscina e a tranquilidade do interior serrano a 20 minutos das praias de Faro.",
+    description:
+      "Esta moradia térrea T3 preserva os traços da arquitetura tradicional algarvia — chaminé rendilhada, telha de canudo e platibandas — combinados com uma recuperação recente que trouxe conforto contemporâneo. Dispõe de sala com recuperador de calor, cozinha em plano aberto, três quartos amplos e dois quartos de banho. O logradouro, murado e ajardinado, integra uma piscina e uma zona de churrasco, ideal para viver o Algarve todo o ano. Com garagem e arrecadação, é a escolha certa para quem procura autenticidade sem abdicar de acessos fáceis.",
+    areaUtil: 150,
+    areaDependente: 30,
+    landArea: 640,
+    garage: true,
+    elevator: false,
+    constructionYear: 1998,
     agentId: "carla",
     interest: 76,
     listedAt: "2026-07-17",
@@ -323,3 +343,29 @@ export const soldByAgency = (agencyId: string): Property[] =>
 
 export const propertyById = (id: string): Property | undefined =>
   properties.find((p) => p.id === id);
+
+/**
+ * Imóveis semelhantes a `property`, ordenados por proximidade: mesmo concelho,
+ * mesmo tipo e faixa de preço (±40%). Exclui o próprio e os vendidos.
+ */
+export const similarProperties = (
+  property: Property,
+  limit = 3
+): Property[] => {
+  const score = (p: Property) => {
+    let s = 0;
+    if (p.municipality === property.municipality) s += 3;
+    if (p.type === property.type) s += 2;
+    if (p.typology && p.typology === property.typology) s += 1;
+    const ratio = property.price ? Math.abs(p.price - property.price) / property.price : 1;
+    if (ratio <= 0.4) s += 2;
+    else if (ratio <= 0.7) s += 1;
+    return s;
+  };
+  return availableProperties
+    .filter((p) => p.id !== property.id)
+    .map((p) => ({ p, s: score(p) }))
+    .sort((a, b) => b.s - a.s)
+    .slice(0, limit)
+    .map((x) => x.p);
+};

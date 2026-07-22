@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   Award,
   CalendarClock,
+  Calculator,
   Inbox,
   LayoutGrid,
   LogOut,
@@ -110,6 +111,8 @@ export default async function AppPage() {
                       <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
                         {l.intent === "visita" ? (
                           <CalendarClock className="size-4.5" />
+                        ) : l.intent === "custos" ? (
+                          <Calculator className="size-4.5" />
                         ) : (
                           <MessageSquare className="size-4.5" />
                         )}
@@ -142,7 +145,11 @@ export default async function AppPage() {
 
                   <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>
-                      {l.intent === "visita" ? "Pedido de visita" : "Mensagem"}
+                      {l.intent === "visita"
+                        ? "Pedido de visita"
+                        : l.intent === "custos"
+                          ? "Pedido de valor com despesas"
+                          : "Mensagem"}
                     </span>
                     {l.preferredAt && (
                       <span>

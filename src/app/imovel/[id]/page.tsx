@@ -1,8 +1,21 @@
 import type { Metadata } from "next";
-import type { ElementType } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BedDouble, Bath, Maximize2, MapPin, Zap } from "lucide-react";
+import {
+  Bath,
+  BedDouble,
+  Building2,
+  CalendarDays,
+  Car,
+  ChevronRight,
+  ChevronUp,
+  MapPin,
+  Maximize2,
+  Phone,
+  Ruler,
+  Trees,
+  Zap,
+} from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -11,9 +24,17 @@ import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { PropertyActions } from "@/components/property/property-actions";
 import { ContactDialog } from "@/components/property/contact-dialog";
-import { propertyById, agentById } from "@/lib/data/mock";
+import { CostWizard } from "@/components/property/cost-wizard";
+import { CreditSimulator } from "@/components/property/credit-simulator";
+import { LocationMap } from "@/components/property/location-map";
+import { PropertyCard } from "@/components/property/property-card";
+import {
+  PropertyGallery,
+  type GalleryStat,
+} from "@/components/property/property-gallery";
+import { propertyById, agentById, similarProperties } from "@/lib/data/mock";
 import { formatArea, formatPhone, formatPrice, telLink, whatsappLink } from "@/lib/format";
-import { Phone } from "lucide-react";
+import type { ElementType } from "react";
 
 export async function generateMetadata({
   params,
@@ -40,73 +61,162 @@ export default async function ImovelPage({
   const listingAgent = agentById(property.agentId);
   // Attribution: the referring consultant (who brought the client) owns the
   // contact — not the listing agent (angariador).
-  const referrer =
-    ref && ref !== property.agentId ? agentById(ref) : undefined;
+  const referrer = ref && ref !== property.agentId ? agentById(ref) : undefined;
   const contact = referrer ?? listingAgent;
   const gallery = property.gallery ?? [property.image];
+  const similares = similarProperties(property, 3);
+  const suffix = referrer ? `?ref=${referrer.id}` : "";
+
+  const description =
+    property.description ??
+    `${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}, com ${property.area} m² e certificado energético ${property.energy}. Excelente oportunidade acompanhada de perto por um consultor HousePro, do primeiro contacto à escritura.`;
+
+  // Ícones embutidos na foto
+  const galleryStats: GalleryStat[] = [
+    { key: "beds", label: "Quartos", value: `${property.beds} quartos` },
+    {
+      key: "areaUtil",
+      label: "Área útil",
+      value: `${property.areaUtil ?? property.area} m²${property.areaUtil ? " úteis" : ""}`,
+    },
+    ...(property.areaDependente
+      ? [{ key: "areaDependente" as const, label: "Área dependente", value: `${property.areaDependente} m² dep.` }]
+      : []),
+    ...(property.landArea
+      ? [{ key: "land" as const, label: "Terreno", value: `Lote ${property.landArea} m²` }]
+      : []),
+    ...(property.garage ? [{ key: "garage" as const, label: "Garagem", value: "Garagem" }] : []),
+    ...(property.elevator ? [{ key: "elevator" as const, label: "Elevador", value: "Elevador" }] : []),
+    ...(property.constructionYear
+      ? [{ key: "year" as const, label: "Ano", value: `${property.constructionYear}` }]
+      : []),
+    { key: "location", label: "Localização", value: property.parish },
+  ];
+
+  // Características detalhadas
+  const specs: { icon?: ElementType; label: string; value: string }[] = [
+    { icon: Building2, label: "Tipo", value: property.type },
+    { label: "Tipologia", value: property.typology ?? "—" },
+    { icon: BedDouble, label: "Quartos", value: String(property.beds) },
+    { icon: Bath, label: "Casas de banho", value: String(property.baths) },
+    { icon: Maximize2, label: "Área bruta", value: formatArea(property.area) },
+    ...(property.areaUtil ? [{ icon: Maximize2, label: "Área útil", value: formatArea(property.areaUtil) }] : []),
+    ...(property.areaDependente ? [{ icon: Ruler, label: "Área dependente", value: formatArea(property.areaDependente) }] : []),
+    ...(property.landArea ? [{ icon: Trees, label: "Terreno / lote", value: formatArea(property.landArea) }] : []),
+    { icon: Car, label: "Estacionamento", value: property.garage ? "Sim" : "—" },
+    { icon: ChevronUp, label: "Elevador", value: property.elevator ? "Sim" : "—" },
+    ...(property.constructionYear ? [{ icon: CalendarDays, label: "Ano de construção", value: String(property.constructionYear) }] : []),
+    { icon: Zap, label: "Certificado energético", value: property.energy },
+    { label: "Referência", value: property.reference },
+  ];
 
   return (
     <div className="min-h-dvh bg-background">
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <p className="text-sm text-muted-foreground">
-          <Link href="/imoveis" className="hover:text-foreground">
-            Imóveis
-          </Link>{" "}
-          / {property.municipality}
-        </p>
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+        {/* Breadcrumbs — links de origem */}
+        <nav aria-label="Navegação" className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+          <Link href="/" className="hover:text-foreground">Início</Link>
+          <ChevronRight className="size-3.5" />
+          <Link href="/imoveis" className="hover:text-foreground">Imóveis</Link>
+          <ChevronRight className="size-3.5" />
+          <Link href="/imoveis" className="hover:text-foreground">{property.municipality}</Link>
+          <ChevronRight className="size-3.5" />
+          <span className="text-foreground">{property.reference}</span>
+        </nav>
 
-        <div className="mt-4 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
-          {/* Gallery */}
-          <div>
-            <div className="overflow-hidden rounded-2xl border">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={gallery[0]}
-                alt={property.title}
-                className="aspect-[16/10] w-full object-cover"
-              />
-            </div>
-            {gallery.length > 1 && (
-              <div className="mt-3 grid grid-cols-4 gap-3">
-                {gallery.slice(1, 5).map((src) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={src}
-                    src={src}
-                    alt=""
-                    className="aspect-square w-full rounded-lg border object-cover"
-                  />
+        {/* Cabeçalho (mobile-first: título e preço primeiro) */}
+        <header className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl leading-tight sm:text-3xl">
+              {property.title}
+            </h1>
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <MapPin className="size-4 shrink-0 text-primary" />
+              {property.parish}, {property.municipality}
+            </p>
+          </div>
+          <p className="shrink-0 text-3xl font-semibold tracking-tight">
+            {formatPrice(property)}
+          </p>
+        </header>
+
+        <div className="mt-6 grid gap-8 lg:grid-cols-[1.7fr_1fr]">
+          {/* Coluna principal */}
+          <div className="min-w-0 space-y-8">
+            <PropertyGallery
+              images={gallery}
+              title={property.title}
+              status={property.status}
+              operation={property.operation}
+              stats={galleryStats}
+            />
+
+            {/* Descrição curta em destaque */}
+            {property.shortDescription && (
+              <p className="text-lg leading-relaxed text-foreground/90">
+                {property.shortDescription}
+              </p>
+            )}
+
+            {/* Características */}
+            <section>
+              <h2 className="font-display text-xl">Características</h2>
+              <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 rounded-2xl border bg-card p-5 sm:grid-cols-3">
+                {specs.map((s) => (
+                  <div key={s.label}>
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {s.icon && <s.icon className="size-3.5" />} {s.label}
+                    </p>
+                    <p className="mt-0.5 font-medium">{s.value}</p>
+                  </div>
                 ))}
               </div>
-            )}
+            </section>
+
+            {/* Descrição completa */}
+            <section>
+              <h2 className="font-display text-xl">Descrição</h2>
+              <p className="mt-3 whitespace-pre-line leading-relaxed text-muted-foreground">
+                {description}
+              </p>
+            </section>
+
+            {/* Localização */}
+            <section>
+              <h2 className="font-display text-xl">Localização</h2>
+              <div className="mt-3">
+                <LocationMap parish={property.parish} municipality={property.municipality} />
+              </div>
+            </section>
+
+            {/* Financiamento */}
+            <section>
+              <h2 className="font-display text-xl">Financiamento</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Simule a prestação ou peça ao consultor o valor total com as
+                despesas de compra incluídas.
+              </p>
+              <div className="mt-4 rounded-2xl border bg-card p-5 shadow-sm">
+                <CreditSimulator initialPrice={property.price} />
+                <div className="mt-6 border-t pt-5">
+                  <CostWizard
+                    propertyId={property.id}
+                    reference={property.reference}
+                    price={property.price}
+                    referrerId={ref}
+                  />
+                  <p className="mt-2 text-center text-xs text-muted-foreground">
+                    Valores indicativos e estimados. Não dispensam simulação
+                    bancária nem a validação do consultor.
+                  </p>
+                </div>
+              </div>
+            </section>
           </div>
 
-          {/* Info + contact */}
-          <div className="space-y-6">
-            <div>
-              <p className="text-3xl font-semibold tracking-tight">
-                {formatPrice(property)}
-              </p>
-              <h1 className="mt-2 font-display text-2xl leading-snug">
-                {property.title}
-              </h1>
-              <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-                <MapPin className="size-4" /> {property.parish}, {property.municipality}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 rounded-2xl border bg-card p-4 text-sm sm:grid-cols-4">
-              <Spec label="Tipologia" value={property.typology ?? "—"} />
-              <Spec icon={BedDouble} label="Quartos" value={String(property.beds)} />
-              <Spec icon={Bath} label="WC" value={String(property.baths)} />
-              <Spec icon={Maximize2} label="Área" value={formatArea(property.area)} />
-              <Spec icon={Zap} label="Energia" value={property.energy} />
-              <Spec label="Tipo" value={property.type} />
-              <Spec label="Referência" value={property.reference} />
-            </div>
-
-            {/* Contact card */}
+          {/* Coluna de contacto (sticky) */}
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-2xl border bg-card p-5 shadow-sm">
               {referrer && (
                 <p className="mb-3 rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
@@ -132,8 +242,6 @@ export default async function ImovelPage({
               >
                 <WhatsappIcon className="size-4" /> Falar por WhatsApp
               </a>
-
-              {/* Telefone direto */}
               <a
                 href={telLink(contact.whatsapp)}
                 className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
@@ -143,8 +251,6 @@ export default async function ImovelPage({
               <p className="mt-1.5 text-center">
                 <PhoneNote />
               </p>
-
-              {/* Mensagem / pedir visita */}
               <div className="mt-4 border-t pt-4">
                 <ContactDialog
                   propertyId={property.id}
@@ -161,54 +267,38 @@ export default async function ImovelPage({
                 reference: property.reference,
                 location: `${property.parish}, ${property.municipality}`,
                 image: gallery[0],
-                description: `${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}, com ${property.area} m² e certificado energético ${property.energy}. Excelente oportunidade acompanhada de perto por um consultor HousePro, do primeiro contacto à escritura.`,
-                specs: [
-                  { label: "Tipologia", value: property.typology ?? "—" },
-                  { label: "Quartos", value: String(property.beds) },
-                  { label: "Casas de banho", value: String(property.baths) },
-                  { label: "Área", value: formatArea(property.area) },
-                  { label: "Certificado energético", value: property.energy },
-                  { label: "Tipo", value: property.type },
-                  { label: "Referência", value: property.reference },
-                ],
+                description,
+                specs: specs.map((s) => ({ label: s.label, value: s.value })),
                 contactName: contact.name,
                 contactRole: `${contact.role} · ${contact.agency}`,
                 contactPhoneNote: "Chamada para rede móvel nacional",
               }}
             />
-          </div>
+          </aside>
         </div>
 
-        <section className="mt-10 max-w-3xl">
-          <h2 className="font-display text-xl">Descrição</h2>
-          <p className="mt-3 text-muted-foreground">
-            {property.type} {property.typology ?? ""} em {property.parish},{" "}
-            {property.municipality}, com {property.area} m² e certificado
-            energético {property.energy}. Excelente oportunidade acompanhada de
-            perto por um consultor HousePro, do primeiro contacto à escritura.
-          </p>
-        </section>
+        {/* Imóveis semelhantes */}
+        {similares.length > 0 && (
+          <section className="mt-14">
+            <div className="flex items-end justify-between">
+              <h2 className="font-display text-2xl">Imóveis semelhantes</h2>
+              <Link href="/imoveis" className="text-sm font-medium text-primary hover:underline">
+                Ver todos
+              </Link>
+            </div>
+            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {similares.map((p) => (
+                <PropertyCard
+                  key={p.id}
+                  property={p}
+                  referrer={referrer}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
       <SiteFooter />
-    </div>
-  );
-}
-
-function Spec({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon?: ElementType;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div>
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        {Icon && <Icon className="size-3.5" />} {label}
-      </p>
-      <p className="mt-0.5 font-medium">{value}</p>
     </div>
   );
 }

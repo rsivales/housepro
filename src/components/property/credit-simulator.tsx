@@ -33,8 +33,8 @@ function Field({
   );
 }
 
-export function CreditSimulator() {
-  const [price, setPrice] = React.useState(300000);
+export function CreditSimulator({ initialPrice = 300000 }: { initialPrice?: number }) {
+  const [price, setPrice] = React.useState(initialPrice);
   const [downPct, setDownPct] = React.useState(20);
   const [years, setYears] = React.useState(30);
   const [rate, setRate] = React.useState(3.4);

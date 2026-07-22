@@ -20,7 +20,12 @@ export async function POST(request: Request) {
   const name = String(body.name ?? "").trim();
   const contact = String(body.contact ?? "").trim();
   const consent = Boolean(body.consent);
-  const intent = body.intent === "visita" ? "visita" : "mensagem";
+  const intent =
+    body.intent === "visita"
+      ? "visita"
+      : body.intent === "custos"
+        ? "custos"
+        : "mensagem";
   const propertyId = body.propertyId ? String(body.propertyId) : undefined;
   const ref = body.ref ? String(body.ref) : undefined;
 

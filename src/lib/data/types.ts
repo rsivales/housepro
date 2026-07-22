@@ -7,7 +7,13 @@ export type PropertyType =
   | "Loja"
   | "Escritório";
 
-export type PropertyStatus = "novo" | "destaque" | "reduzido" | "vendido";
+export type PropertyStatus =
+  | "novo"
+  | "destaque"
+  | "reduzido"
+  | "oportunidade"
+  | "reservado"
+  | "vendido";
 
 export type EnergyRating =
   | "A+"
@@ -64,6 +70,22 @@ export interface Property {
   image: string;
   /** Optional gallery (real photos); cover first. */
   gallery?: string[];
+  /** One-line teaser shown on the listing page. */
+  shortDescription?: string;
+  /** Full marketing description (paragraphs). */
+  description?: string;
+  /** Área útil (privativa) em m². */
+  areaUtil?: number;
+  /** Área dependente (varandas, arrecadação…) em m². */
+  areaDependente?: number;
+  /** Área de terreno / lote em m² (moradias, terrenos). */
+  landArea?: number;
+  /** Tem garagem / lugar de estacionamento. */
+  garage?: boolean;
+  /** Tem elevador. */
+  elevator?: boolean;
+  /** Ano de construção. */
+  constructionYear?: number;
   agentId: string;
   /** Engagement proxy 0–100 (visitas + leads + favoritos) for ranking. */
   interest?: number;

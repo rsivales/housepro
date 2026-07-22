@@ -7,12 +7,8 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { PropertyCard } from "@/components/property/property-card";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
-import {
-  agencyBySlug,
-  agentsByAgency,
-  propertiesByAgency,
-  soldByAgency,
-} from "@/lib/data/mock";
+import { agencyBySlug, agentsByAgency } from "@/lib/data/mock";
+import { listPropertiesByAgency, listSoldByAgency } from "@/lib/db/repo";
 import { applyOrdering } from "@/lib/data/ordering";
 
 export async function generateMetadata({
@@ -35,8 +31,8 @@ export default async function AgenciaPage({
   if (!agency) notFound();
 
   const team = agentsByAgency(agency.id);
-  const listings = applyOrdering(propertiesByAgency(agency.id), "recentes");
-  const sold = soldByAgency(agency.id);
+  const listings = applyOrdering(await listPropertiesByAgency(agency.id), "recentes");
+  const sold = await listSoldByAgency(agency.id);
 
   return (
     <div className="min-h-dvh bg-background">

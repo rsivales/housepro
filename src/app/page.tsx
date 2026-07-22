@@ -23,7 +23,8 @@ import { ConsentField } from "@/components/forms/consent-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { featuredProperties, agents } from "@/lib/data/mock";
+import { agents } from "@/lib/data/mock";
+import { listProperties } from "@/lib/db/repo";
 import { topFeatured } from "@/lib/data/ranking";
 import { getNews } from "@/lib/data/news";
 
@@ -36,9 +37,10 @@ const stats = [
 
 export default async function Home() {
   const news = await getNews(6);
-  const destaques = topFeatured(3);
+  const disponiveis = await listProperties();
+  const destaques = topFeatured(3, disponiveis);
   const destaqueIds = new Set(destaques.map((p) => p.id));
-  const restantes = featuredProperties.filter((p) => !destaqueIds.has(p.id));
+  const restantes = disponiveis.filter((p) => !destaqueIds.has(p.id));
 
   return (
     <div id="top" className="min-h-dvh bg-background">

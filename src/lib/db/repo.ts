@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import {
   availableProperties,
   propertiesByAgent as mockByAgent,
+  propertiesByAgency as mockByAgency,
+  soldByAgency as mockSoldByAgency,
+  similarProperties as mockSimilar,
   propertyById as mockById,
 } from "@/lib/data/mock";
 import { leadsByOwner } from "@/lib/data/leads";
@@ -34,6 +37,17 @@ function mapRow(r: Row): Property {
     energy: (r.energy as Property["energy"]) ?? "C",
     status: (r.status as Property["status"]) ?? null,
     image: String(r.cover_url ?? ""),
+    gallery: Array.isArray(r.gallery) && r.gallery.length ? (r.gallery as string[]) : undefined,
+    shortDescription: (r.short_description as string) ?? undefined,
+    description: (r.description as string) ?? undefined,
+    areaUtil: r.area_util != null ? Number(r.area_util) : undefined,
+    areaDependente: r.area_dependente != null ? Number(r.area_dependente) : undefined,
+    landArea: r.land_area != null ? Number(r.land_area) : undefined,
+    garage: r.garage != null ? Boolean(r.garage) : undefined,
+    elevator: r.elevator != null ? Boolean(r.elevator) : undefined,
+    constructionYear: r.construction_year != null ? Number(r.construction_year) : undefined,
+    lat: r.latitude != null ? Number(r.latitude) : undefined,
+    lng: r.longitude != null ? Number(r.longitude) : undefined,
     agentId: String(r.agent_id ?? ""),
     interest: r.interest != null ? Number(r.interest) : undefined,
     listedAt: (r.listed_at as string) ?? undefined,
@@ -75,6 +89,49 @@ export async function listProperties(): Promise<Property[]> {
     .select("*")
     .neq("status", "vendido")
     .order("listed_at", { ascending: false });
+  return (data ?? []).map(mapRow);
+}
+
+export async function listPropertiesByAgency(agencyId: string): Promise<Property[]> {
+  if (!isSupabaseConfigured()) return mockByAgency(agencyId);
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("properties")
+    .select("*, profiles!inner(agency_id)")
+    .eq("profiles.agency_id", agencyId)
+    .neq("status", "vendido")
+    .order("listed_at", { ascending: false });
+  return (data ?? []).map(mapRow);
+}
+
+export async function listSoldByAgency(agencyId: string): Promise<Property[]> {
+  if (!isSupabaseConfigured()) return mockSoldByAgency(agencyId);
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("properties")
+    .select("*, profiles!inner(agency_id)")
+    .eq("profiles.agency_id", agencyId)
+    .eq("status", "vendido")
+    .order("sold_at", { ascending: false });
+  return (data ?? []).map(mapRow);
+}
+
+export async function listSimilarProperties(
+  property: Property,
+  limit = 3
+): Promise<Property[]> {
+  if (!isSupabaseConfigured()) return mockSimilar(property, limit);
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("properties")
+    .select("*")
+    .neq("id", property.id)
+    .neq("status", "vendido")
+    .eq("municipality", property.municipality)
+    .limit(limit);
   return (data ?? []).map(mapRow);
 }
 

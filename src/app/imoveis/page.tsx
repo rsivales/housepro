@@ -4,7 +4,7 @@ import { MapPin } from "lucide-react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { PropertyCard } from "@/components/property/property-card";
-import { properties } from "@/lib/data/mock";
+import { listProperties } from "@/lib/db/repo";
 import { rankedProperties } from "@/lib/data/ranking";
 
 export const metadata: Metadata = { title: "Imóveis" };
@@ -25,7 +25,7 @@ export default async function ImoveisPage({
         : undefined;
   const local = sp.local?.trim();
 
-  let list = rankedProperties(properties);
+  let list = rankedProperties(await listProperties());
   if (operacao) list = list.filter((p) => p.operation === operacao);
   if (local) {
     const q = local.toLowerCase();

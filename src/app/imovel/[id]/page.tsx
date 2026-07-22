@@ -32,7 +32,8 @@ import {
   PropertyGallery,
   type GalleryStat,
 } from "@/components/property/property-gallery";
-import { propertyById, agentById, similarProperties } from "@/lib/data/mock";
+import { agentById } from "@/lib/data/mock";
+import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
 import { formatArea, formatPhone, formatPrice, telLink, whatsappLink } from "@/lib/format";
 import type { ElementType } from "react";
 
@@ -42,7 +43,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const p = propertyById(id);
+  const p = await getPropertyById(id);
   return { title: p ? `${p.title} · ${p.reference}` : "Imóvel" };
 }
 
@@ -55,7 +56,7 @@ export default async function ImovelPage({
 }) {
   const { id } = await params;
   const { ref } = await searchParams;
-  const property = propertyById(id);
+  const property = await getPropertyById(id);
   if (!property) notFound();
 
   const listingAgent = agentById(property.agentId);
@@ -64,7 +65,7 @@ export default async function ImovelPage({
   const referrer = ref && ref !== property.agentId ? agentById(ref) : undefined;
   const contact = referrer ?? listingAgent;
   const gallery = property.gallery ?? [property.image];
-  const similares = similarProperties(property, 3);
+  const similares = await listSimilarProperties(property, 3);
 
   const description =
     property.description ??

@@ -11,12 +11,8 @@ import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { Button } from "@/components/ui/button";
-import {
-  agents,
-  agentById,
-  availableProperties,
-  propertiesByAgent,
-} from "@/lib/data/mock";
+import { agents, agentById } from "@/lib/data/mock";
+import { listProperties, listPropertiesByAgent } from "@/lib/db/repo";
 
 export async function generateMetadata({
   params,
@@ -37,8 +33,8 @@ export default async function ConsultorPage({
   const agent = agents.find((x) => x.id === id);
   if (!agent) notFound();
 
-  const mine = propertiesByAgent(agent.id);
-  const others = availableProperties
+  const mine = await listPropertiesByAgent(agent.id);
+  const others = (await listProperties())
     .filter((p) => p.agentId !== agent.id)
     .slice(0, 3);
 

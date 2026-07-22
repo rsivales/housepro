@@ -57,7 +57,11 @@ export function toIdealistaXML(d: ImovelDraft): string {
     <address>
       <parish>${esc(d.parish)}</parish>
       <municipality>${esc(d.municipality)}</municipality>
-      <country>PT</country>
+      <country>PT</country>${
+        d.lat != null && d.lng != null
+          ? `\n      <latitude>${d.lat}</latitude>\n      <longitude>${d.lng}</longitude>`
+          : ""
+      }
     </address>
     <shortDescription><![CDATA[${d.descricaoCurta}]]></shortDescription>
     <description language="pt"><![CDATA[${d.descricao}]]></description>

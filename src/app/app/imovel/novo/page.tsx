@@ -116,6 +116,32 @@ export default function NovoImovel() {
     setSaved(false);
   }
 
+  // Geocodificação automática da morada → coordenadas do mapa.
+  const [geo, setGeo] = React.useState<"idle" | "loading" | "ok" | "none" | "error">("idle");
+  const geocode = React.useCallback(async (parish: string, municipality: string) => {
+    const q = [parish, municipality].filter(Boolean).join(", ");
+    if (!q) return;
+    setGeo("loading");
+    try {
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(q + ", Portugal")}`);
+      const data = await res.json();
+      if (data.found) {
+        setD((prev) => ({ ...prev, lat: data.lat, lng: data.lng }));
+        setGeo("ok");
+      } else {
+        setGeo("none");
+      }
+    } catch {
+      setGeo("error");
+    }
+  }, []);
+  // Corre automaticamente quando freguesia e concelho estão preenchidos.
+  React.useEffect(() => {
+    if (!d.parish.trim() || !d.municipality.trim()) return;
+    const t = setTimeout(() => geocode(d.parish, d.municipality), 800);
+    return () => clearTimeout(t);
+  }, [d.parish, d.municipality, geocode]);
+
   // Reprocessa fotos quando o toggle ou o estilo global mudam.
   React.useEffect(() => {
     let alive = true;
@@ -349,7 +375,12 @@ export default function NovoImovel() {
                 {ENERGIAS.map((t) => <option key={t}>{t}</option>)}
               </select>
             </Field>
-            <Field label="Freguesia"><Input value={d.parish} onChange={(e) => patch({ parish: e.target.value })} /></Field>
+            <Field
+              label="Freguesia"
+              hint={geoHint(geo, d.lat, d.lng)}
+            >
+              <Input value={d.parish} onChange={(e) => patch({ parish: e.target.value })} />
+            </Field>
             <Field label="Concelho"><Input value={d.municipality} onChange={(e) => patch({ municipality: e.target.value })} /></Field>
             <Field label="Referência"><Input value={d.reference} onChange={(e) => patch({ reference: e.target.value })} placeholder="HP-1050" /></Field>
             <Field label="Vista">
@@ -557,6 +588,19 @@ export default function NovoImovel() {
       )}
     </div>
   );
+}
+
+function geoHint(
+  geo: "idle" | "loading" | "ok" | "none" | "error",
+  lat?: number,
+  lng?: number
+): string | undefined {
+  if (geo === "loading") return "A localizar no mapa…";
+  if (geo === "ok" && lat != null && lng != null)
+    return `📍 Coordenadas automáticas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  if (geo === "none") return "Não foi possível localizar — verifique a freguesia/concelho.";
+  if (geo === "error") return "Geocodificação indisponível (liga em produção).";
+  return "As coordenadas do mapa são obtidas automaticamente da morada.";
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {

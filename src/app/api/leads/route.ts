@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { propertyById, agentById } from "@/lib/data/mock";
 import { createLead } from "@/lib/db/repo";
+import { notifyLead } from "@/lib/notify";
 
 /**
  * Recolhe uma lead do site (mensagem ou pedido de visita).
@@ -58,5 +59,19 @@ export async function POST(request: Request) {
     source: "site",
   });
 
-  return NextResponse.json({ ok: true, id: lead.id, owner: owner?.name ?? null });
+  // Notifica o consultor (best-effort; não bloqueia a resposta em caso de falha).
+  const notified = await notifyLead(lead, {
+    agentName: owner?.name,
+    propertyRef: property?.reference,
+    propertyUrl: propertyId
+      ? `https://www.housepro.pt/imovel/${propertyId}${referrerId ? `?ref=${referrerId}` : ""}`
+      : undefined,
+  });
+
+  return NextResponse.json({
+    ok: true,
+    id: lead.id,
+    owner: owner?.name ?? null,
+    notified,
+  });
 }

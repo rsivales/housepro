@@ -70,6 +70,9 @@ export interface ImovelDraft {
   baths: number;
   parish: string;
   municipality: string;
+  /** Coordenadas geocodificadas automaticamente a partir da morada. */
+  lat?: number;
+  lng?: number;
   energy: string;
   anoConstrucao: string;
   // Características booleanas

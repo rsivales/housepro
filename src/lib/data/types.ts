@@ -86,6 +86,9 @@ export interface Property {
   elevator?: boolean;
   /** Ano de construção. */
   constructionYear?: number;
+  /** Coordenadas para marcador preciso no mapa; opcional. */
+  lat?: number;
+  lng?: number;
   agentId: string;
   /** Engagement proxy 0–100 (visitas + leads + favoritos) for ranking. */
   interest?: number;

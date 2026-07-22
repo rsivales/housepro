@@ -65,7 +65,6 @@ export default async function ImovelPage({
   const contact = referrer ?? listingAgent;
   const gallery = property.gallery ?? [property.image];
   const similares = similarProperties(property, 3);
-  const suffix = referrer ? `?ref=${referrer.id}` : "";
 
   const description =
     property.description ??
@@ -186,7 +185,12 @@ export default async function ImovelPage({
             <section>
               <h2 className="font-display text-xl">Localização</h2>
               <div className="mt-3">
-                <LocationMap parish={property.parish} municipality={property.municipality} />
+                <LocationMap
+                  parish={property.parish}
+                  municipality={property.municipality}
+                  lat={property.lat}
+                  lng={property.lng}
+                />
               </div>
             </section>
 

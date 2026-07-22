@@ -3,9 +3,37 @@
 
 export interface ImovelDoc {
   name: string;
-  kind: string; // caderneta | cert_energetico | planta | mandato | outro
+  kind: string; // ver DOC_KINDS
   validated?: boolean;
+  /** Data URL (imagem ou PDF) para pré-visualização/abertura. */
+  url?: string;
+  /** MIME do ficheiro carregado (image/*, application/pdf). */
+  mime?: string;
 }
+
+/** Tipos de documento de um imóvel, agrupados. "Herança" só aparece quando
+ *  o imóvel provém de uma partilha/herança (exige documentação adicional). */
+export const DOC_KINDS: { value: string; label: string; group: "base" | "heranca" }[] = [
+  { value: "caderneta", label: "Caderneta predial", group: "base" },
+  { value: "certidao_predial", label: "Certidão predial permanente", group: "base" },
+  { value: "cert_energetico", label: "Certificado energético", group: "base" },
+  { value: "licenca_utilizacao", label: "Licença de utilização", group: "base" },
+  { value: "ficha_tecnica", label: "Ficha técnica de habitação", group: "base" },
+  { value: "planta", label: "Planta", group: "base" },
+  { value: "procuracao", label: "Procuração", group: "base" },
+  { value: "identificacao", label: "Identificação (CC / NIF)", group: "base" },
+  { value: "distrate", label: "Distrate / cancelamento de hipoteca", group: "base" },
+  { value: "outro", label: "Outro", group: "base" },
+  // Documentos adicionais quando o imóvel vem de herança / partilha
+  { value: "habilitacao_herdeiros", label: "Habilitação de herdeiros", group: "heranca" },
+  { value: "escritura_partilha", label: "Escritura de partilha", group: "heranca" },
+  { value: "certidao_obito", label: "Certidão de óbito", group: "heranca" },
+  { value: "imposto_selo_heranca", label: "Imposto do selo (herança)", group: "heranca" },
+  { value: "testamento", label: "Testamento", group: "heranca" },
+];
+
+export const docLabel = (value: string): string =>
+  DOC_KINDS.find((d) => d.value === value)?.label ?? value;
 
 export type WatermarkPos =
   | "top-left"
@@ -60,13 +88,13 @@ export interface ImovelDraft {
   slug: string;
   keywords: string;
   // Media & docs (URLs/Storage em produção)
+  /** Aplicar a marca de água (o estilo — tamanho/posição/transparência — é
+   *  global, definido pelo admin da marca em /admin). */
   watermark: boolean;
-  /** Tamanho da marca de água em % da largura da foto (~6–40). */
-  watermarkSize: number;
-  /** Posição: top-left | top-center | … | center | … | bottom-right. */
-  watermarkPos: WatermarkPos;
   fotosCount: number;
   planta: boolean;
+  /** Imóvel proveniente de herança/partilha — exige documentação adicional. */
+  heranca: boolean;
   documentos: ImovelDoc[];
 }
 
@@ -129,10 +157,9 @@ export function blankImovel(id: string): ImovelDraft {
     slug: "",
     keywords: "",
     watermark: true,
-    watermarkSize: 5,
-    watermarkPos: "bottom-right",
     fotosCount: 0,
     planta: false,
+    heranca: false,
     documentos: [],
   };
 }

@@ -6,12 +6,15 @@ import {
   ArrowLeft,
   Camera,
   Check,
+  Eye,
   FileDown,
   FileText,
   ImagePlus,
   Loader2,
+  Settings2,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -19,18 +22,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  DOC_KINDS,
   EQUIPAMENTOS,
   ENERGIAS,
   TIPOS,
   TIPOLOGIAS,
   VISTAS,
-  WATERMARK_POSITIONS,
   blankImovel,
+  docLabel,
   slugify,
   type ImovelDoc,
   type ImovelDraft,
-  type WatermarkPos,
 } from "@/lib/imovel/model";
+import {
+  defaultWatermark,
+  readWatermarkConfig,
+  type WatermarkConfig,
+} from "@/lib/config";
 import { toIdealistaXML } from "@/lib/imovel/idealista";
 
 const box =
@@ -44,12 +52,8 @@ function readFile(file: File): Promise<string> {
   });
 }
 
-/** Marca de água única "HousePro", com tamanho e posição configuráveis. */
-async function watermark(
-  dataUrl: string,
-  sizePct: number,
-  pos: WatermarkPos
-): Promise<string> {
+/** Marca de água única "HousePro" segundo o estilo GLOBAL da marca. */
+async function watermark(dataUrl: string, cfg: WatermarkConfig): Promise<string> {
   const img = new Image();
   img.src = dataUrl;
   await img.decode();
@@ -59,8 +63,8 @@ async function watermark(
   const ctx = c.getContext("2d")!;
   ctx.drawImage(img, 0, 0);
 
-  const label = "HousePro";
-  const fs = Math.max(14, (c.width * sizePct) / 100);
+  const label = cfg.label || "HousePro";
+  const fs = Math.max(14, (c.width * cfg.size) / 100);
   ctx.font = `700 ${fs}px sans-serif`;
   const tw = ctx.measureText(label).width;
   const padX = fs * 0.5;
@@ -68,20 +72,22 @@ async function watermark(
   const bw = tw + padX * 2;
   const bh = fs + padY * 2;
   const margin = Math.max(10, c.width * 0.02);
+  const pos = cfg.position;
 
   const horiz = pos.endsWith("left") ? "left" : pos.endsWith("right") ? "right" : "center";
   const vert = pos.startsWith("top") ? "top" : pos.startsWith("bottom") ? "bottom" : "center";
   const x = horiz === "left" ? margin : horiz === "right" ? c.width - bw - margin : (c.width - bw) / 2;
   const y = vert === "top" ? margin : vert === "bottom" ? c.height - bh - margin : (c.height - bh) / 2;
 
+  const alpha = Math.max(0, Math.min(1, cfg.opacity / 100));
   const r = bh * 0.25;
-  ctx.fillStyle = "rgba(20,40,32,0.55)";
+  ctx.fillStyle = `rgba(20,40,32,${0.55 * alpha})`;
   ctx.beginPath();
   if (typeof ctx.roundRect === "function") ctx.roundRect(x, y, bw, bh, r);
   else ctx.rect(x, y, bw, bh);
   ctx.fill();
 
-  ctx.fillStyle = "rgba(255,255,255,0.94)";
+  ctx.fillStyle = `rgba(255,255,255,${alpha})`;
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
   ctx.fillText(label, x + padX, y + bh / 2);
@@ -97,21 +103,26 @@ export default function NovoImovel() {
   const [saved, setSaved] = React.useState(false);
   const [xml, setXml] = React.useState<string | null>(null);
   const [docKind, setDocKind] = React.useState("caderneta");
+  const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
+  const [preview, setPreview] = React.useState<ImovelDoc | null>(null);
+
+  // Lê o estilo global da marca de água (definido pelo admin).
+  React.useEffect(() => {
+    setWm(readWatermarkConfig());
+  }, []);
 
   function patch(p: Partial<ImovelDraft>) {
     setD((prev) => ({ ...prev, ...p }));
     setSaved(false);
   }
 
-  // Reprocessa fotos quando a marca de água / tamanho / posição mudam
+  // Reprocessa fotos quando o toggle ou o estilo global mudam.
   React.useEffect(() => {
     let alive = true;
     (async () => {
       setProcessing(true);
       const out = await Promise.all(
-        originals.map((o) =>
-          d.watermark ? watermark(o, d.watermarkSize, d.watermarkPos) : Promise.resolve(o)
-        )
+        originals.map((o) => (d.watermark ? watermark(o, wm) : Promise.resolve(o)))
       );
       if (alive) {
         setFotos(out);
@@ -121,7 +132,7 @@ export default function NovoImovel() {
     return () => {
       alive = false;
     };
-  }, [originals, d.watermark, d.watermarkSize, d.watermarkPos]);
+  }, [originals, d.watermark, wm]);
 
   async function onPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -133,12 +144,22 @@ export default function NovoImovel() {
     setOriginals((prev) => prev.filter((_, idx) => idx !== i));
   }
 
-  function onDocs(e: React.ChangeEvent<HTMLInputElement>, kind: string) {
+  async function onDocs(e: React.ChangeEvent<HTMLInputElement>, kind: string) {
     const files = Array.from(e.target.files ?? []);
-    const docs: ImovelDoc[] = files.map((f) => ({ name: f.name, kind }));
+    const docs: ImovelDoc[] = await Promise.all(
+      files.map(async (f) => ({
+        name: f.name,
+        kind,
+        url: await readFile(f),
+        mime: f.type,
+      }))
+    );
     patch({ documentos: [...d.documentos, ...docs] });
     if (kind === "planta" && files.length) patch({ planta: true });
     e.target.value = "";
+  }
+  function removeDoc(i: number) {
+    patch({ documentos: d.documentos.filter((_, idx) => idx !== i) });
   }
   function validateDoc(i: number) {
     patch({
@@ -149,8 +170,15 @@ export default function NovoImovel() {
   }
 
   function save() {
-    const { ...persist } = d;
-    localStorage.setItem("imovel:novo", JSON.stringify({ ...persist, fotosCount: fotos.length }));
+    // Não persistir os data URLs (podem ser grandes); ficam em memória/Storage.
+    const persist = {
+      ...d,
+      documentos: d.documentos.map((doc) => ({ name: doc.name, kind: doc.kind, validated: doc.validated })),
+    };
+    localStorage.setItem(
+      "imovel:novo",
+      JSON.stringify({ ...persist, fotosCount: fotos.length })
+    );
     setSaved(true);
   }
 
@@ -174,6 +202,8 @@ export default function NovoImovel() {
         : [...d.equipamentos, item],
     });
   }
+
+  const visibleKinds = DOC_KINDS.filter((k) => k.group === "base" || d.heranca);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -222,42 +252,17 @@ export default function NovoImovel() {
             </label>
           </div>
 
-          {/* Controlos da marca de água: tamanho + posição */}
+          {/* O estilo é global — apenas o admin o define. */}
           {d.watermark && (
-            <div className="mt-4 grid gap-5 rounded-xl border bg-secondary/30 p-4 sm:grid-cols-2">
-              <div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">Tamanho</span>
-                  <span className="text-muted-foreground">{d.watermarkSize}%</span>
-                </div>
-                <input
-                  type="range"
-                  min={2}
-                  max={14}
-                  value={d.watermarkSize}
-                  onChange={(e) => patch({ watermarkSize: Number(e.target.value) })}
-                  className="mt-2 w-full accent-primary"
-                />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Posição</p>
-                <div className="mt-2 grid w-24 grid-cols-3 gap-1">
-                  {WATERMARK_POSITIONS.map((pos) => (
-                    <button
-                      key={pos}
-                      type="button"
-                      onClick={() => patch({ watermarkPos: pos })}
-                      aria-label={pos}
-                      className={cn(
-                        "aspect-square rounded-sm border transition-colors",
-                        d.watermarkPos === pos
-                          ? "border-primary bg-primary"
-                          : "border-border bg-background hover:bg-secondary"
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
+            <div className="mt-4 flex items-start gap-2 rounded-xl border bg-secondary/30 p-3 text-xs text-muted-foreground">
+              <Settings2 className="mt-0.5 size-4 shrink-0" />
+              <p>
+                Marca de água <strong className="text-foreground">{wm.label}</strong> · tamanho{" "}
+                {wm.size}% · {wm.position} · transparência {wm.opacity}%. O estilo é{" "}
+                <strong className="text-foreground">global</strong> e definido pela marca em{" "}
+                <Link href="/admin" className="text-primary hover:underline">/admin</Link>{" "}
+                para todo o site ser consistente.
+              </p>
             </div>
           )}
 
@@ -403,25 +408,31 @@ export default function NovoImovel() {
 
         {/* Documentos & planta */}
         <Card title="Documentos & planta">
-          <p className="text-sm text-muted-foreground">Tipo de documento</p>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={d.heranca}
+              onChange={(e) => patch({ heranca: e.target.checked })}
+              className="size-4 accent-primary"
+            />
+            Imóvel proveniente de herança / partilha
+            <span className="text-xs text-muted-foreground">(mostra documentos adicionais)</span>
+          </label>
+
+          <p className="mt-4 text-sm text-muted-foreground">Tipo de documento</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {[
-              ["caderneta", "Caderneta predial"],
-              ["cert_energetico", "Certificado energético"],
-              ["planta", "Planta"],
-              ["mandato", "Mandato"],
-              ["outro", "Outro"],
-            ].map(([k, label]) => (
+            {visibleKinds.map((k) => (
               <button
-                key={k}
+                key={k.value}
                 type="button"
-                onClick={() => setDocKind(k)}
+                onClick={() => setDocKind(k.value)}
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                  docKind === k ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
+                  docKind === k.value ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary",
+                  k.group === "heranca" && docKind !== k.value && "border-dashed"
                 )}
               >
-                {label}
+                {k.label}
               </button>
             ))}
           </div>
@@ -454,24 +465,40 @@ export default function NovoImovel() {
                   <span className="flex min-w-0 items-center gap-2">
                     <FileText className="size-4 shrink-0 text-muted-foreground" />
                     <span className="truncate">{doc.name}</span>
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">{doc.kind}</span>
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">{docLabel(doc.kind)}</span>
                   </span>
-                  {doc.validated ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
-                      <Check className="size-3.5" /> Validado
-                    </span>
-                  ) : (
-                    <Button type="button" variant="outline" size="sm" onClick={() => validateDoc(i)}>
-                      Ler para validar
-                    </Button>
-                  )}
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {doc.url && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setPreview(doc)}>
+                        <Eye className="size-3.5" /> Ver
+                      </Button>
+                    )}
+                    {doc.validated ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
+                        <Check className="size-3.5" /> Validado
+                      </span>
+                    ) : (
+                      <Button type="button" variant="outline" size="sm" onClick={() => validateDoc(i)}>
+                        Ler para validar
+                      </Button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeDoc(i)}
+                      className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      aria-label="Remover documento"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
           )}
           <p className="mt-3 text-xs text-muted-foreground">
-            A leitura dos documentos (OCR) valida áreas, morada e certificado energético; corre no
-            servidor em produção. Aqui, marca como validado para efeitos de demonstração.
+            Abra cada documento em <strong>Ver</strong> para o visualizar antes de validar. A
+            leitura (OCR) valida áreas, morada e certificado energético e corre no servidor em
+            produção; aqui, marque como validado para efeitos de demonstração.
           </p>
         </Card>
 
@@ -487,6 +514,47 @@ export default function NovoImovel() {
           <Button variant="outline" onClick={exportarIdealista}><FileDown className="size-4" /> Exportar Idealista (XML)</Button>
         </div>
       </main>
+
+      {/* Pré-visualização de documento */}
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
+          onClick={() => setPreview(null)}
+        >
+          <div
+            className="flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <span className="flex min-w-0 items-center gap-2 text-sm">
+                <FileText className="size-4 shrink-0 text-muted-foreground" />
+                <span className="truncate font-medium">{preview.name}</span>
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">{docLabel(preview.kind)}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreview(null)}
+                className="grid size-8 place-items-center rounded-md hover:bg-secondary"
+                aria-label="Fechar"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto bg-secondary/40 p-4">
+              {preview.mime === "application/pdf" ? (
+                <object data={preview.url} type="application/pdf" className="h-[70dvh] w-full rounded-lg">
+                  <a href={preview.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                    Abrir PDF
+                  </a>
+                </object>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview.url} alt={preview.name} className="mx-auto max-h-[70dvh] rounded-lg object-contain" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -509,4 +577,3 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
     </div>
   );
 }
-

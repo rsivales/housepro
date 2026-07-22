@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Settings, ExternalLink } from "lucide-react";
+import { Settings, ExternalLink, Stamp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -11,19 +11,35 @@ import {
   ORDERING_RULES,
   type OrderingRule,
 } from "@/lib/data/ordering";
-import { siteConfig, HOME_RULE_KEY } from "@/lib/config";
+import { siteConfig, HOME_RULE_KEY, WATERMARK_KEY, defaultWatermark, type WatermarkConfig } from "@/lib/config";
+import { WATERMARK_POSITIONS } from "@/lib/imovel/model";
 
 export default function AdminPage() {
   const [rule, setRule] = React.useState<OrderingRule>(siteConfig.homeMoreRule);
+  const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
 
   React.useEffect(() => {
     const stored = localStorage.getItem(HOME_RULE_KEY) as OrderingRule | null;
     if (stored && stored in ORDERING_LABELS) setRule(stored);
+    const wmRaw = localStorage.getItem(WATERMARK_KEY);
+    if (wmRaw) {
+      try {
+        setWm({ ...defaultWatermark, ...JSON.parse(wmRaw) });
+      } catch {}
+    }
   }, []);
 
   function choose(r: OrderingRule) {
     setRule(r);
     localStorage.setItem(HOME_RULE_KEY, r);
+  }
+
+  function patchWm(p: Partial<WatermarkConfig>) {
+    setWm((prev) => {
+      const next = { ...prev, ...p };
+      localStorage.setItem(WATERMARK_KEY, JSON.stringify(next));
+      return next;
+    });
   }
 
   return (
@@ -37,7 +53,7 @@ export default function AdminPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           Definições editáveis pela marca/coordenador. Nesta fase são guardadas
           no navegador; com o back office (M5 + autenticação) passam a ser
-          persistidas por agência no Supabase.
+          persistidas no Supabase.
         </p>
 
         <div className="mt-8 rounded-2xl border bg-card p-6 shadow-sm">
@@ -72,7 +88,107 @@ export default function AdminPage() {
             Ver a homepage <ExternalLink className="size-3.5" />
           </Link>
         </div>
+
+        {/* Marca de água — estilo GLOBAL */}
+        <div className="mt-6 rounded-2xl border bg-card p-6 shadow-sm">
+          <h2 className="flex items-center gap-1.5 font-medium">
+            <Stamp className="size-4 text-primary" /> Marca de água (global)
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Aplica-se a <strong>todas as fotos de todos os imóveis e agências</strong>, para o
+            site ser consistente. Só a marca (admin) altera estes controlos — o consultor apenas
+            liga/desliga por imóvel.
+          </p>
+
+          <div className="mt-5 grid gap-6 sm:grid-cols-2">
+            {/* Pré-visualização */}
+            <div>
+              <p className="mb-2 text-sm font-medium">Pré-visualização</p>
+              <WatermarkPreview cfg={wm} />
+            </div>
+
+            {/* Controlos */}
+            <div className="space-y-5">
+              <label className="block">
+                <span className="text-sm font-medium">Texto</span>
+                <input
+                  value={wm.label}
+                  onChange={(e) => patchWm({ label: e.target.value })}
+                  className="mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                />
+              </label>
+
+              <div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Tamanho</span>
+                  <span className="text-muted-foreground">{wm.size}%</span>
+                </div>
+                <input
+                  type="range" min={2} max={14} value={wm.size}
+                  onChange={(e) => patchWm({ size: Number(e.target.value) })}
+                  className="mt-2 w-full accent-primary"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Transparência</span>
+                  <span className="text-muted-foreground">{wm.opacity}%</span>
+                </div>
+                <input
+                  type="range" min={20} max={100} value={wm.opacity}
+                  onChange={(e) => patchWm({ opacity: Number(e.target.value) })}
+                  className="mt-2 w-full accent-primary"
+                />
+              </div>
+
+              <div>
+                <p className="text-sm font-medium">Posição</p>
+                <div className="mt-2 grid w-24 grid-cols-3 gap-1">
+                  {WATERMARK_POSITIONS.map((pos) => (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => patchWm({ position: pos })}
+                      aria-label={pos}
+                      className={cn(
+                        "aspect-square rounded-sm border transition-colors",
+                        wm.position === pos
+                          ? "border-primary bg-primary"
+                          : "border-border bg-background hover:bg-secondary"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
+    </div>
+  );
+}
+
+/** Mostra o posicionamento/tamanho/transparência sobre um retângulo de exemplo. */
+function WatermarkPreview({ cfg }: { cfg: WatermarkConfig }) {
+  const pos = cfg.position;
+  const justify = pos.endsWith("left") ? "flex-start" : pos.endsWith("right") ? "flex-end" : "center";
+  const align = pos.startsWith("top") ? "flex-start" : pos.startsWith("bottom") ? "flex-end" : "center";
+  return (
+    <div
+      className="relative flex aspect-[4/3] w-full overflow-hidden rounded-lg border bg-gradient-to-br from-primary/25 via-secondary to-primary/10 p-3"
+      style={{ justifyContent: justify, alignItems: align }}
+    >
+      <span
+        className="rounded-md px-2 py-1 font-semibold text-white"
+        style={{
+          fontSize: `${Math.max(9, cfg.size * 2.2)}px`,
+          backgroundColor: `rgba(20,40,32,${0.55 * (cfg.opacity / 100)})`,
+          opacity: cfg.opacity / 100,
+        }}
+      >
+        {cfg.label || "HousePro"}
+      </span>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
+import { PropertyActions } from "@/components/property/property-actions";
 import { propertyById, agentById } from "@/lib/data/mock";
 import { formatArea, formatPrice, whatsappLink } from "@/lib/format";
 
@@ -133,6 +134,29 @@ export default async function ImovelPage({
                 <PhoneNote />
               </p>
             </div>
+
+            <PropertyActions
+              info={{
+                title: property.title,
+                price: formatPrice(property),
+                reference: property.reference,
+                location: `${property.parish}, ${property.municipality}`,
+                image: gallery[0],
+                description: `${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}, com ${property.area} m² e certificado energético ${property.energy}. Excelente oportunidade acompanhada de perto por um consultor HousePro, do primeiro contacto à escritura.`,
+                specs: [
+                  { label: "Tipologia", value: property.typology ?? "—" },
+                  { label: "Quartos", value: String(property.beds) },
+                  { label: "Casas de banho", value: String(property.baths) },
+                  { label: "Área", value: formatArea(property.area) },
+                  { label: "Certificado energético", value: property.energy },
+                  { label: "Tipo", value: property.type },
+                  { label: "Referência", value: property.reference },
+                ],
+                contactName: contact.name,
+                contactRole: `${contact.role} · ${contact.agency}`,
+                contactPhoneNote: "Chamada para rede móvel nacional",
+              }}
+            />
           </div>
         </div>
 

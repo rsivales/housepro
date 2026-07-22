@@ -89,9 +89,14 @@ export interface Property {
   /** Coordenadas para marcador preciso no mapa; opcional. */
   lat?: number;
   lng?: number;
-  /** Comissão do imóvel em % do preço de venda. Visível a todos os
-   *  consultores (interno), nunca ao público. */
+  /** Base da comissão: percentagem do preço ou valor fixo. */
+  commissionType?: "percent" | "fixed";
+  /** Comissão em % do preço de venda (quando commissionType = "percent"). */
   commissionPct?: number;
+  /** Comissão em € (quando commissionType = "fixed"). */
+  commissionFixed?: number;
+  /** Tipos de documento já carregados (para a nota de documentação). */
+  documents?: string[];
   agentId: string;
   /** Engagement proxy 0–100 (visitas + leads + favoritos) for ranking. */
   interest?: number;

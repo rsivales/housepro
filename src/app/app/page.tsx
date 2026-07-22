@@ -23,6 +23,8 @@ import { getSession } from "@/lib/supabase/auth";
 import { listPropertiesByAgent, listLeadsByAgent } from "@/lib/db/repo";
 import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
 import { referralsIncoming } from "@/lib/data/referrals";
+import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
+import { DocNote } from "@/components/consultant/doc-note";
 import { formatPhone } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { PropertyCard } from "@/components/property/property-card";
@@ -61,11 +63,14 @@ export default async function AppPage() {
               </p>
             </div>
           </div>
-          <form action="/auth/signout" method="post">
-            <Button variant="ghost" size="sm" type="submit">
-              <LogOut className="size-4" /> Sair
-            </Button>
-          </form>
+          <div className="flex items-center gap-2">
+            <ClientModeToggle />
+            <form action="/auth/signout" method="post">
+              <Button variant="ghost" size="sm" type="submit">
+                <LogOut className="size-4" /> Sair
+              </Button>
+            </form>
+          </div>
         </div>
       </header>
 
@@ -223,6 +228,7 @@ export default async function AppPage() {
               {mine.map((p) => (
                 <div key={p.id} className="space-y-3">
                   <PropertyCard property={p} />
+                  <DocNote documents={p.documents} />
                   <ShareProperty
                     propertyId={p.id}
                     reference={p.reference}

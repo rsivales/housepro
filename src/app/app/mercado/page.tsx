@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, BedDouble, Bath, Maximize2, MapPin, Percent } from "lucide-react";
+import { ArrowLeft, BedDouble, Bath, Maximize2, MapPin } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listProperties } from "@/lib/db/repo";
 import { agentById } from "@/lib/data/mock";
-import { formatArea, formatEuro, formatPrice } from "@/lib/format";
+import { formatArea, formatPrice } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { ReferralDialog } from "@/components/referral/referral-dialog";
+import { CommissionInfo } from "@/components/consultant/commission-info";
+import { DocNote } from "@/components/consultant/doc-note";
+import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
 
 export const metadata: Metadata = { title: "Mercado · Comissões e referências" };
 
@@ -22,10 +25,11 @@ export default async function MercadoPage() {
   return (
     <div className="min-h-dvh bg-background">
       <header className="border-b bg-card">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
           <Link href="/app" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="size-4" /> Área profissional
           </Link>
+          <ClientModeToggle />
         </div>
       </header>
 
@@ -42,18 +46,19 @@ export default async function MercadoPage() {
           {all.map((p) => {
             const listing = agentById(p.agentId);
             const isMine = p.agentId === agent.id;
-            const commission = p.commissionPct;
-            const pool = commission ? (p.price * commission) / 100 : 0;
+            const commission = {
+              commissionType: p.commissionType,
+              commissionPct: p.commissionPct,
+              commissionFixed: p.commissionFixed,
+            };
             return (
               <div key={p.id} className="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
                 <Link href={`/imovel/${p.id}`} className="relative block aspect-[4/3] overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.image} alt="" className="size-full object-cover" />
-                  {commission != null && (
-                    <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground shadow-sm">
-                      <Percent className="size-3" /> {commission}% comissão
-                    </span>
-                  )}
+                  <div className="absolute left-3 top-3">
+                    <CommissionInfo price={p.price} commission={commission} variant="badge" />
+                  </div>
                 </Link>
 
                 <div className="flex flex-1 flex-col gap-3 p-4">
@@ -73,15 +78,8 @@ export default async function MercadoPage() {
                     <span className="flex items-center gap-1"><Maximize2 className="size-4" /> {formatArea(p.area)}</span>
                   </div>
 
-                  {commission != null && (
-                    <div className="rounded-lg bg-secondary/50 px-3 py-2 text-sm">
-                      <span className="text-muted-foreground">Comissão </span>
-                      <span className="font-semibold">{commission}%</span>
-                      {p.operation === "venda" && pool > 0 && (
-                        <span className="text-muted-foreground"> · ~{formatEuro(pool)}</span>
-                      )}
-                    </div>
-                  )}
+                  <CommissionInfo price={p.price} commission={commission} variant="pill" />
+                  <DocNote documents={p.documents} />
 
                   <div className="mt-auto flex items-center gap-2 pt-1">
                     <div className="flex min-w-0 items-center gap-2">

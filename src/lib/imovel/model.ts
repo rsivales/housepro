@@ -12,14 +12,15 @@ export interface ImovelDoc {
 }
 
 /** Tipos de documento de um imóvel, agrupados. "Herança" só aparece quando
- *  o imóvel provém de uma partilha/herança (exige documentação adicional). */
-export const DOC_KINDS: { value: string; label: string; group: "base" | "heranca" }[] = [
-  { value: "caderneta", label: "Caderneta predial", group: "base" },
-  { value: "certidao_predial", label: "Certidão predial permanente", group: "base" },
-  { value: "cert_energetico", label: "Certificado energético", group: "base" },
-  { value: "licenca_utilizacao", label: "Licença de utilização", group: "base" },
+ *  o imóvel provém de uma partilha/herança (exige documentação adicional).
+ *  `required` marca os documentos mínimos obrigatórios. */
+export const DOC_KINDS: { value: string; label: string; group: "base" | "heranca"; required?: boolean }[] = [
+  { value: "caderneta", label: "Caderneta predial", group: "base", required: true },
+  { value: "certidao_predial", label: "Certidão predial permanente", group: "base", required: true },
+  { value: "cert_energetico", label: "Certificado energético", group: "base", required: true },
+  { value: "licenca_utilizacao", label: "Licença de utilização", group: "base", required: true },
   { value: "ficha_tecnica", label: "Ficha técnica de habitação", group: "base" },
-  { value: "planta", label: "Planta", group: "base" },
+  { value: "planta", label: "Planta", group: "base", required: true },
   { value: "procuracao", label: "Procuração", group: "base" },
   { value: "identificacao", label: "Identificação (CC / NIF)", group: "base" },
   { value: "distrate", label: "Distrate / cancelamento de hipoteca", group: "base" },
@@ -34,6 +35,34 @@ export const DOC_KINDS: { value: string; label: string; group: "base" | "heranca
 
 export const docLabel = (value: string): string =>
   DOC_KINDS.find((d) => d.value === value)?.label ?? value;
+
+/** Tipos de documento mínimos obrigatórios. */
+export const REQUIRED_DOC_KINDS = DOC_KINDS.filter((d) => d.required).map((d) => d.value);
+
+export interface DocStatus {
+  /** Obrigatórios ainda por carregar. */
+  missing: string[];
+  missingCount: number;
+  /** Carregados que vão além dos mínimos obrigatórios. */
+  extraCount: number;
+  /** Total de obrigatórios. */
+  requiredTotal: number;
+  complete: boolean;
+}
+
+/** Estado documental de um imóvel a partir dos tipos já carregados. */
+export function docStatus(uploaded: string[] = []): DocStatus {
+  const set = new Set(uploaded);
+  const missing = REQUIRED_DOC_KINDS.filter((k) => !set.has(k));
+  const extraCount = uploaded.filter((k) => !REQUIRED_DOC_KINDS.includes(k)).length;
+  return {
+    missing,
+    missingCount: missing.length,
+    extraCount,
+    requiredTotal: REQUIRED_DOC_KINDS.length,
+    complete: missing.length === 0,
+  };
+}
 
 export type WatermarkPos =
   | "top-left"
@@ -65,8 +94,12 @@ export interface ImovelDraft {
   type: string; // Moradia, Apartamento, Terreno, Loja, Escritório
   typology: string; // T0..T5
   price: number;
-  /** Comissão em % do preço de venda (interno; visível a consultores). */
+  /** Base da comissão: percentagem ou valor fixo. */
+  comissaoTipo: "percent" | "fixed";
+  /** Comissão em % do preço (quando comissaoTipo = "percent"). */
   comissao: number;
+  /** Comissão em € (quando comissaoTipo = "fixed"). */
+  comissaoFixo: number;
   area: number;
   beds: number;
   baths: number;
@@ -142,7 +175,9 @@ export function blankImovel(id: string): ImovelDraft {
     type: "Apartamento",
     typology: "T2",
     price: 0,
+    comissaoTipo: "percent",
     comissao: 5,
+    comissaoFixo: 0,
     area: 0,
     beds: 2,
     baths: 1,

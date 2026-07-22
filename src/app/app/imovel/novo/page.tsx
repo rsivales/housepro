@@ -30,6 +30,7 @@ import {
   VISTAS,
   blankImovel,
   docLabel,
+  docStatus,
   slugify,
   type ImovelDoc,
   type ImovelDraft,
@@ -40,6 +41,7 @@ import {
   type WatermarkConfig,
 } from "@/lib/config";
 import { toIdealistaXML } from "@/lib/imovel/idealista";
+import { commissionLabel } from "@/lib/data/commission";
 
 const box =
   "w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
@@ -366,8 +368,29 @@ export default function NovoImovel() {
               </select>
             </Field>
             <Field label="Preço (€)"><Input type="number" value={d.price || ""} onChange={(e) => patch({ price: Number(e.target.value) || 0 })} /></Field>
-            <Field label="Comissão (%)" hint="Visível a todos os consultores (interno).">
-              <Input type="number" step="0.1" value={d.comissao || ""} onChange={(e) => patch({ comissao: Number(e.target.value) || 0 })} placeholder="5" />
+            <Field
+              label="Comissão"
+              hint={`Em vigor: ${commissionLabel(d.price, {
+                commissionType: d.comissaoTipo,
+                commissionPct: d.comissao,
+                commissionFixed: d.comissaoFixo,
+              })} · interna, visível a todos os consultores.`}
+            >
+              <div className="flex gap-2">
+                <select
+                  value={d.comissaoTipo}
+                  onChange={(e) => patch({ comissaoTipo: e.target.value as "percent" | "fixed" })}
+                  className={box + " w-28 shrink-0"}
+                >
+                  <option value="percent">%</option>
+                  <option value="fixed">€ fixo</option>
+                </select>
+                {d.comissaoTipo === "percent" ? (
+                  <Input type="number" step="0.1" value={d.comissao || ""} onChange={(e) => patch({ comissao: Number(e.target.value) || 0 })} placeholder="5" />
+                ) : (
+                  <Input type="number" step="100" value={d.comissaoFixo || ""} onChange={(e) => patch({ comissaoFixo: Number(e.target.value) || 0 })} placeholder="6000" />
+                )}
+              </div>
             </Field>
             <Field label="Área (m²)"><Input type="number" value={d.area || ""} onChange={(e) => patch({ area: Number(e.target.value) || 0 })} /></Field>
             <Field label="Ano de construção"><Input type="number" value={d.anoConstrucao} onChange={(e) => patch({ anoConstrucao: e.target.value })} placeholder="2005" /></Field>
@@ -442,6 +465,35 @@ export default function NovoImovel() {
 
         {/* Documentos & planta */}
         <Card title="Documentos & planta">
+          {/* Estado documental (mínimos obrigatórios) */}
+          {(() => {
+            const st = docStatus(d.documentos.map((x) => x.kind));
+            return (
+              <div
+                className={cn(
+                  "mb-4 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2.5 text-sm",
+                  st.complete ? "border-success/40 bg-success/5" : "border-gold/40 bg-gold/5"
+                )}
+              >
+                {st.complete ? (
+                  <span className="font-medium text-success">Documentação mínima completa</span>
+                ) : (
+                  <span className="font-medium text-foreground">
+                    Faltam {st.missingCount} de {st.requiredTotal} documentos obrigatórios
+                  </span>
+                )}
+                {!st.complete && (
+                  <span className="text-muted-foreground">
+                    ({st.missing.map((k) => docLabel(k)).join(", ")})
+                  </span>
+                )}
+                {st.extraCount > 0 && (
+                  <span className="ml-auto text-muted-foreground">+{st.extraCount} extra</span>
+                )}
+              </div>
+            );
+          })()}
+
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

@@ -137,6 +137,7 @@ export const properties: Property[] = [
     image: "/properties/dusty-blue.svg",
     agentId: "rui",
     interest: 90,
+    commissionPct: 4,
     listedAt: "2026-07-05",
   },
   {
@@ -177,6 +178,7 @@ export const properties: Property[] = [
     image: "/properties/twilight.svg",
     agentId: "ana",
     interest: 80,
+    commissionPct: 4.5,
     listedAt: "2026-07-16",
   },
   {
@@ -230,6 +232,7 @@ export const properties: Property[] = [
     lng: -8.1963,
     agentId: "carla",
     interest: 95,
+    commissionPct: 5,
     listedAt: "2026-07-20",
   },
   {
@@ -263,6 +266,7 @@ export const properties: Property[] = [
     lng: -7.888,
     agentId: "carla",
     interest: 76,
+    commissionPct: 5,
     listedAt: "2026-07-17",
   },
   {

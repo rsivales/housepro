@@ -366,6 +366,9 @@ export default function NovoImovel() {
               </select>
             </Field>
             <Field label="Preço (€)"><Input type="number" value={d.price || ""} onChange={(e) => patch({ price: Number(e.target.value) || 0 })} /></Field>
+            <Field label="Comissão (%)" hint="Visível a todos os consultores (interno).">
+              <Input type="number" step="0.1" value={d.comissao || ""} onChange={(e) => patch({ comissao: Number(e.target.value) || 0 })} placeholder="5" />
+            </Field>
             <Field label="Área (m²)"><Input type="number" value={d.area || ""} onChange={(e) => patch({ area: Number(e.target.value) || 0 })} /></Field>
             <Field label="Ano de construção"><Input type="number" value={d.anoConstrucao} onChange={(e) => patch({ anoConstrucao: e.target.value })} placeholder="2005" /></Field>
             <Field label="Quartos"><Input type="number" value={d.beds || ""} onChange={(e) => patch({ beds: Number(e.target.value) || 0 })} /></Field>

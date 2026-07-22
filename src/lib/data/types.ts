@@ -89,6 +89,9 @@ export interface Property {
   /** Coordenadas para marcador preciso no mapa; opcional. */
   lat?: number;
   lng?: number;
+  /** Comissão do imóvel em % do preço de venda. Visível a todos os
+   *  consultores (interno), nunca ao público. */
+  commissionPct?: number;
   agentId: string;
   /** Engagement proxy 0–100 (visitas + leads + favoritos) for ranking. */
   interest?: number;

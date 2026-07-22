@@ -65,6 +65,8 @@ export interface ImovelDraft {
   type: string; // Moradia, Apartamento, Terreno, Loja, Escritório
   typology: string; // T0..T5
   price: number;
+  /** Comissão em % do preço de venda (interno; visível a consultores). */
+  comissao: number;
   area: number;
   beds: number;
   baths: number;
@@ -140,6 +142,7 @@ export function blankImovel(id: string): ImovelDraft {
     type: "Apartamento",
     typology: "T2",
     price: 0,
+    comissao: 5,
     area: 0,
     beds: 2,
     baths: 1,

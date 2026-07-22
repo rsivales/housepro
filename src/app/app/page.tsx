@@ -11,15 +11,18 @@ import {
   LogOut,
   MessageSquare,
   Presentation,
+  Store,
   Target,
   TrendingUp,
   Upload,
   UserPlus,
+  Users,
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listPropertiesByAgent, listLeadsByAgent } from "@/lib/db/repo";
 import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
+import { referralsIncoming } from "@/lib/data/referrals";
 import { formatPhone } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { PropertyCard } from "@/components/property/property-card";
@@ -42,6 +45,7 @@ export default async function AppPage() {
   const mine = await listPropertiesByAgent(agent.id);
   const leads = await listLeadsByAgent(agent.id);
   const novas = leads.filter((l) => l.status === "novo").length;
+  const refsNovas = referralsIncoming(agent.id).filter((r) => r.status === "pendente").length;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -79,8 +83,10 @@ export default async function AppPage() {
         </h1>
 
         {/* Quick actions */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Action icon={Upload} title="Carregar imóvel" href="/app/imovel/novo" note="Fotos + marca de água" />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Action icon={Upload} title="Carregar imóvel" href="/app/imovel/novo" note="Fotos + comissão + marca de água" />
+          <Action icon={Store} title="Mercado & comissões" href="/app/mercado" note="Imóveis da rede + referências" />
+          <Action icon={Users} title="Referências" href="/app/referencias" note="Partilhar leads (mín. 25%)" badge={refsNovas} />
           <Action icon={LayoutGrid} title="A minha montra" href={`/consultor/${agent.id}`} note="Página pública" />
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />
@@ -239,19 +245,28 @@ function Action({
   title,
   href,
   note,
+  badge,
 }: {
   icon: ElementType;
   title: string;
   href: string;
   note: string;
+  badge?: number;
 }) {
   return (
     <Link
       href={href}
       className="group rounded-2xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
     >
-      <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-        <Icon className="size-5" />
+      <div className="flex items-start justify-between">
+        <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="size-5" />
+        </div>
+        {badge != null && badge > 0 && (
+          <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+            {badge} nova{badge > 1 ? "s" : ""}
+          </span>
+        )}
       </div>
       <p className="mt-3 font-medium">{title}</p>
       <p className="text-xs text-muted-foreground">{note}</p>

@@ -15,7 +15,9 @@ alter table properties
   add column if not exists gallery           text[]  default '{}',
   -- Coordenadas geocodificadas automaticamente a partir da morada.
   add column if not exists latitude          double precision,
-  add column if not exists longitude         double precision;
+  add column if not exists longitude         double precision,
+  -- Comissão do imóvel em % (interno; visível a consultores, nunca ao público).
+  add column if not exists commission_pct    numeric;
 
 -- Índice geográfico simples (consultas por zona).
 create index if not exists properties_geo_idx on properties (latitude, longitude);

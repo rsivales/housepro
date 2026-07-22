@@ -13,6 +13,8 @@ import {
 } from "@/lib/data/ordering";
 import { siteConfig, HOME_RULE_KEY, WATERMARK_KEY, defaultWatermark, type WatermarkConfig } from "@/lib/config";
 import { WATERMARK_POSITIONS } from "@/lib/imovel/model";
+import { allReferrals, REFERRAL_STATUS } from "@/lib/data/referrals";
+import { Handshake } from "lucide-react";
 
 export default function AdminPage() {
   const [rule, setRule] = React.useState<OrderingRule>(siteConfig.homeMoreRule);
@@ -162,6 +164,51 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Registo de referências (gestor/admin) */}
+        <div className="mt-6 rounded-2xl border bg-card p-6 shadow-sm">
+          <h2 className="flex items-center gap-1.5 font-medium">
+            <Handshake className="size-4 text-primary" /> Referências (registo)
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Todas as referências da rede — entre consultores e de clientes — com a
+            percentagem acordada. Registo transparente para gestor e marca.
+          </p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs text-muted-foreground">
+                  <th className="py-2 pr-3 font-medium">Cliente</th>
+                  <th className="py-2 pr-3 font-medium">Origem → Destino</th>
+                  <th className="py-2 pr-3 font-medium">Imóvel</th>
+                  <th className="py-2 pr-3 font-medium">%</th>
+                  <th className="py-2 font-medium">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allReferrals().map((r) => {
+                  const st = REFERRAL_STATUS[r.status];
+                  const destino = r.type === "cliente" ? r.agencyName : r.toName;
+                  return (
+                    <tr key={r.id} className="border-b last:border-0">
+                      <td className="py-2.5 pr-3 font-medium">{r.clientName}</td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">
+                        {r.fromName} <span className="text-foreground">→</span> {destino}
+                      </td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">{r.propertyRef ?? "—"}</td>
+                      <td className="py-2.5 pr-3 font-semibold text-primary">{r.sharePct}%</td>
+                      <td className="py-2.5">
+                        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", st.badge)}>
+                          <span className={cn("size-1.5 rounded-full", st.dot)} /> {st.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </main>

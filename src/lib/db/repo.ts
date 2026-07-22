@@ -48,6 +48,7 @@ function mapRow(r: Row): Property {
     constructionYear: r.construction_year != null ? Number(r.construction_year) : undefined,
     lat: r.latitude != null ? Number(r.latitude) : undefined,
     lng: r.longitude != null ? Number(r.longitude) : undefined,
+    commissionPct: r.commission_pct != null ? Number(r.commission_pct) : undefined,
     agentId: String(r.agent_id ?? ""),
     interest: r.interest != null ? Number(r.interest) : undefined,
     listedAt: (r.listed_at as string) ?? undefined,

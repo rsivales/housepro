@@ -1,0 +1,43 @@
+# Configuração do Supabase CLI para o HousePro.
+# IMPORTANTE: substitui "project_id" pela referência do TEU projeto Supabase
+# (Dashboard → Project Settings → General → "Reference ID", algo como "abcdxyz...").
+project_id = "housepro-REPLACE-ME"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Versão do Postgres do projeto (Supabase usa 15 por defeito).
+major_version = 15
+
+# `supabase db reset` (local) aplica as migrações e corre este seed.
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+# Ajusta para o teu domínio em produção (ex.: https://www.housepro.pt).
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000", "https://www.housepro.pt"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+[storage]
+enabled = true
+# Limite por ficheiro (fotos/planta/documentos).
+file_size_limit = "50MiB"

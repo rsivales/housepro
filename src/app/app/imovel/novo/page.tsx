@@ -467,7 +467,7 @@ export default function NovoImovel() {
         <Card title="Documentos & planta">
           {/* Estado documental (mínimos obrigatórios) */}
           {(() => {
-            const st = docStatus(d.documentos.map((x) => x.kind));
+            const st = docStatus(d.documentos.map((x) => x.kind), d.sellerType === "empresa");
             return (
               <div
                 className={cn(
@@ -494,7 +494,28 @@ export default function NovoImovel() {
             );
           })()}
 
-          <label className="flex items-center gap-2 text-sm">
+          {/* Tipo de vendedor (empresa exige certidão de empresa) */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">Vendedor:</span>
+            {(["particular", "empresa"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => patch({ sellerType: t })}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-sm capitalize transition-colors",
+                  d.sellerType === t ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
+                )}
+              >
+                {t}
+              </button>
+            ))}
+            {d.sellerType === "empresa" && (
+              <span className="text-xs text-muted-foreground">Exige certidão permanente de empresa.</span>
+            )}
+          </div>
+
+          <label className="mt-3 flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={d.heranca}

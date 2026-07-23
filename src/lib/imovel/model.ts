@@ -14,15 +14,17 @@ export interface ImovelDoc {
 /** Tipos de documento de um imóvel, agrupados. "Herança" só aparece quando
  *  o imóvel provém de uma partilha/herança (exige documentação adicional).
  *  `required` marca os documentos mínimos obrigatórios. */
-export const DOC_KINDS: { value: string; label: string; group: "base" | "heranca"; required?: boolean }[] = [
+export const DOC_KINDS: { value: string; label: string; group: "base" | "heranca"; required?: boolean; requiredIfCompany?: boolean }[] = [
+  { value: "cmi", label: "Contrato de mediação (CMI)", group: "base", required: true },
+  { value: "doc_proprietario", label: "Documentos do proprietário (CC/NIF)", group: "base", required: true },
   { value: "caderneta", label: "Caderneta predial", group: "base", required: true },
   { value: "certidao_predial", label: "Certidão predial permanente", group: "base", required: true },
   { value: "cert_energetico", label: "Certificado energético", group: "base", required: true },
   { value: "licenca_utilizacao", label: "Licença de utilização", group: "base", required: true },
-  { value: "ficha_tecnica", label: "Ficha técnica de habitação", group: "base" },
   { value: "planta", label: "Planta", group: "base", required: true },
+  { value: "certidao_empresa", label: "Certidão permanente de empresa", group: "base", requiredIfCompany: true },
+  { value: "ficha_tecnica", label: "Ficha técnica de habitação", group: "base" },
   { value: "procuracao", label: "Procuração", group: "base" },
-  { value: "identificacao", label: "Identificação (CC / NIF)", group: "base" },
   { value: "distrate", label: "Distrate / cancelamento de hipoteca", group: "base" },
   { value: "outro", label: "Outro", group: "base" },
   // Documentos adicionais quando o imóvel vem de herança / partilha
@@ -36,8 +38,14 @@ export const DOC_KINDS: { value: string; label: string; group: "base" | "heranca
 export const docLabel = (value: string): string =>
   DOC_KINDS.find((d) => d.value === value)?.label ?? value;
 
-/** Tipos de documento mínimos obrigatórios. */
+/** Tipos de documento mínimos obrigatórios (base). */
 export const REQUIRED_DOC_KINDS = DOC_KINDS.filter((d) => d.required).map((d) => d.value);
+
+/** Documentos obrigatórios tendo em conta o tipo de vendedor (empresa exige
+ *  a certidão permanente de empresa). */
+export function requiredDocKinds(sellerIsCompany = false): string[] {
+  return DOC_KINDS.filter((d) => d.required || (sellerIsCompany && d.requiredIfCompany)).map((d) => d.value);
+}
 
 export interface DocStatus {
   /** Obrigatórios ainda por carregar. */
@@ -51,15 +59,16 @@ export interface DocStatus {
 }
 
 /** Estado documental de um imóvel a partir dos tipos já carregados. */
-export function docStatus(uploaded: string[] = []): DocStatus {
+export function docStatus(uploaded: string[] = [], sellerIsCompany = false): DocStatus {
+  const required = requiredDocKinds(sellerIsCompany);
   const set = new Set(uploaded);
-  const missing = REQUIRED_DOC_KINDS.filter((k) => !set.has(k));
-  const extraCount = uploaded.filter((k) => !REQUIRED_DOC_KINDS.includes(k)).length;
+  const missing = required.filter((k) => !set.has(k));
+  const extraCount = uploaded.filter((k) => !required.includes(k)).length;
   return {
     missing,
     missingCount: missing.length,
     extraCount,
-    requiredTotal: REQUIRED_DOC_KINDS.length,
+    requiredTotal: required.length,
     complete: missing.length === 0,
   };
 }
@@ -100,6 +109,8 @@ export interface ImovelDraft {
   comissao: number;
   /** Comissão em € (quando comissaoTipo = "fixed"). */
   comissaoFixo: number;
+  /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
+  sellerType: "particular" | "empresa";
   area: number;
   beds: number;
   baths: number;
@@ -178,6 +189,7 @@ export function blankImovel(id: string): ImovelDraft {
     comissaoTipo: "percent",
     comissao: 5,
     comissaoFixo: 0,
+    sellerType: "particular",
     area: 0,
     beds: 2,
     baths: 1,

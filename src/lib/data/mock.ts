@@ -24,6 +24,7 @@ export const agents: Agent[] = [
     id: "ana",
     name: "Ana Marques",
     role: "Consultora sénior",
+    roleKey: "agente",
     agency: "HousePro Lisboa",
     agencyId: "lisboa",
     whatsapp: "351910000001",
@@ -34,6 +35,7 @@ export const agents: Agent[] = [
     id: "rui",
     name: "Rui Tavares",
     role: "Consultor",
+    roleKey: "agente",
     agency: "HousePro Porto",
     agencyId: "porto",
     whatsapp: "351910000002",
@@ -44,6 +46,7 @@ export const agents: Agent[] = [
     id: "sofia",
     name: "Sofia Nunes",
     role: "Coordenadora",
+    roleKey: "coordenador",
     agency: "HousePro Cascais",
     agencyId: "cascais",
     whatsapp: "351910000003",
@@ -53,7 +56,9 @@ export const agents: Agent[] = [
   {
     id: "miguel",
     name: "Miguel Costa",
-    role: "Consultor",
+    role: "Consultor (AMI próprio)",
+    roleKey: "agente_ami",
+    ownAMI: true,
     agency: "HousePro Braga",
     agencyId: "braga",
     whatsapp: "351910000004",
@@ -64,6 +69,7 @@ export const agents: Agent[] = [
     id: "carla",
     name: "Carla Sousa",
     role: "Coordenadora",
+    roleKey: "coordenador",
     agency: "HousePro Algarve",
     agencyId: "algarve",
     whatsapp: "351910000005",
@@ -186,6 +192,7 @@ export const properties: Property[] = [
     commissionType: "percent",
     commissionPct: 4.5,
     documents: ["caderneta", "certidao_predial", "cert_energetico", "licenca_utilizacao"],
+    sellerType: "empresa",
     listedAt: "2026-07-16",
   },
   {
@@ -278,6 +285,8 @@ export const properties: Property[] = [
     commissionType: "percent",
     commissionPct: 5,
     documents: ["caderneta", "cert_energetico"],
+    approval: "pendente",
+    submittedAt: "2026-07-22T07:40:00",
     listedAt: "2026-07-17",
   },
   {
@@ -305,6 +314,8 @@ export const properties: Property[] = [
     commissionJustification: "Cliente recorrente e angariação estratégica da carteira na Guarda.",
     commissionApprovedBy: "Carla Sousa (coordenação)",
     documents: ["caderneta"],
+    approval: "pendente",
+    submittedAt: "2026-07-21T07:40:00",
     listedAt: "2026-07-15",
   },
   {
@@ -369,20 +380,28 @@ export const properties: Property[] = [
   },
 ];
 
-/** Available (not sold) listings, used across public montras. */
-export const availableProperties = properties.filter(
-  (p) => p.status !== "vendido"
-);
+/** Publicável: não vendido e aprovado (oculto ao público até aprovação). */
+export const isPublished = (p: Property): boolean =>
+  p.status !== "vendido" && (p.approval == null || p.approval === "aprovado");
+
+/** Available = publicáveis, usados nas montras públicas. */
+export const availableProperties = properties.filter(isPublished);
 
 export const soldProperties = properties.filter((p) => p.status === "vendido");
 
 export const featuredProperties = availableProperties;
 
+/** Imóveis do consultor — inclui pendentes de aprovação (visão interna). */
 export const propertiesByAgent = (agentId: string): Property[] =>
-  availableProperties.filter((p) => p.agentId === agentId);
+  properties.filter((p) => p.agentId === agentId && p.status !== "vendido");
 
+/** Montra pública da agência — apenas publicados. */
 export const propertiesByAgency = (agencyId: string): Property[] =>
   availableProperties.filter((p) => agentById(p.agentId).agencyId === agencyId);
+
+/** Imóveis a aguardar aprovação (fila da administração/coordenação). */
+export const pendingApprovals = (): Property[] =>
+  properties.filter((p) => p.approval === "pendente");
 
 export const soldByAgency = (agencyId: string): Property[] =>
   soldProperties.filter((p) => agentById(p.agentId).agencyId === agencyId);

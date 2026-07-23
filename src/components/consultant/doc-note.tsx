@@ -12,15 +12,17 @@ import { docStatus } from "@/lib/imovel/model";
  */
 export function DocNote({
   documents,
+  sellerType,
   className,
 }: {
   documents?: string[];
+  sellerType?: "particular" | "empresa";
   className?: string;
 }) {
   const { ready, clientMode } = useClientMode();
   if (!ready || clientMode) return null;
 
-  const st = docStatus(documents ?? []);
+  const st = docStatus(documents ?? [], sellerType === "empresa");
 
   return (
     <div

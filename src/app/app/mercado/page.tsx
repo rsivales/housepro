@@ -79,7 +79,7 @@ export default async function MercadoPage() {
                   </div>
 
                   <CommissionInfo price={p.price} commission={commission} variant="pill" />
-                  <DocNote documents={p.documents} />
+                  <DocNote documents={p.documents} sellerType={p.sellerType} />
 
                   <div className="mt-auto flex items-center gap-2 pt-1">
                     <div className="flex min-w-0 items-center gap-2">

@@ -228,7 +228,7 @@ export default async function AppPage() {
               {mine.map((p) => (
                 <div key={p.id} className="space-y-3">
                   <PropertyCard property={p} />
-                  <DocNote documents={p.documents} />
+                  <DocNote documents={p.documents} sellerType={p.sellerType} />
                   <ShareProperty
                     propertyId={p.id}
                     reference={p.reference}

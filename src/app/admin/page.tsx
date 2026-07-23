@@ -12,10 +12,10 @@ import {
   type OrderingRule,
 } from "@/lib/data/ordering";
 import { siteConfig, HOME_RULE_KEY, WATERMARK_KEY, defaultWatermark, type WatermarkConfig } from "@/lib/config";
-import { WATERMARK_POSITIONS } from "@/lib/imovel/model";
+import { WATERMARK_POSITIONS, docStatus } from "@/lib/imovel/model";
 import { allReferrals, REFERRAL_STATUS } from "@/lib/data/referrals";
-import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp } from "lucide-react";
-import { properties, agencies, agentsByAgency, propertiesByAgency } from "@/lib/data/mock";
+import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp, ShieldCheck, ShieldHalf, Rss, AlertTriangle, ChevronRight } from "lucide-react";
+import { properties, agencies, agentsByAgency, propertiesByAgency, pendingApprovals } from "@/lib/data/mock";
 import { demoDeals, stagePercent } from "@/lib/data/deal";
 import { commissionLabel } from "@/lib/data/commission";
 import { formatEuro } from "@/lib/format";
@@ -53,6 +53,10 @@ export default function AdminPage() {
     .filter((d) => d.stage !== "cancelado")
     .reduce((s, d) => s + d.amount, 0);
   const excecoes = properties.filter((p) => p.commissionJustification);
+  const pendentes = pendingApprovals();
+  const docMissingCount = properties.filter(
+    (p) => p.status !== "vendido" && !docStatus(p.documents ?? [], p.sellerType === "empresa").complete
+  ).length;
 
   const kpis = [
     { icon: Building2, label: "Imóveis ativos", value: String(activos.length) },
@@ -86,6 +90,36 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground">{k.label}</p>
             </div>
           ))}
+        </section>
+
+        {/* Alerta vermelho + atalhos de gestão */}
+        {(pendentes.length > 0 || docMissingCount > 0) && (
+          <div className="mt-6 rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
+            <p className="flex items-center gap-2 font-medium text-destructive">
+              <AlertTriangle className="size-5" /> Atenção necessária
+            </p>
+            <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+              {pendentes.length > 0 && (
+                <span>
+                  <span className="font-semibold text-destructive">{pendentes.length}</span> imóvel(is) a aguardar aprovação
+                </span>
+              )}
+              {docMissingCount > 0 && (
+                <span>
+                  <span className="font-semibold text-destructive">{docMissingCount}</span> com documentos obrigatórios em falta
+                </span>
+              )}
+            </div>
+            <Link href="/admin/aprovacoes" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-destructive hover:underline">
+              Tratar agora <ChevronRight className="size-4" />
+            </Link>
+          </div>
+        )}
+
+        <section className="mt-6 grid gap-4 sm:grid-cols-3">
+          <NavCard href="/admin/aprovacoes" icon={ShieldCheck} title="Aprovações" note={`${pendentes.length} pendente(s) · SLA 24–48h`} alert={pendentes.length > 0} />
+          <NavCard href="/admin/permissoes" icon={ShieldHalf} title="Permissões" note="Hierarquia · quem aprova/vê" />
+          <NavCard href="/admin/exportacoes" icon={Rss} title="Exportações & portais" note="Contratos e estado por imóvel" />
         </section>
 
         {/* Pipeline de negócios */}
@@ -331,6 +365,33 @@ export default function AdminPage() {
 }
 
 /** Mostra o posicionamento/tamanho/transparência sobre um retângulo de exemplo. */
+function NavCard({
+  href,
+  icon: Icon,
+  title,
+  note,
+  alert,
+}: {
+  href: string;
+  icon: React.ElementType;
+  title: string;
+  note: string;
+  alert?: boolean;
+}) {
+  return (
+    <Link href={href} className="group rounded-2xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-start justify-between">
+        <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="size-5" />
+        </div>
+        {alert && <span className="size-2.5 rounded-full bg-destructive" />}
+      </div>
+      <p className="mt-3 font-medium">{title}</p>
+      <p className="text-xs text-muted-foreground">{note}</p>
+    </Link>
+  );
+}
+
 function WatermarkPreview({ cfg }: { cfg: WatermarkConfig }) {
   const pos = cfg.position;
   const justify = pos.endsWith("left") ? "flex-start" : pos.endsWith("right") ? "flex-end" : "center";

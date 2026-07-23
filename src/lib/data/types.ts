@@ -33,10 +33,18 @@ export interface Agency {
   region: string;
 }
 
+/** Papel hierárquico (governa permissões e aprovações). */
+export type RoleKey = "admin" | "coordenador" | "agente" | "agente_ami";
+
 export interface Agent {
   id: string;
   name: string;
   role: string;
+  /** Papel hierárquico para permissões/aprovações. */
+  roleKey?: RoleKey;
+  /** Consultor com AMI próprio (independente): publica sem aprovação da marca,
+   *  assumindo responsabilidade e documentação própria. */
+  ownAMI?: boolean;
   agency: string;
   /** Link to the Agency this consultant belongs to. */
   agencyId: string;
@@ -47,6 +55,9 @@ export interface Agent {
   /** Headshot under /public/agents; falls back to initials when absent. */
   photo?: string;
 }
+
+/** Estado de aprovação de publicação. */
+export type ApprovalStatus = "rascunho" | "pendente" | "aprovado" | "rejeitado";
 
 export interface Property {
   id: string;
@@ -102,6 +113,16 @@ export interface Property {
   commissionApprovedBy?: string;
   /** Tipos de documento já carregados (para a nota de documentação). */
   documents?: string[];
+  /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
+  sellerType?: "particular" | "empresa";
+  /** Estado de aprovação de publicação. Oculto ao público até "aprovado".
+   *  Imóveis de agentes com AMI próprio nascem "aprovado". */
+  approval?: ApprovalStatus;
+  /** Momento em que foi submetido a aprovação (para o SLA de 24/48h). */
+  submittedAt?: string;
+  /** Quem aprovou/rejeitou e porquê. */
+  approvedBy?: string;
+  rejectionReason?: string;
   agentId: string;
   /** Engagement proxy 0–100 (visitas + leads + favoritos) for ranking. */
   interest?: number;

@@ -6,7 +6,7 @@ import { DealStepper } from "@/components/process/deal-stepper";
 import { vendedorPortal } from "@/lib/data/client";
 import { propertyById } from "@/lib/data/mock";
 import { dealById } from "@/lib/data/deal";
-import { docStatus, docLabel, REQUIRED_DOC_KINDS } from "@/lib/imovel/model";
+import { docStatus, docLabel, requiredDocKinds } from "@/lib/imovel/model";
 import { formatEuro, formatPrice } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Portal do vendedor" };
@@ -15,7 +15,9 @@ export default function VendedorPortal() {
   const p = vendedorPortal;
   const property = propertyById(p.propertyId);
   const deal = dealById(p.dealId);
-  const st = docStatus(property?.documents ?? []);
+  const isCompany = property?.sellerType === "empresa";
+  const st = docStatus(property?.documents ?? [], isCompany);
+  const requiredKinds = requiredDocKinds(isCompany);
 
   const stats = [
     { icon: Eye, label: "Visualizações", value: p.stats.views.toLocaleString("pt-PT") },
@@ -85,7 +87,7 @@ export default function VendedorPortal() {
           )}
         </div>
         <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-          {REQUIRED_DOC_KINDS.map((k) => {
+          {requiredKinds.map((k) => {
             const has = (property?.documents ?? []).includes(k);
             return (
               <li key={k} className="flex items-center gap-2 text-sm">

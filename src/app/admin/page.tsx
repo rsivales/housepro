@@ -14,7 +14,11 @@ import {
 import { siteConfig, HOME_RULE_KEY, WATERMARK_KEY, defaultWatermark, type WatermarkConfig } from "@/lib/config";
 import { WATERMARK_POSITIONS } from "@/lib/imovel/model";
 import { allReferrals, REFERRAL_STATUS } from "@/lib/data/referrals";
-import { Handshake } from "lucide-react";
+import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp } from "lucide-react";
+import { properties, agencies, agentsByAgency, propertiesByAgency } from "@/lib/data/mock";
+import { demoDeals, stagePercent } from "@/lib/data/deal";
+import { commissionLabel } from "@/lib/data/commission";
+import { formatEuro } from "@/lib/format";
 
 export default function AdminPage() {
   const [rule, setRule] = React.useState<OrderingRule>(siteConfig.homeMoreRule);
@@ -44,19 +48,129 @@ export default function AdminPage() {
     });
   }
 
+  const activos = properties.filter((p) => p.status !== "vendido");
+  const pipelineValue = demoDeals
+    .filter((d) => d.stage !== "cancelado")
+    .reduce((s, d) => s + d.amount, 0);
+  const excecoes = properties.filter((p) => p.commissionJustification);
+
+  const kpis = [
+    { icon: Building2, label: "Imóveis ativos", value: String(activos.length) },
+    { icon: Briefcase, label: "Negócios em curso", value: String(demoDeals.length) },
+    { icon: TrendingUp, label: "Valor em pipeline", value: formatEuro(pipelineValue) },
+    { icon: Users, label: "Consultores", value: String(agencies.reduce((s, a) => s + agentsByAgency(a.id).length, 0)) },
+  ];
+
   return (
     <div className="min-h-dvh bg-background">
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+      <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
         <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
-          <Settings className="size-4" /> Back office (protótipo)
+          <Settings className="size-4" /> Back office · Admin · Coordenação · Gestão
         </p>
-        <h1 className="mt-1 font-display text-3xl sm:text-4xl">Configuração do site</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Definições editáveis pela marca/coordenador. Nesta fase são guardadas
-          no navegador; com o back office (M5 + autenticação) passam a ser
-          persistidas no Supabase.
+        <h1 className="mt-1 font-display text-3xl sm:text-4xl">Painel de gestão</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          Visão da marca e das agências. Em produção, a autenticação e as políticas
+          RLS mostram a cada perfil apenas o que lhe compete (admin vê tudo;
+          coordenação vê a sua agência).
         </p>
+
+        {/* KPIs */}
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {kpis.map((k) => (
+            <div key={k.label} className="rounded-2xl border bg-card p-5 shadow-sm">
+              <div className="grid size-10 place-items-center rounded-xl bg-secondary text-primary">
+                <k.icon className="size-5" />
+              </div>
+              <p className="mt-3 font-display text-2xl">{k.value}</p>
+              <p className="text-sm text-muted-foreground">{k.label}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* Pipeline de negócios */}
+        <div className="mt-6 rounded-2xl border bg-card p-6 shadow-sm">
+          <h2 className="flex items-center gap-1.5 font-medium">
+            <Briefcase className="size-4 text-primary" /> Negócios (pipeline)
+          </h2>
+          <div className="mt-4 space-y-3">
+            {demoDeals.map((d) => {
+              const pct = stagePercent(d.stage);
+              return (
+                <div key={d.id} className="rounded-xl border p-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="font-medium">{d.propertyTitle}</p>
+                    <span className="text-sm text-muted-foreground">{d.reference} · {formatEuro(d.amount)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{d.location}</p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="w-10 shrink-0 text-right text-xs font-medium">{pct}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Equipa & agências */}
+        <div className="mt-6 rounded-2xl border bg-card p-6 shadow-sm">
+          <h2 className="flex items-center gap-1.5 font-medium">
+            <Building2 className="size-4 text-primary" /> Agências & equipa
+          </h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {agencies.map((a) => {
+              const team = agentsByAgency(a.id);
+              const listings = propertiesByAgency(a.id).length;
+              return (
+                <div key={a.id} className="rounded-xl border p-4">
+                  <p className="font-medium">{a.name}</p>
+                  <p className="text-xs text-muted-foreground">{a.region}</p>
+                  <div className="mt-2 flex gap-4 text-sm">
+                    <span><span className="font-semibold">{team.length}</span> <span className="text-muted-foreground">consultores</span></span>
+                    <span><span className="font-semibold">{listings}</span> <span className="text-muted-foreground">imóveis</span></span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Exceções de comissão (autorizações abaixo do mínimo) */}
+        <div className="mt-6 rounded-2xl border bg-card p-6 shadow-sm">
+          <h2 className="flex items-center gap-1.5 font-medium">
+            <ShieldAlert className="size-4 text-primary" /> Exceções de comissão
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Comissões autorizadas <strong>abaixo do mínimo</strong> do escalão. Cada
+            exceção exige justificação interna e fica registada.
+          </p>
+          {excecoes.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">Sem exceções ativas.</p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {excecoes.map((p) => (
+                <li key={p.id} className="rounded-xl border p-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="font-medium">{p.title}</p>
+                    <span className="rounded-full bg-gold/15 px-2.5 py-1 text-xs font-medium text-gold-foreground">
+                      {commissionLabel(p.price, p)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{p.reference} · {formatEuro(p.price)}</p>
+                  <p className="mt-2 rounded-lg bg-secondary/50 px-3 py-2 text-sm text-muted-foreground">
+                    “{p.commissionJustification}”
+                    {p.commissionApprovedBy && (
+                      <span className="mt-1 block text-xs">Autorizado por {p.commissionApprovedBy}</span>
+                    )}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <div className="mt-8 rounded-2xl border bg-card p-6 shadow-sm">
           <h2 className="font-medium">

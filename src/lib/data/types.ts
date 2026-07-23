@@ -95,6 +95,11 @@ export interface Property {
   commissionPct?: number;
   /** Comissão em € (quando commissionType = "fixed"). */
   commissionFixed?: number;
+  /** Justificação interna quando a administração autoriza comissão abaixo do
+   *  mínimo do escalão. A presença ativa a exceção. */
+  commissionJustification?: string;
+  /** Quem autorizou a exceção (admin/coordenação). */
+  commissionApprovedBy?: string;
   /** Tipos de documento já carregados (para a nota de documentação). */
   documents?: string[];
   agentId: string;

@@ -298,9 +298,12 @@ export const properties: Property[] = [
     image: "/properties/olive.svg",
     agentId: "rui",
     interest: 60,
-    // Comissão a 5% daria 4.100 € → aplica-se o mínimo do escalão (5.000 €).
-    commissionType: "percent",
-    commissionPct: 5,
+    // Exceção autorizada pela administração: comissão fixa abaixo do mínimo
+    // do escalão (5.000 €), com justificação interna.
+    commissionType: "fixed",
+    commissionFixed: 3500,
+    commissionJustification: "Cliente recorrente e angariação estratégica da carteira na Guarda.",
+    commissionApprovedBy: "Carla Sousa (coordenação)",
     documents: ["caderneta"],
     listedAt: "2026-07-15",
   },

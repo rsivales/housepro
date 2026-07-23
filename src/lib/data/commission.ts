@@ -15,13 +15,16 @@ export interface CommissionInput {
   commissionType?: "percent" | "fixed";
   commissionPct?: number;
   commissionFixed?: number;
+  /** Exceção autorizada pela administração — permite ficar abaixo do mínimo. */
+  commissionJustification?: string;
 }
 
 export interface EffectiveCommission {
   /** Valor em € da comissão em vigor. */
   amount: number;
-  /** Como foi determinada: base percentual, base fixa, ou mínimo do escalão. */
-  basis: "percent" | "fixed" | "floor" | "none";
+  /** Como foi determinada: base percentual, base fixa, mínimo do escalão, ou
+   *  exceção autorizada abaixo do mínimo. */
+  basis: "percent" | "fixed" | "floor" | "override" | "none";
   /** % configurada (quando aplicável). */
   pct?: number;
 }
@@ -46,8 +49,12 @@ export function effectiveCommission(
       ? (price * c.commissionPct) / 100
       : 0;
   const floor = commissionFloor(price);
+  const override = Boolean(c.commissionJustification && c.commissionJustification.trim());
 
   if (base <= 0 && floor <= 0) return { amount: 0, basis: "none" };
+  // Exceção autorizada: mantém a base mesmo abaixo do mínimo.
+  if (override && base > 0 && base < floor)
+    return { amount: base, basis: "override", pct: isFixed ? undefined : c.commissionPct };
   if (floor > base) return { amount: floor, basis: "floor", pct: c.commissionPct };
   return {
     amount: base,
@@ -62,6 +69,7 @@ export function commissionLabel(price: number, c: CommissionInput): string {
   if (e.basis === "none") return "Comissão a definir";
   if (e.basis === "percent") return `${e.pct}% · ${formatEuro(e.amount)}`;
   if (e.basis === "fixed") return `${formatEuro(e.amount)} (fixo)`;
+  if (e.basis === "override") return `${formatEuro(e.amount)} (exceção autorizada)`;
   // floor
   return `${formatEuro(e.amount)} (mínimo)`;
 }

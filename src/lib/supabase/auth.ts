@@ -29,7 +29,7 @@ export async function getSession(): Promise<Session | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, role, agency, agency_id, whatsapp, photo_url, accent")
+    .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, accent")
     .eq("id", user.id)
     .single();
 
@@ -37,6 +37,8 @@ export async function getSession(): Promise<Session | null> {
     id: user.id,
     name: profile?.name ?? user.email ?? "Consultor",
     role: profile?.role ?? "agente",
+    roleKey: (profile?.role_key as Agent["roleKey"]) ?? undefined,
+    ownAMI: profile?.own_ami ?? undefined,
     agency: profile?.agency ?? "",
     agencyId: profile?.agency_id ?? "",
     whatsapp: profile?.whatsapp ?? "",

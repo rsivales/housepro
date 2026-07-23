@@ -95,6 +95,7 @@ export async function listProperties(): Promise<Property[]> {
     .from("properties")
     .select("*")
     .neq("status", "vendido")
+    .eq("approval", "aprovado")
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }
@@ -108,6 +109,7 @@ export async function listPropertiesByAgency(agencyId: string): Promise<Property
     .select("*, profiles!inner(agency_id)")
     .eq("profiles.agency_id", agencyId)
     .neq("status", "vendido")
+    .eq("approval", "aprovado")
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }
@@ -137,6 +139,7 @@ export async function listSimilarProperties(
     .select("*")
     .neq("id", property.id)
     .neq("status", "vendido")
+    .eq("approval", "aprovado")
     .eq("municipality", property.municipality)
     .limit(limit);
   return (data ?? []).map(mapRow);

@@ -18,6 +18,7 @@ import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp, Shield
 import { properties, agencies, agentsByAgency, propertiesByAgency, pendingApprovals } from "@/lib/data/mock";
 import { demoDeals, stagePercent } from "@/lib/data/deal";
 import { commissionLabel } from "@/lib/data/commission";
+import { PropertyRef } from "@/components/property/property-ref";
 import { formatEuro } from "@/lib/format";
 
 export default function AdminPage() {
@@ -133,7 +134,9 @@ export default function AdminPage() {
               return (
                 <div key={d.id} className="rounded-xl border p-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-medium">{d.propertyTitle}</p>
+                    <p className="font-medium">
+                      <PropertyRef propertyId={d.propertyId} label={d.propertyTitle} />
+                    </p>
                     <span className="text-sm text-muted-foreground">{d.reference} · {formatEuro(d.amount)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">{d.location}</p>
@@ -188,7 +191,7 @@ export default function AdminPage() {
               {excecoes.map((p) => (
                 <li key={p.id} className="rounded-xl border p-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-medium">{p.title}</p>
+                    <p className="font-medium"><PropertyRef propertyId={p.id} label={p.title} /></p>
                     <span className="rounded-full bg-gold/15 px-2.5 py-1 text-xs font-medium text-gold-foreground">
                       {commissionLabel(p.price, p)}
                     </span>
@@ -345,7 +348,7 @@ export default function AdminPage() {
                       <td className="py-2.5 pr-3 text-muted-foreground">
                         {r.fromName} <span className="text-foreground">→</span> {destino}
                       </td>
-                      <td className="py-2.5 pr-3 text-muted-foreground">{r.propertyRef ?? "—"}</td>
+                      <td className="py-2.5 pr-3 text-muted-foreground">{r.propertyId ? <PropertyRef propertyId={r.propertyId} label={r.propertyRef} /> : "—"}</td>
                       <td className="py-2.5 pr-3 font-semibold text-primary">{r.sharePct}%</td>
                       <td className="py-2.5">
                         <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", st.badge)}>

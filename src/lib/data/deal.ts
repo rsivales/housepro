@@ -49,6 +49,8 @@ export function stagePercent(stage: DealStage): number {
 export interface Deal {
   id: string;
   reference: string;
+  /** Imóvel associado (para link/preview). */
+  propertyId?: string;
   propertyTitle: string;
   location: string;
   amount: number;
@@ -68,6 +70,7 @@ export const demoDeals: Deal[] = [
   {
     id: "d1",
     reference: "NEG-2041",
+    propertyId: "3",
     propertyTitle: "Apartamento renovado no coração da Baixa",
     location: "Cedofeita, Porto",
     amount: 415000,
@@ -83,6 +86,7 @@ export const demoDeals: Deal[] = [
   {
     id: "d2",
     reference: "NEG-2042",
+    propertyId: "7",
     propertyTitle: "Moradia de luxo com vista mar e piscina",
     location: "Olhos de Água, Albufeira",
     amount: 2850000,
@@ -98,6 +102,7 @@ export const demoDeals: Deal[] = [
   {
     id: "d3",
     reference: "NEG-2043",
+    propertyId: "5",
     propertyTitle: "Penthouse com rooftop privado",
     location: "Avenidas Novas, Lisboa",
     amount: 1650000,

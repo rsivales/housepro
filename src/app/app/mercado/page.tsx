@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, BedDouble, Bath, Maximize2, MapPin } from "lucide-react";
+import { ArrowLeft, BedDouble, Bath, Maximize2, MapPin, Users } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listProperties } from "@/lib/db/repo";
@@ -80,6 +80,18 @@ export default async function MercadoPage() {
 
                   <CommissionInfo price={p.price} commission={commission} variant="pill" />
                   <DocNote documents={p.documents} sellerType={p.sellerType} />
+
+                  {(p.coAgentIds?.length ?? 0) > 0 && (
+                    <div className="flex items-center gap-1.5 rounded-lg bg-secondary/60 px-2.5 py-1.5 text-xs">
+                      <Users className="size-3.5 text-primary" />
+                      <span className="text-muted-foreground">Co-angariação: </span>
+                      <span className="font-medium">
+                        {(p.commissionSplit ?? [{ agentId: p.agentId, pct: 0 }, ...(p.coAgentIds ?? []).map((id) => ({ agentId: id, pct: 0 }))])
+                          .map((s) => `${agentById(s.agentId).name.split(" ")[0]}${s.pct ? ` ${s.pct}%` : ""}`)
+                          .join(" · ")}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="mt-auto flex items-center gap-2 pt-1">
                     <div className="flex min-w-0 items-center gap-2">

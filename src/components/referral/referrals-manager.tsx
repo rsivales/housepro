@@ -6,6 +6,7 @@ import { ArrowDownLeft, ArrowUpRight, Check, Percent, Reply, X } from "lucide-re
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatPhone } from "@/lib/format";
+import { PropertyRef } from "@/components/property/property-ref";
 import { REFERRAL_STATUS, type Referral } from "@/lib/data/referrals";
 
 type Item = Referral & { direction: "in" | "out" };
@@ -155,7 +156,12 @@ function Card({ r, mine, children }: { r: Item; mine: boolean; children?: React.
           <p className="font-medium leading-none">{r.clientName}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {r.clientContact.includes("@") ? r.clientContact : formatPhone(r.clientContact)}
-            {r.propertyRef && <> · Ref. {r.propertyRef}</>}
+            {r.propertyId && (
+              <>
+                {" · "}
+                <PropertyRef propertyId={r.propertyId} label={`Ref. ${r.propertyRef}`} />
+              </>
+            )}
           </p>
         </div>
         <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", st.badge)}>

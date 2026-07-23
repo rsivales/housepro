@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   LogOut,
   MessageSquare,
+  PhoneCall,
   Presentation,
   Store,
   Target,
@@ -25,6 +26,8 @@ import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
 import { referralsIncoming } from "@/lib/data/referrals";
 import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
 import { DocNote } from "@/components/consultant/doc-note";
+import { PropertyRef } from "@/components/property/property-ref";
+import { agentById } from "@/lib/data/mock";
 import { formatPhone } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { PropertyCard } from "@/components/property/property-card";
@@ -132,7 +135,12 @@ export default async function AppPage() {
                         <p className="font-medium leading-none">{l.name}</p>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {l.contact.includes("@") ? l.contact : formatPhone(l.contact)}
-                          {l.propertyRef && <> · Ref. {l.propertyRef}</>}
+                          {l.propertyId && (
+                            <>
+                              {" · "}
+                              <PropertyRef propertyId={l.propertyId} label={`Ref. ${l.propertyRef}`} />
+                            </>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -176,6 +184,22 @@ export default async function AppPage() {
                     {l.referrerId && (
                       <span className="inline-flex items-center gap-1 font-medium text-primary">
                         <UserPlus className="size-3.5" /> Atribuído a si (trouxe o cliente)
+                      </span>
+                    )}
+                    {(l.coOwnerIds?.length ?? 0) > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
+                        <Users className="size-3.5" /> Partilhada com{" "}
+                        {[l.ownerId, ...(l.coOwnerIds ?? [])]
+                          .filter((id) => id !== agent.id)
+                          .map((id) => agentById(id).name.split(" ")[0])
+                          .join(", ")}
+                      </span>
+                    )}
+                    {l.contactedBy && l.contactedBy !== agent.id && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-gold/15 px-2 py-0.5 font-medium text-gold-foreground">
+                        <PhoneCall className="size-3.5" /> Já contactado por {agentById(l.contactedBy).name.split(" ")[0]}
+                        {l.contactedAt &&
+                          ` · ${new Date(l.contactedAt).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
                       </span>
                     )}
                     <span className="ml-auto">

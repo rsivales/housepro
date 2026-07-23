@@ -68,8 +68,8 @@ export const agents: Agent[] = [
   {
     id: "carla",
     name: "Carla Sousa",
-    role: "Coordenadora",
-    roleKey: "coordenador",
+    role: "Diretora de agência",
+    roleKey: "diretor",
     agency: "HousePro Algarve",
     agencyId: "algarve",
     whatsapp: "351910000005",
@@ -102,6 +102,15 @@ export const properties: Property[] = [
     status: "destaque",
     image: "/properties/terracotta-dusk.svg",
     agentId: "ana",
+    // Co-angariação (parceria Ana + Rui): comissão repartida.
+    coAgentIds: ["rui"],
+    commissionType: "percent",
+    commissionPct: 5,
+    commissionSplit: [
+      { agentId: "ana", pct: 60 },
+      { agentId: "rui", pct: 40 },
+    ],
+    documents: ["cmi", "doc_proprietario", "caderneta", "certidao_predial", "cert_energetico", "licenca_utilizacao", "planta"],
     interest: 84,
     listedAt: "2026-07-12",
   },

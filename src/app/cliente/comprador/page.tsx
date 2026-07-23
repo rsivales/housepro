@@ -4,6 +4,7 @@ import { Bookmark, Calculator, FileText } from "lucide-react";
 
 import { PortalShell } from "@/components/portal/portal-shell";
 import { PropertyCard } from "@/components/property/property-card";
+import { PropertyRef } from "@/components/property/property-ref";
 import { DealStepper } from "@/components/process/deal-stepper";
 import { compradorPortal } from "@/lib/data/client";
 import { propertyById } from "@/lib/data/mock";
@@ -58,7 +59,9 @@ export default function CompradorPortal() {
             return (
               <div key={pr.propertyId} className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-4 shadow-sm">
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{prop?.title ?? "Imóvel"}</p>
+                  <p className="truncate font-medium">
+                    <PropertyRef propertyId={pr.propertyId} label={prop?.title ?? "Imóvel"} />
+                  </p>
                   <p className="text-sm text-muted-foreground">Proposta: {formatEuro(pr.amount)}</p>
                 </div>
                 <span

@@ -8,8 +8,15 @@ export interface Lead {
   propertyRef?: string;
   /** Consultor que fica com o contacto (referrer, ou angariador). */
   ownerId: string;
+  /** Co-donos da lead (parceria/co-angariação) — a lead aparece a todos. */
+  coOwnerIds?: string[];
   /** Consultor que trouxe o cliente (?ref), quando diferente do angariador. */
   referrerId?: string;
+  /** Agentes que já abriram/leram a lead (partilha em tempo real). */
+  readBy?: string[];
+  /** Agente que já fez o contacto (para o parceiro não repetir). */
+  contactedBy?: string;
+  contactedAt?: string;
   name: string;
   /** Telefone ou email. */
   contact: string;
@@ -70,11 +77,31 @@ export const mockLeads: Lead[] = [
     status: "agendado",
     createdAt: "2026-07-18T15:05:00",
   },
+  {
+    // Lead de imóvel co-angariado (Rui + Ana). Já foi contactada pela parceira.
+    id: "l4",
+    propertyId: "1",
+    propertyRef: "HP-1042",
+    ownerId: "ana",
+    coOwnerIds: ["rui"],
+    name: "Tiago Freitas",
+    contact: "351963444555",
+    intent: "visita",
+    message: "Posso visitar na quinta à tarde?",
+    preferredAt: "2026-07-24T16:00:00",
+    source: "site",
+    status: "contactado",
+    readBy: ["ana", "rui"],
+    contactedBy: "ana",
+    contactedAt: "2026-07-22T10:15:00",
+    createdAt: "2026-07-22T08:00:00",
+  },
 ];
 
+/** Leads do agente: as suas + as de imóveis co-angariados (parceria). */
 export const leadsByOwner = (ownerId: string): Lead[] =>
   mockLeads
-    .filter((l) => l.ownerId === ownerId)
+    .filter((l) => l.ownerId === ownerId || (l.coOwnerIds ?? []).includes(ownerId))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
 export const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {

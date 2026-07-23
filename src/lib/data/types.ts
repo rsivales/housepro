@@ -34,7 +34,12 @@ export interface Agency {
 }
 
 /** Papel hierárquico (governa permissões e aprovações). */
-export type RoleKey = "admin" | "coordenador" | "agente" | "agente_ami";
+/** Papel hierárquico (governa permissões e aprovações).
+ *  admin = administração global (marca, várias agências);
+ *  diretor = diretor de agência / broker (gere uma agência);
+ *  coordenador = coordenação de equipa dentro da agência;
+ *  agente / agente_ami = consultor (com AMI próprio = independente). */
+export type RoleKey = "admin" | "diretor" | "coordenador" | "agente" | "agente_ami";
 
 export interface Agent {
   id: string;
@@ -123,7 +128,14 @@ export interface Property {
   /** Quem aprovou/rejeitou e porquê. */
   approvedBy?: string;
   rejectionReason?: string;
+  /** Angariador principal. */
   agentId: string;
+  /** Co-angariadores (parceria no mesmo imóvel). O contacto/lead aparece a
+   *  todos e a comissão é repartida. */
+  coAgentIds?: string[];
+  /** Repartição da comissão por agente (% que somam 100). Se ausente e houver
+   *  co-angariadores, divide-se em partes iguais. */
+  commissionSplit?: { agentId: string; pct: number }[];
   /** Engagement proxy 0–100 (visitas + leads + favoritos) for ranking. */
   interest?: number;
   /** ISO date the listing went live, for recency ranking. */

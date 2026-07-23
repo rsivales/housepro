@@ -22,7 +22,12 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.housepro.pt"),
+  // Base para URLs canónicos e tags de partilha. Em produção/estágio, define
+  // NEXT_PUBLIC_SITE_URL (ex.: o teu ...vercel.app ou beta.housepro.pt) para
+  // não apontar ao domínio principal enquanto o site novo não o substitui.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt"
+  ),
   title: {
     default: "HousePro — Imobiliária | Comprar, arrendar e avaliar casas",
     template: "%s · HousePro",

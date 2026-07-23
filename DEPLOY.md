@@ -98,8 +98,9 @@ As migrações já criam os buckets (`property-docs` etc.). Confirma em
 Para o login por email/magic-link funcionar:
 
 1. Supabase → **Authentication → URL Configuration**.
-2. **Site URL**: o teu URL de produção (ex.: `https://housepro.vercel.app` ou
-   `https://www.housepro.pt`).
+2. **Site URL**: o URL onde o site novo está a correr — neste momento o teu
+   `https://housepro-xxxx.vercel.app` (ou o subdomínio de estágio). **Não** metas
+   aqui o `www.housepro.pt` enquanto ele servir o site antigo.
 3. **Redirect URLs**: acrescenta esse mesmo URL + `/auth/callback`.
 
 ---
@@ -113,13 +114,39 @@ Para o login por email/magic-link funcionar:
 
 ---
 
-## 6. Domínio próprio (opcional, www.housepro.pt)
+## 6. Domínio — SEM tocar no site atual ⚠️
 
-1. Vercel → Project → **Settings → Domains** → adiciona `www.housepro.pt`.
-2. No teu registrar de DNS, cria o registo que a Vercel indicar
-   (normalmente um **CNAME** `www` → `cname.vercel-dns.com`).
-3. Atualiza o **Site URL / Redirect URLs** no Supabase (passo 4) para o domínio.
-4. O `metadataBase` do site já aponta para `https://www.housepro.pt`.
+> **O `housepro.pt` já tem um site em produção com utilizadores reais.** Importar
+> este projeto para a Vercel **não altera** o teu domínio: o deploy fica num URL
+> próprio `…vercel.app` e o site antigo continua exatamente como está. O domínio
+> só muda quando **fores tu** a mexer no DNS. Recomendação: testa primeiro, e
+> quando quiseres mostrar, usa um **subdomínio de estágio** — nunca o principal.
+
+### 6.1 Testar no URL da Vercel (impacto zero) — recomendado para já
+Não faças nada. Usa o `https://housepro-xxxx.vercel.app` que a Vercel te deu.
+Nos env vars da Vercel, define também:
+```bash
+NEXT_PUBLIC_SITE_URL=https://housepro-xxxx.vercel.app
+```
+Assim as tags de partilha/SEO apontam ao endereço de teste, não ao domínio real.
+
+### 6.2 Subdomínio de estágio (ex.: beta.housepro.pt) — quando quiseres partilhar
+O `www.housepro.pt` (o site a sério) **fica intocado**; só crias um subdomínio novo.
+1. Vercel → Project → **Settings → Domains** → adiciona `beta.housepro.pt`.
+2. No teu DNS, cria **só** um registo `beta` do tipo **CNAME** → `cname.vercel-dns.com`
+   (não mexes nos registos de `www` nem da raiz `@`).
+3. Define `NEXT_PUBLIC_SITE_URL=https://beta.housepro.pt` na Vercel.
+4. No Supabase (passo 4), acrescenta `https://beta.housepro.pt` ao Site URL / Redirect URLs.
+
+### 6.3 Passar o domínio principal — só no fim, quando decidires migrar
+Quando o site novo estiver validado e quiseres substituir o antigo:
+1. Vercel → **Settings → Domains** → adiciona `www.housepro.pt` (e a raiz, se quiseres).
+2. Atualiza no DNS o registo de `www` para o valor que a Vercel indicar.
+3. Define `NEXT_PUBLIC_SITE_URL=https://www.housepro.pt` e atualiza o Supabase.
+
+> O `metadataBase` do código usa `NEXT_PUBLIC_SITE_URL` e só cai em
+> `https://www.housepro.pt` como último recurso — por isso, em estágio, define
+> sempre a variável para o endereço correto.
 
 ---
 
@@ -129,6 +156,10 @@ Para o login por email/magic-link funcionar:
 # obrigatórias (Vercel + .env.local)
 NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+
+# recomendada em estágio — evita que SEO/partilha apontem ao domínio real.
+# Mete o teu ...vercel.app ou o subdomínio de estágio (ex.: beta.housepro.pt).
+NEXT_PUBLIC_SITE_URL=https://housepro-xxxx.vercel.app
 
 # opcionais — notificações de lead
 # LEAD_WEBHOOK_URL=https://hooks.slack.com/services/...

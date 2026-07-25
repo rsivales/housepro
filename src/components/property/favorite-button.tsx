@@ -7,13 +7,19 @@ import { cn } from "@/lib/utils";
 
 /**
  * Botão de favorito para o VISITANTE (comprador). Sem conta → abre o registo
- * (criar conta grátis) e guarda o imóvel; com conta → alterna o favorito.
- * variant "icon" (coração no cartão) | "labeled" (botão na página do imóvel).
- * Demo com localStorage; liga ao Supabase (Portal do comprador) no M8.
+ * (criar conta grátis, com o objetivo da procura) e guarda o imóvel; com conta
+ * → alterna o favorito. variant "icon" (♥ no cartão) | "labeled" (na página do
+ * imóvel). Demo com localStorage; liga ao Supabase (Portal do comprador) no M8.
  */
 
 const CONTA_KEY = "housepro:conta";
 const FAV_KEY = "housepro:favoritos";
+
+const OBJETIVOS = [
+  { key: "propria", label: "Habitação própria" },
+  { key: "segunda", label: "Segunda habitação" },
+  { key: "investimento", label: "Investimento" },
+] as const;
 
 function temConta() {
   if (typeof window === "undefined") return false;
@@ -39,6 +45,7 @@ export function FavoriteButton({
   const [dialog, setDialog] = React.useState(false);
   const [nome, setNome] = React.useState("");
   const [email, setEmail] = React.useState("");
+  const [objetivo, setObjetivo] = React.useState("");
 
   React.useEffect(() => {
     setFav(lerFavoritos().includes(propertyId));
@@ -65,9 +72,10 @@ export function FavoriteButton({
 
   function criarConta(e: React.FormEvent) {
     e.preventDefault();
+    if (!objetivo) return;
     window.localStorage.setItem(
       CONTA_KEY,
-      JSON.stringify({ nome, email, criadoEm: Date.now() })
+      JSON.stringify({ nome, email, objetivo, criadoEm: Date.now() })
     );
     setDialog(false);
     toggle();
@@ -75,7 +83,7 @@ export function FavoriteButton({
 
   const dialogEl = dialog ? (
     <div
-      className="fixed inset-0 z-50 grid place-items-center p-4"
+      className="pointer-events-auto fixed inset-0 z-50 grid place-items-center p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -99,8 +107,8 @@ export function FavoriteButton({
           Guarde os seus imóveis
         </h2>
         <p className="mt-1 text-center text-sm text-muted-foreground">
-          Crie a sua conta gratuita para guardar favoritos, receber alertas de
-          novos imóveis e acompanhar as suas visitas.
+          Crie a sua conta gratuita para guardar favoritos, receber alertas e
+          acompanhar as suas visitas.
         </p>
         <form onSubmit={criarConta} className="mt-5 space-y-3">
           <input
@@ -125,9 +133,35 @@ export function FavoriteButton({
             placeholder="O seu email"
             className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
           />
+
+          <div className="pt-1">
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+              A sua procura é para:
+            </p>
+            <div className="grid gap-2">
+              {OBJETIVOS.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => setObjetivo(o.key)}
+                  aria-pressed={objetivo === o.key}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                    objetivo === o.key
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "text-foreground hover:bg-secondary"
+                  )}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             type="submit"
-            className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.01]"
+            disabled={!objetivo}
+            className="mt-1 w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
           >
             Criar conta grátis
           </button>

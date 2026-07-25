@@ -20,7 +20,7 @@ const nav = [
 
 // Áreas privadas alcançáveis a partir do cabeçalho.
 const conta = [
-  { label: "A minha conta", href: "/cliente/comprador", icon: User, hint: "Clientes" },
+  { label: "A minha conta", href: "/cliente/favoritos", icon: User, hint: "Clientes" },
   { label: "Profissionais", href: "/entrar", icon: Briefcase, hint: "Consultores" },
 ];
 
@@ -54,7 +54,7 @@ export function SiteHeader() {
             </Link>
           </Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
-            <Link href="/cliente/comprador">
+            <Link href="/cliente/favoritos">
               <User className="size-4" /> A minha conta
             </Link>
           </Button>

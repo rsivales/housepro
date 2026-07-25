@@ -1,9 +1,8 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { BedDouble, Bath, Heart, MapPin, Maximize2 } from "lucide-react";
+import { BedDouble, Bath, MapPin, Maximize2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { formatArea, formatPrice, whatsappLink } from "@/lib/format";
@@ -12,6 +11,7 @@ import { STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
 import type { Agent, Property } from "@/lib/data/types";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
+import { FavoriteButton } from "@/components/property/favorite-button";
 
 function StatusBadge({ status }: { status: NonNullable<Property["status"]> }) {
   return (
@@ -40,7 +40,6 @@ export function PropertyCard({
    */
   referrer?: Agent;
 }) {
-  const [favorite, setFavorite] = React.useState(false);
   const listingAgent = agentById(property.agentId);
   const contact = referrer ?? listingAgent;
   const href = `/imovel/${property.id}${referrer ? `?ref=${referrer.id}` : ""}`;
@@ -70,20 +69,7 @@ export function PropertyCard({
           <div className="flex gap-2">
             {property.status && <StatusBadge status={property.status} />}
           </div>
-          <button
-            type="button"
-            onClick={() => setFavorite((v) => !v)}
-            aria-pressed={favorite}
-            aria-label={favorite ? "Remover dos favoritos" : "Guardar nos favoritos"}
-            className="pointer-events-auto grid size-9 place-items-center rounded-full bg-background/85 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background"
-          >
-            <Heart
-              className={cn(
-                "size-[18px] transition-all",
-                favorite ? "fill-destructive stroke-destructive scale-110" : "stroke-current"
-              )}
-            />
-          </button>
+          <FavoriteButton propertyId={property.id} />
         </div>
 
         <span className="absolute bottom-3 left-3 rounded-full bg-background/85 px-2.5 py-1 text-xs font-medium capitalize text-foreground shadow-sm backdrop-blur">

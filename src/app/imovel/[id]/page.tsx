@@ -24,6 +24,7 @@ import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { PropertyActions } from "@/components/property/property-actions";
 import { FavoriteButton } from "@/components/property/favorite-button";
+import { AgentContactBar } from "@/components/property/agent-contact-bar";
 import { ContactDialog } from "@/components/property/contact-dialog";
 import { CostWizard } from "@/components/property/cost-wizard";
 import { CreditSimulator } from "@/components/property/credit-simulator";
@@ -114,7 +115,7 @@ export default async function ImovelPage({
   return (
     <div className="min-h-dvh bg-background">
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <main className="mx-auto max-w-6xl px-4 pt-6 pb-28 sm:px-6 sm:pt-8 lg:pb-8">
         {/* Breadcrumbs — links de origem */}
         <nav aria-label="Navegação" className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
           <Link href="/" className="hover:text-foreground">Início</Link>
@@ -222,7 +223,7 @@ export default async function ImovelPage({
           </div>
 
           {/* Coluna de contacto (sticky) */}
-          <aside className="order-first space-y-6 lg:order-none lg:sticky lg:top-24 lg:self-start">
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-2xl border bg-card p-5 shadow-sm">
               {referrer && (
                 <p className="mb-3 rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
@@ -308,6 +309,14 @@ export default async function ImovelPage({
           </section>
         )}
       </main>
+
+      <AgentContactBar
+        agent={contact}
+        whatsappHref={whatsappLink(contact.whatsapp, property)}
+        telHref={telLink(contact.whatsapp)}
+        smsHref={`sms:${contact.whatsapp}`}
+        phone={formatPhone(contact.whatsapp)}
+      />
       <SiteFooter />
     </div>
   );

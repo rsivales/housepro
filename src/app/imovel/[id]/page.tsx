@@ -23,6 +23,7 @@ import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { PropertyActions } from "@/components/property/property-actions";
+import { FavoriteButton } from "@/components/property/favorite-button";
 import { ContactDialog } from "@/components/property/contact-dialog";
 import { CostWizard } from "@/components/property/cost-wizard";
 import { CreditSimulator } from "@/components/property/credit-simulator";
@@ -221,7 +222,7 @@ export default async function ImovelPage({
           </div>
 
           {/* Coluna de contacto (sticky) */}
-          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <aside className="order-first space-y-6 lg:order-none lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-2xl border bg-card p-5 shadow-sm">
               {referrer && (
                 <p className="mb-3 rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
@@ -262,6 +263,10 @@ export default async function ImovelPage({
                   referrerId={ref}
                   reference={property.reference}
                 />
+              </div>
+
+              <div className="mt-3">
+                <FavoriteButton propertyId={property.id} variant="labeled" />
               </div>
             </div>
 

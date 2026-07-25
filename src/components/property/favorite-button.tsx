@@ -58,6 +58,7 @@ export function FavoriteButton({
       : [...ids, propertyId];
     window.localStorage.setItem(FAV_KEY, JSON.stringify(next));
     setFav(next.includes(propertyId));
+    window.dispatchEvent(new Event("housepro:favoritos"));
   }
 
   function onHeart(e: React.MouseEvent) {

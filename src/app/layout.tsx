@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { FavoritesFab } from "@/components/cliente/favorites-fab";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -61,6 +62,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <FavoritesFab />
         </ThemeProvider>
       </body>
     </html>

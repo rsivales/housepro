@@ -3,11 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { Heart3D } from "@/components/icons/heart-3d";
 
 const FAV_KEY = "housepro:favoritos";
 
-// Onde NÃO mostrar (áreas privadas/profissionais e onde já há acesso direto).
+// Áreas privadas/profissionais onde não faz sentido mostrar.
 const OCULTAR = [
   "/app",
   "/admin",
@@ -15,7 +17,6 @@ const OCULTAR = [
   "/auth",
   "/reuniao",
   "/processo",
-  "/imovel/",
   "/cliente",
 ];
 
@@ -44,14 +45,20 @@ export function FavoritesFab() {
   const oculto = count === 0 || OCULTAR.some((r) => pathname.startsWith(r));
   if (oculto) return null;
 
+  // Na página do imóvel há a barra do agente em baixo (mobile): sobe o FAB.
+  const naPaginaImovel = pathname.startsWith("/imovel/");
+
   return (
     <Link
       href="/cliente/favoritos"
       aria-label={`Ver os meus favoritos (${count})`}
-      className="fixed bottom-6 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-105 active:scale-95 sm:right-6"
+      className={cn(
+        "fixed right-4 z-40 inline-flex items-center gap-2 rounded-full border bg-card px-3 py-2.5 text-sm font-bold text-foreground shadow-xl transition-transform hover:scale-105 active:scale-95 sm:right-6",
+        naPaginaImovel ? "bottom-24 lg:bottom-6" : "bottom-6"
+      )}
     >
-      <Heart className="size-5 fill-current" />
-      <span className="min-w-4 text-center tabular-nums">{count}</span>
+      <Heart3D className="size-7" />
+      <span className="min-w-5 pr-1 text-center tabular-nums">{count}</span>
     </Link>
   );
 }

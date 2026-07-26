@@ -23,6 +23,7 @@ export interface NotifyContext {
   agentEmail?: string;
   propertyRef?: string;
   propertyUrl?: string;
+  channel?: string;
 }
 
 export async function notifyLead(
@@ -33,6 +34,7 @@ export async function notifyLead(
   const title = INTENT_LABEL[lead.intent] ?? "Nova lead";
   const linhas = [
     `${title} — HousePro`,
+    ctx.channel ? `Via: ${ctx.channel}` : null,
     ctx.propertyRef ? `Imóvel: ${ctx.propertyRef}` : null,
     `Cliente: ${lead.name} (${lead.contact}${lead.email ? `, ${lead.email}` : ""})`,
     lead.message ? `Mensagem: ${lead.message}` : null,
@@ -59,9 +61,11 @@ export async function notifyLead(
 
   // 2) Email via Resend
   const resendKey = process.env.RESEND_API_KEY;
-  const to = ctx.agentEmail || process.env.LEAD_NOTIFY_EMAIL;
+  const to = [ctx.agentEmail, process.env.LEAD_NOTIFY_EMAIL].filter(
+    Boolean
+  ) as string[];
   const from = process.env.LEAD_FROM_EMAIL;
-  if (resendKey && to && from) {
+  if (resendKey && to.length && from) {
     try {
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",

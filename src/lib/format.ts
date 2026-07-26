@@ -32,9 +32,38 @@ export function formatCalc(value: number, kind?: "money" | "percent" | "number")
  * Builds a wa.me click-to-chat URL with a message pre-filled with the
  * listing reference — the "WhatsApp por agente" requirement.
  */
-export function whatsappLink(whatsapp: string, property: Pick<Property, "reference" | "title">) {
-  const text = `Olá! Tenho interesse no imóvel ${property.reference} — "${property.title}". Pode dar-me mais informações?`;
-  return `https://wa.me/${whatsapp}?text=${encodeURIComponent(text)}`;
+export function interesseMsg(
+  property: Pick<Property, "reference" | "title">,
+  url?: string
+) {
+  return `Olá! Estou interessado em mais informações do imóvel ${property.reference} — "${property.title}".${url ? ` ${url}` : ""}`;
+}
+
+export function whatsappLink(
+  whatsapp: string,
+  property: Pick<Property, "reference" | "title">,
+  url?: string
+) {
+  return `https://wa.me/${whatsapp}?text=${encodeURIComponent(interesseMsg(property, url))}`;
+}
+
+export function smsLink(
+  digits: string,
+  property: Pick<Property, "reference" | "title">,
+  url?: string
+) {
+  return `sms:${digits}?body=${encodeURIComponent(interesseMsg(property, url))}`;
+}
+
+export function agentEmail(agent: { email?: string; name: string }) {
+  if (agent.email) return agent.email;
+  const slug = agent.name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.+|\.+$/g, "");
+  return `${slug}@housepro.pt`;
 }
 
 /** "351910000001" → "+351 910 000 001" (número PT em grupos de 3). */

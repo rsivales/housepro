@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { propertyById, agentById } from "@/lib/data/mock";
 import { createLead } from "@/lib/db/repo";
 import { notifyLead } from "@/lib/notify";
+import { agentEmail } from "@/lib/format";
 
 /**
  * Recolhe uma lead do site (mensagem ou pedido de visita).
@@ -60,11 +61,13 @@ export async function POST(request: Request) {
   });
 
   // Notifica o consultor (best-effort; não bloqueia a resposta em caso de falha).
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
   const notified = await notifyLead(lead, {
     agentName: owner?.name,
+    agentEmail: owner ? agentEmail(owner) : undefined,
     propertyRef: property?.reference,
     propertyUrl: propertyId
-      ? `https://www.housepro.pt/imovel/${propertyId}${referrerId ? `?ref=${referrerId}` : ""}`
+      ? `${siteUrl}/imovel/${propertyId}${referrerId ? `?ref=${referrerId}` : ""}`
       : undefined,
   });
 

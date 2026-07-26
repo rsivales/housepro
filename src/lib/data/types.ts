@@ -55,6 +55,8 @@ export interface Agent {
   agencyId: string;
   /** Full international phone for wa.me click-to-chat, digits only. */
   whatsapp: string;
+  /** Email do consultor (para cópia de comunicações ao agente). */
+  email?: string;
   /** Accent color token for the initials-avatar fallback. */
   accent: string;
   /** Headshot under /public/agents; falls back to initials when absent. */

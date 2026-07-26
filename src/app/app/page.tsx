@@ -98,6 +98,8 @@ export default async function AppPage() {
           <Action icon={LayoutGrid} title="A minha montra" href={`/consultor/${agent.id}`} note="Página pública" />
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />
+          <Action icon={Target} title="CRM · Pipelines" href="/app/crm" note="Angariação e comprador (Kanban)" />
+          <Action icon={Award} title="Objetivos & Prémios" href="/app/objetivos" note="Metas, pontos e distintivos" />
         </div>
 
         {/* Contactos & pedidos de visita */}

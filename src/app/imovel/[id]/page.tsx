@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import {
   Bath,
   BedDouble,
@@ -25,6 +26,7 @@ import { PhoneNote } from "@/components/legal/phone-note";
 import { PropertyActions } from "@/components/property/property-actions";
 import { FavoriteButton } from "@/components/property/favorite-button";
 import { AgentContactBar } from "@/components/property/agent-contact-bar";
+import { ContactLink } from "@/components/property/contact-link";
 import { ContactDialog } from "@/components/property/contact-dialog";
 import { CostWizard } from "@/components/property/cost-wizard";
 import { CreditSimulator } from "@/components/property/credit-simulator";
@@ -36,7 +38,7 @@ import {
 } from "@/components/property/property-gallery";
 import { agentById } from "@/lib/data/mock";
 import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
-import { formatArea, formatPhone, formatPrice, telLink, whatsappLink } from "@/lib/format";
+import { formatArea, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
 import type { ElementType } from "react";
 
 export async function generateMetadata({
@@ -66,6 +68,11 @@ export default async function ImovelPage({
   // contact — not the listing agent (angariador).
   const referrer = ref && ref !== property.agentId ? agentById(ref) : undefined;
   const contact = referrer ?? listingAgent;
+
+  const hdrs = await headers();
+  const host = hdrs.get("host") ?? "www.housepro.pt";
+  const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https";
+  const propertyUrl = `${proto}://${host}/imovel/${property.id}${ref ? `?ref=${ref}` : ""}`;
   const gallery = property.gallery ?? [property.image];
   const similares = await listSimilarProperties(property, 3);
 
@@ -241,20 +248,25 @@ export default async function ImovelPage({
                   </p>
                 </div>
               </div>
-              <a
-                href={whatsappLink(contact.whatsapp, property)}
-                target="_blank"
-                rel="noopener noreferrer"
+              <ContactLink
+                href={whatsappLink(contact.whatsapp, property, propertyUrl)}
+                channel="WhatsApp"
+                propertyId={property.id}
+                refId={ref}
+                external
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-medium text-white transition-transform hover:scale-[1.02]"
               >
                 <WhatsappIcon className="size-4" /> Falar por WhatsApp
-              </a>
-              <a
+              </ContactLink>
+              <ContactLink
                 href={telLink(contact.whatsapp)}
+                channel="Chamada"
+                propertyId={property.id}
+                refId={ref}
                 className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
               >
                 <Phone className="size-4" /> {formatPhone(contact.whatsapp)}
-              </a>
+              </ContactLink>
               <p className="mt-1.5 text-center">
                 <PhoneNote />
               </p>
@@ -312,10 +324,12 @@ export default async function ImovelPage({
 
       <AgentContactBar
         agent={contact}
-        whatsappHref={whatsappLink(contact.whatsapp, property)}
+        whatsappHref={whatsappLink(contact.whatsapp, property, propertyUrl)}
         telHref={telLink(contact.whatsapp)}
-        smsHref={`sms:${contact.whatsapp}`}
+        smsHref={smsLink(contact.whatsapp, property, propertyUrl)}
         phone={formatPhone(contact.whatsapp)}
+        propertyId={property.id}
+        refId={ref}
       />
       <SiteFooter />
     </div>

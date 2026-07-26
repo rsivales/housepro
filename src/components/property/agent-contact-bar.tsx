@@ -4,13 +4,13 @@ import { Phone, MessageSquare } from "lucide-react";
 
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
+import { notifyContact } from "@/lib/contact-notify";
 import type { Agent } from "@/lib/data/types";
 
 /**
- * Barra de contacto do consultor, fixa no fundo do ecrã em telemóvel.
- * Acompanha o scroll para o cliente poder ligar / WhatsApp / mensagem a
- * qualquer momento enquanto explora o imóvel. Escondida no desktop (lg),
- * onde já existe a coluna lateral de contacto.
+ * Barra de contacto do consultor, fixa no fundo em telemóvel. Cada ação
+ * (WhatsApp / chamada / SMS) dispara também a cópia por email ao consultor e à
+ * direção da agência, com o link do imóvel.
  */
 export function AgentContactBar({
   agent,
@@ -18,18 +18,26 @@ export function AgentContactBar({
   telHref,
   smsHref,
   phone,
+  propertyId,
+  refId,
 }: {
   agent: Agent;
   whatsappHref: string;
   telHref: string;
   smsHref: string;
   phone: string;
+  propertyId: string;
+  refId?: string;
 }) {
+  const notify = (channel: string) =>
+    notifyContact(channel, { propertyId, ref: refId });
+
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 py-2.5 shadow-[0_-6px_24px_rgba(0,0,0,0.10)] backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-6xl items-center gap-3">
         <a
           href={telHref}
+          onClick={() => notify("Chamada")}
           aria-label={`Ligar a ${agent.name}`}
           className="relative shrink-0"
         >
@@ -43,6 +51,7 @@ export function AgentContactBar({
           <p className="truncate text-sm font-medium">{agent.name}</p>
           <a
             href={telHref}
+            onClick={() => notify("Chamada")}
             className="truncate text-xs text-muted-foreground hover:text-foreground"
           >
             {phone}
@@ -51,6 +60,7 @@ export function AgentContactBar({
 
         <a
           href={whatsappHref}
+          onClick={() => notify("WhatsApp")}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Falar por WhatsApp"
@@ -60,6 +70,7 @@ export function AgentContactBar({
         </a>
         <a
           href={telHref}
+          onClick={() => notify("Chamada")}
           aria-label="Ligar"
           className="grid size-10 shrink-0 place-items-center rounded-full border text-foreground transition-colors hover:bg-secondary"
         >
@@ -67,6 +78,7 @@ export function AgentContactBar({
         </a>
         <a
           href={smsHref}
+          onClick={() => notify("SMS")}
           aria-label="Enviar mensagem"
           className="grid size-10 shrink-0 place-items-center rounded-full border text-foreground transition-colors hover:bg-secondary"
         >

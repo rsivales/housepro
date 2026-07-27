@@ -54,6 +54,11 @@ Extensão do processo de negócio já existente (reserva → CPCV → escritura)
 Guia o consultor passo a passo para não esquecer nada; liga ao CRM (as fases
 viram checklists) e à gamificação (pontos por ações feitas).
 
+- **Ativável na área do consultor** (interruptor "Boost"): **não é só para
+  principiantes** — qualquer consultor, júnior ou sénior, o liga quando quer.
+  **Acrescenta** ferramentas às que já tem e **simplifica** alguns processos,
+  sem penalizar quem prefere o fluxo normal.
+
 - **Cold calling:** **quadro pop-up** por cliente a contactar, com **script** da
   chamada e **seguimento** — registar resultado (atendeu / interessado /
   remarcar) e agendar **follow-up** automático.

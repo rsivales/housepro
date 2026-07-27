@@ -17,6 +17,19 @@ mais polido**: fundação primeiro, funcionalidades depois, polimento no fim.
 
 ---
 
+## Princípios de produto (evoluído, mas leve e simples)
+
+- **Leve e rápido:** o Modo Boost e os conteúdos pesados (vídeos/formação) são
+  **opt-in** e carregam **só quando abertos** (lazy-load). Não pesam em quem não usa.
+- **Modular:** cada funcionalidade é um módulo isolado — o sistema pode ser muito
+  capaz sem que **nenhum ecrã** fique pesado ou lento.
+- **Simples por defeito, poder a pedido:** mostra-se o caminho simples; as
+  ferramentas avançadas só aparecem quando o consultor as liga.
+- **Regra de ouro:** se uma funcionalidade não **poupa tempo**, não entra — o
+  objetivo é adesão e valor real, não features a mais.
+
+---
+
 ## Estado atual (feito)
 
 - Montra pública: landing, `/imoveis`, detalhe rico, crédito, montras por
@@ -68,6 +81,12 @@ viram checklists) e à gamificação (pontos por ações feitas).
   propostas** (todos os passos, sem falhar nenhum).
 - **Próxima melhor ação** + **lembretes/tarefas** ("hoje: liga a estes 3;
   falta o documento X; a proposta Y aguarda resposta").
+
+### 5. Formação / Academia (separada do Boost)
+Área própria com **tutoriais**, **manual de procedimentos** e formação. Fica
+**separada** do Boost (aprender vs. fazer) para não confundir nem atravancar o
+fluxo, mas o Boost tem **links contextuais "saber mais"** que saltam para o
+tópico relevante. Conteúdo pesado carrega só quando aberto.
 
 ### 3. Pesquisas guardadas + alertas (comprador)
 Guardar critérios de pesquisa e receber alerta quando entram novos imóveis que

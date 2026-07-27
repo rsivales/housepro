@@ -62,6 +62,13 @@ Extensão do processo de negócio já existente (reserva → CPCV → escritura)
 - **Consultor + coordenadora** acompanham o mesmo processo.
 - Nota de arquitetura: o **modelo de dados** deste módulo deve entrar no esquema
   já na Fase 1/2 (para não re-migrar); a interface constrói-se na Fase 3.
+- **Especificação completa:** `docs/legalflow.md` (do cliente). Integração —
+  Gestor→admin, Consultor→agente, Comprador/Vendedor→portais existentes, +novo
+  papel **Advogado**; o "processo CPCV" é a **fase jurídica do negócio** já
+  existente; reutiliza imóvel, documentos, notificações/email e o stepper.
+- **Sub-fases:** (a) papel advogado + perfil + backbone do processo + onboarding;
+  (b) documentos + questionário + perguntas; (c) versões CPCV + revisão +
+  assinatura; (d) honorários/custos + risco + procurações + traduções + dashboards.
 
 ### 2. Modo Boost — copiloto do consultor
 Guia o consultor passo a passo para não esquecer nada; liga ao CRM (as fases

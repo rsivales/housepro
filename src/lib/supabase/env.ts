@@ -1,16 +1,23 @@
 /**
  * Reads and validates the Supabase environment variables.
- * Throws a descriptive error early so misconfiguration is obvious
- * rather than surfacing as an opaque auth failure at runtime.
+ * Aceita o nome clássico (NEXT_PUBLIC_SUPABASE_ANON_KEY) e o novo formato do
+ * Supabase (NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, chave "publishable").
  */
+function readAnonKey() {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  );
+}
+
 export function getSupabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const anonKey = readAnonKey();
 
   if (!url || !anonKey) {
     throw new Error(
       "Missing Supabase environment variables. Set NEXT_PUBLIC_SUPABASE_URL and " +
-        "NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local (see .env.example)."
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY (ou NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)."
     );
   }
 
@@ -19,8 +26,5 @@ export function getSupabaseEnv() {
 
 /** Whether Supabase is configured — lets pages degrade gracefully when it isn't. */
 export function isSupabaseConfigured() {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && readAnonKey());
 }

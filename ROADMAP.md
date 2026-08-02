@@ -146,3 +146,16 @@ dispositivos; favoritos/pesquisas passam a persistir por utilizador.
 - **Ícones de multimédia** no imóvel para abrir cada elemento.
 - (Feito: tipo de dados + slider + secção na página do imóvel, com demo pela
   galeria. Falta: campos no formulário de upload + persistência no Supabase.)
+
+### Apresentação da multimédia (UX) — construir com dados reais
+- **Sem demonstrações automáticas:** o antes/depois só aparece se o imóvel tiver
+  pares reais (removido o demo que aparecia em todos).
+- **Galeria com navegação:** thumbnails por baixo + setas/slide; indicador do
+  nº de fotos ("+N fotos").
+- **Alternar suportes:** botões/ícones (embutidos na foto, como os das
+  características) para trocar entre Fotos ↔ Vídeo ↔ Tour 3D ↔ Antes/Depois —
+  mostrando só os que existem.
+- **Toggle por imóvel:** ligar/desligar o slider antes/depois (não faz sentido
+  em todos).
+- **Layouts no broker:** escolher como os imóveis se apresentam (fotos+botões,
+  fotos+thumbnails, etc.).

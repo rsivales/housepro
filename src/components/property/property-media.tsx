@@ -10,28 +10,16 @@ function youtubeEmbed(url: string): string | null {
   return m ? `https://www.youtube.com/embed/${m[1]}` : null;
 }
 
-// Demonstração garantida enquanto o upload de antes/depois não é preenchido.
-const DEMO_PAIR = {
-  before: "/properties/casapt-wc.jpg",
-  after: "/properties/casapt-aerial.jpg",
-  label: "Exemplo — arraste para ver o antes/depois (virtual staging / obras)",
-};
-
+/**
+ * Secção de multimédia — só aparece quando o imóvel TEM mesmo estes elementos
+ * (vídeo, tour 3D ou pares antes/depois). Nada de demonstrações automáticas.
+ */
 export function PropertyMedia({ property }: { property: Property }) {
   const embed = property.videoUrl ? youtubeEmbed(property.videoUrl) : null;
-
   const pairs =
-    property.beforeAfter && property.beforeAfter.length
-      ? property.beforeAfter
-      : property.gallery && property.gallery.length >= 2
-        ? [
-            {
-              before: property.gallery[0],
-              after: property.gallery[1],
-              label: DEMO_PAIR.label,
-            },
-          ]
-        : [DEMO_PAIR];
+    property.beforeAfter && property.beforeAfter.length ? property.beforeAfter : [];
+
+  if (!embed && !property.tourUrl && pairs.length === 0) return null;
 
   return (
     <section>

@@ -130,6 +130,7 @@ dispositivos; favoritos/pesquisas passam a persistir por utilizador.
 ### D. Integrações — áreas de configuração
 - **Idealista:** área para configurar **API/feed**, sincronização e **mapeamento** de campos.
 - **Facebook Lead Ads:** configuração e **mapeamento dos ads na área do consultor** → as leads entram no **pipeline kanban** dele; e geram **notificação à administração** para **controlo de qualidade**.
+- **Facebook para brokers (independente):** os brokers têm a sua **própria** configuração e pipeline de Lead Ads, **separada** da dos consultores — ex.: **campanhas de recrutamento** de novos agentes.
 
 ### E. Qualidade (brokers/coordenação)
 - Área **"Qualidade"**: dados automáticos sobre **prestação de serviço dos agentes**, **qualidade dos imóveis** e **pontos a melhorar** (alertas de melhoria).

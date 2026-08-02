@@ -10,8 +10,16 @@ function youtubeEmbed(url: string): string | null {
   return m ? `https://www.youtube.com/embed/${m[1]}` : null;
 }
 
+// Demonstração garantida enquanto o upload de antes/depois não é preenchido.
+const DEMO_PAIR = {
+  before: "/properties/casapt-wc.jpg",
+  after: "/properties/casapt-aerial.jpg",
+  label: "Exemplo — arraste para ver o antes/depois (virtual staging / obras)",
+};
+
 export function PropertyMedia({ property }: { property: Property }) {
   const embed = property.videoUrl ? youtubeEmbed(property.videoUrl) : null;
+
   const pairs =
     property.beforeAfter && property.beforeAfter.length
       ? property.beforeAfter
@@ -20,13 +28,10 @@ export function PropertyMedia({ property }: { property: Property }) {
             {
               before: property.gallery[0],
               after: property.gallery[1],
-              label:
-                "Exemplo — arraste para ver antes/depois (virtual staging / obras)",
+              label: DEMO_PAIR.label,
             },
           ]
-        : [];
-
-  if (!embed && !property.tourUrl && pairs.length === 0) return null;
+        : [DEMO_PAIR];
 
   return (
     <section>

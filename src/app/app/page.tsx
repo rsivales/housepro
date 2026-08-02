@@ -18,6 +18,8 @@ import {
   Upload,
   UserPlus,
   Users,
+  ShieldCheck,
+  ArrowRight,
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
@@ -89,6 +91,26 @@ export default async function AppPage() {
         <h1 className="font-display text-2xl sm:text-3xl">
           Olá, {agent.name.split(" ")[0]} 👋
         </h1>
+
+        {agent.role === "admin" && (
+          <Link
+            href="/admin"
+            className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-primary p-5 text-primary-foreground shadow-sm transition-transform hover:scale-[1.01]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/15">
+                <ShieldCheck className="size-5" />
+              </div>
+              <div>
+                <p className="font-semibold">Administração da marca</p>
+                <p className="text-sm opacity-90">
+                  Agências, consultores, imóveis, aprovações e marca de água
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="size-5 shrink-0" />
+          </Link>
+        )}
 
         {/* Quick actions */}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

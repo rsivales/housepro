@@ -152,6 +152,10 @@ dispositivos; favoritos/pesquisas passam a persistir por utilizador.
   pares reais (removido o demo que aparecia em todos).
 - **Galeria com navegação:** thumbnails por baixo + setas/slide; indicador do
   nº de fotos ("+N fotos").
+- **Visualizador único (abordagem escolhida):** UM só visualizador no topo do
+  anúncio com **separadores/botões** (Fotos · Vídeo · Tour 3D · Antes/Depois) —
+  tudo no mesmo sítio, em vez de uma secção 'Multimédia' separada com fotos
+  soltas ao fazer scroll. Só mostra os separadores que existem.
 - **Alternar suportes:** botões/ícones (embutidos na foto, como os das
   características) para trocar entre Fotos ↔ Vídeo ↔ Tour 3D ↔ Antes/Depois —
   mostrando só os que existem.

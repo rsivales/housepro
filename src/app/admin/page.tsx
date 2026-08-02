@@ -60,10 +60,10 @@ export default function AdminPage() {
   ).length;
 
   const kpis = [
-    { icon: Building2, label: "Imóveis ativos", value: String(activos.length) },
-    { icon: Briefcase, label: "Negócios em curso", value: String(demoDeals.length) },
-    { icon: TrendingUp, label: "Valor em pipeline", value: formatEuro(pipelineValue) },
-    { icon: Users, label: "Consultores", value: String(agencies.reduce((s, a) => s + agentsByAgency(a.id).length, 0)) },
+    { icon: Building2, label: "Imóveis ativos", value: String(activos.length), href: "/admin/imoveis" },
+    { icon: Briefcase, label: "Negócios em curso", value: String(demoDeals.length), href: "/admin#negocios" },
+    { icon: TrendingUp, label: "Valor em pipeline", value: formatEuro(pipelineValue), href: "/admin#negocios" },
+    { icon: Users, label: "Consultores", value: String(agencies.reduce((s, a) => s + agentsByAgency(a.id).length, 0)), href: "/admin/consultores" },
   ];
 
   return (
@@ -83,13 +83,17 @@ export default function AdminPage() {
         {/* KPIs */}
         <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {kpis.map((k) => (
-            <div key={k.label} className="rounded-2xl border bg-card p-5 shadow-sm">
+            <Link
+              key={k.label}
+              href={k.href}
+              className="rounded-2xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+            >
               <div className="grid size-10 place-items-center rounded-xl bg-secondary text-primary">
                 <k.icon className="size-5" />
               </div>
               <p className="mt-3 font-display text-2xl">{k.value}</p>
               <p className="text-sm text-muted-foreground">{k.label}</p>
-            </div>
+            </Link>
           ))}
         </section>
 
@@ -124,7 +128,7 @@ export default function AdminPage() {
         </section>
 
         {/* Pipeline de negócios */}
-        <div className="mt-6 rounded-2xl border bg-card p-6 shadow-sm">
+        <div id="negocios" className="mt-6 scroll-mt-20 rounded-2xl border bg-card p-6 shadow-sm">
           <h2 className="flex items-center gap-1.5 font-medium">
             <Briefcase className="size-4 text-primary" /> Negócios (pipeline)
           </h2>

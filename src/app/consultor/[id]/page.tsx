@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
@@ -31,7 +30,27 @@ export default async function ConsultorPage({
 }) {
   const { id } = await params;
   const agent = agents.find((x) => x.id === id);
-  if (!agent) notFound();
+  if (!agent) {
+    return (
+      <div className="min-h-dvh bg-background">
+        <SiteHeader />
+        <main className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
+          <h1 className="font-display text-2xl">Montra em preparação</h1>
+          <p className="mt-2 text-muted-foreground">
+            Esta montra de consultor está a ser preparada. Assim que o perfil
+            estiver ativo com dados reais, os imóveis aparecem aqui.
+          </p>
+          <Link
+            href="/imoveis"
+            className="mt-6 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
+          >
+            Ver todos os imóveis
+          </Link>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
 
   const mine = await listPropertiesByAgent(agent.id);
   const others = (await listProperties())

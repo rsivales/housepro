@@ -93,3 +93,56 @@ export async function notifyLead(
   }
   return channels;
 }
+
+
+/**
+ * Notificação genérica (webhook + email via Resend) para um ou mais destinatários.
+ * Best-effort: nunca lança. Sem canais configurados, regista no log.
+ */
+export async function notifyGeneric(opts: {
+  subject: string;
+  text: string;
+  to?: (string | undefined)[];
+}): Promise<string[]> {
+  const channels: string[] = [];
+
+  const webhook = process.env.LEAD_WEBHOOK_URL;
+  if (webhook) {
+    try {
+      const res = await fetch(webhook, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: opts.text }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) channels.push("webhook");
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  const resendKey = process.env.RESEND_API_KEY;
+  const to = (opts.to ?? [process.env.LEAD_NOTIFY_EMAIL]).filter(Boolean) as string[];
+  const from = process.env.LEAD_FROM_EMAIL;
+  if (resendKey && to.length && from) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${resendKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ from, to, subject: opts.subject, text: opts.text }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) channels.push("email");
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  if (channels.length === 0) {
+    console.info("[notify]", opts.subject, "\n" + opts.text);
+  }
+  return channels;
+}

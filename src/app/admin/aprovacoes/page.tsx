@@ -4,6 +4,7 @@ import { ArrowLeft, ShieldCheck, AlertTriangle, BadgeCheck } from "lucide-react"
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { ApprovalQueue, type PendingItem } from "@/components/admin/approval-queue";
+import { NotifyMissingButton } from "@/components/admin/notify-missing-button";
 import { properties, pendingApprovals, agentById, agencyById } from "@/lib/data/mock";
 import { docStatus, docLabel } from "@/lib/imovel/model";
 
@@ -64,12 +65,18 @@ export default function AprovacoesPage() {
             <ul className="mt-3 space-y-1.5 text-sm">
               {docMissing.map(({ p, st }) => (
                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-muted-foreground">
+                  <Link
+                    href={`/imovel/${p.id}`}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
                     <span className="font-medium text-foreground">{p.reference}</span> · {p.title}
-                  </span>
-                  <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-medium text-destructive">
-                    {st.missingCount} em falta
-                  </span>
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-medium text-destructive">
+                      {st.missingCount} em falta
+                    </span>
+                    <NotifyMissingButton propertyId={p.id} />
+                  </div>
                 </li>
               ))}
             </ul>

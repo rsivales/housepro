@@ -108,3 +108,28 @@ dispositivos; favoritos/pesquisas passam a persistir por utilizador.
 ## Ideias em aberto / a esclarecer
 - 2.º projeto externo a ligar (a detalhar pelo cliente): avaliar integrar como
   módulo vs. ponte.
+
+---
+
+## Back-office / Admin — melhorias pedidas (Fase 2/3)
+
+### A. Admin real por agência
+- **Painéis clicáveis (drill-down):** ex. "5 imóveis ativos" → clicar abre a lista desses 5. Aplicar a todos os cartões de números.
+- **Marca de água — upload do logo:** permitir carregar a **imagem do logo** (objetivo inicial), não só texto.
+- **Marca de água por agência:** ligar/desligar e **logo próprio por cada agência**.
+- **Gestão de agências:** criar / editar / desativar; ver os **consultores** e **imóveis** de cada uma.
+
+### B. Página pública da agência (`/agencia/[slug]`)
+- **Aviso legal de gestão independente:** cada agência é gerida por pessoas **autónomas**; a marca **não é responsável** pela gestão das agências. (salvaguarda legal, visível.)
+- **Personalização:** a agência escolhe o que mostra no topo / o que oculta.
+
+### C. Aprovações & documentos
+- Ao clicar no **aviso** (ex. vermelho "documentos em falta"), abrir o **imóvel** / a **secção de documentos** correspondente.
+- **Notificação automática ao agente:** "imóvel visto, mas faltam documentos / situações detetadas pelo sistema" → enviado ao agente para corrigir (ele sabe que foi revisto e o que falta).
+
+### D. Integrações — áreas de configuração
+- **Idealista:** área para configurar **API/feed**, sincronização e **mapeamento** de campos.
+- **Facebook Lead Ads:** configuração e **mapeamento dos ads na área do consultor** → as leads entram no **pipeline kanban** dele; e geram **notificação à administração** para **controlo de qualidade**.
+
+### E. Qualidade (brokers/coordenação)
+- Área **"Qualidade"**: dados automáticos sobre **prestação de serviço dos agentes**, **qualidade dos imóveis** e **pontos a melhorar** (alertas de melhoria).

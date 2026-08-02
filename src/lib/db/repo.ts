@@ -10,7 +10,7 @@ import {
 } from "@/lib/data/mock";
 import { leadsByOwner } from "@/lib/data/leads";
 import type { Lead } from "@/lib/data/leads";
-import type { Property } from "@/lib/data/types";
+import type { Agent, Property } from "@/lib/data/types";
 
 /**
  * Data-access layer. Reads from Supabase when configured, otherwise falls back
@@ -19,6 +19,24 @@ import type { Property } from "@/lib/data/types";
  */
 
 type Row = Record<string, unknown>;
+
+const AGENT_COLS =
+  "id, name, role, role_key, agency, agency_id, whatsapp, photo_url, accent";
+
+function mapAgent(a: Row | null | undefined): Agent | undefined {
+  if (!a) return undefined;
+  return {
+    id: String(a.id ?? ""),
+    name: String(a.name ?? ""),
+    role: String(a.role ?? "agente"),
+    roleKey: (a.role_key as Agent["roleKey"]) ?? undefined,
+    agency: String(a.agency ?? ""),
+    agencyId: String(a.agency_id ?? ""),
+    whatsapp: String(a.whatsapp ?? ""),
+    accent: String(a.accent ?? "var(--brand)"),
+    photo: (a.photo_url as string) ?? undefined,
+  };
+}
 
 function mapRow(r: Row): Property {
   return {
@@ -55,6 +73,7 @@ function mapRow(r: Row): Property {
     sellerType: (r.seller_type as "particular" | "empresa") ?? undefined,
     approval: (r.approval as Property["approval"]) ?? undefined,
     submittedAt: (r.submitted_at as string) ?? undefined,
+    agent: mapAgent((r.agent ?? r.profiles) as Row | null | undefined),
     agentId: String(r.agent_id ?? ""),
     interest: r.interest != null ? Number(r.interest) : undefined,
     listedAt: (r.listed_at as string) ?? undefined,
@@ -68,7 +87,7 @@ export async function listPropertiesByAgent(agentId: string): Promise<Property[]
   const supabase = await createClient();
   const { data } = await supabase
     .from("properties")
-    .select("*")
+    .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .eq("agent_id", agentId)
     .neq("status", "vendido")
     .order("listed_at", { ascending: false });
@@ -81,7 +100,7 @@ export async function getPropertyById(id: string): Promise<Property | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("properties")
-    .select("*")
+    .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .eq("id", id)
     .single();
   return data ? mapRow(data) : null;
@@ -93,7 +112,7 @@ export async function listProperties(): Promise<Property[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("properties")
-    .select("*")
+    .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
     .order("listed_at", { ascending: false });
@@ -106,7 +125,7 @@ export async function listPropertiesByAgency(agencyId: string): Promise<Property
   const supabase = await createClient();
   const { data } = await supabase
     .from("properties")
-    .select("*, profiles!inner(agency_id)")
+    .select(`*, profiles!inner(${AGENT_COLS})`)
     .eq("profiles.agency_id", agencyId)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
@@ -120,7 +139,7 @@ export async function listSoldByAgency(agencyId: string): Promise<Property[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("properties")
-    .select("*, profiles!inner(agency_id)")
+    .select(`*, profiles!inner(${AGENT_COLS})`)
     .eq("profiles.agency_id", agencyId)
     .eq("status", "vendido")
     .order("sold_at", { ascending: false });
@@ -136,7 +155,7 @@ export async function listSimilarProperties(
   const supabase = await createClient();
   const { data } = await supabase
     .from("properties")
-    .select("*")
+    .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .neq("id", property.id)
     .neq("status", "vendido")
     .eq("approval", "aprovado")

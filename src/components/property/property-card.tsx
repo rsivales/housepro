@@ -40,7 +40,7 @@ export function PropertyCard({
    */
   referrer?: Agent;
 }) {
-  const listingAgent = agentById(property.agentId);
+  const listingAgent = property.agent ?? agentById(property.agentId);
   const contact = referrer ?? listingAgent;
   const href = `/imovel/${property.id}${referrer ? `?ref=${referrer.id}` : ""}`;
 

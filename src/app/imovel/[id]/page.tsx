@@ -64,7 +64,7 @@ export default async function ImovelPage({
   const property = await getPropertyById(id);
   if (!property) notFound();
 
-  const listingAgent = agentById(property.agentId);
+  const listingAgent = property.agent ?? agentById(property.agentId);
   // Attribution: the referring consultant (who brought the client) owns the
   // contact — not the listing agent (angariador).
   const referrer = ref && ref !== property.agentId ? agentById(ref) : undefined;

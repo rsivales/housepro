@@ -138,6 +138,8 @@ export interface Property {
   rejectionReason?: string;
   /** Angariador principal. */
   agentId: string;
+  /** Perfil real do angariador (resolvido do Supabase quando disponível). */
+  agent?: Agent;
   /** Co-angariadores (parceria no mesmo imóvel). O contacto/lead aparece a
    *  todos e a comissão é repartida. */
   coAgentIds?: string[];

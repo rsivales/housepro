@@ -101,6 +101,21 @@ export default async function AgenciaPage({
             </div>
           </section>
         )}
+        {/* Aviso legal — gestão independente */}
+        <section className="border-t bg-secondary/30">
+          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              <strong className="font-medium text-foreground">
+                Gestão independente.
+              </strong>{" "}
+              A agência {agency.name} é gerida de forma autónoma e independente
+              pelos seus responsáveis. A marca HousePro disponibiliza a plataforma
+              e a montra online, mas não é responsável pela gestão, pelos atos,
+              contratos ou obrigações desta agência — que respondem exclusivamente
+              perante os seus próprios titulares.
+            </p>
+          </div>
+        </section>
       </main>
       <SiteFooter />
     </div>

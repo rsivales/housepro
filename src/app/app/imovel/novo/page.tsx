@@ -19,6 +19,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -103,6 +104,7 @@ export default function NovoImovel() {
   const [fotos, setFotos] = React.useState<string[]>([]);
   const [processing, setProcessing] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const [publishing, setPublishing] = React.useState(false);
   const [xml, setXml] = React.useState<string | null>(null);
   const [docKind, setDocKind] = React.useState("caderneta");
   const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
@@ -208,6 +210,41 @@ export default function NovoImovel() {
       JSON.stringify({ ...persist, fotosCount: fotos.length })
     );
     setSaved(true);
+  }
+
+  async function publicar() {
+    setPublishing(true);
+    try {
+      const supabase = createClient();
+      let coverUrl = "";
+      if (fotos[0]) {
+        const blob = await (await fetch(fotos[0])).blob();
+        const path = `covers/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const up = await supabase.storage
+          .from("property-media")
+          .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+        if (!up.error) {
+          coverUrl = supabase.storage
+            .from("property-media")
+            .getPublicUrl(path).data.publicUrl;
+        }
+      }
+      const res = await fetch("/api/properties/create", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...d, coverUrl }),
+      });
+      const out = await res.json();
+      if (res.ok && out.id) {
+        window.location.href = `/imovel/${out.id}`;
+      } else {
+        alert("Não foi possível publicar: " + (out.error ?? "erro desconhecido"));
+      }
+    } catch {
+      alert("Erro ao publicar o imóvel.");
+    } finally {
+      setPublishing(false);
+    }
   }
 
   function exportarIdealista() {
@@ -617,7 +654,11 @@ export default function NovoImovel() {
         )}
 
         <div className="flex flex-wrap gap-2">
-          <Button onClick={save}><Upload className="size-4" /> {saved ? "Guardado" : "Guardar rascunho"}</Button>
+          <Button onClick={save} variant="outline"><Upload className="size-4" /> {saved ? "Guardado" : "Guardar rascunho"}</Button>
+          <Button variant="brand" onClick={publicar} disabled={publishing}>
+            {publishing ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}{" "}
+            {publishing ? "A publicar…" : "Publicar no site"}
+          </Button>
           <Button variant="outline" onClick={exportarIdealista}><FileDown className="size-4" /> Exportar Idealista (XML)</Button>
         </div>
       </main>

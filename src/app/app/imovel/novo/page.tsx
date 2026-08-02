@@ -216,23 +216,28 @@ export default function NovoImovel() {
     setPublishing(true);
     try {
       const supabase = createClient();
-      let coverUrl = "";
-      if (fotos[0]) {
-        const blob = await (await fetch(fotos[0])).blob();
-        const path = `covers/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-        const up = await supabase.storage
-          .from("property-media")
-          .upload(path, blob, { contentType: "image/jpeg", upsert: true });
-        if (!up.error) {
-          coverUrl = supabase.storage
+      const gallery: string[] = [];
+      for (const foto of fotos.slice(0, 12)) {
+        try {
+          const blob = await (await fetch(foto)).blob();
+          const path = `props/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+          const up = await supabase.storage
             .from("property-media")
-            .getPublicUrl(path).data.publicUrl;
+            .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+          if (!up.error) {
+            gallery.push(
+              supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl
+            );
+          }
+        } catch {
+          /* ignora foto que falhe */
         }
       }
+      const coverUrl = gallery[0] ?? "";
       const res = await fetch("/api/properties/create", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...d, coverUrl }),
+        body: JSON.stringify({ ...d, documentos: undefined, coverUrl, gallery }),
       });
       const out = await res.json();
       if (res.ok && out.id) {
@@ -497,6 +502,33 @@ export default function NovoImovel() {
             <Field label="Comunidade / envolvente" hint="Caracterize a zona (ex.: junto a escolas, transportes, comércio, praia, parque).">
               <textarea rows={2} value={d.comunidade} onChange={(e) => patch({ comunidade: e.target.value })} className={box} placeholder="Ex.: Zona tranquila, a 5 min do metro, perto de escolas e supermercados." />
             </Field>
+          </div>
+        </Card>
+
+        {/* Multimédia (opcional) */}
+        <Card title="Multimédia (opcional)">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="videoUrl">Link de vídeo (YouTube, Vimeo…)</Label>
+              <Input
+                id="videoUrl"
+                value={d.videoUrl ?? ""}
+                onChange={(e) => patch({ videoUrl: e.target.value })}
+                placeholder="https://youtu.be/..."
+              />
+            </div>
+            <div>
+              <Label htmlFor="tourUrl">Link do tour virtual 3D (Matterport…)</Label>
+              <Input
+                id="tourUrl"
+                value={d.tourUrl ?? ""}
+                onChange={(e) => patch({ tourUrl: e.target.value })}
+                placeholder="https://my.matterport.com/..."
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              As fotos antes/depois (virtual staging) chegam já a seguir.
+            </p>
           </div>
         </Card>
 

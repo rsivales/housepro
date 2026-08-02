@@ -56,6 +56,11 @@ function mapRow(r: Row): Property {
     status: (r.status as Property["status"]) ?? null,
     image: String(r.cover_url ?? ""),
     gallery: Array.isArray(r.gallery) && r.gallery.length ? (r.gallery as string[]) : undefined,
+    videoUrl: (r.video_url as string) ?? undefined,
+    tourUrl: (r.tour_url as string) ?? undefined,
+    beforeAfter: Array.isArray(r.before_after)
+      ? (r.before_after as Property["beforeAfter"])
+      : undefined,
     shortDescription: (r.short_description as string) ?? undefined,
     description: (r.description as string) ?? undefined,
     areaUtil: r.area_util != null ? Number(r.area_util) : undefined,

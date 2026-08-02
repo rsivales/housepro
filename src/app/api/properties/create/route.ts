@@ -49,6 +49,11 @@ export async function POST(request: Request) {
     energy: d.energy ? String(d.energy) : "C",
     status: d.status === "rascunho" ? "rascunho" : "novo",
     cover_url: d.coverUrl ? String(d.coverUrl) : null,
+    gallery: Array.isArray(d.gallery) && d.gallery.length ? d.gallery : null,
+    video_url: d.videoUrl ? String(d.videoUrl) : null,
+    tour_url: d.tourUrl ? String(d.tourUrl) : null,
+    before_after:
+      Array.isArray(d.beforeAfter) && d.beforeAfter.length ? d.beforeAfter : null,
     agent_id: session.agent.id,
     approval: isAdminOrAmi ? "aprovado" : "pendente",
     submitted_at: new Date().toISOString(),

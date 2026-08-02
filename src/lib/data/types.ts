@@ -88,6 +88,12 @@ export interface Property {
   image: string;
   /** Optional gallery (real photos); cover first. */
   gallery?: string[];
+  /** Link de vídeo (YouTube, Vimeo, etc.). */
+  videoUrl?: string;
+  /** Link do tour virtual 3D (Matterport, etc.). */
+  tourUrl?: string;
+  /** Pares antes/depois (virtual staging / obras) para o slider interativo. */
+  beforeAfter?: { before: string; after: string; label?: string }[];
   /** One-line teaser shown on the listing page. */
   shortDescription?: string;
   /** Full marketing description (paragraphs). */

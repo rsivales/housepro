@@ -134,3 +134,15 @@ dispositivos; favoritos/pesquisas passam a persistir por utilizador.
 
 ### E. Qualidade (brokers/coordenação)
 - Área **"Qualidade"**: dados automáticos sobre **prestação de serviço dos agentes**, **qualidade dos imóveis** e **pontos a melhorar** (alertas de melhoria).
+
+---
+
+## Montra multimédia rica (Fase 3)
+- **Vídeo:** campo de link (YouTube/Vimeo/…) no upload → player embebido na página.
+- **Tour virtual 3D:** campo de link (Matterport/…) → botão/ícone na página.
+- **Fotos 3D dinâmicas:** upload para visualização noutros suportes.
+- **Slider antes/depois:** pares de imagens (virtual staging / obras) com linha
+  arrastável; **modo de upload próprio**, organizado e com nomes auto-explicativos.
+- **Ícones de multimédia** no imóvel para abrir cada elemento.
+- (Feito: tipo de dados + slider + secção na página do imóvel, com demo pela
+  galeria. Falta: campos no formulário de upload + persistência no Supabase.)

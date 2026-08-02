@@ -36,6 +36,7 @@ import {
   PropertyGallery,
   type GalleryStat,
 } from "@/components/property/property-gallery";
+import { PropertyMedia } from "@/components/property/property-media";
 import { agentById } from "@/lib/data/mock";
 import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
 import { formatArea, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
@@ -160,6 +161,8 @@ export default async function ImovelPage({
               operation={property.operation}
               stats={galleryStats}
             />
+
+            <PropertyMedia property={property} />
 
             {/* Descrição curta em destaque */}
             {property.shortDescription && (

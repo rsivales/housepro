@@ -19,6 +19,10 @@ export interface Referral {
   /** Quem envia a referência. Para type=cliente, o nome do cliente. */
   fromId: string;
   fromName: string;
+  /** Contacto de quem refere (type=cliente) — para acompanhar e recompensar. */
+  fromContact?: string;
+  /** Objetivo do contacto indicado. */
+  purpose?: "comprar" | "vender";
   /** Consultor destino (type=consultor). */
   toId?: string;
   toName?: string;
@@ -177,3 +181,63 @@ export const allReferrals = (agencyId?: string): Referral[] => {
     .filter(withAgency)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 };
+
+// ── Acompanhamento da indicação (portal de quem referiu) ────────────────────
+
+/** Passos do acompanhamento de uma indicação de cliente, do contacto ao fecho. */
+export const REFERRAL_TRACK_STEPS = [
+  "Indicação recebida",
+  "Atribuída a consultor",
+  "Primeiro contacto",
+  "Reunião agendada",
+  "Proposta / contrato (CPCV)",
+  "Escritura concluída",
+] as const;
+
+export type ReferralTrackStep = (typeof REFERRAL_TRACK_STEPS)[number];
+
+export interface TrackedReferral {
+  id: string;
+  /** Quem referiu (dono deste acompanhamento). */
+  referrerName: string;
+  referrerContact: string;
+  /** Contacto indicado. */
+  clientName: string;
+  purpose: "comprar" | "vender";
+  zone?: string;
+  sharePct: number;
+  /** Consultor a quem foi atribuída. */
+  agentId?: string;
+  agentName?: string;
+  agencyName?: string;
+  /** Índice do passo atual (0..REFERRAL_TRACK_STEPS.length-1). */
+  currentStep: number;
+  /** Eventos já concretizados (data por passo). */
+  events: { step: number; at: string; note?: string }[];
+  /** Comissão estimada e recompensa quando fechar (€). */
+  estimatedReward?: number;
+}
+
+/** Indicação demo acompanhada (exemplo no portal de quem refere). */
+export const demoTrackedReferrals: TrackedReferral[] = [
+  {
+    id: "trk-1",
+    referrerName: "Você",
+    referrerContact: "voce@email.pt",
+    clientName: "João (amigo)",
+    purpose: "comprar",
+    zone: "Cascais",
+    sharePct: 10,
+    agentId: "rui",
+    agentName: "Rui Almeida",
+    agencyName: "HousePro Cascais",
+    currentStep: 3,
+    events: [
+      { step: 0, at: "2026-07-20T10:00:00", note: "Indicação recebida e validada." },
+      { step: 1, at: "2026-07-20T15:30:00", note: "Atribuída ao consultor Rui Almeida." },
+      { step: 2, at: "2026-07-21T11:10:00", note: "Primeiro contacto telefónico." },
+      { step: 3, at: "2026-07-24T16:00:00", note: "Visita agendada para 28/07." },
+    ],
+    estimatedReward: 900,
+  },
+];

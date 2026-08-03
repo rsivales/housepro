@@ -82,6 +82,8 @@ export async function POST(request: Request) {
     propertyTitle: property?.title,
     fromId,
     fromName,
+    fromContact: body.fromContact ? String(body.fromContact) : undefined,
+    purpose: body.purpose === "vender" ? "vender" : body.purpose === "comprar" ? "comprar" : undefined,
     toId,
     toName,
     agencyId,

@@ -2,6 +2,7 @@ import {
   ArrowRight,
   BadgeCheck,
   Building2,
+  Gift,
   MapPin,
   Sparkles,
   TrendingUp,
@@ -187,6 +188,28 @@ export default async function Home() {
             </FadeIn>
 
             <MoreProperties properties={restantes} />
+          </div>
+        </section>
+
+        {/* Indique e ganhe — programa de indicações do público */}
+        <section className="px-4 py-4 sm:px-6">
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 rounded-2xl border bg-secondary/50 px-6 py-6 sm:flex-row sm:py-5">
+            <div className="flex items-center gap-3">
+              <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <Gift className="size-5" />
+              </div>
+              <div>
+                <p className="font-display text-lg leading-tight">Conhece alguém a comprar ou vender?</p>
+                <p className="text-sm text-muted-foreground">
+                  Indique um amigo e receba <strong className="text-foreground">10% da comissão</strong> quando o negócio fechar.
+                </p>
+              </div>
+            </div>
+            <Button asChild className="shrink-0">
+              <Link href="/indicar">
+                Indicar e ganhar <ArrowRight className="size-4" />
+              </Link>
+            </Button>
           </div>
         </section>
 

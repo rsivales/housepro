@@ -12,6 +12,7 @@ import {
   LogOut,
   MessageSquare,
   PhoneCall,
+  PiggyBank,
   Presentation,
   Store,
   Target,
@@ -129,6 +130,7 @@ export default async function AppPage() {
           <Action icon={Network} title="A minha equipa" href="/app/equipa" note="Afilhados, árvore e override" />
           <Action icon={Briefcase} title="Referências de serviços" href="/app/servicos" note="Crédito, jurídico, energético…" />
           <Action icon={Trophy} title="Prémios & conquistas" href="/app/premios" note="Escada, hall da fama e medalhas" />
+          <Action icon={PiggyBank} title="Fundo de pensão" href="/app/fundo-pensao" note="2% por negócio, com dividendos" />
         </div>
 
         {/* Contactos & pedidos de visita */}

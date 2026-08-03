@@ -55,16 +55,43 @@ function readFile(file: File): Promise<string> {
   });
 }
 
+/** Reduz a foto (máx. lado, qualidade) para poupar memória e acelerar uploads. */
+async function downscale(dataUrl: string, maxDim = 1600, quality = 0.82): Promise<string> {
+  const img = new Image();
+  img.src = dataUrl;
+  await img.decode();
+  let w = img.naturalWidth;
+  let h = img.naturalHeight;
+  if (Math.max(w, h) > maxDim) {
+    const scale = maxDim / Math.max(w, h);
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  c.getContext("2d")!.drawImage(img, 0, 0, w, h);
+  return c.toDataURL("image/jpeg", quality);
+}
+
 /** Marca de água única "HousePro" segundo o estilo GLOBAL da marca. */
 async function watermark(dataUrl: string, cfg: WatermarkConfig): Promise<string> {
   const img = new Image();
   img.src = dataUrl;
   await img.decode();
+  const MAXD = 1600;
+  let w = img.naturalWidth;
+  let h = img.naturalHeight;
+  if (Math.max(w, h) > MAXD) {
+    const scale = MAXD / Math.max(w, h);
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
   const c = document.createElement("canvas");
-  c.width = img.naturalWidth;
-  c.height = img.naturalHeight;
+  c.width = w;
+  c.height = h;
   const ctx = c.getContext("2d")!;
-  ctx.drawImage(img, 0, 0);
+  ctx.drawImage(img, 0, 0, w, h);
 
   const label = cfg.label || "HousePro";
   const fs = Math.max(14, (c.width * cfg.size) / 100);
@@ -166,7 +193,7 @@ export default function NovoImovel() {
 
   async function onPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    const urls = await Promise.all(files.map(readFile));
+    const urls = await Promise.all(files.map(async (f) => downscale(await readFile(f))));
     setOriginals((prev) => [...prev, ...urls]);
     e.target.value = "";
   }

@@ -209,6 +209,8 @@ export default function NovoImovel() {
   const [docKind, setDocKind] = React.useState("caderneta");
   const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
   const [preview, setPreview] = React.useState<ImovelDoc | null>(null);
+  const [driveUrl, setDriveUrl] = React.useState("");
+  const [importing, setImporting] = React.useState<null | { done: number; total: number }>(null);
 
   // Lê o estilo global da marca de água (definido pelo admin).
   React.useEffect(() => {
@@ -290,6 +292,62 @@ export default function NovoImovel() {
     setOriginals((prev) => prev.filter((_, idx) => idx !== i));
   }
 
+  /** Importa fotos de uma pasta/ficheiro do Google Drive (ou URL directo). */
+  async function importFromLink() {
+    const url = driveUrl.trim();
+    if (!url) return;
+    setImporting({ done: 0, total: 0 });
+    try {
+      const res = await fetch("/api/import/drive", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const out = await res.json();
+      if (!res.ok) {
+        alert(out.error ?? "Não foi possível importar deste link.");
+        setImporting(null);
+        return;
+      }
+      const files: { name: string; fetchUrl: string }[] = out.files ?? [];
+      setImporting({ done: 0, total: files.length });
+
+      const novos: string[] = [];
+      const falhas: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const blob = await (await fetch(files[i].fetchUrl)).blob();
+          if (!blob.type.startsWith("image/")) throw new Error("não é imagem");
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const fr = new FileReader();
+            fr.onload = () => resolve(String(fr.result));
+            fr.onerror = () => reject(new Error("leitura"));
+            fr.readAsDataURL(blob);
+          });
+          // downscale reexporta sempre em JPEG (converte HEIC/PNG/WebP -> JPEG).
+          novos.push(await downscale(dataUrl));
+        } catch {
+          falhas.push(files[i].name);
+        }
+        setImporting({ done: i + 1, total: files.length });
+      }
+      if (novos.length) {
+        setOriginals((prev) => [...prev, ...novos]);
+        setDriveUrl("");
+      }
+      if (falhas.length) {
+        alert(
+          `${novos.length} foto(s) importada(s). Não foi possível importar ${falhas.length}:\n` +
+            falhas.join(", ")
+        );
+      }
+    } catch {
+      alert("Erro ao importar do link.");
+    } finally {
+      setImporting(null);
+    }
+  }
+
   async function onDocs(e: React.ChangeEvent<HTMLInputElement>, kind: string) {
     const files = Array.from(e.target.files ?? []);
     const docs: ImovelDoc[] = await Promise.all(
@@ -355,7 +413,7 @@ export default function NovoImovel() {
       const supabase = createClient();
       const gallery: string[] = [];
       const erros: string[] = [];
-      for (const foto of fotos.slice(0, 12)) {
+      for (const foto of fotos.slice(0, 40)) {
         try {
           const blob = await (await fetch(foto)).blob();
           const path = `props/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
@@ -484,6 +542,45 @@ export default function NovoImovel() {
               Marca de água
               {processing && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
             </label>
+          </div>
+
+          {/* Importar do Google Drive (ou link directo) — fluxo do fotógrafo */}
+          <div className="mt-4 rounded-xl border bg-secondary/30 p-3">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <Upload className="size-4 text-primary" /> Importar do Google Drive ou link
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Cole o link da <strong>pasta partilhada</strong> do Drive com as fotos do
+              fotógrafo (partilhada como &quot;qualquer pessoa com o link&quot;), ou o link
+              de uma imagem. As fotos são reduzidas, convertidas para JPEG e recebem a
+              marca de água automaticamente.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Input
+                value={driveUrl}
+                onChange={(e) => setDriveUrl(e.target.value)}
+                placeholder="https://drive.google.com/drive/folders/…"
+                className="min-w-0 flex-1"
+                disabled={Boolean(importing)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={importFromLink}
+                disabled={Boolean(importing) || !driveUrl.trim()}
+              >
+                {importing ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {importing.total ? `${importing.done}/${importing.total}` : "A ler…"}
+                  </>
+                ) : (
+                  <>
+                    <Upload className="size-4" /> Importar
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* O estilo é global — apenas o admin o define. */}

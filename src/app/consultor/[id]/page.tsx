@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { PropertyCard } from "@/components/property/property-card";
 import { ShareProperty } from "@/components/property/share-property";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
+import { PrizeShowcase } from "@/components/premios/prize-showcase";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,19 @@ export default async function ConsultorPage({
             </div>
           </div>
         </section>
+
+        {/* Conquistas — prova social pública */}
+        {(() => {
+          // Demo: angariação = nº de imóveis; faturação varia por consultor.
+          const seed = agent.id.split("").reduce((s, c) => s + c.charCodeAt(0), 0);
+          const faturacao = 40000 + (seed % 8) * 20000;
+          const angariacao = Math.max(mine.length, 5);
+          return (
+            <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6">
+              <PrizeShowcase faturacao={faturacao} angariacao={angariacao} />
+            </section>
+          );
+        })()}
 
         {/* Meus imóveis */}
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">

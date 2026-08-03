@@ -125,11 +125,10 @@ export default async function AppPage() {
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />
           <Action icon={Target} title="CRM · Pipelines" href="/app/crm" note="Angariação e comprador (Kanban)" />
-          <Action icon={Award} title="Objetivos & Prémios" href="/app/objetivos" note="Metas, pontos e distintivos" />
+          <Action icon={Trophy} title="Objetivos & Prémios" href="/app/premios" note="Metas, escada, hall da fama e medalhas" />
           <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />
           <Action icon={Network} title="A minha equipa" href="/app/equipa" note="Afilhados, árvore e override" />
           <Action icon={Briefcase} title="Referências de serviços" href="/app/servicos" note="Crédito, jurídico, energético…" />
-          <Action icon={Trophy} title="Prémios & conquistas" href="/app/premios" note="Escada, hall da fama e medalhas" />
           <Action icon={PiggyBank} title="Fundo de pensão" href="/app/fundo-pensao" note="2% por negócio, com dividendos" />
         </div>
 

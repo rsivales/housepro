@@ -14,21 +14,27 @@ function Badge({ prize, size = 44 }: { prize: Prize; size?: number }) {
   const C = ICONS[prize.icon] ?? Star;
   return (
     <div className="flex flex-col items-center gap-1.5 text-center" style={{ width: size + 26 }}>
-      <span
-        className="grid place-items-center rounded-full"
-        style={{
-          width: size, height: size,
-          background: `${prize.color}22`, color: prize.color,
-          boxShadow: `inset 0 0 0 2px ${prize.color}`,
-        }}
-      >
-        {prize.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={prize.image} alt={prize.name} className="size-full rounded-full object-cover" />
-        ) : (
-          <C style={{ width: size * 0.42, height: size * 0.42 }} />
-        )}
-      </span>
+      {prize.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={prize.image}
+          alt={prize.name}
+          className="rounded-xl border object-cover"
+          style={{ width: size, height: size, borderColor: "#c9a13b55" }}
+        />
+      ) : (
+        <span
+          className="relative grid place-items-center rounded-full"
+          style={{
+            width: size, height: size,
+            background: "radial-gradient(circle at 32% 26%, #f7ecc3 0%, #d9b452 42%, #a5822f 72%, #6f571c 100%)",
+            boxShadow: "inset 0 2px 5px rgba(255,255,255,.5), inset 0 -3px 6px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.2)",
+          }}
+        >
+          <span className="absolute inset-[10%] rounded-full" style={{ boxShadow: "inset 0 0 0 1.5px rgba(0,0,0,.12)" }} />
+          <C style={{ width: size * 0.42, height: size * 0.42, color: "#4a3a12" }} />
+        </span>
+      )}
       <span className="text-[11px] font-medium leading-tight">{prize.name}</span>
     </div>
   );

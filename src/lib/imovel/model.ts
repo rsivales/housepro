@@ -148,6 +148,11 @@ export interface ImovelDraft {
   videoUrl?: string;
   tourUrl?: string;
   beforeAfter?: { before: string; after: string; label?: string }[];
+  /** Empreendimento novo (obra nova) — categoria própria + flag de portal. */
+  isDevelopment?: boolean;
+  developmentName?: string;
+  developmentStage?: "planta" | "construcao" | "pronto";
+  developmentUnits?: number;
   documentos: ImovelDoc[];
 }
 

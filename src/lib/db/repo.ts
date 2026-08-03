@@ -53,6 +53,10 @@ function mapRow(r: Row): Property {
     parish: String(r.parish ?? ""),
     municipality: String(r.municipality ?? ""),
     district: (r.district as string) ?? undefined,
+    isDevelopment: r.is_development != null ? Boolean(r.is_development) : undefined,
+    developmentName: (r.development_name as string) ?? undefined,
+    developmentStage: (r.development_stage as Property["developmentStage"]) ?? undefined,
+    developmentUnits: r.development_units != null ? Number(r.development_units) : undefined,
     energy: (r.energy as Property["energy"]) ?? "C",
     status: (r.status as Property["status"]) ?? null,
     image: String(r.cover_url ?? ""),
@@ -119,6 +123,23 @@ export async function listProperties(): Promise<Property[]> {
   const { data } = await supabase
     .from("properties")
     .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
+    .neq("status", "vendido")
+    .eq("approval", "aprovado")
+    .order("listed_at", { ascending: false });
+  return (data ?? []).map(mapRow);
+}
+
+/** Empreendimentos novos (obra nova) publicados — categoria própria da montra. */
+export async function listDevelopments(): Promise<Property[]> {
+  if (!isSupabaseConfigured()) {
+    return availableProperties.filter((p) => p.isDevelopment);
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("properties")
+    .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
+    .eq("is_development", true)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
     .order("listed_at", { ascending: false });

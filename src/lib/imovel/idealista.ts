@@ -43,6 +43,12 @@ export function toIdealistaXML(d: ImovelDraft): string {
     <reference>${esc(d.reference || d.id)}</reference>
     <operation>${op}</operation>
     <propertyType>${type}</propertyType>
+    <newDevelopment>${d.isDevelopment ? "true" : "false"}</newDevelopment>${
+      d.isDevelopment
+        ? `\n    <developmentName>${esc(d.developmentName ?? "")}</developmentName>` +
+          `\n    <developmentStatus>${esc(d.developmentStage ?? "")}</developmentStatus>`
+        : ""
+    }
     <price currency="EUR">${d.price}</price>
     <surfaceArea unit="m2">${d.area}</surfaceArea>
     <rooms>${d.beds}</rooms>

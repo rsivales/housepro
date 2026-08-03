@@ -670,6 +670,56 @@ export default function NovoImovel() {
           </div>
         </Card>
 
+        {/* Empreendimento novo (obra nova) */}
+        <Card title="Empreendimento novo (opcional)">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={Boolean(d.isDevelopment)}
+              onChange={(e) => patch({ isDevelopment: e.target.checked })}
+              className="size-4 accent-primary"
+            />
+            É um empreendimento novo (nova construção)
+          </label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Ativa a categoria própria de <strong>Empreendimentos</strong> na
+            montra e marca a obra como nova na exportação para os portais.
+          </p>
+
+          {d.isDevelopment && (
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <Field label="Nome do empreendimento">
+                <Input
+                  value={d.developmentName ?? ""}
+                  onChange={(e) => patch({ developmentName: e.target.value })}
+                  placeholder="Ex.: Jardins do Tejo"
+                />
+              </Field>
+              <Field label="Fase da obra">
+                <select
+                  value={d.developmentStage ?? "planta"}
+                  onChange={(e) =>
+                    patch({ developmentStage: e.target.value as ImovelDraft["developmentStage"] })
+                  }
+                  className={box}
+                >
+                  <option value="planta">Em planta</option>
+                  <option value="construcao">Em construção</option>
+                  <option value="pronto">Pronto a habitar</option>
+                </select>
+              </Field>
+              <Field label="Nº de frações">
+                <Input
+                  type="number"
+                  value={d.developmentUnits || ""}
+                  onChange={(e) => patch({ developmentUnits: Number(e.target.value) || undefined })}
+                  placeholder="Ex.: 24"
+                />
+              </Field>
+            </div>
+          )}
+        </Card>
+
         {/* Multimédia (opcional) */}
         <Card title="Multimédia (opcional)">
           <div className="space-y-4">

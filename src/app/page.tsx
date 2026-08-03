@@ -28,6 +28,7 @@ import { agents } from "@/lib/data/mock";
 import { listProperties } from "@/lib/db/repo";
 import { topFeatured } from "@/lib/data/ranking";
 import { topConcelhos } from "@/lib/data/concelhos";
+import { listDevelopments } from "@/lib/db/repo";
 import { getNews } from "@/lib/data/news";
 
 const stats = [
@@ -44,6 +45,7 @@ export default async function Home() {
   const destaqueIds = new Set(destaques.map((p) => p.id));
   const restantes = disponiveis.filter((p) => !destaqueIds.has(p.id));
   const concelhos = topConcelhos(disponiveis, 3);
+  const empreendimentos = (await listDevelopments()).slice(0, 3);
 
   return (
     <div id="top" className="min-h-dvh bg-background">
@@ -131,6 +133,36 @@ export default async function Home() {
             ))}
           </div>
         </section>
+
+        {/* Empreendimentos novos (obra nova) — só quando existem */}
+        {empreendimentos.length > 0 && (
+          <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 sm:pt-20">
+            <FadeIn>
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+                    <Building2 className="size-4" /> Obra nova
+                  </p>
+                  <h2 className="mt-1 font-display text-3xl sm:text-4xl">
+                    Empreendimentos novos
+                  </h2>
+                </div>
+                <Button variant="outline" asChild>
+                  <Link href="/empreendimentos">
+                    Ver empreendimentos <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              </div>
+            </FadeIn>
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {empreendimentos.map((property, i) => (
+                <FadeIn key={property.id} delay={i * 0.08}>
+                  <PropertyCard property={property} />
+                </FadeIn>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Concelhos mais procurados (marca global) */}
         <TopConcelhos concelhos={concelhos} />

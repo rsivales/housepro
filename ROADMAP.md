@@ -172,14 +172,19 @@ dispositivos; favoritos/pesquisas passam a persistir por utilizador.
 - **Visualizador único (a fazer):** juntar fotos + vídeo + tour + antes/depois
   num só visualizador com separadores no topo do anúncio.
 
-### Empreendimentos (nova secção)
-- Categoria **própria e independente** para **empreendimentos** (prédios/condomínios
-  novos com apartamentos): organização, página só de empreendimentos no site, e
-  **exportação mais simples** (categoria dedicada nos portais, ex.: Idealista).
+### Empreendimentos (nova secção) — ✅ base implementada
+- ✅ Categoria **própria** para **empreendimentos** (obra nova): campos no
+  carregamento (nome, fase da obra, nº de frações), página dedicada
+  `/empreendimentos`, link na navegação, band na homepage e etiqueta de fase.
+- ✅ **Exportação:** flag `newDevelopment` + nome/fase no feed Idealista/Imovirtual.
+- A fazer: página de detalhe do empreendimento com lista de frações agrupadas.
 
-### Concelhos mais procurados (homepage)
-- Destaque na homepage dos **3 concelhos mais procurados**, com **toggle** de
-  mostrar/ocultar nas ferramentas da **marca global** e depois ao nível da
-  **administração de agências**.
-- **Foto por concelho:** atribuível manualmente; na falta de foto, usar uma
-  imagem representativa (curada) do concelho.
+### Concelhos mais procurados (homepage) — ✅ base implementada
+- ✅ Secção **"Concelhos mais procurados"** (top 3 por procura) na **homepage
+  (marca global)** e na **montra de agência (âmbito da agência)**, com link para
+  a montra filtrada por concelho.
+- ✅ **Foto por concelho:** foto carregada pela administração (override) →
+  capa de um imóvel real do concelho → gradiente com o nome (sem URLs externos
+  frágeis).
+- A fazer: UI no /admin para carregar a foto de cada concelho e toggle de
+  mostrar/ocultar por marca/agência (persistência em Supabase).

@@ -84,6 +84,15 @@ export interface Property {
   municipality: string;
   /** Distrito — indexação em portais e organização por zona. */
   district?: string;
+  /** Empreendimento novo (nova construção): categoria própria na montra e
+   *  exportação com a flag de obra nova para os portais. */
+  isDevelopment?: boolean;
+  /** Nome do empreendimento (ex.: "Jardins do Tejo") quando aplicável. */
+  developmentName?: string;
+  /** Fase da obra do empreendimento — informa o comprador do estado. */
+  developmentStage?: "planta" | "construcao" | "pronto";
+  /** Nº total de frações/lotes do empreendimento (informativo). */
+  developmentUnits?: number;
   energy: EnergyRating;
   status: PropertyStatus | null;
   /** Cover image path under /public/properties. */

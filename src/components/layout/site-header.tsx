@@ -16,6 +16,7 @@ const nav = [
   { label: "Vender", href: "/vender" },
   { label: "Investir", href: "/investir" },
   { label: "Crédito", href: "/credito" },
+  { label: "Ferramentas", href: "/ferramentas" },
   { label: "Notícias", href: "/noticias" },
 ];
 

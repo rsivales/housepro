@@ -122,6 +122,7 @@ export default async function AppPage() {
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />
           <Action icon={Target} title="CRM · Pipelines" href="/app/crm" note="Angariação e comprador (Kanban)" />
           <Action icon={Award} title="Objetivos & Prémios" href="/app/objetivos" note="Metas, pontos e distintivos" />
+          <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />
         </div>
 
         {/* Contactos & pedidos de visita */}

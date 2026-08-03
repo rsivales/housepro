@@ -18,6 +18,7 @@ import {
   Upload,
   UserPlus,
   Users,
+  Network,
   ShieldCheck,
   ArrowRight,
 } from "lucide-react";
@@ -123,6 +124,7 @@ export default async function AppPage() {
           <Action icon={Target} title="CRM · Pipelines" href="/app/crm" note="Angariação e comprador (Kanban)" />
           <Action icon={Award} title="Objetivos & Prémios" href="/app/objetivos" note="Metas, pontos e distintivos" />
           <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />
+          <Action icon={Network} title="A minha equipa" href="/app/equipa" note="Afilhados, árvore e override" />
         </div>
 
         {/* Contactos & pedidos de visita */}

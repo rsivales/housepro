@@ -15,6 +15,7 @@ import {
   Presentation,
   Store,
   Target,
+  Trophy,
   TrendingUp,
   Upload,
   UserPlus,
@@ -127,6 +128,7 @@ export default async function AppPage() {
           <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />
           <Action icon={Network} title="A minha equipa" href="/app/equipa" note="Afilhados, árvore e override" />
           <Action icon={Briefcase} title="Referências de serviços" href="/app/servicos" note="Crédito, jurídico, energético…" />
+          <Action icon={Trophy} title="Prémios & conquistas" href="/app/premios" note="Escada, hall da fama e medalhas" />
         </div>
 
         {/* Contactos & pedidos de visita */}

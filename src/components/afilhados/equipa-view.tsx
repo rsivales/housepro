@@ -6,8 +6,15 @@ import { ArrowLeft, Bell, ChevronRight, Info, Network, Phone, UserPlus, Users } 
 
 import { cn } from "@/lib/utils";
 import { formatEuro } from "@/lib/format";
-import { afilhadoStats, type AfilhadoNode } from "@/lib/data/afilhados";
+import { afilhadoStats, flattenAfilhados, type AfilhadoNode } from "@/lib/data/afilhados";
 import { DEFAULT_SPLIT, maxOverrideDepth } from "@/lib/commission/split";
+import { effectiveCommission } from "@/lib/data/commission";
+import type { OverridePayout } from "@/lib/commission/override-chain";
+import type { Notification } from "@/lib/db/repo";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CheckCircle2, Handshake } from "lucide-react";
 
 const LEVEL_COLORS = ["bg-primary", "bg-gold", "bg-sky-500", "bg-violet-500"];
 
@@ -21,7 +28,15 @@ function initials(name: string): string {
     .join("");
 }
 
-export function EquipaView({ root }: { root: AfilhadoNode }) {
+export function EquipaView({
+  root,
+  meId,
+  notifications = [],
+}: {
+  root: AfilhadoNode;
+  meId?: string;
+  notifications?: Notification[];
+}) {
   const stats = afilhadoStats(root);
   const maxDepth = maxOverrideDepth();
 
@@ -101,15 +116,11 @@ export function EquipaView({ root }: { root: AfilhadoNode }) {
           </div>
         </div>
 
-        {/* Notificações */}
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl border bg-secondary/40 p-4 text-sm">
-          <Bell className="mt-0.5 size-4 shrink-0 text-primary" />
-          <p className="text-muted-foreground">
-            Recebe uma <strong className="text-foreground">notificação automática</strong>{" "}
-            sempre que um afilhado gera comissão, com o valor estimado a receber já
-            calculado pelo nível.
-          </p>
-        </div>
+        {/* Notificações (inbox real de override) */}
+        <NotificationsInbox notifications={notifications} />
+
+        {/* Fecho de negócio → override + notificações */}
+        <CloseDealPanel root={root} meId={meId} />
 
         {/* Árvore */}
         <h2 className="mt-8 flex items-center gap-2 font-display text-xl">
@@ -249,6 +260,175 @@ function TreeNode({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Inbox de notificações (override de rede, etc.). */
+function NotificationsInbox({ notifications }: { notifications: Notification[] }) {
+  if (notifications.length === 0) {
+    return (
+      <div className="mt-4 flex items-start gap-2.5 rounded-xl border bg-secondary/40 p-4 text-sm">
+        <Bell className="mt-0.5 size-4 shrink-0 text-primary" />
+        <p className="text-muted-foreground">
+          Recebe uma <strong className="text-foreground">notificação automática</strong>{" "}
+          sempre que um afilhado gera comissão, com o valor estimado a receber já
+          calculado pelo nível. As suas notificações aparecem aqui.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-4 rounded-2xl border bg-card p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <Bell className="size-4 text-primary" /> Notificações
+      </h2>
+      <ul className="mt-3 space-y-2.5">
+        {notifications.map((n) => (
+          <li key={n.id} className="flex items-start gap-3 rounded-xl border p-3">
+            <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+              <Handshake className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">{n.title}</p>
+              {n.body && <p className="text-sm text-muted-foreground">{n.body}</p>}
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {new Date(n.createdAt).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" })}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Painel para registar o fecho de um negócio e distribuir o override. */
+function CloseDealPanel({ root, meId }: { root: AfilhadoNode; meId?: string }) {
+  const membros = React.useMemo(() => flattenAfilhados(root), [root]);
+  const [producerId, setProducerId] = React.useState(membros[0]?.id ?? "");
+  const [amount, setAmount] = React.useState(300000);
+  const [pct, setPct] = React.useState(5);
+  const [loading, setLoading] = React.useState(false);
+  const [result, setResult] = React.useState<
+    | {
+        gross: number;
+        payouts: OverridePayout[];
+        overrideTotal: number;
+        producerNet: number;
+        producerNetPct: number;
+        notified?: number;
+      }
+    | null
+  >(null);
+
+  const grossPreview = effectiveCommission(amount, { commissionType: "percent", commissionPct: pct }).amount;
+  const producer = membros.find((m) => m.id === producerId);
+
+  async function fechar() {
+    if (!producerId || amount <= 0) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/deals/close", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          producerId,
+          producerName: producer?.name,
+          amount,
+          commissionPct: pct,
+        }),
+      });
+      const out = await res.json();
+      if (res.ok && out.ok) setResult(out);
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border bg-card p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <Handshake className="size-4 text-primary" /> Registar fecho de negócio
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Ao fechar (escritura), a comissão entra na faturação do consultor e o
+        override é distribuído pela cadeia de padrinhos, com notificação a cada um.
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="space-y-1.5">
+          <Label>Quem fechou</Label>
+          <select
+            value={producerId}
+            onChange={(e) => setProducerId(e.target.value)}
+            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40"
+          >
+            {membros.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name} (nível {m.level})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Valor do negócio (€)</Label>
+          <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value) || 0)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Comissão (%)</Label>
+          <Input type="number" value={pct} onChange={(e) => setPct(Number(e.target.value) || 0)} />
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <Button onClick={fechar} disabled={loading}>
+          {loading ? "A processar…" : "Fechar e distribuir"}
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          Comissão bruta: <strong className="text-foreground">{formatEuro(grossPreview)}</strong>
+        </span>
+      </div>
+
+      {result && (
+        <div className="mt-4 rounded-xl border bg-secondary/30 p-4">
+          <p className="flex items-center gap-2 text-sm font-medium text-primary">
+            <CheckCircle2 className="size-4" /> Negócio fechado — {result.notified ?? result.payouts.filter((p) => p.amount > 0).length} notificação(ões) enviada(s)
+          </p>
+          <div className="mt-3 space-y-1.5 text-sm">
+            <Row2 label={`Comissão bruta`} value={formatEuro(result.gross)} />
+            <Row2 label={`Produtor (${producer?.name ?? ""}) — ${result.producerNetPct}%`} value={formatEuro(result.producerNet)} />
+            {result.payouts.filter((p) => p.amount > 0).map((p) => (
+              <Row2
+                key={p.level}
+                label={`Nível ${p.level} · ${p.agentName ?? p.agentId} · ${p.pct}%`}
+                value={`+${formatEuro(p.amount)}`}
+                highlight={p.agentId === meId}
+              />
+            ))}
+          </div>
+          {result.overrideTotal === 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Este consultor não tem padrinhos acima — não há override a distribuir.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row2({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className={cn("flex items-center justify-between gap-3 rounded-md px-2 py-1", highlight && "bg-primary/10")}>
+      <span className={cn(highlight ? "font-medium text-primary" : "text-muted-foreground")}>
+        {highlight ? "Você · " : ""}
+        {label}
+      </span>
+      <span className="font-display tabular-nums">{value}</span>
     </div>
   );
 }

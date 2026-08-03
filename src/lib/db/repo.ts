@@ -194,8 +194,19 @@ export async function listSimilarProperties(
 // --- Afilhados / rede de padrinhado ----------------------------------------
 
 import type { AfilhadoNode } from "@/lib/data/afilhados";
-import { demoAfilhados } from "@/lib/data/afilhados";
+import { demoAfilhados, uplineOf } from "@/lib/data/afilhados";
 import { maxOverrideDepth } from "@/lib/commission/split";
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  body?: string;
+  amount?: number;
+  href?: string;
+  read: boolean;
+  createdAt: string;
+}
 
 /** Árvore de afilhados enraizada no consultor `rootId`. Lê de Supabase quando
  *  configurado (via profiles.sponsor_id); caso contrário devolve a demo. */
@@ -249,6 +260,89 @@ export async function getAfilhadosTree(
     String(rootRow?.created_at ?? new Date().toISOString()),
     0
   );
+}
+
+/** Cadeia de padrinhos (upline) de um consultor, do direto para cima. */
+export async function getUplineChain(
+  producerId: string
+): Promise<{ id: string; name: string }[]> {
+  const depth = maxOverrideDepth();
+  if (!isSupabaseConfigured()) {
+    return uplineOf(demoAfilhados, producerId).slice(0, depth);
+  }
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("id, name, sponsor_id");
+  const byId = new Map((data ?? []).map((r: Row) => [String(r.id), r]));
+  const chain: { id: string; name: string }[] = [];
+  let cur = byId.get(producerId);
+  while (cur && cur.sponsor_id && chain.length < depth) {
+    const p = byId.get(String(cur.sponsor_id));
+    if (!p) break;
+    chain.push({ id: String(p.id), name: String(p.name ?? "Consultor") });
+    cur = p;
+  }
+  return chain;
+}
+
+/** Credita comissão bruta ao mês do consultor (base do override). */
+export async function addMonthlyGross(agentId: string, gross: number): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("monthly_gross")
+      .eq("id", agentId)
+      .single();
+    const current = Number(data?.monthly_gross ?? 0);
+    await supabase.from("profiles").update({ monthly_gross: current + gross }).eq("id", agentId);
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** Insere notificações (best-effort). */
+export async function insertNotifications(
+  rows: { userId: string; type: string; title: string; body?: string; amount?: number; href?: string }[]
+): Promise<void> {
+  if (!isSupabaseConfigured() || rows.length === 0) return;
+  try {
+    const supabase = await createClient();
+    await supabase.from("notifications").insert(
+      rows.map((r) => ({
+        user_id: r.userId,
+        type: r.type,
+        title: r.title,
+        body: r.body ?? null,
+        amount: r.amount ?? null,
+        href: r.href ?? null,
+      }))
+    );
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** Notificações do consultor (mais recentes primeiro). */
+export async function listNotifications(userId: string, limit = 20): Promise<Notification[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map((r: Row) => ({
+    id: String(r.id),
+    type: String(r.type ?? "info"),
+    title: String(r.title ?? ""),
+    body: (r.body as string) ?? undefined,
+    amount: r.amount != null ? Number(r.amount) : undefined,
+    href: (r.href as string) ?? undefined,
+    read: Boolean(r.read),
+    createdAt: String(r.created_at ?? new Date().toISOString()),
+  }));
 }
 
 // --- Leads -----------------------------------------------------------------

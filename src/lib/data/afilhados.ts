@@ -157,3 +157,25 @@ export function afilhadoStats(root: AfilhadoNode): AfilhadoStats {
     byLevel,
   };
 }
+
+/**
+ * Cadeia de padrinhos (upline) de um membro na árvore demo, do padrinho direto
+ * para cima: [{id,name} nível 1, nível 2, …]. Vazio se não encontrado.
+ */
+export function uplineOf(root: AfilhadoNode, targetId: string): { id: string; name: string }[] {
+  const path: AfilhadoNode[] = [];
+  const find = (node: AfilhadoNode): boolean => {
+    if (node.id === targetId) return true;
+    for (const c of node.children) {
+      path.push(node);
+      if (find(c)) return true;
+      path.pop();
+    }
+    return false;
+  };
+  if (!find(root)) return [];
+  // `path` = ancestrais da raiz até ao pai direto; inverter para pai→cima.
+  return path
+    .reverse()
+    .map((n) => ({ id: n.id, name: n.name }));
+}

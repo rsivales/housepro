@@ -212,8 +212,24 @@ export default function NovoImovel() {
 
   async function onPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    const urls = await Promise.all(files.map(async (f) => downscale(await readFile(f))));
-    setOriginals((prev) => [...prev, ...urls]);
+    const urls: string[] = [];
+    const falhas: string[] = [];
+    for (const f of files) {
+      try {
+        // downscale reexporta sempre em JPEG (converte HEIC/PNG/WebP -> JPEG).
+        urls.push(await downscale(await readFile(f)));
+      } catch {
+        falhas.push(f.name);
+      }
+    }
+    if (urls.length) setOriginals((prev) => [...prev, ...urls]);
+    if (falhas.length) {
+      alert(
+        "Estas fotos não puderam ser lidas neste navegador (formato não suportado, ex.: HEIC de iPhone aberto no computador):\n" +
+          falhas.join(", ") +
+          "\n\nNo iPhone funcionam; em alternativa, guarde-as como JPEG."
+      );
+    }
     e.target.value = "";
   }
   function removePhoto(i: number) {

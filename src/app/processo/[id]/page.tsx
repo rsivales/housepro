@@ -5,6 +5,7 @@ import { Bell, ShieldCheck } from "lucide-react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { DealStepper } from "@/components/process/deal-stepper";
+import { DealCloseTrigger } from "@/components/process/deal-close-trigger";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { agentById } from "@/lib/data/mock";
 import { dealById } from "@/lib/data/deal";
@@ -62,8 +63,18 @@ export default async function ProcessoPage({
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
           {/* Stepper */}
-          <div className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-            <DealStepper stage={deal.stage} creditStage={deal.creditStage} />
+          <div className="space-y-6">
+            <div className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
+              <DealStepper stage={deal.stage} creditStage={deal.creditStage} />
+            </div>
+            {/* Fecho → faturação + override + notificações (coordenação/admin) */}
+            <DealCloseTrigger
+              dealRef={deal.reference}
+              producerId={deal.angariadorId}
+              producerName={angariador.name}
+              amount={deal.amount}
+              alreadyClosed={deal.stage === "concluido"}
+            />
           </div>
 
           {/* Aside: pessoas + notas */}

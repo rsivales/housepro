@@ -53,10 +53,16 @@ export async function POST(request: Request) {
   if (type === "consultor") {
     fromId = String(body.fromId ?? "");
     fromName = fromId ? agentById(fromId).name : "Consultor";
-    // Destino: consultor indicado ou o angariador do imóvel.
-    toId = body.toId ? String(body.toId) : property?.agentId;
-    toName = toId ? agentById(toId).name : undefined;
-    if (!fromId || !toId) {
+    if (body.international) {
+      // Destino internacional: não é um agente do sistema; guarda-se o nome.
+      toId = undefined;
+      toName = String(body.toName ?? "").trim() || "Consultor internacional";
+    } else {
+      // Destino: consultor indicado ou o angariador do imóvel.
+      toId = body.toId ? String(body.toId) : property?.agentId;
+      toName = toId ? agentById(toId).name : undefined;
+    }
+    if (!fromId || (!toId && !body.international)) {
       return NextResponse.json({ error: "missing_parties" }, { status: 400 });
     }
   } else {
@@ -83,6 +89,9 @@ export async function POST(request: Request) {
     clientName,
     clientContact,
     sharePct,
+    international: Boolean(body.international),
+    country: body.country ? String(body.country) : undefined,
+    taxNote: body.taxNote ? String(body.taxNote) : undefined,
     proposedBy: "origem",
     note: body.note ? String(body.note) : undefined,
     status: "pendente",

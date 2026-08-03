@@ -30,6 +30,13 @@ export interface Referral {
   clientContact: string;
   /** % do valor da venda/comissão que fica para quem referiu (proposta atual). */
   sharePct: number;
+  /** Referência de/para um consultor internacional (fora de Portugal). */
+  international?: boolean;
+  /** País do consultor/entidade internacional. */
+  country?: string;
+  /** Nota fiscal internacional — regras de impostos a aplicar (retenção,
+   *  IVA/reverse charge, dupla tributação), indicada no momento da submissão. */
+  taxNote?: string;
   /** Quem fez a proposta atual — para saber de quem se espera resposta. */
   proposedBy: "origem" | "destino";
   note?: string;

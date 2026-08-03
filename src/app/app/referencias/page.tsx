@@ -6,6 +6,7 @@ import { ArrowLeft, Users } from "lucide-react";
 import { getSession } from "@/lib/supabase/auth";
 import { referralsIncoming, referralsOutgoing } from "@/lib/data/referrals";
 import { ReferralsManager } from "@/components/referral/referrals-manager";
+import { NewReferralForm } from "@/components/referral/new-referral-form";
 
 export const metadata: Metadata = { title: "Referências" };
 
@@ -38,8 +39,21 @@ export default async function ReferenciasPage() {
           de ambos, a referência fica <span className="font-medium text-primary">ativa</span>.
         </p>
 
-        <div className="mt-8">
-          <ReferralsManager incoming={incoming} outgoing={outgoing} meId={agent.id} />
+        {/* Submeter nova referência */}
+        <section className="mt-8">
+          <h2 className="font-display text-lg">Enviar uma referência</h2>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">
+            Encaminhe um cliente para outro consultor — nacional ou internacional
+            — e defina a percentagem (pode aumentar acima do mínimo).
+          </p>
+          <NewReferralForm meId={agent.id} />
+        </section>
+
+        <div className="mt-10">
+          <h2 className="font-display text-lg">As minhas referências</h2>
+          <div className="mt-4">
+            <ReferralsManager incoming={incoming} outgoing={outgoing} meId={agent.id} />
+          </div>
         </div>
       </main>
     </div>

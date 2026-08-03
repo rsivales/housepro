@@ -166,6 +166,33 @@ async function watermark(dataUrl: string, cfg: WatermarkConfig): Promise<string>
   const ctx = c.getContext("2d")!;
   ctx.drawImage(img, 0, 0, w, h);
 
+  const alphaCfg = Math.max(0, Math.min(1, cfg.opacity / 100));
+  const marginBase = Math.max(10, c.width * 0.02);
+  const posCfg = cfg.position;
+  const hz = posCfg.endsWith("left") ? "left" : posCfg.endsWith("right") ? "right" : "center";
+  const vt = posCfg.startsWith("top") ? "top" : posCfg.startsWith("bottom") ? "bottom" : "center";
+
+  // Modo logótipo: compõe a imagem carregada pelo admin sobre a foto.
+  if (cfg.mode === "logo" && cfg.logo) {
+    try {
+      const logo = new Image();
+      logo.src = cfg.logo;
+      await logo.decode();
+      const lw = (c.width * cfg.size * 5) / 100; // largura = size% × 5 da foto
+      const lh = logo.naturalHeight
+        ? (lw * logo.naturalHeight) / logo.naturalWidth
+        : lw;
+      const lx = hz === "left" ? marginBase : hz === "right" ? c.width - lw - marginBase : (c.width - lw) / 2;
+      const ly = vt === "top" ? marginBase : vt === "bottom" ? c.height - lh - marginBase : (c.height - lh) / 2;
+      ctx.globalAlpha = alphaCfg;
+      ctx.drawImage(logo, lx, ly, lw, lh);
+      ctx.globalAlpha = 1;
+      return encodeUnder(c);
+    } catch {
+      /* falha a ler o logótipo → cai para o texto abaixo */
+    }
+  }
+
   const label = cfg.label || "HousePro";
   const fs = Math.max(14, (c.width * cfg.size) / 100);
   ctx.font = `700 ${fs}px sans-serif`;

@@ -20,8 +20,12 @@ export const HOME_RULE_KEY = "housepro:homeMoreRule";
  * altera tamanho/posição/transparência por imóvel.
  */
 export interface WatermarkConfig {
+  /** Modo: escrever o texto da marca, ou compor o logótipo carregado. */
+  mode: "text" | "logo";
   /** Texto da marca (por defeito a marca). */
   label: string;
+  /** Logótipo (data URL PNG/SVG) carregado pelo admin — usado no modo "logo". */
+  logo?: string;
   /** Tamanho em % da largura da foto. */
   size: number;
   /** Posição na foto. */
@@ -31,6 +35,7 @@ export interface WatermarkConfig {
 }
 
 export const defaultWatermark: WatermarkConfig = {
+  mode: "text",
   label: "HousePro",
   size: 5,
   position: "bottom-right",

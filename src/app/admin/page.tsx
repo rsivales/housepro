@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Settings, ExternalLink, Stamp } from "lucide-react";
+import { Settings, ExternalLink, Stamp, ImagePlus, Trash2, Type } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -47,6 +47,48 @@ export default function AdminPage() {
       localStorage.setItem(WATERMARK_KEY, JSON.stringify(next));
       return next;
     });
+  }
+
+  const [logoErr, setLogoErr] = React.useState<string | null>(null);
+
+  /** Carrega o logótipo da marca de água: reduz para ~500px e preserva a
+   *  transparência (PNG). Guardado como data URL (protótipo em browser). */
+  async function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    setLogoErr(null);
+    if (!f.type.startsWith("image/")) {
+      setLogoErr("Escolha um ficheiro de imagem (PNG com fundo transparente é o ideal).");
+      return;
+    }
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result));
+        fr.onerror = () => reject(new Error("leitura"));
+        fr.readAsDataURL(f);
+      });
+      const img = new Image();
+      img.src = dataUrl;
+      await img.decode();
+      const MAXD = 500;
+      let w = img.naturalWidth || MAXD;
+      let h = img.naturalHeight || MAXD;
+      if (Math.max(w, h) > MAXD) {
+        const s = MAXD / Math.max(w, h);
+        w = Math.round(w * s);
+        h = Math.round(h * s);
+      }
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      c.getContext("2d")!.drawImage(img, 0, 0, w, h);
+      // PNG preserva transparência do logótipo.
+      patchWm({ logo: c.toDataURL("image/png"), mode: "logo" });
+    } catch {
+      setLogoErr("Não foi possível ler esta imagem. Tente um PNG ou JPG.");
+    }
   }
 
   const activos = properties.filter((p) => p.status !== "vendido");
@@ -266,14 +308,82 @@ export default function AdminPage() {
 
             {/* Controlos */}
             <div className="space-y-5">
-              <label className="block">
-                <span className="text-sm font-medium">Texto</span>
-                <input
-                  value={wm.label}
-                  onChange={(e) => patchWm({ label: e.target.value })}
-                  className="mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                />
-              </label>
+              {/* Modo: texto ou logótipo */}
+              <div>
+                <p className="text-sm font-medium">Tipo de marca</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => patchWm({ mode: "text" })}
+                    className={cn(
+                      "flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
+                      wm.mode === "text"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "hover:bg-secondary"
+                    )}
+                  >
+                    <Type className="size-4" /> Texto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => patchWm({ mode: "logo" })}
+                    className={cn(
+                      "flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
+                      wm.mode === "logo"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "hover:bg-secondary"
+                    )}
+                  >
+                    <ImagePlus className="size-4" /> Logótipo
+                  </button>
+                </div>
+              </div>
+
+              {wm.mode === "text" ? (
+                <label className="block">
+                  <span className="text-sm font-medium">Texto</span>
+                  <input
+                    value={wm.label}
+                    onChange={(e) => patchWm({ label: e.target.value })}
+                    className="mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  />
+                </label>
+              ) : (
+                <div>
+                  <span className="text-sm font-medium">Logótipo da marca</span>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    PNG com fundo transparente é o ideal (aplica-se sobre a foto).
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
+                      <ImagePlus className="size-4" />
+                      {wm.logo ? "Trocar logótipo" : "Carregar logótipo"}
+                      <input type="file" accept="image/*" className="hidden" onChange={onLogo} />
+                    </label>
+                    {wm.logo && (
+                      <>
+                        <span className="grid h-12 place-items-center rounded-md border bg-[repeating-conic-gradient(#e5e7eb_0_25%,transparent_0_50%)] bg-[length:12px_12px] px-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={wm.logo} alt="Logótipo" className="max-h-9 max-w-[120px] object-contain" />
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => patchWm({ logo: undefined, mode: "text" })}
+                          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-2 text-sm text-muted-foreground hover:bg-secondary"
+                        >
+                          <Trash2 className="size-4" /> Remover
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {logoErr && <p className="mt-2 text-xs text-destructive">{logoErr}</p>}
+                  {!wm.logo && (
+                    <p className="mt-2 text-xs text-amber-600">
+                      Sem logótipo carregado — a marca de água mostra o texto até carregar uma imagem.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <div className="flex items-center justify-between text-sm">
@@ -408,16 +518,26 @@ function WatermarkPreview({ cfg }: { cfg: WatermarkConfig }) {
       className="relative flex aspect-[4/3] w-full overflow-hidden rounded-lg border bg-gradient-to-br from-primary/25 via-secondary to-primary/10 p-3"
       style={{ justifyContent: justify, alignItems: align }}
     >
-      <span
-        className="rounded-md px-2 py-1 font-semibold text-white"
-        style={{
-          fontSize: `${Math.max(9, cfg.size * 2.2)}px`,
-          backgroundColor: `rgba(20,40,32,${0.55 * (cfg.opacity / 100)})`,
-          opacity: cfg.opacity / 100,
-        }}
-      >
-        {cfg.label || "HousePro"}
-      </span>
+      {cfg.mode === "logo" && cfg.logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={cfg.logo}
+          alt="Marca de água"
+          style={{ width: `${cfg.size * 5}%`, opacity: cfg.opacity / 100 }}
+          className="object-contain drop-shadow"
+        />
+      ) : (
+        <span
+          className="rounded-md px-2 py-1 font-semibold text-white"
+          style={{
+            fontSize: `${Math.max(9, cfg.size * 2.2)}px`,
+            backgroundColor: `rgba(20,40,32,${0.55 * (cfg.opacity / 100)})`,
+            opacity: cfg.opacity / 100,
+          }}
+        >
+          {cfg.label || "HousePro"}
+        </span>
+      )}
     </div>
   );
 }

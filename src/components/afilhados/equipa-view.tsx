@@ -39,6 +39,7 @@ export function EquipaView({
 }) {
   const stats = afilhadoStats(root);
   const maxDepth = maxOverrideDepth();
+  const [view, setView] = React.useState<"arvore" | "piramide">("arvore");
 
   return (
     <div className="min-h-dvh bg-background">
@@ -122,12 +123,33 @@ export function EquipaView({
         {/* Fecho de negócio → override + notificações */}
         <CloseDealPanel root={root} meId={meId} />
 
-        {/* Árvore */}
-        <h2 className="mt-8 flex items-center gap-2 font-display text-xl">
-          <Users className="size-5 text-primary" /> Ramificação da rede
-        </h2>
+        {/* Rede — árvore ou pirâmide */}
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 font-display text-xl">
+            <Users className="size-5 text-primary" /> Ramificação da rede
+          </h2>
+          <div className="inline-flex rounded-lg border p-1">
+            {(["arvore", "piramide"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView(v)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors",
+                  view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {v === "arvore" ? "Árvore" : "Pirâmide"}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="mt-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
-          <TreeNode node={root} level={0} maxDepth={maxDepth} isRoot />
+          {view === "arvore" ? (
+            <TreeNode node={root} level={0} maxDepth={maxDepth} isRoot />
+          ) : (
+            <PyramidView root={root} maxDepth={maxDepth} />
+          )}
         </div>
 
         {/* Como funciona */}
@@ -429,6 +451,70 @@ function Row2({ label, value, highlight }: { label: string; value: string; highl
         {label}
       </span>
       <span className="font-display tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+/** Vista em pirâmide/genealogia: níveis empilhados, cada linha uma geração. */
+function PyramidView({ root, maxDepth }: { root: AfilhadoNode; maxDepth: number }) {
+  // Agrupa os nós por nível (0 = raiz).
+  const levels: AfilhadoNode[][] = [];
+  let frontier: AfilhadoNode[] = [root];
+  while (frontier.length) {
+    levels.push(frontier);
+    frontier = frontier.flatMap((n) => n.children);
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="flex min-w-max flex-col items-stretch gap-5 py-2">
+        {levels.map((row, level) => {
+          const pct = level >= 1 ? DEFAULT_SPLIT.overrideTiers[level - 1] ?? 0 : 0;
+          const beyond = level > maxDepth;
+          const color = level === 0 ? "bg-foreground" : LEVEL_COLORS[(level - 1) % LEVEL_COLORS.length];
+          return (
+            <div key={level} className="flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                {level === 0 ? (
+                  <span>Tu · padrinho</span>
+                ) : (
+                  <span className={cn("rounded-full px-2 py-0.5 text-white", beyond ? "bg-muted-foreground" : color)}>
+                    Nível {level} · {beyond ? "sem override" : `${pct}%`}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {row.map((node) => {
+                  const override = level >= 1 && node.active && pct > 0 ? (node.monthlyGross * pct) / 100 : 0;
+                  return (
+                    <div
+                      key={node.id}
+                      className={cn(
+                        "flex min-w-[128px] items-center gap-2 rounded-xl border px-3 py-2",
+                        level === 0 ? "border-foreground/30 bg-secondary/40" : "bg-card",
+                        !node.active && level >= 1 && "opacity-60"
+                      )}
+                    >
+                      <span className={cn("grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold text-white", color)}>
+                        {initials(node.name)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium leading-tight">{node.name}</p>
+                        {level >= 1 && (
+                          <p className={cn("text-xs tabular-nums", override > 0 ? "text-primary" : "text-muted-foreground")}>
+                            {override > 0 ? `+${formatEuro(override)}` : node.active ? "—" : "não fatura"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {level < levels.length - 1 && <div className="h-4 w-px bg-border" />}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

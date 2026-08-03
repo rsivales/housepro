@@ -52,6 +52,7 @@ function mapRow(r: Row): Property {
     baths: Number(r.baths ?? 0),
     parish: String(r.parish ?? ""),
     municipality: String(r.municipality ?? ""),
+    district: (r.district as string) ?? undefined,
     energy: (r.energy as Property["energy"]) ?? "C",
     status: (r.status as Property["status"]) ?? null,
     image: String(r.cover_url ?? ""),

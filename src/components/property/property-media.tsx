@@ -38,14 +38,25 @@ export function PropertyMedia({ property }: { property: Property }) {
         )}
 
         {property.tourUrl && (
-          <a
-            href={property.tourUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-transform hover:scale-[1.02]"
-          >
-            <Box className="size-4" /> Tour virtual 3D
-          </a>
+          <div className="space-y-2">
+            <div className="aspect-video w-full overflow-hidden rounded-2xl border">
+              <iframe
+                src={property.tourUrl}
+                title="Tour virtual 3D"
+                className="size-full"
+                allow="fullscreen; xr-spatial-tracking; gyroscope; accelerometer"
+                allowFullScreen
+              />
+            </div>
+            <a
+              href={property.tourUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              <Box className="size-4" /> Abrir tour em ecrã inteiro
+            </a>
+          </div>
         )}
 
         {pairs.map((pa, i) => (

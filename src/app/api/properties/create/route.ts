@@ -46,6 +46,7 @@ export async function POST(request: Request) {
     baths: d.baths != null ? Number(d.baths) : null,
     parish: d.parish ? String(d.parish) : null,
     municipality: d.municipality ? String(d.municipality) : null,
+    district: d.distrito ? String(d.distrito) : null,
     energy: d.energy ? String(d.energy) : "C",
     status: d.status === "rascunho" ? "rascunho" : "novo",
     cover_url: d.coverUrl ? String(d.coverUrl) : null,

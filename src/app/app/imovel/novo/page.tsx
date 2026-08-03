@@ -450,6 +450,7 @@ export default function NovoImovel() {
               <Input value={d.parish} onChange={(e) => patch({ parish: e.target.value })} />
             </Field>
             <Field label="Concelho"><Input value={d.municipality} onChange={(e) => patch({ municipality: e.target.value })} /></Field>
+            <Field label="Distrito"><Input value={d.distrito ?? ""} onChange={(e) => patch({ distrito: e.target.value })} placeholder="Ex.: Faro" /></Field>
             <Field label="Referência"><Input value={d.reference} onChange={(e) => patch({ reference: e.target.value })} placeholder="HP-1050" /></Field>
             <Field label="Vista">
               <select value={d.vista} onChange={(e) => patch({ vista: e.target.value })} className={box}>

@@ -82,6 +82,8 @@ export interface Property {
   baths: number;
   parish: string;
   municipality: string;
+  /** Distrito — indexação em portais e organização por zona. */
+  district?: string;
   energy: EnergyRating;
   status: PropertyStatus | null;
   /** Cover image path under /public/properties. */

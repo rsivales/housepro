@@ -144,6 +144,7 @@ export interface ImovelDraft {
   planta: boolean;
   /** Imóvel proveniente de herança/partilha — exige documentação adicional. */
   heranca: boolean;
+  distrito?: string;
   videoUrl?: string;
   tourUrl?: string;
   documentos: ImovelDoc[];

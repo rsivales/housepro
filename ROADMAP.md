@@ -163,3 +163,11 @@ dispositivos; favoritos/pesquisas passam a persistir por utilizador.
   em todos).
 - **Layouts no broker:** escolher como os imóveis se apresentam (fotos+botões,
   fotos+thumbnails, etc.).
+
+### Localização & media (registos)
+- **Distrito:** acrescentado ao carregamento (freguesia · concelho · **distrito**)
+  — necessário para indexação em portais (Idealista) e organização por zona.
+- **Tour/vídeo no site:** o tour 3D passa a ser **embebido** na página (iframe),
+  não abre link externo; com fallback "abrir em ecrã inteiro".
+- **Visualizador único (a fazer):** juntar fotos + vídeo + tour + antes/depois
+  num só visualizador com separadores no topo do anúncio.

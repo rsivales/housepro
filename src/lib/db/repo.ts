@@ -191,6 +191,66 @@ export async function listSimilarProperties(
   return (data ?? []).map(mapRow);
 }
 
+// --- Afilhados / rede de padrinhado ----------------------------------------
+
+import type { AfilhadoNode } from "@/lib/data/afilhados";
+import { demoAfilhados } from "@/lib/data/afilhados";
+import { maxOverrideDepth } from "@/lib/commission/split";
+
+/** Árvore de afilhados enraizada no consultor `rootId`. Lê de Supabase quando
+ *  configurado (via profiles.sponsor_id); caso contrário devolve a demo. */
+export async function getAfilhadosTree(
+  rootId: string,
+  rootName = "Você (eu)"
+): Promise<AfilhadoNode> {
+  if (!isSupabaseConfigured()) return demoAfilhados;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, name, whatsapp, sponsor_id, monthly_gross, created_at");
+  const rows = (data ?? []) as Row[];
+
+  // Filhos por padrinho.
+  const childrenOf = new Map<string, Row[]>();
+  for (const r of rows) {
+    const sid = r.sponsor_id ? String(r.sponsor_id) : null;
+    if (!sid) continue;
+    (childrenOf.get(sid) ?? childrenOf.set(sid, []).get(sid)!).push(r);
+  }
+
+  const maxDepth = maxOverrideDepth();
+  const build = (id: string, name: string, gross: number, joinedAt: string, depth: number): AfilhadoNode => {
+    const kids = depth < maxDepth ? childrenOf.get(id) ?? [] : [];
+    return {
+      id,
+      name,
+      contact: "",
+      joinedAt,
+      active: gross > 0,
+      monthlyGross: gross,
+      children: kids.map((k) =>
+        build(
+          String(k.id),
+          String(k.name ?? "Consultor"),
+          Number(k.monthly_gross ?? 0),
+          String(k.created_at ?? new Date().toISOString()),
+          depth + 1
+        )
+      ),
+    };
+  };
+
+  const rootRow = rows.find((r) => String(r.id) === rootId);
+  return build(
+    rootId,
+    rootName,
+    Number(rootRow?.monthly_gross ?? 0),
+    String(rootRow?.created_at ?? new Date().toISOString()),
+    0
+  );
+}
+
 // --- Leads -----------------------------------------------------------------
 
 export interface NewLead {

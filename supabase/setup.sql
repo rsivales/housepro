@@ -236,6 +236,14 @@ create policy "news write admin" on news for all
   using (auth_role() = 'admin') with check (auth_role() = 'admin');
 
 -- ─────────────────────────────────────────────────────────────
+-- Padrinhado (afilhados) + base do override de rede
+-- ─────────────────────────────────────────────────────────────
+alter table profiles
+  add column if not exists sponsor_id    uuid references profiles (id) on delete set null,
+  add column if not exists monthly_gross numeric not null default 0;
+create index if not exists profiles_sponsor_idx on profiles (sponsor_id);
+
+-- ─────────────────────────────────────────────────────────────
 -- Definições globais da marca (chave/valor) — ex.: marca de água
 -- ─────────────────────────────────────────────────────────────
 create table if not exists site_settings (

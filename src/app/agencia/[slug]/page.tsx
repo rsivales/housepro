@@ -6,10 +6,12 @@ import { MapPin } from "lucide-react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { PropertyCard } from "@/components/property/property-card";
+import { TopConcelhos } from "@/components/home/top-concelhos";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { agencyBySlug, agentsByAgency } from "@/lib/data/mock";
 import { listPropertiesByAgency, listSoldByAgency } from "@/lib/db/repo";
 import { applyOrdering } from "@/lib/data/ordering";
+import { topConcelhos } from "@/lib/data/concelhos";
 
 export async function generateMetadata({
   params,
@@ -33,6 +35,7 @@ export default async function AgenciaPage({
   const team = agentsByAgency(agency.id);
   const listings = applyOrdering(await listPropertiesByAgency(agency.id), "recentes");
   const sold = await listSoldByAgency(agency.id);
+  const concelhos = topConcelhos(listings, 3);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -84,6 +87,16 @@ export default async function AgenciaPage({
             </p>
           )}
         </section>
+
+        {/* Concelhos mais procurados (âmbito da agência) */}
+        {concelhos.length > 0 && (
+          <div className="border-t bg-secondary/40">
+            <TopConcelhos
+              concelhos={concelhos}
+              scopeLabel={`Onde ${agency.name} tem mais procura`}
+            />
+          </div>
+        )}
 
         {/* Últimos vendidos */}
         {sold.length > 0 && (

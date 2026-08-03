@@ -16,6 +16,7 @@ import { CreditBanner } from "@/components/layout/credit-banner";
 import { SearchBar } from "@/components/property/search-bar";
 import { PropertyCard } from "@/components/property/property-card";
 import { MoreProperties } from "@/components/property/more-properties";
+import { TopConcelhos } from "@/components/home/top-concelhos";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
@@ -26,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { agents } from "@/lib/data/mock";
 import { listProperties } from "@/lib/db/repo";
 import { topFeatured } from "@/lib/data/ranking";
+import { topConcelhos } from "@/lib/data/concelhos";
 import { getNews } from "@/lib/data/news";
 
 const stats = [
@@ -41,6 +43,7 @@ export default async function Home() {
   const destaques = topFeatured(3, disponiveis);
   const destaqueIds = new Set(destaques.map((p) => p.id));
   const restantes = disponiveis.filter((p) => !destaqueIds.has(p.id));
+  const concelhos = topConcelhos(disponiveis, 3);
 
   return (
     <div id="top" className="min-h-dvh bg-background">
@@ -128,6 +131,9 @@ export default async function Home() {
             ))}
           </div>
         </section>
+
+        {/* Concelhos mais procurados (marca global) */}
+        <TopConcelhos concelhos={concelhos} />
 
         {/* Restantes imóveis — regra configurável no admin */}
         <section id="imoveis" className="scroll-mt-20 py-16 sm:py-24">

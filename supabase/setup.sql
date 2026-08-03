@@ -236,6 +236,21 @@ create policy "news write admin" on news for all
   using (auth_role() = 'admin') with check (auth_role() = 'admin');
 
 -- ─────────────────────────────────────────────────────────────
+-- Definições globais da marca (chave/valor) — ex.: marca de água
+-- ─────────────────────────────────────────────────────────────
+create table if not exists site_settings (
+  key        text primary key,
+  value      jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table site_settings enable row level security;
+drop policy if exists "site_settings public read" on site_settings;
+create policy "site_settings public read" on site_settings for select using (true);
+drop policy if exists "site_settings write admin" on site_settings;
+create policy "site_settings write admin" on site_settings for all
+  using (auth_role() = 'admin') with check (auth_role() = 'admin');
+
+-- ─────────────────────────────────────────────────────────────
 -- Storage (buckets públicos para leitura)
 -- ─────────────────────────────────────────────────────────────
 insert into storage.buckets (id, name, public) values

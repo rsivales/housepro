@@ -12,6 +12,8 @@ import {
   type OrderingRule,
 } from "@/lib/data/ordering";
 import { siteConfig, HOME_RULE_KEY, WATERMARK_KEY, defaultWatermark, type WatermarkConfig } from "@/lib/config";
+import { createClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { WATERMARK_POSITIONS, docStatus } from "@/lib/imovel/model";
 import { allReferrals, REFERRAL_STATUS } from "@/lib/data/referrals";
 import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp, ShieldCheck, ShieldHalf, Rss, AlertTriangle, ChevronRight } from "lucide-react";
@@ -34,7 +36,38 @@ export default function AdminPage() {
         setWm({ ...defaultWatermark, ...JSON.parse(wmRaw) });
       } catch {}
     }
+    // A configuração global (Supabase) tem prioridade — é a que todos veem.
+    if (isSupabaseConfigured()) {
+      fetch("/api/brand/watermark")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.config) {
+            const next = { ...defaultWatermark, ...d.config };
+            setWm(next);
+            localStorage.setItem(WATERMARK_KEY, JSON.stringify(next));
+          }
+        })
+        .catch(() => {});
+    }
   }, []);
+
+  const [savingWm, setSavingWm] = React.useState<"idle" | "saving" | "ok" | "err">("idle");
+
+  /** Publica o estilo da marca de água para TODO o site (todos os consultores). */
+  async function saveWatermarkGlobal() {
+    setSavingWm("saving");
+    try {
+      const res = await fetch("/api/brand/watermark", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(wm),
+      });
+      setSavingWm(res.ok ? "ok" : "err");
+    } catch {
+      setSavingWm("err");
+    }
+    setTimeout(() => setSavingWm("idle"), 3000);
+  }
 
   function choose(r: OrderingRule) {
     setRule(r);
@@ -85,7 +118,28 @@ export default function AdminPage() {
       c.height = h;
       c.getContext("2d")!.drawImage(img, 0, 0, w, h);
       // PNG preserva transparência do logótipo.
-      patchWm({ logo: c.toDataURL("image/png"), mode: "logo" });
+      const png = c.toDataURL("image/png");
+
+      // Com Supabase: envia para o Storage e guarda o URL (cross-device).
+      // Sem Supabase: guarda o data URL (só neste navegador — protótipo).
+      if (isSupabaseConfigured()) {
+        try {
+          const supabase = createClient();
+          const blob = await (await fetch(png)).blob();
+          const path = `brand/watermark-${Date.now()}.png`;
+          const up = await supabase.storage
+            .from("property-media")
+            .upload(path, blob, { contentType: "image/png", upsert: true });
+          if (!up.error) {
+            const url = supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl;
+            patchWm({ logo: url, mode: "logo" });
+            return;
+          }
+        } catch {
+          /* falha o upload → cai para o data URL local abaixo */
+        }
+      }
+      patchWm({ logo: png, mode: "logo" });
     } catch {
       setLogoErr("Não foi possível ler esta imagem. Tente um PNG ou JPG.");
     }
@@ -429,6 +483,40 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Guardar globalmente (Supabase) — chega a todos os consultores */}
+          <div className="mt-6 flex flex-wrap items-center gap-3 border-t pt-5">
+            {isSupabaseConfigured() ? (
+              <>
+                <button
+                  type="button"
+                  onClick={saveWatermarkGlobal}
+                  disabled={savingWm === "saving"}
+                  className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+                >
+                  {savingWm === "saving" ? "A guardar…" : "Guardar para todo o site"}
+                </button>
+                {savingWm === "ok" && (
+                  <span className="text-sm text-emerald-600">
+                    ✓ Marca de água atualizada para todos os consultores.
+                  </span>
+                )}
+                {savingWm === "err" && (
+                  <span className="text-sm text-destructive">
+                    Não foi possível guardar (só a administração pode).
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  Fica igual em todos os dispositivos e consultores.
+                </span>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Ligue o Supabase para publicar a marca de água a todos os
+                consultores. Sem ligação, fica guardada apenas neste navegador.
+              </p>
+            )}
           </div>
         </div>
 

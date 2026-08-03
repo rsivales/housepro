@@ -176,6 +176,8 @@ async function watermark(dataUrl: string, cfg: WatermarkConfig): Promise<string>
   if (cfg.mode === "logo" && cfg.logo) {
     try {
       const logo = new Image();
+      // Evita "tainted canvas" quando o logótipo vem do Storage (outro domínio).
+      logo.crossOrigin = "anonymous";
       logo.src = cfg.logo;
       await logo.decode();
       const lw = (c.width * cfg.size * 5) / 100; // largura = size% × 5 da foto
@@ -239,9 +241,16 @@ export default function NovoImovel() {
   const [driveUrl, setDriveUrl] = React.useState("");
   const [importing, setImporting] = React.useState<null | { done: number; total: number }>(null);
 
-  // Lê o estilo global da marca de água (definido pelo admin).
+  // Lê o estilo global da marca de água (definido pelo admin). Primeiro o
+  // cache local (instantâneo); depois o global do Supabase (fonte de verdade).
   React.useEffect(() => {
     setWm(readWatermarkConfig());
+    fetch("/api/brand/watermark")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.config) setWm({ ...defaultWatermark, ...d.config });
+      })
+      .catch(() => {});
   }, []);
 
   function patch(p: Partial<ImovelDraft>) {

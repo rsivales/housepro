@@ -55,8 +55,27 @@ function readFile(file: File): Promise<string> {
   });
 }
 
-/** Reduz a foto (máx. lado, qualidade) para poupar memória e acelerar uploads. */
-async function downscale(dataUrl: string, maxDim = 1600, quality = 0.82): Promise<string> {
+/** Tamanho aproximado (bytes) de um data URL. */
+function bytesOf(dataUrl: string): number {
+  const i = dataUrl.indexOf(",");
+  const b64 = i >= 0 ? dataUrl.slice(i + 1) : dataUrl;
+  return Math.floor((b64.length * 3) / 4);
+}
+
+/** Exporta o canvas em JPEG, baixando a qualidade até ficar SOB o limite
+ *  (algumas plataformas/portais rejeitam imagens acima de ~5MB). */
+function encodeUnder(c: HTMLCanvasElement, maxBytes = 4_500_000): string {
+  let q = 0.85;
+  let out = c.toDataURL("image/jpeg", q);
+  while (bytesOf(out) > maxBytes && q > 0.4) {
+    q -= 0.1;
+    out = c.toDataURL("image/jpeg", q);
+  }
+  return out;
+}
+
+/** Reduz a foto (máx. lado + limite de tamanho) — memória, velocidade e portais. */
+async function downscale(dataUrl: string, maxDim = 2000): Promise<string> {
   const img = new Image();
   img.src = dataUrl;
   await img.decode();
@@ -71,7 +90,7 @@ async function downscale(dataUrl: string, maxDim = 1600, quality = 0.82): Promis
   c.width = w;
   c.height = h;
   c.getContext("2d")!.drawImage(img, 0, 0, w, h);
-  return c.toDataURL("image/jpeg", quality);
+  return encodeUnder(c);
 }
 
 /** Marca de água única "HousePro" segundo o estilo GLOBAL da marca. */
@@ -79,7 +98,7 @@ async function watermark(dataUrl: string, cfg: WatermarkConfig): Promise<string>
   const img = new Image();
   img.src = dataUrl;
   await img.decode();
-  const MAXD = 1600;
+  const MAXD = 2000;
   let w = img.naturalWidth;
   let h = img.naturalHeight;
   if (Math.max(w, h) > MAXD) {
@@ -122,7 +141,7 @@ async function watermark(dataUrl: string, cfg: WatermarkConfig): Promise<string>
   ctx.textAlign = "left";
   ctx.fillText(label, x + padX, y + bh / 2);
 
-  return c.toDataURL("image/jpeg", 0.85);
+  return encodeUnder(c);
 }
 
 export default function NovoImovel() {

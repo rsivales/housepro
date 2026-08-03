@@ -93,6 +93,60 @@ async function downscale(dataUrl: string, maxDim = 2000): Promise<string> {
   return encodeUnder(c);
 }
 
+/** Envia um data URL (JPEG) para o Storage e devolve o URL público. */
+async function uploadDataUrl(
+  supabase: ReturnType<typeof createClient>,
+  dataUrl: string
+): Promise<string | null> {
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const path = `props/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const up = await supabase.storage
+      .from("property-media")
+      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+    if (up.error) return null;
+    return supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl;
+  } catch {
+    return null;
+  }
+}
+
+/** Campo de upload de uma imagem (com pré-visualização) para o antes/depois. */
+function BAUpload({
+  label,
+  value,
+  onFile,
+}: {
+  label: string;
+  value?: string;
+  onFile: (dataUrl: string) => void;
+}) {
+  async function pick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      onFile(await downscale(await readFile(f)));
+    } catch {
+      /* ignora ficheiro ilegível */
+    }
+    e.target.value = "";
+  }
+  return (
+    <label className="block cursor-pointer">
+      <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
+      {value ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={value} alt={label} className="aspect-[4/3] w-full rounded-lg border object-cover" />
+      ) : (
+        <span className="flex aspect-[4/3] w-full items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground">
+          <ImagePlus className="mr-1.5 size-4" /> Escolher imagem
+        </span>
+      )}
+      <input type="file" accept="image/*" className="hidden" onChange={pick} />
+    </label>
+  );
+}
+
 /** Marca de água única "HousePro" segundo o estilo GLOBAL da marca. */
 async function watermark(dataUrl: string, cfg: WatermarkConfig): Promise<string> {
   const img = new Image();
@@ -261,6 +315,27 @@ export default function NovoImovel() {
     });
   }
 
+  function addPair() {
+    patch({ beforeAfter: [...(d.beforeAfter ?? []), { before: "", after: "", label: "" }] });
+  }
+  function setPairImg(i: number, side: "before" | "after", url: string) {
+    patch({
+      beforeAfter: (d.beforeAfter ?? []).map((pr, idx) =>
+        idx === i ? { ...pr, [side]: url } : pr
+      ),
+    });
+  }
+  function setPairLabel(i: number, label: string) {
+    patch({
+      beforeAfter: (d.beforeAfter ?? []).map((pr, idx) =>
+        idx === i ? { ...pr, label } : pr
+      ),
+    });
+  }
+  function removePair(i: number) {
+    patch({ beforeAfter: (d.beforeAfter ?? []).filter((_, idx) => idx !== i) });
+  }
+
   function save() {
     // Não persistir os data URLs (podem ser grandes); ficam em memória/Storage.
     const persist = {
@@ -308,10 +383,25 @@ export default function NovoImovel() {
         return;
       }
       const coverUrl = gallery[0] ?? "";
+
+      const baPairs: { before: string; after: string; label?: string }[] = [];
+      for (const pair of d.beforeAfter ?? []) {
+        if (!pair.before || !pair.after) continue;
+        const bu = await uploadDataUrl(supabase, pair.before);
+        const au = await uploadDataUrl(supabase, pair.after);
+        if (bu && au) baPairs.push({ before: bu, after: au, label: pair.label || undefined });
+      }
+
       const res = await fetch("/api/properties/create", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...d, documentos: undefined, coverUrl, gallery }),
+        body: JSON.stringify({
+          ...d,
+          documentos: undefined,
+          beforeAfter: baPairs,
+          coverUrl,
+          gallery,
+        }),
       });
       const out = await res.json();
       if (res.ok && out.id) {
@@ -604,6 +694,38 @@ export default function NovoImovel() {
             <p className="text-xs text-muted-foreground">
               As fotos antes/depois (virtual staging) chegam já a seguir.
             </p>
+          </div>
+        </Card>
+
+        {/* Fotos antes/depois (virtual staging) */}
+        <Card title="Fotos antes/depois (virtual staging)">
+          <p className="text-sm text-muted-foreground">
+            Para <strong>virtual staging</strong> ou obras: por cada par, carregue a
+            <strong> imagem original</strong> e a <strong>imagem com staging/obra</strong>.
+            No anúncio aparecem no separador arrastável antes/depois.
+          </p>
+          <div className="mt-4 space-y-4">
+            {(d.beforeAfter ?? []).map((pair, i) => (
+              <div key={i} className="rounded-xl border p-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <BAUpload label="Imagem original" value={pair.before} onFile={(u) => setPairImg(i, "before", u)} />
+                  <BAUpload label="Com staging / obra" value={pair.after} onFile={(u) => setPairImg(i, "after", u)} />
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <Input
+                    placeholder="Legenda (ex.: Sala)"
+                    value={pair.label ?? ""}
+                    onChange={(e) => setPairLabel(i, e.target.value)}
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={() => removePair(i)}>
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <Button type="button" variant="outline" onClick={addPair}>
+              <ImagePlus className="size-4" /> Adicionar par antes/depois
+            </Button>
           </div>
         </Card>
 

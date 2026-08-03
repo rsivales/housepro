@@ -171,3 +171,15 @@ dispositivos; favoritos/pesquisas passam a persistir por utilizador.
   não abre link externo; com fallback "abrir em ecrã inteiro".
 - **Visualizador único (a fazer):** juntar fotos + vídeo + tour + antes/depois
   num só visualizador com separadores no topo do anúncio.
+
+### Empreendimentos (nova secção)
+- Categoria **própria e independente** para **empreendimentos** (prédios/condomínios
+  novos com apartamentos): organização, página só de empreendimentos no site, e
+  **exportação mais simples** (categoria dedicada nos portais, ex.: Idealista).
+
+### Concelhos mais procurados (homepage)
+- Destaque na homepage dos **3 concelhos mais procurados**, com **toggle** de
+  mostrar/ocultar nas ferramentas da **marca global** e depois ao nível da
+  **administração de agências**.
+- **Foto por concelho:** atribuível manualmente; na falta de foto, usar uma
+  imagem representativa (curada) do concelho.

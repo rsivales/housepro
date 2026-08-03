@@ -147,6 +147,7 @@ export interface ImovelDraft {
   distrito?: string;
   videoUrl?: string;
   tourUrl?: string;
+  beforeAfter?: { before: string; after: string; label?: string }[];
   documentos: ImovelDoc[];
 }
 

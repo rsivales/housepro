@@ -16,7 +16,7 @@ const nav = [
   { label: "Vender", href: "/vender" },
   { label: "Investir", href: "/investir" },
   { label: "Crédito", href: "/credito" },
-  { label: "Notícias", href: "/#noticias" },
+  { label: "Notícias", href: "/noticias" },
 ];
 
 // Áreas privadas alcançáveis a partir do cabeçalho.

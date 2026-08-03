@@ -29,7 +29,7 @@ import { listProperties } from "@/lib/db/repo";
 import { topFeatured } from "@/lib/data/ranking";
 import { topConcelhos } from "@/lib/data/concelhos";
 import { listDevelopments } from "@/lib/db/repo";
-import { getNews } from "@/lib/data/news";
+import { getNews, newsHref, isExternalNews } from "@/lib/data/news";
 
 const stats = [
   { icon: Building2, value: "1.200+", label: "Imóveis angariados" },
@@ -295,16 +295,21 @@ export default async function Home() {
                     Notícias, mercado & investimento
                   </h2>
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  Legislação · mercado · investimento · dicas · eventos
-                </span>
+                <Button variant="outline" asChild>
+                  <Link href="/noticias">
+                    Ver todas <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
               </div>
             </FadeIn>
             <div className="mt-10 grid gap-6 md:grid-cols-3">
               {news.map((item, i) => (
                 <FadeIn key={item.id} delay={(i % 3) * 0.08}>
                   <a
-                    href={item.url}
+                    href={newsHref(item)}
+                    {...(isExternalNews(item)
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
                     className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-shadow hover:shadow-lg"
                   >
                     <div className={`relative aspect-[16/10] bg-gradient-to-br ${item.tint}`}>

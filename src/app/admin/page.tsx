@@ -221,6 +221,7 @@ export default function AdminPage() {
           <NavCard href="/admin/aprovacoes" icon={ShieldCheck} title="Aprovações" note={`${pendentes.length} pendente(s) · SLA 24–48h`} alert={pendentes.length > 0} />
           <NavCard href="/admin/permissoes" icon={ShieldHalf} title="Permissões" note="Hierarquia · quem aprova/vê" />
           <NavCard href="/admin/exportacoes" icon={Rss} title="Exportações & portais" note="Contratos e estado por imóvel" />
+          <NavCard href="/admin/vinculos" icon={ShieldHalf} title="Vínculos & comissão" note="Empresa/recibos verdes · validação" />
         </section>
 
         {/* Pipeline de negócios */}

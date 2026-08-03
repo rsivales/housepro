@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Award,
+  Briefcase,
   CalendarClock,
   Calculator,
   Inbox,
@@ -125,6 +126,7 @@ export default async function AppPage() {
           <Action icon={Award} title="Objetivos & Prémios" href="/app/objetivos" note="Metas, pontos e distintivos" />
           <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />
           <Action icon={Network} title="A minha equipa" href="/app/equipa" note="Afilhados, árvore e override" />
+          <Action icon={Briefcase} title="Referências de serviços" href="/app/servicos" note="Crédito, jurídico, energético…" />
         </div>
 
         {/* Contactos & pedidos de visita */}

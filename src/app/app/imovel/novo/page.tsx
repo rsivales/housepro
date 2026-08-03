@@ -217,6 +217,7 @@ export default function NovoImovel() {
     try {
       const supabase = createClient();
       const gallery: string[] = [];
+      const erros: string[] = [];
       for (const foto of fotos.slice(0, 12)) {
         try {
           const blob = await (await fetch(foto)).blob();
@@ -224,14 +225,25 @@ export default function NovoImovel() {
           const up = await supabase.storage
             .from("property-media")
             .upload(path, blob, { contentType: "image/jpeg", upsert: true });
-          if (!up.error) {
+          if (up.error) {
+            erros.push(up.error.message);
+          } else {
             gallery.push(
               supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl
             );
           }
-        } catch {
-          /* ignora foto que falhe */
+        } catch (e) {
+          erros.push(e instanceof Error ? e.message : String(e));
         }
+      }
+      if (fotos.length > 0 && gallery.length === 0) {
+        alert(
+          "As fotos não foram guardadas no armazenamento:\n" +
+            (erros[0] ?? "erro desconhecido") +
+            "\n\nO imóvel não foi publicado."
+        );
+        setPublishing(false);
+        return;
       }
       const coverUrl = gallery[0] ?? "";
       const res = await fetch("/api/properties/create", {

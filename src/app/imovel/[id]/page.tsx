@@ -74,7 +74,11 @@ export default async function ImovelPage({
   const host = hdrs.get("host") ?? "www.housepro.pt";
   const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https";
   const propertyUrl = `${proto}://${host}/imovel/${property.id}${ref ? `?ref=${ref}` : ""}`;
-  const gallery = property.gallery ?? [property.image];
+  const gallery = property.gallery && property.gallery.length
+    ? property.gallery
+    : property.image
+      ? [property.image]
+      : [];
   const similares = await listSimilarProperties(property, 3);
 
   const description =

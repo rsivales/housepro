@@ -49,7 +49,7 @@ function linhas(root: AfilhadoNode, prefix: string, maxDepth: number): Linha[] {
   return out;
 }
 
-// Demo: faturação pessoal do ciclo (liga ao acumulador real com o Supabase).
+// Fallback de exemplo quando ainda não há faturação real acumulada.
 const DEMO_FATURACAO = 72000;
 
 export default async function ComissoesPage() {
@@ -62,9 +62,15 @@ export default async function ComissoesPage() {
   const rows = linhas(root, prefix, maxOverrideDepth());
   const overrideTotal = rows.reduce((s, r) => s + r.override, 0);
 
+  // Faturação REAL do ciclo = monthly_gross do próprio agente (creditado pelo
+  // fecho de negócios). Cai no exemplo só enquanto não houver dados reais.
+  const faturacaoReal = root.monthlyGross;
+  const dadosReais = faturacaoReal > 0;
+  const faturacao = dadosReais ? faturacaoReal : DEMO_FATURACAO;
+
   // Repartição pessoal (com empresa validada, para o exemplo).
   const leg = computeLeg({
-    legCommission: DEMO_FATURACAO,
+    legCommission: faturacao,
     priorFaturacao: 0,
     priorAgencyTake: 0,
     hasValidatedCompany: true,
@@ -90,6 +96,14 @@ export default async function ComissoesPage() {
           Faturação e override organizados pelos códigos legíveis — fácil de conferir e auditar.
           O teu código: <span className="font-mono text-foreground">{prefix}</span>
         </p>
+        <span
+          className={
+            "mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium " +
+            (dadosReais ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground")
+          }
+        >
+          {dadosReais ? "Dados reais (fecho de negócios)" : "Exemplo — sem faturação real ainda"}
+        </span>
 
         {/* Resumo pessoal */}
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -97,8 +111,8 @@ export default async function ComissoesPage() {
             <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
               <TrendingUp className="size-3.5" /> Faturação (ciclo)
             </p>
-            <p className="mt-1 font-display text-2xl tabular-nums">{formatEuro(DEMO_FATURACAO)}</p>
-            <p className="text-xs text-muted-foreground">Patamar {currentTierLabel(DEMO_FATURACAO)}</p>
+            <p className="mt-1 font-display text-2xl tabular-nums">{formatEuro(faturacao)}</p>
+            <p className="text-xs text-muted-foreground">Patamar {currentTierLabel(faturacao)}</p>
           </div>
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Líquido pessoal (est.)</p>

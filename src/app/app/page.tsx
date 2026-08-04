@@ -39,6 +39,7 @@ import { agentById, agentPrefixOf } from "@/lib/data/mock";
 import { formatPhone } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { PadrinhoAutoRedeem } from "@/components/afilhados/padrinho-auto-redeem";
+import { ContactSlaWatcher } from "@/components/consultant/contact-sla-watcher";
 import { PropertyCard } from "@/components/property/property-card";
 import { ShareProperty } from "@/components/property/share-property";
 import { Button } from "@/components/ui/button";
@@ -153,6 +154,8 @@ export default async function AppPage() {
               </span>
             )}
           </div>
+
+          <ContactSlaWatcher agentId={agent.id} demo={demo} />
 
           {leads.length > 0 ? (
             <ul className="mt-4 space-y-3">

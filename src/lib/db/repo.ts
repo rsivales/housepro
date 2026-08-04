@@ -449,7 +449,11 @@ export async function listQualityEvents(agentId: string): Promise<QualityEvent[]
       amount: Number(r.amount ?? 0),
       reason: String(r.reason ?? ""),
       status: (r.status as QualityEvent["status"]) ?? undefined,
+      origin: (r.origin as QualityEvent["origin"]) ?? undefined,
+      submittedBy: (r.submitted_by as string) ?? undefined,
       contestNote: (r.contest_note as string) ?? undefined,
+      reassignedTo: (r.reassigned_to as string) ?? undefined,
+      residualPct: r.residual_pct != null ? Number(r.residual_pct) : undefined,
       createdAt: String(r.created_at ?? new Date().toISOString()),
     }));
   } catch {

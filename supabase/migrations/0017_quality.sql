@@ -6,15 +6,19 @@
 
 create table if not exists quality_events (
   id           uuid primary key default gen_random_uuid(),
-  kind         text not null check (kind in ('merito','infracao')),
+  kind         text not null check (kind in ('merito','reparo','infracao')),
   agent_id     uuid not null references profiles(id) on delete cascade,
-  category     text,              -- procedimento | documental | atraso | etica | reclamacao
+  category     text,              -- procedimento | documental | atraso | etica | reclamacao | abandono
   severity     text,              -- leve | media | grave
-  points       integer not null default 0,   -- positivos (mérito) / negativos (infração)
+  points       integer not null default 0,   -- positivos (mérito) / negativos (infração) / 0 (reparo)
   amount       numeric not null default 0,   -- penalização monetária (€)
   reason       text not null,
-  status       text,              -- proposta | contestada | confirmada | anulada (só infrações)
+  status       text,              -- pendente | ativo | resolvido | arquivada | proposta | contestada | confirmada | anulada
+  origin       text,              -- manual | checklist | portal
+  submitted_by text,              -- quem submeteu (ex.: nome do cliente no portal)
   contest_note text,
+  reassigned_to uuid references profiles(id) on delete set null, -- abandono → colega
+  residual_pct integer,           -- 10 (abandono) vs 25 (referência normal)
   deal_ref     text,              -- origem (ex.: item vital em atraso na escritura)
   created_by   uuid references profiles(id) on delete set null,
   decided_by   uuid references profiles(id) on delete set null,
@@ -52,3 +56,10 @@ create policy quality_staff_write on quality_events
 drop policy if exists quality_own_contest on quality_events;
 create policy quality_own_contest on quality_events
   for update using (agent_id = auth.uid()) with check (agent_id = auth.uid());
+
+-- Portal do cliente: pode submeter uma ocorrência que fica "pendente" para a
+-- Qualidade analisar (nunca pune automaticamente). Só este formato é aceite.
+drop policy if exists quality_portal_submit on quality_events;
+create policy quality_portal_submit on quality_events
+  for insert to anon, authenticated
+  with check (origin = 'portal' and status = 'pendente' and kind = 'reparo');

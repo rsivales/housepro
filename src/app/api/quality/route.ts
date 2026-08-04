@@ -3,14 +3,20 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/supabase/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
-import { SEVERITY, type QualitySeverity } from "@/lib/data/quality";
+import { SEVERITY, ABANDONO_RESIDUAL_PCT, type QualitySeverity } from "@/lib/data/quality";
 import { insertNotifications } from "@/lib/db/repo";
+import { agentById } from "@/lib/data/mock";
 import { notifyGeneric } from "@/lib/notify";
 
 /**
- * Módulo Qualidade — devido processo do livro-razão de reputação.
+ * Módulo Qualidade — escada de escalonamento do livro-razão de reputação.
  *
  * POST { action, ... }
+ *   reparo   (coordenação/direção) → cria "reparo de qualidade" (ativo, 0 pts/0 €)
+ *   resolve  (o próprio agente)    → reparo "resolvido"
+ *   triage   (coordenação/direção) → decide um "pendente" do portal:
+ *                                    → to:"reparo" | "infracao" | "arquivar"
+ *   reassign (coordenação/direção) → abandono: reatribui a um colega (10% residual)
  *   propose  (coordenação/direção) → cria infração "proposta"
  *   contest  (o próprio agente)    → passa a "contestada" com nota
  *   confirm  (coordenação/direção) → "confirmada": aplica pontos + € na comissão
@@ -116,6 +122,157 @@ export async function POST(request: Request) {
       }]);
     }
     return NextResponse.json({ ok: true, status });
+  }
+
+  if (action === "reparo") {
+    if (!isStaff) return NextResponse.json({ error: "sem_permissao" }, { status: 403 });
+    const agentId = String(body.agentId ?? "").trim();
+    const category = body.category ? String(body.category) : "reclamacao";
+    const reason = String(body.reason ?? "").trim();
+    if (!agentId || !reason) return NextResponse.json({ error: "faltam_dados" }, { status: 400 });
+    if (supabase) {
+      try {
+        await supabase.from("quality_events").insert({
+          kind: "reparo", agent_id: agentId, category, points: 0, amount: 0,
+          reason, status: "ativo", origin: "manual", created_by: session.agent.id,
+        });
+      } catch {/* best-effort */}
+    }
+    await insertNotifications([{
+      userId: agentId, type: "qualidade",
+      title: "Reparo de qualidade",
+      body: `${reason} — corrige para não escalar.`, href: "/app/qualidade",
+    }]);
+    return NextResponse.json({ ok: true, status: "ativo" });
+  }
+
+  if (action === "resolve") {
+    const id = String(body.id ?? "").trim();
+    if (!id) return NextResponse.json({ error: "faltam_dados" }, { status: 400 });
+    if (supabase) {
+      try {
+        await supabase.from("quality_events")
+          .update({ status: "resolvido" })
+          .eq("id", id)
+          .eq("kind", "reparo");
+      } catch {/* best-effort */}
+    }
+    return NextResponse.json({ ok: true, status: "resolvido" });
+  }
+
+  if (action === "triage") {
+    if (!isStaff) return NextResponse.json({ error: "sem_permissao" }, { status: 403 });
+    const id = String(body.id ?? "").trim();
+    const agentId = String(body.agentId ?? "").trim();
+    const to = String(body.to ?? ""); // reparo | infracao | arquivar
+    if (!id) return NextResponse.json({ error: "faltam_dados" }, { status: 400 });
+
+    if (to === "arquivar") {
+      if (supabase) {
+        try {
+          await supabase.from("quality_events")
+            .update({ status: "arquivada", decided_by: session.agent.id })
+            .eq("id", id);
+        } catch {/* best-effort */}
+      }
+      return NextResponse.json({ ok: true, status: "arquivada" });
+    }
+
+    if (to === "reparo") {
+      if (supabase) {
+        try {
+          await supabase.from("quality_events")
+            .update({ status: "ativo", kind: "reparo", decided_by: session.agent.id })
+            .eq("id", id);
+        } catch {/* best-effort */}
+      }
+      if (agentId) {
+        await insertNotifications([{
+          userId: agentId, type: "qualidade",
+          title: "Reparo de qualidade (do portal)",
+          body: "A Qualidade analisou uma ocorrência do cliente. Corrige para não escalar.",
+          href: "/app/qualidade",
+        }]);
+      }
+      return NextResponse.json({ ok: true, status: "ativo" });
+    }
+
+    if (to === "infracao") {
+      const severity = String(body.severity ?? "media") as QualitySeverity;
+      const sev = SEVERITY[severity] ?? SEVERITY.media;
+      if (supabase) {
+        try {
+          await supabase.from("quality_events")
+            .update({
+              status: "proposta", kind: "infracao", severity,
+              points: -sev.points, amount: sev.amount, decided_by: session.agent.id,
+            })
+            .eq("id", id);
+        } catch {/* best-effort */}
+      }
+      if (agentId) {
+        await insertNotifications([{
+          userId: agentId, type: "qualidade",
+          title: `Infração proposta (${sev.label})`,
+          body: "Resultou de uma ocorrência do portal. Podes contestar.",
+          amount: sev.amount, href: "/app/qualidade",
+        }]);
+      }
+      return NextResponse.json({ ok: true, status: "proposta", severity });
+    }
+
+    return NextResponse.json({ error: "triagem_invalida" }, { status: 400 });
+  }
+
+  if (action === "reassign") {
+    if (!isStaff) return NextResponse.json({ error: "sem_permissao" }, { status: 403 });
+    const id = String(body.id ?? "").trim();
+    const agentId = String(body.agentId ?? "").trim();
+    const toAgentId = String(body.toAgentId ?? "").trim();
+    if (!agentId || !toAgentId) return NextResponse.json({ error: "faltam_dados" }, { status: 400 });
+    const toName = agentById(toAgentId)?.name ?? "colega";
+
+    if (supabase) {
+      try {
+        if (id) {
+          await supabase.from("quality_events")
+            .update({
+              kind: "reparo", category: "abandono", status: "resolvido",
+              reassigned_to: toAgentId, residual_pct: ABANDONO_RESIDUAL_PCT,
+              decided_by: session.agent.id,
+            })
+            .eq("id", id);
+        } else {
+          await supabase.from("quality_events").insert({
+            kind: "reparo", agent_id: agentId, category: "abandono",
+            points: 0, amount: 0, status: "resolvido", origin: "manual",
+            reason: `Abandono de contacto — reatribuído a ${toName} (${ABANDONO_RESIDUAL_PCT}% residual)`,
+            reassigned_to: toAgentId, residual_pct: ABANDONO_RESIDUAL_PCT,
+            created_by: session.agent.id,
+          });
+        }
+      } catch {/* best-effort */}
+    }
+    // Aviso prévio ao consultor + notificação ao colega que recebe o contacto.
+    await insertNotifications([
+      {
+        userId: agentId, type: "qualidade",
+        title: "Contacto reatribuído por abandono",
+        body: `Por falta de acompanhamento, o contacto passou para ${toName}. Se fechar, recebes ${ABANDONO_RESIDUAL_PCT}% residual (em vez dos 25% de uma referência).`,
+        href: "/app/qualidade",
+      },
+      {
+        userId: toAgentId, type: "qualidade",
+        title: "Recebeste um contacto reatribuído",
+        body: "Um contacto foi-te atribuído pela coordenação (abandono do anterior consultor).",
+        href: "/app/crm",
+      },
+    ]);
+    await notifyGeneric({
+      subject: "HousePro — Qualidade: reatribuição por abandono de contacto",
+      text: `Contacto reatribuído para ${toName} com ${ABANDONO_RESIDUAL_PCT}% residual ao consultor anterior.\n\n— HousePro`,
+    });
+    return NextResponse.json({ ok: true, toAgentId, residualPct: ABANDONO_RESIDUAL_PCT });
   }
 
   return NextResponse.json({ error: "acao_desconhecida" }, { status: 400 });

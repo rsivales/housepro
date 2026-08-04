@@ -7,6 +7,7 @@ import {
   Briefcase,
   CalendarClock,
   Calculator,
+  Coins,
   Inbox,
   LayoutGrid,
   LogOut,
@@ -133,6 +134,7 @@ export default async function AppPage() {
           <Action icon={Trophy} title="Objetivos & Prémios" href="/app/premios" note="Metas, escada, hall da fama e medalhas" />
           <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />
           <Action icon={Network} title="A minha equipa" href="/app/equipa" note="Afilhados, árvore e override" />
+          <Action icon={Coins} title="Comissões" href="/app/comissoes" note="Faturação e override por código" />
           <Action icon={Briefcase} title="Referências de serviços" href="/app/servicos" note="Crédito, jurídico, energético…" />
           <Action icon={PiggyBank} title="Fundo de pensão" href="/app/fundo-pensao" note="2% por negócio, com dividendos" />
         </div>

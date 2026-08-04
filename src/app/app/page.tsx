@@ -29,7 +29,9 @@ import {
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
-import { listPropertiesByAgent, listLeadsByAgent } from "@/lib/db/repo";
+import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications } from "@/lib/db/repo";
+import { phraseOfTheDay, demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
+import { PhraseOfTheDay, LastAngariadoBanner, NotificationsInbox, ActivitiesBoard } from "@/components/consultant/dashboard-extras";
 import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
 import { referralsIncoming } from "@/lib/data/referrals";
 import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
@@ -61,6 +63,16 @@ export default async function AppPage() {
   const leads = await listLeadsByAgent(agent.id);
   const novas = leads.filter((l) => l.status === "novo").length;
   const refsNovas = referralsIncoming(agent.id).filter((r) => r.status === "pendente").length;
+
+  // Dashboard: frase do dia, notificações, última angariação da agência, atividades.
+  const phrase = phraseOfTheDay();
+  const tip = tipOfTheDay();
+  const realNotifs = await listNotifications(agent.id);
+  const notifs = realNotifs.length ? realNotifs : demoNotifications();
+  const activities = demoActivities();
+  const agencyProps = agent.agencyId ? await listPropertiesByAgency(agent.agencyId) : [];
+  const lastAngariado = agencyProps[0];
+  const lastAngariadoAgent = lastAngariado ? agentById(lastAngariado.agentId) : undefined;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -123,6 +135,18 @@ export default async function AppPage() {
             <ArrowRight className="size-5 shrink-0" />
           </Link>
         )}
+
+        {/* Frase do dia + última angariação da agência */}
+        <PhraseOfTheDay phrase={phrase} />
+        {lastAngariado && (
+          <LastAngariadoBanner property={lastAngariado} agentName={lastAngariadoAgent?.name} />
+        )}
+
+        {/* Notificações + atividades em curso */}
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <NotificationsInbox items={notifs} />
+          <ActivitiesBoard activities={activities} tip={tip} />
+        </div>
 
         {/* Quick actions */}
         <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">

@@ -14,6 +14,8 @@
  *    disponível para esse pool.
  */
 
+import { COMMISSION, NETWORK_POOL_PCT } from "./config";
+
 export interface LadderBand {
   /** Limite superior da banda de faturação acumulada (€). */
   upTo: number;
@@ -34,17 +36,14 @@ export interface CommissionPlan {
   networkPoolPct: number;
 }
 
+/** Derivado da fonte única (config.ts) — nunca se define percentagens aqui. */
 export const DEFAULT_PLAN: CommissionPlan = {
-  ladder: [
-    { upTo: 10000, withCompany: 50, withoutCompany: 40 },
-    { upTo: 60000, withCompany: 60, withoutCompany: 50 },
-    { upTo: Infinity, withCompany: 90, withoutCompany: 80 },
-  ],
-  agencyCap: 30000,
-  royaltiesAgentPct: 3,
-  royaltiesAgencyPct: 3,
-  pensionPct: 2,
-  networkPoolPct: 10,
+  ladder: COMMISSION.ladder.map((b) => ({ ...b })),
+  agencyCap: COMMISSION.agencyCap,
+  royaltiesAgentPct: COMMISSION.royaltiesPct,
+  royaltiesAgencyPct: COMMISSION.royaltiesPct,
+  pensionPct: COMMISSION.pensionPct,
+  networkPoolPct: NETWORK_POOL_PCT,
 };
 
 export interface LegInput {

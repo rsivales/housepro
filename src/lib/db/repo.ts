@@ -272,6 +272,22 @@ export async function getUplineChain(
   return chain;
 }
 
+/** Faturação acumulada do mês/ciclo do consultor (0 em modo demo). */
+export async function getMonthlyGross(agentId: string): Promise<number> {
+  if (!isSupabaseConfigured()) return 0;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("monthly_gross")
+      .eq("id", agentId)
+      .single();
+    return Number(data?.monthly_gross ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
 /** Credita comissão bruta ao mês do consultor (base do override). */
 export async function addMonthlyGross(agentId: string, gross: number): Promise<void> {
   if (!isSupabaseConfigured()) return;

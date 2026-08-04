@@ -20,6 +20,8 @@
  * (ter afilhados a faturar) é o que gera receita adicional — o motor da rede.
  */
 
+import { COMMISSION } from "./config";
+
 export interface SplitConfig {
   /** Royalties da marca (%). */
   royaltiesPct: number;
@@ -31,11 +33,12 @@ export interface SplitConfig {
   overrideTiers: number[];
 }
 
+/** Derivado da fonte única (config.ts) — nunca se define percentagens aqui. */
 export const DEFAULT_SPLIT: SplitConfig = {
-  royaltiesPct: 3,
-  agencyPct: 3,
-  retirementPct: 2,
-  overrideTiers: [5, 3, 1, 1], // L1 5% · L2 3% · L3 1% · L4 1% = 10%
+  royaltiesPct: COMMISSION.royaltiesPct,
+  agencyPct: COMMISSION.royaltiesPct,
+  retirementPct: COMMISSION.pensionPct,
+  overrideTiers: COMMISSION.overrideTiers,
 };
 
 export interface OverrideShare {
@@ -63,10 +66,12 @@ export interface SplitResult {
 }
 
 /**
- * Reparte uma comissão bruta.
+ * @deprecated Modelo simplificado (produtor = remanescente). A repartição
+ * agente/agência OFICIAL é a ESCADA em `tiers.ts` (`computeLeg`). Mantido só
+ * como referência; NÃO usar para valores — usar sempre a escada.
+ *
  * @param gross        comissão bruta (€).
- * @param uplineLevels quantos níveis de padrinho existem acima do produtor
- *                     (0 = sem padrinho). Limitado ao nº de escalões.
+ * @param uplineLevels quantos níveis de padrinho existem acima do produtor.
  */
 export function computeSplit(
   gross: number,

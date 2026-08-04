@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { getUplineChain, addMonthlyGross, insertNotifications } from "@/lib/db/repo";
+import { getUplineChain, addMonthlyGross, getMonthlyGross, insertNotifications } from "@/lib/db/repo";
 import { overrideChain, overrideChainTotal } from "@/lib/commission/override-chain";
 import { effectiveCommission } from "@/lib/data/commission";
-import { computeSplit } from "@/lib/commission/split";
+import { computeLeg } from "@/lib/commission/tiers";
 import { notifyGeneric } from "@/lib/notify";
 import { formatEuro } from "@/lib/format";
 
@@ -43,9 +43,16 @@ export async function POST(request: Request) {
   // Comissão bruta do negócio (aplica mínimos por escalão).
   const gross = effectiveCommission(amount, { commissionType: "percent", commissionPct }).amount;
 
-  // Repartição da comissão do produtor (informativa).
+  // Repartição da comissão do produtor pela ESCADA (fonte única). A faturação
+  // anterior determina o patamar; assume empresa validada para o exemplo.
   const upline = await getUplineChain(producerId);
-  const split = computeSplit(gross, upline.length);
+  const prior = await getMonthlyGross(producerId);
+  const split = computeLeg({
+    legCommission: gross,
+    priorFaturacao: prior,
+    priorAgencyTake: 0,
+    hasValidatedCompany: true,
+  });
   const payouts = overrideChain(gross, upline);
 
   // 1) Credita a faturação do mês ao produtor.
@@ -82,8 +89,8 @@ export async function POST(request: Request) {
     ok: true,
     gross,
     commissionPct,
-    producerNet: split.agent,
-    producerNetPct: split.agentPct,
+    producerNet: split.agentNet,
+    producerNetPct: split.agentSplitPct,
     payouts,
     overrideTotal: overrideChainTotal(payouts),
     notified: notifRows.length,

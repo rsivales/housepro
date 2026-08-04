@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { formatEuro } from "@/lib/format";
 import { afilhadoStats, flattenAfilhados, setNodeInactive, removeNodeFromTree, type AfilhadoNode } from "@/lib/data/afilhados";
 import { DEFAULT_SPLIT, maxOverrideDepth } from "@/lib/commission/split";
+import { COMMISSION, NETWORK_POOL_PCT } from "@/lib/commission/config";
 import { effectiveCommission } from "@/lib/data/commission";
 import type { OverridePayout } from "@/lib/commission/override-chain";
 import type { Notification } from "@/lib/db/repo";
@@ -208,12 +209,13 @@ export function EquipaView({
           <div className="text-muted-foreground">
             <p className="font-medium text-foreground">Como funciona o override</p>
             <p className="mt-1">
-              Da comissão bruta de cada agente retiram-se {DEFAULT_SPLIT.royaltiesPct}%
-              (marca), {DEFAULT_SPLIT.agencyPct}% (agência) e {DEFAULT_SPLIT.retirementPct}%
-              (fundo de reforma). Até {DEFAULT_SPLIT.overrideTiers.reduce((a, b) => a + b, 0)}%
-              distribuem-se pelos padrinhos por nível ({DEFAULT_SPLIT.overrideTiers.map((p) => `${p}%`).join(" · ")});
-              o restante fica para o agente que fez o negócio. Um nível sem padrinho
-              não é pago — essa parte volta para o agente produtor.
+              De cada comissão retiram-se {COMMISSION.royaltiesPct}% de royalties
+              (cada lado) e {COMMISSION.pensionPct}% para o fundo de pensão; a
+              repartição agente/agência segue a escada de produtividade. Até{" "}
+              {NETWORK_POOL_PCT}% (pool de rede, financiado pela fatia da agência)
+              distribuem-se pelos padrinhos por nível ({COMMISSION.overrideTiers.map((p) => `${p}%`).join(" · ")}).
+              Um nível sem padrinho não é pago. Percentagens definidas num único
+              sítio — batem sempre certo em todo o sistema.
             </p>
           </div>
         </div>

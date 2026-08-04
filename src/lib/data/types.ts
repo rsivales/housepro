@@ -31,6 +31,8 @@ export interface Agency {
   /** Public montra slug, e.g. "algarve". */
   slug: string;
   region: string;
+  /** Código numérico da agência (2 dígitos) para as referências legíveis. */
+  code?: number;
 }
 
 /** Papel hierárquico (governa permissões e aprovações). */
@@ -53,6 +55,8 @@ export interface Agent {
   agency: string;
   /** Link to the Agency this consultant belongs to. */
   agencyId: string;
+  /** Código numérico do agente (4 dígitos) para as referências legíveis. */
+  code?: number;
   /** Full international phone for wa.me click-to-chat, digits only. */
   whatsapp: string;
   /** Email do consultor (para cópia de comunicações ao agente). */

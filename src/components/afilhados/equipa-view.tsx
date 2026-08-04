@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, Handshake } from "lucide-react";
 import { Apadrinhar, ResgatarCodigo } from "@/components/afilhados/apadrinhar";
+import { agentPrefixOf } from "@/lib/data/mock";
+import { affiliateCode } from "@/lib/codes";
 
 const LEVEL_COLORS = ["bg-primary", "bg-gold", "bg-sky-500", "bg-violet-500"];
 
@@ -456,6 +458,7 @@ function PyramidView({ root, maxDepth }: { root: AfilhadoNode; maxDepth: number 
     levels.push(frontier);
     frontier = frontier.flatMap((n) => n.children);
   }
+  const rootPrefix = agentPrefixOf(root.id);
 
   return (
     <div className="overflow-x-auto">
@@ -476,13 +479,15 @@ function PyramidView({ root, maxDepth }: { root: AfilhadoNode; maxDepth: number 
                 )}
               </div>
               <div className="flex flex-wrap justify-center gap-2">
-                {row.map((node) => {
+                {row.map((node, idx) => {
                   const override = level >= 1 && node.active && pct > 0 ? (node.monthlyGross * pct) / 100 : 0;
+                  const code = level === 0 ? rootPrefix : affiliateCode(rootPrefix, level, idx + 1);
                   return (
                     <div
                       key={node.id}
+                      title={code}
                       className={cn(
-                        "flex min-w-[128px] items-center gap-2 rounded-xl border px-3 py-2",
+                        "flex min-w-[140px] items-center gap-2 rounded-xl border px-3 py-2",
                         level === 0 ? "border-foreground/30 bg-secondary/40" : "bg-card",
                         !node.active && level >= 1 && "opacity-60"
                       )}
@@ -492,6 +497,7 @@ function PyramidView({ root, maxDepth }: { root: AfilhadoNode; maxDepth: number 
                       </span>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium leading-tight">{node.name}</p>
+                        <p className="truncate font-mono text-[10px] text-muted-foreground">{code}</p>
                         {level >= 1 && (
                           <p className={cn("text-xs tabular-nums", override > 0 ? "text-primary" : "text-muted-foreground")}>
                             {override > 0 ? `+${formatEuro(override)}` : node.active ? "—" : "não fatura"}

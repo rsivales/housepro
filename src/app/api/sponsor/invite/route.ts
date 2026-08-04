@@ -4,18 +4,15 @@ import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { notifyGeneric } from "@/lib/notify";
+import { agentPrefixOf } from "@/lib/data/mock";
+import { demoAfilhados } from "@/lib/data/afilhados";
+import { affiliateCode } from "@/lib/codes";
 
 /**
- * Gera um convite de padrinhado com código. O padrinho envia o código; ao usá-lo
- * no registo, o consultor apadrinhado fica ligado à árvore certa (sem falhas).
+ * Gera um convite de padrinhado com CÓDIGO LEGÍVEL: prefixo do padrinho
+ * (país+agência+agente) + A1G + posição do afilhado direto. Ex.: 1050012A1G3.
+ * Ao usá-lo no registo, o consultor apadrinhado fica ligado à árvore certa.
  */
-
-function makeCode(): string {
-  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // sem chars ambíguos
-  let s = "";
-  for (let i = 0; i < 8; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
-  return `HP-${s.slice(0, 4)}-${s.slice(4)}`;
-}
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -30,7 +27,32 @@ export async function POST(request: Request) {
     body = {};
   }
   const email = (body.email ?? "").trim() || undefined;
-  const code = makeCode();
+
+  // Posição do próximo afilhado direto (1.ª geração).
+  let position = 1;
+  const prefix = agentPrefixOf(session.agent.id);
+
+  if (isSupabaseConfigured() && !session.demo) {
+    try {
+      const supabase = await createClient();
+      const { count: kids } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("sponsor_id", session.agent.id);
+      const { count: invites } = await supabase
+        .from("sponsorship_invites")
+        .select("id", { count: "exact", head: true })
+        .eq("sponsor_id", session.agent.id);
+      position = (kids ?? 0) + (invites ?? 0) + 1;
+    } catch {
+      /* best-effort */
+    }
+  } else {
+    // Demo: conta os afilhados diretos na árvore de exemplo (raiz = rui).
+    position = (demoAfilhados.id === session.agent.id ? demoAfilhados.children.length : 0) + 1;
+  }
+
+  const code = affiliateCode(prefix, 1, position);
 
   if (isSupabaseConfigured() && !session.demo) {
     try {

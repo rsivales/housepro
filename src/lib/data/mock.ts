@@ -1,4 +1,5 @@
 import type { Agency, Agent, Property } from "./types";
+import { agentPrefix, COUNTRY } from "@/lib/codes";
 
 /**
  * Temporary in-memory data used to build and approve the UI in Milestone 1.
@@ -6,11 +7,11 @@ import type { Agency, Agent, Property } from "./types";
  */
 
 export const agencies: Agency[] = [
-  { id: "lisboa", name: "HousePro Lisboa", slug: "lisboa", region: "Lisboa" },
-  { id: "porto", name: "HousePro Porto", slug: "porto", region: "Porto" },
-  { id: "cascais", name: "HousePro Cascais", slug: "cascais", region: "Cascais" },
-  { id: "braga", name: "HousePro Braga", slug: "braga", region: "Braga" },
-  { id: "algarve", name: "HousePro Algarve", slug: "algarve", region: "Algarve" },
+  { id: "lisboa", name: "HousePro Lisboa", slug: "lisboa", region: "Lisboa", code: 1 },
+  { id: "porto", name: "HousePro Porto", slug: "porto", region: "Porto", code: 2 },
+  { id: "cascais", name: "HousePro Cascais", slug: "cascais", region: "Cascais", code: 3 },
+  { id: "braga", name: "HousePro Braga", slug: "braga", region: "Braga", code: 4 },
+  { id: "algarve", name: "HousePro Algarve", slug: "algarve", region: "Algarve", code: 5 },
 ];
 
 export const agencyBySlug = (slug: string): Agency | undefined =>
@@ -27,6 +28,7 @@ export const agents: Agent[] = [
     roleKey: "agente",
     agency: "HousePro Lisboa",
     agencyId: "lisboa",
+    code: 1,
     whatsapp: "351910000001",
     accent: "var(--brand)",
     photo: "/agents/ana.jpg",
@@ -38,6 +40,7 @@ export const agents: Agent[] = [
     roleKey: "agente",
     agency: "HousePro Porto",
     agencyId: "porto",
+    code: 2,
     whatsapp: "351910000002",
     accent: "var(--gold)",
     photo: "/agents/rui.jpg",
@@ -49,6 +52,7 @@ export const agents: Agent[] = [
     roleKey: "coordenador",
     agency: "HousePro Cascais",
     agencyId: "cascais",
+    code: 3,
     whatsapp: "351910000003",
     accent: "oklch(0.55 0.09 230)",
     photo: "/agents/sofia.jpg",
@@ -61,6 +65,7 @@ export const agents: Agent[] = [
     ownAMI: true,
     agency: "HousePro Braga",
     agencyId: "braga",
+    code: 4,
     whatsapp: "351910000004",
     accent: "oklch(0.62 0.12 40)",
     photo: "/agents/miguel.jpg",
@@ -72,11 +77,19 @@ export const agents: Agent[] = [
     roleKey: "diretor",
     agency: "HousePro Algarve",
     agencyId: "algarve",
+    code: 5,
     whatsapp: "351910000005",
     accent: "oklch(0.6 0.11 250)",
     photo: "/agents/carla.jpg",
   },
 ];
+
+/** Prefixo legível de 7 dígitos do agente (país + agência + agente). */
+export function agentPrefixOf(agentId: string): string {
+  const a = agents.find((x) => x.id === agentId);
+  const ag = a ? agencies.find((g) => g.id === a.agencyId) : undefined;
+  return agentPrefix(COUNTRY.PT, ag?.code ?? 0, a?.code ?? 0);
+}
 
 export const agentById = (id: string): Agent =>
   agents.find((a) => a.id === id) ?? agents[0];

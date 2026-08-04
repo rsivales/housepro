@@ -33,7 +33,7 @@ import { referralsIncoming } from "@/lib/data/referrals";
 import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
 import { DocNote } from "@/components/consultant/doc-note";
 import { PropertyRef } from "@/components/property/property-ref";
-import { agentById } from "@/lib/data/mock";
+import { agentById, agentPrefixOf } from "@/lib/data/mock";
 import { formatPhone } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { PadrinhoAutoRedeem } from "@/components/afilhados/padrinho-auto-redeem";
@@ -70,6 +70,9 @@ export default async function AppPage() {
               <p className="text-sm font-medium leading-none">{agent.name}</p>
               <p className="text-xs text-muted-foreground">
                 {agent.role} · {agent.agency || "HousePro"}
+              </p>
+              <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                Código {agentPrefixOf(agent.id)}
               </p>
             </div>
           </div>

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { agentPrefixOf } from "@/lib/data/mock";
+import { propertyReference } from "@/lib/codes";
 
 /** Cria um imóvel no Supabase, com o angariador = utilizador autenticado. */
 export async function POST(request: Request) {
@@ -17,10 +20,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
+  // Referência legível: <prefixo do agente>-<sequência do agente>.
+  const prefix = agentPrefixOf(session.agent.id);
+  let seq = 1;
+  const supabaseCfg = isSupabaseConfigured();
+  if (supabaseCfg) {
+    try {
+      const sb = await createClient();
+      const { count } = await sb
+        .from("properties")
+        .select("id", { count: "exact", head: true })
+        .eq("agent_id", session.agent.id);
+      seq = (count ?? 0) + 1;
+    } catch {
+      /* best-effort */
+    }
+  }
   const ref =
     typeof d.reference === "string" && d.reference.trim()
       ? d.reference.trim()
-      : `HP-${Date.now().toString().slice(-6)}`;
+      : propertyReference(prefix, seq);
 
   const title =
     typeof d.seoTitle === "string" && d.seoTitle.trim()

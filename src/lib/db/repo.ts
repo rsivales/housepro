@@ -461,6 +461,85 @@ export async function listQualityEvents(agentId: string): Promise<QualityEvent[]
   }
 }
 
+/** Regista um reparo (best-effort) evitando duplicar por negócio/contacto. */
+export async function insertQualityReparo(input: {
+  agentId: string;
+  category: string;
+  reason: string;
+  dealRef?: string;
+  status?: string;
+  origin?: string;
+  reassignedTo?: string;
+  residualPct?: number;
+  createdBy?: string;
+}): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true; // demo: assume criado
+  try {
+    const supabase = await createClient();
+    if (input.dealRef) {
+      const { data: dup } = await supabase
+        .from("quality_events")
+        .select("id")
+        .eq("agent_id", input.agentId)
+        .eq("deal_ref", input.dealRef)
+        .eq("category", input.category)
+        .in("status", ["pendente", "ativo"])
+        .limit(1);
+      if (dup && dup.length > 0) return false;
+    }
+    await supabase.from("quality_events").insert({
+      kind: "reparo",
+      agent_id: input.agentId,
+      category: input.category,
+      points: 0,
+      amount: 0,
+      reason: input.reason,
+      status: input.status ?? "ativo",
+      origin: input.origin ?? "manual",
+      deal_ref: input.dealRef ?? null,
+      reassigned_to: input.reassignedTo ?? null,
+      residual_pct: input.residualPct ?? null,
+      created_by: input.createdBy ?? null,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Fecha o reparo de abandono de um contacto marcando a reatribuição. */
+export async function resolveContactReparo(
+  agentId: string,
+  dealRef: string,
+  toAgentId: string,
+  residualPct: number
+): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const supabase = await createClient();
+    await supabase
+      .from("quality_events")
+      .update({ status: "resolvido", reassigned_to: toAgentId, residual_pct: residualPct })
+      .eq("agent_id", agentId)
+      .eq("deal_ref", dealRef)
+      .eq("category", "abandono")
+      .eq("status", "ativo");
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** Reatribui o dono de uma lead (best-effort). */
+export async function reassignLeadOwner(leadId: string, toAgentId: string): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const supabase = await createClient();
+    await supabase.from("leads").update({ owner_id: toAgentId }).eq("id", leadId);
+  } catch {
+    /* best-effort */
+  }
+}
+
 // --- Leads -----------------------------------------------------------------
 
 export interface NewLead {

@@ -8,6 +8,8 @@
  * o cliente recebe um email com a justificação e a opção de manter o consultor.
  */
 
+import { createHmac } from "crypto";
+
 import type { Agent } from "@/lib/data/types";
 
 export const CONTACT_SLA_HOURS = 48;
@@ -28,6 +30,14 @@ export function contactSlaState(opts: {
   if (!opts.warnedAt) return ageH >= CONTACT_SLA_HOURS ? "warn" : "ok";
   const sinceWarn = (now.getTime() - new Date(opts.warnedAt).getTime()) / 3_600_000;
   return sinceWarn >= CONTACT_ESCALATION_HOURS ? "escalate" : "waiting";
+}
+
+/** Assina o link de "manter o mesmo consultor" enviado ao cliente. */
+export function signKeep(leadId: string, agentId: string): string {
+  return createHmac("sha256", process.env.CONTACT_REVERT_SECRET || "housepro-dev")
+    .update(`${leadId}:${agentId}`)
+    .digest("hex")
+    .slice(0, 24);
 }
 
 /** Escolhe o colega que recebe o contacto (mesma agência, ativo, != dono). */

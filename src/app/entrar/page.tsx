@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Mail } from "lucide-react";
+import { ArrowRight, KeyRound, Mail } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -20,6 +20,17 @@ export default function EntrarPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [sent, setSent] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [padrinho, setPadrinho] = React.useState("");
+
+  // Lê o código de padrinho do link (?padrinho=) e guarda-o para ser resgatado
+  // automaticamente ao entrar (sobrevive ao magic-link por email).
+  React.useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("padrinho");
+    if (code) {
+      setPadrinho(code.toUpperCase());
+      try { localStorage.setItem("housepro:padrinho", code.toUpperCase()); } catch {}
+    }
+  }, []);
 
   async function signInPassword(e: React.FormEvent) {
     e.preventDefault();
@@ -61,6 +72,18 @@ export default function EntrarPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           Acesso de consultores e coordenação HousePro.
         </p>
+
+        {padrinho && (
+          <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-gold/40 bg-gold/10 p-3.5 text-sm">
+            <KeyRound className="mt-0.5 size-4 shrink-0 text-gold" />
+            <div>
+              <p className="font-medium">Convite de padrinho <span className="font-mono">{padrinho}</span></p>
+              <p className="mt-0.5 text-muted-foreground">
+                Ao entrar, ficas automaticamente ligado à equipa do teu padrinho.
+              </p>
+            </div>
+          </div>
+        )}
 
         {!configured && (
           <div className="mt-6 rounded-xl border bg-secondary/50 p-4 text-sm text-muted-foreground">

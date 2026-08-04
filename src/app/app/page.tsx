@@ -36,6 +36,7 @@ import { PropertyRef } from "@/components/property/property-ref";
 import { agentById } from "@/lib/data/mock";
 import { formatPhone } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
+import { PadrinhoAutoRedeem } from "@/components/afilhados/padrinho-auto-redeem";
 import { PropertyCard } from "@/components/property/property-card";
 import { ShareProperty } from "@/components/property/share-property";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,7 @@ export default async function AppPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <PadrinhoAutoRedeem />
         {demo && (
           <div className="mb-6 rounded-xl border bg-secondary/50 px-4 py-3 text-sm text-muted-foreground">
             <strong className="text-foreground">Modo demo</strong> — a

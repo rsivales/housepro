@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { DealStepper } from "@/components/process/deal-stepper";
 import { DealCloseTrigger } from "@/components/process/deal-close-trigger";
+import { EscrituraChecklist } from "@/components/process/escritura-checklist";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { agentById } from "@/lib/data/mock";
 import { dealById } from "@/lib/data/deal";
@@ -75,6 +76,10 @@ export default async function ProcessoPage({
               amount={deal.amount}
               alreadyClosed={deal.stage === "concluido"}
             />
+            {/* Rede de segurança da escritura/mudança */}
+            {["cpcv", "escritura", "concluido"].includes(deal.stage) && (
+              <EscrituraChecklist dealRef={deal.reference} />
+            )}
           </div>
 
           {/* Aside: pessoas + notas */}

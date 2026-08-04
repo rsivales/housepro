@@ -48,15 +48,18 @@ export function PrizeShowcase({
   faturacao = 0,
   angariacao = 0,
   max = 6,
+  art = {},
 }: {
   faturacao?: number;
   angariacao?: number;
   max?: number;
+  /** Artes globais (nome→URL), do Supabase. */
+  art?: Record<string, string>;
 }) {
   const badges = [
     ...earnedPrizes(faturacao, "faturacao"),
     ...earnedPrizes(angariacao, "angariacao"),
-  ];
+  ].map((p) => (art[p.name] ? { ...p, image: art[p.name] } : p));
   if (badges.length === 0) return null;
   // Mostra os mais altos de cada trilha (fim das listas), até `max`.
   const shown = badges.slice(-max);

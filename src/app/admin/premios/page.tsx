@@ -5,6 +5,9 @@ import Link from "next/link";
 import { ArrowLeft, ImagePlus, Trophy, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { FATURACAO_PRIZES, ANGARIACAO_PRIZES, type Prize } from "@/lib/data/prizes";
 import { readPrizeArt, savePrizeArt, type PrizeArtMap } from "@/lib/data/prize-art";
 
@@ -32,24 +35,73 @@ async function toArt(file: File): Promise<string> {
 
 export default function AdminPremiosPage() {
   const [art, setArt] = React.useState<PrizeArtMap>({});
-  React.useEffect(() => setArt(readPrizeArt()), []);
+  const [saving, setSaving] = React.useState<"idle" | "saving" | "ok" | "err">("idle");
+  const [busy, setBusy] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setArt(readPrizeArt());
+    // A versão global (Supabase) tem prioridade.
+    if (isSupabaseConfigured()) {
+      fetch("/api/brand/prize-art")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.art && Object.keys(d.art).length) {
+            setArt(d.art);
+            savePrizeArt(d.art);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   function update(next: PrizeArtMap) {
     setArt(next);
     savePrizeArt(next);
   }
+
   async function onFile(prize: Prize, e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
+    setBusy(prize.name);
     try {
-      update({ ...art, [prize.name]: await toArt(f) });
-    } catch { /* ignora */ }
+      const dataUrl = await toArt(f);
+      let value = dataUrl;
+      // Com Supabase: envia para o Storage e guarda o URL (global/cross-device).
+      if (isSupabaseConfigured()) {
+        try {
+          const supabase = createClient();
+          const blob = await (await fetch(dataUrl)).blob();
+          const path = `brand/prizes/${prize.name.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.jpg`;
+          const up = await supabase.storage.from("property-media").upload(path, blob, { contentType: "image/jpeg", upsert: true });
+          if (!up.error) value = supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl;
+        } catch { /* cai para o data URL local */ }
+      }
+      update({ ...art, [prize.name]: value });
+    } catch { /* ignora */ } finally {
+      setBusy(null);
+    }
   }
+
   function remove(prize: Prize) {
     const next = { ...art };
     delete next[prize.name];
     update(next);
+  }
+
+  async function saveGlobal() {
+    setSaving("saving");
+    try {
+      const res = await fetch("/api/brand/prize-art", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ art }),
+      });
+      setSaving(res.ok ? "ok" : "err");
+    } catch {
+      setSaving("err");
+    }
+    setTimeout(() => setSaving("idle"), 3000);
   }
 
   return (
@@ -90,8 +142,8 @@ export default function AdminPremiosPage() {
                     </div>
                     <div className="flex shrink-0 flex-col gap-1.5">
                       <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs hover:bg-secondary">
-                        <ImagePlus className="size-3.5" /> {src ? "Trocar" : "Carregar"}
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => onFile(p, e)} />
+                        <ImagePlus className="size-3.5" /> {busy === p.name ? "A enviar…" : src ? "Trocar" : "Carregar"}
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => onFile(p, e)} disabled={busy === p.name} />
                       </label>
                       {src && (
                         <button type="button" onClick={() => remove(p)} className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-secondary">
@@ -106,10 +158,22 @@ export default function AdminPremiosPage() {
           </section>
         ))}
 
-        <p className="mt-8 rounded-xl border bg-secondary/40 p-4 text-xs text-muted-foreground">
-          Protótipo guardado neste navegador. A persistência global (todos os
-          consultores/dispositivos) liga ao Supabase, tal como a marca de água.
-        </p>
+        <div className="mt-8 flex flex-wrap items-center gap-3 border-t pt-5">
+          {isSupabaseConfigured() ? (
+            <>
+              <Button onClick={saveGlobal} disabled={saving === "saving"}>
+                {saving === "saving" ? "A guardar…" : "Guardar para todo o site"}
+              </Button>
+              {saving === "ok" && <span className="text-sm text-emerald-600">✓ Artes publicadas para todos.</span>}
+              {saving === "err" && <span className="text-sm text-destructive">Não foi possível guardar (só a administração).</span>}
+              <span className="text-xs text-muted-foreground">Fica igual em todos os consultores e dispositivos.</span>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Protótipo guardado neste navegador. Liga o Supabase para publicar as artes a todos.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

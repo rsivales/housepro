@@ -12,7 +12,7 @@ import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { Button } from "@/components/ui/button";
 import { agents, agentById } from "@/lib/data/mock";
-import { listProperties, listPropertiesByAgent } from "@/lib/db/repo";
+import { listProperties, listPropertiesByAgent, getPrizeArt } from "@/lib/db/repo";
 
 export async function generateMetadata({
   params,
@@ -57,6 +57,7 @@ export default async function ConsultorPage({
   const others = (await listProperties())
     .filter((p) => p.agentId !== agent.id)
     .slice(0, 3);
+  const prizeArt = await getPrizeArt();
 
   return (
     <div className="min-h-dvh bg-background">
@@ -95,17 +96,13 @@ export default async function ConsultorPage({
         </section>
 
         {/* Conquistas — prova social pública */}
-        {(() => {
-          // Demo: angariação = nº de imóveis; faturação varia por consultor.
-          const seed = agent.id.split("").reduce((s, c) => s + c.charCodeAt(0), 0);
-          const faturacao = 40000 + (seed % 8) * 20000;
-          const angariacao = Math.max(mine.length, 5);
-          return (
-            <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6">
-              <PrizeShowcase faturacao={faturacao} angariacao={angariacao} />
-            </section>
-          );
-        })()}
+        <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6">
+          <PrizeShowcase
+            faturacao={40000 + (agent.id.split("").reduce((s, c) => s + c.charCodeAt(0), 0) % 8) * 20000}
+            angariacao={Math.max(mine.length, 5)}
+            art={prizeArt}
+          />
+        </section>
 
         {/* Meus imóveis */}
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">

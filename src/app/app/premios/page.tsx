@@ -40,7 +40,14 @@ const ranking = [
 export default function PremiosPage() {
   const [track, setTrack] = React.useState<PrizeTrack>("faturacao");
   const [art, setArt] = React.useState<PrizeArtMap>({});
-  React.useEffect(() => setArt(readPrizeArt()), []);
+  React.useEffect(() => {
+    setArt(readPrizeArt());
+    // Artes globais (Supabase) têm prioridade — as que todos veem.
+    fetch("/api/brand/prize-art")
+      .then((r) => r.json())
+      .then((d) => { if (d?.art) setArt((prev) => ({ ...prev, ...d.art })); })
+      .catch(() => {});
+  }, []);
 
   const value = track === "faturacao" ? DEMO.faturacao : DEMO.angariacao;
   const fmt = (n: number) => (track === "faturacao" ? formatEuro(n) : `${n}`);

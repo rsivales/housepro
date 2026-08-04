@@ -345,6 +345,22 @@ export async function listNotifications(userId: string, limit = 20): Promise<Not
   }));
 }
 
+/** Mapa de artes dos prémios (nome→URL), lido do Supabase (server). */
+export async function getPrizeArt(): Promise<Record<string, string>> {
+  if (!isSupabaseConfigured()) return {};
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "prizeArt")
+      .maybeSingle();
+    return (data?.value as Record<string, string>) ?? {};
+  } catch {
+    return {};
+  }
+}
+
 // --- Leads -----------------------------------------------------------------
 
 export interface NewLead {

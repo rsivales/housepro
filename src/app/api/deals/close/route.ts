@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { getUplineChain, addMonthlyGross, getMonthlyGross, insertNotifications } from "@/lib/db/repo";
+import { getUplineChain, addMonthlyGross, getMonthlyGross, getAgentCompanyValidated, insertNotifications } from "@/lib/db/repo";
 import { overrideChain, overrideChainTotal } from "@/lib/commission/override-chain";
 import { effectiveCommission } from "@/lib/data/commission";
 import { computeLeg } from "@/lib/commission/tiers";
@@ -47,11 +47,12 @@ export async function POST(request: Request) {
   // anterior determina o patamar; assume empresa validada para o exemplo.
   const upline = await getUplineChain(producerId);
   const prior = await getMonthlyGross(producerId);
+  const hasCompany = await getAgentCompanyValidated(producerId);
   const split = computeLeg({
     legCommission: gross,
     priorFaturacao: prior,
     priorAgencyTake: 0,
-    hasValidatedCompany: true,
+    hasValidatedCompany: hasCompany,
   });
   const payouts = overrideChain(gross, upline);
 

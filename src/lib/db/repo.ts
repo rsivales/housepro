@@ -288,6 +288,22 @@ export async function getMonthlyGross(agentId: string): Promise<number> {
   }
 }
 
+/** Vínculo do agente: tem empresa própria VALIDADA (escalão +10 pontos)? */
+export async function getAgentCompanyValidated(agentId: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true; // demo assume validada
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("company_validated")
+      .eq("id", agentId)
+      .single();
+    return Boolean(data?.company_validated);
+  } catch {
+    return false;
+  }
+}
+
 /** Credita comissão bruta ao mês do consultor (base do override). */
 export async function addMonthlyGross(agentId: string, gross: number): Promise<void> {
   if (!isSupabaseConfigured()) return;

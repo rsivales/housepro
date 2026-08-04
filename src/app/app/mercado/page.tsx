@@ -12,15 +12,49 @@ import { ReferralDialog } from "@/components/referral/referral-dialog";
 import { CommissionInfo } from "@/components/consultant/commission-info";
 import { DocNote } from "@/components/consultant/doc-note";
 import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
+import { MercadoFilters } from "@/components/consultant/mercado-filters";
+import { effectiveCommission } from "@/lib/data/commission";
 
 export const metadata: Metadata = { title: "Mercado · Comissões e referências" };
 
-export default async function MercadoPage() {
+function estCommission(p: { price: number; commissionType?: "percent" | "fixed"; commissionPct?: number; commissionFixed?: number }) {
+  return effectiveCommission(p.price, {
+    commissionType: p.commissionType ?? "percent",
+    commissionPct: p.commissionPct ?? 5,
+    commissionFixed: p.commissionFixed,
+  }).amount;
+}
+
+export default async function MercadoPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await getSession();
   if (!session) redirect("/entrar");
   const { agent } = session;
 
-  const all = await listProperties();
+  const sp = await searchParams;
+  const q = (typeof sp.q === "string" ? sp.q : "").trim().toLowerCase();
+  const op = typeof sp.op === "string" ? sp.op : "";
+  const tipo = typeof sp.tipo === "string" ? sp.tipo : "";
+  const quartos = typeof sp.quartos === "string" ? Number(sp.quartos) : 0;
+  const precoMax = typeof sp.precoMax === "string" ? Number(sp.precoMax) : 0;
+  const sort = typeof sp.sort === "string" ? sp.sort : "";
+
+  const everything = await listProperties();
+  const types = Array.from(new Set(everything.map((p) => p.type))).filter(Boolean).sort();
+
+  let all = everything.filter((p) => {
+    if (q && !`${p.title} ${p.parish} ${p.municipality} ${p.reference}`.toLowerCase().includes(q)) return false;
+    if (op && p.operation !== op) return false;
+    if (tipo && p.type !== tipo) return false;
+    if (quartos && (p.beds ?? 0) < quartos) return false;
+    if (precoMax && p.price > precoMax) return false;
+    return true;
+  });
+  if (sort === "comissao") all = [...all].sort((a, b) => estCommission(b) - estCommission(a));
+  else if (sort === "preco") all = [...all].sort((a, b) => a.price - b.price);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -41,6 +75,14 @@ export default async function MercadoPage() {
           ganhar. Tens um cliente para um imóvel de outro consultor? Envia-lhe uma
           referência e recebe no mínimo 25% da comissão.
         </p>
+
+        <MercadoFilters types={types} total={all.length} />
+
+        {all.length === 0 && (
+          <p className="mt-8 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+            Nenhum imóvel corresponde à procura. Ajusta os filtros.
+          </p>
+        )}
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {all.map((p) => {

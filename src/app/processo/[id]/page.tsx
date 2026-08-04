@@ -78,7 +78,11 @@ export default async function ProcessoPage({
             />
             {/* Rede de segurança da escritura/mudança */}
             {["cpcv", "escritura", "concluido"].includes(deal.stage) && (
-              <EscrituraChecklist dealRef={deal.reference} />
+              <EscrituraChecklist
+                dealRef={deal.reference}
+                responsavelId={deal.consultorCompradorId}
+                responsavelName={consultor.name}
+              />
             )}
           </div>
 

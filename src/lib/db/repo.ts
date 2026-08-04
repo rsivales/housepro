@@ -10,7 +10,7 @@ import {
 } from "@/lib/data/mock";
 import { leadsByOwner } from "@/lib/data/leads";
 import type { Lead } from "@/lib/data/leads";
-import type { QualityEvent } from "@/lib/data/quality";
+import { SEVERITY, type QualityEvent, type QualitySeverity, type QualityCategory } from "@/lib/data/quality";
 import type { Agent, Property } from "@/lib/data/types";
 
 /**
@@ -383,6 +383,50 @@ export async function getPrizeArt(): Promise<Record<string, string>> {
 }
 
 // --- Qualidade -------------------------------------------------------------
+
+/** Insere uma infração PROPOSTA (best-effort), evitando duplicar a mesma
+ *  ocorrência (mesmo agente + negócio + categoria ainda por decidir). Devolve
+ *  true se criou uma nova (para o chamador notificar). */
+export async function insertQualityInfraction(input: {
+  agentId: string;
+  severity: QualitySeverity;
+  category: QualityCategory;
+  reason: string;
+  dealRef?: string;
+  createdBy?: string;
+}): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true; // demo: assume criada
+  const sev = SEVERITY[input.severity] ?? SEVERITY.leve;
+  try {
+    const supabase = await createClient();
+    if (input.dealRef) {
+      const { data: dup } = await supabase
+        .from("quality_events")
+        .select("id")
+        .eq("agent_id", input.agentId)
+        .eq("deal_ref", input.dealRef)
+        .eq("category", input.category)
+        .in("status", ["proposta", "contestada"])
+        .limit(1);
+      if (dup && dup.length > 0) return false; // já sinalizada
+    }
+    await supabase.from("quality_events").insert({
+      kind: "infracao",
+      agent_id: input.agentId,
+      category: input.category,
+      severity: input.severity,
+      points: -sev.points,
+      amount: sev.amount,
+      reason: input.reason,
+      status: "proposta",
+      deal_ref: input.dealRef ?? null,
+      created_by: input.createdBy ?? null,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** Eventos de qualidade (méritos + infrações) de um consultor. Vazio em demo,
  *  para a página cair no livro-razão de exemplo. */

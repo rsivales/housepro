@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, CalendarClock, Check, ClipboardList, Mail } from "lucide-react";
+import { AlertTriangle, CalendarClock, Check, ClipboardList, Mail, ShieldAlert } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,59 @@ const box =
   "w-full rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40";
 
 /** Checklist assistido de escritura & mudança, com alertas e email às partes. */
-export function EscrituraChecklist({ dealRef }: { dealRef: string }) {
+export function EscrituraChecklist({
+  dealRef,
+  responsavelId,
+  responsavelName,
+}: {
+  dealRef: string;
+  /** Consultor responsável — recebe a infração se um item vital ficar em atraso. */
+  responsavelId?: string;
+  responsavelName?: string;
+}) {
   const [items, setItems] = React.useState<ChecklistItem[]>(() => defaultChecklist());
   const [sending, setSending] = React.useState(false);
   const [sent, setSent] = React.useState(false);
+  const [flagged, setFlagged] = React.useState(false);
+  const flaggedRef = React.useRef<string>("");
 
   const st = checklistStatus(items);
+
+  // CRM → Qualidade: itens VITAIS fora do prazo geram automaticamente uma
+  // infração "proposta" (uma vez por conjunto). O servidor deduplica.
+  const overdueVital = React.useMemo(
+    () =>
+      items
+        .filter((i) => i.critical && !i.done && i.dueAt && new Date(i.dueAt) < new Date())
+        .map((i) => i.label),
+    [items]
+  );
+
+  React.useEffect(() => {
+    if (!responsavelId || overdueVital.length === 0) return;
+    const key = `${dealRef}|${[...overdueVital].sort().join("|")}`;
+    if (flaggedRef.current === key) return;
+    const seen = typeof window !== "undefined" ? localStorage.getItem(`qflag:${key}`) : null;
+    if (seen) {
+      flaggedRef.current = key;
+      setFlagged(true);
+      return;
+    }
+    flaggedRef.current = key;
+    fetch("/api/deals/quality-flag", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ dealRef, agentId: responsavelId, agentName: responsavelName, items: overdueVital }),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        if (res?.flagged) {
+          setFlagged(true);
+          try { localStorage.setItem(`qflag:${key}`, "1"); } catch {}
+        }
+      })
+      .catch(() => {});
+  }, [dealRef, responsavelId, responsavelName, overdueVital]);
 
   function update(id: string, patch: Partial<ChecklistItem>) {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
@@ -69,6 +116,11 @@ export function EscrituraChecklist({ dealRef }: { dealRef: string }) {
         {st.complete && (
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-primary">
             <Check className="size-3.5" /> Tudo pronto para a escritura
+          </span>
+        )}
+        {flagged && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-destructive">
+            <ShieldAlert className="size-3.5" /> Atraso vital sinalizado à Qualidade
           </span>
         )}
       </div>

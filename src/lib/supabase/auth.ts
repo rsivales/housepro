@@ -1,6 +1,9 @@
+import { cookies } from "next/headers";
+
 import { isSupabaseConfigured } from "./env";
 import { createClient } from "./server";
 import { agentById } from "@/lib/data/mock";
+import { VIEW_AS_COOKIE } from "@/lib/data/roles";
 import type { Agent } from "@/lib/data/types";
 
 export interface Session {
@@ -18,7 +21,16 @@ export interface Session {
  */
 export async function getSession(): Promise<Session | null> {
   if (!isSupabaseConfigured()) {
-    return { agent: agentById("rui"), demo: true };
+    // Vista de supervisão: o Super Admin pode "ver como" qualquer papel.
+    let viewAs = "rui";
+    try {
+      const jar = await cookies();
+      const chosen = jar.get(VIEW_AS_COOKIE)?.value;
+      if (chosen) viewAs = chosen;
+    } catch {
+      /* fora de contexto de request */
+    }
+    return { agent: agentById(viewAs), demo: true };
   }
 
   const supabase = await createClient();

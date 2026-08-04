@@ -19,6 +19,7 @@ export const CAPABILITIES: Capability[] = [
 ];
 
 export const ROLE_LABEL: Record<RoleKey, string> = {
+  superadmin: "Super Admin (supervisão global)",
   admin: "Administração (marca / global)",
   diretor: "Diretor de agência (broker)",
   coordenador: "Coordenação (equipa)",
@@ -26,10 +27,21 @@ export const ROLE_LABEL: Record<RoleKey, string> = {
   agente_ami: "Agente com AMI próprio",
 };
 
-export const ROLE_ORDER: RoleKey[] = ["admin", "diretor", "coordenador", "agente_ami", "agente"];
+export const ROLE_ORDER: RoleKey[] = ["superadmin", "admin", "diretor", "coordenador", "agente_ami", "agente"];
 
 /** Matriz de capacidades por papel. */
 export const ROLE_CAPS: Record<RoleKey, Record<string, boolean>> = {
+  superadmin: {
+    // Super Admin — supervisiona e modela todo o sistema; acesso total.
+    view_commissions: true,
+    approve_publications: true,
+    commission_exceptions: true,
+    approve_teams: true,
+    view_client_data: true,
+    manage_exports: true,
+    manage_permissions: true,
+    view_all_agencies: true,
+  },
   admin: {
     view_commissions: true,
     approve_publications: true,

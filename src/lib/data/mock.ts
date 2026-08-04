@@ -82,6 +82,17 @@ export const agents: Agent[] = [
     accent: "oklch(0.6 0.11 250)",
     photo: "/agents/carla.jpg",
   },
+  {
+    id: "sudo",
+    name: "Super Admin",
+    role: "Super Admin",
+    roleKey: "superadmin",
+    agency: "HousePro",
+    agencyId: "",
+    code: 0,
+    whatsapp: "351910000000",
+    accent: "oklch(0.62 0.19 15)",
+  },
 ];
 
 /** Prefixo legível de 7 dígitos do agente (país + agência + agente). */

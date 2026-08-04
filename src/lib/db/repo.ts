@@ -10,6 +10,7 @@ import {
 } from "@/lib/data/mock";
 import { leadsByOwner } from "@/lib/data/leads";
 import type { Lead } from "@/lib/data/leads";
+import type { QualityEvent } from "@/lib/data/quality";
 import type { Agent, Property } from "@/lib/data/types";
 
 /**
@@ -378,6 +379,37 @@ export async function getPrizeArt(): Promise<Record<string, string>> {
     return (data?.value as Record<string, string>) ?? {};
   } catch {
     return {};
+  }
+}
+
+// --- Qualidade -------------------------------------------------------------
+
+/** Eventos de qualidade (méritos + infrações) de um consultor. Vazio em demo,
+ *  para a página cair no livro-razão de exemplo. */
+export async function listQualityEvents(agentId: string): Promise<QualityEvent[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("quality_events")
+      .select("*")
+      .eq("agent_id", agentId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      kind: (r.kind as QualityEvent["kind"]) ?? "infracao",
+      agentId: String(r.agent_id ?? agentId),
+      category: (r.category as QualityEvent["category"]) ?? undefined,
+      severity: (r.severity as QualityEvent["severity"]) ?? undefined,
+      points: Number(r.points ?? 0),
+      amount: Number(r.amount ?? 0),
+      reason: String(r.reason ?? ""),
+      status: (r.status as QualityEvent["status"]) ?? undefined,
+      contestNote: (r.contest_note as string) ?? undefined,
+      createdAt: String(r.created_at ?? new Date().toISOString()),
+    }));
+  } catch {
+    return [];
   }
 }
 

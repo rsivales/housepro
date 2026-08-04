@@ -24,6 +24,7 @@ import {
   Users,
   Network,
   ShieldCheck,
+  Scale,
   ArrowRight,
 } from "lucide-react";
 
@@ -137,6 +138,7 @@ export default async function AppPage() {
           <Action icon={Coins} title="Comissões" href="/app/comissoes" note="Faturação e override por código" />
           <Action icon={Briefcase} title="Referências de serviços" href="/app/servicos" note="Crédito, jurídico, energético…" />
           <Action icon={PiggyBank} title="Fundo de pensão" href="/app/fundo-pensao" note="2% por negócio, com dividendos" />
+          <Action icon={Scale} title="Qualidade" href="/app/qualidade" note="Reputação: méritos e infrações" />
         </div>
 
         {/* Contactos & pedidos de visita */}

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, Bell, ChevronRight, Info, Network, Phone, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Bell, ChevronRight, Info, Network, Phone, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { formatEuro } from "@/lib/format";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, Handshake } from "lucide-react";
+import { Apadrinhar, ResgatarCodigo } from "@/components/afilhados/apadrinhar";
 
 const LEVEL_COLORS = ["bg-primary", "bg-gold", "bg-sky-500", "bg-violet-500"];
 
@@ -62,18 +63,9 @@ export function EquipaView({
               cresce com a equipa.
             </p>
           </div>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            onClick={() =>
-              alert(
-                "Apadrinhar novo consultor: em breve — envia o convite por email/telemóvel e ele entra na tua árvore ao registar-se."
-              )
-            }
-          >
-            <UserPlus className="size-4" /> Apadrinhar consultor
-          </button>
+          <Apadrinhar />
         </div>
+        <ResgatarCodigo />
 
         {/* Resumo de ganhos */}
         <div className="mt-6 grid gap-4 sm:grid-cols-3">

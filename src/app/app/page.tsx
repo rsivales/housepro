@@ -117,7 +117,7 @@ export default async function AppPage() {
         )}
 
         {/* Quick actions */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
           <Action icon={Upload} title="Carregar imóvel" href="/app/imovel/novo" note="Fotos + comissão + marca de água" />
           <Action icon={Store} title="Mercado & comissões" href="/app/mercado" note="Imóveis da rede + referências" />
           <Action icon={Users} title="Referências" href="/app/referencias" note="Partilhar leads (mín. 25%)" badge={refsNovas} />
@@ -318,20 +318,20 @@ function Action({
   return (
     <Link
       href={href}
-      className="group rounded-2xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+      className="group relative flex items-center gap-2.5 rounded-xl border bg-card p-3 shadow-sm transition-colors hover:bg-secondary/50"
     >
-      <div className="flex items-start justify-between">
-        <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-          <Icon className="size-5" />
-        </div>
-        {badge != null && badge > 0 && (
-          <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
-            {badge} nova{badge > 1 ? "s" : ""}
-          </span>
-        )}
+      <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="size-[18px]" />
       </div>
-      <p className="mt-3 font-medium">{title}</p>
-      <p className="text-xs text-muted-foreground">{note}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium leading-tight">{title}</p>
+        <p className="truncate text-[11px] text-muted-foreground">{note}</p>
+      </div>
+      {badge != null && badge > 0 && (
+        <span className="absolute right-2 top-2 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+          {badge}
+        </span>
+      )}
     </Link>
   );
 }

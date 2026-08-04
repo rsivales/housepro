@@ -6,6 +6,7 @@ import { PortalShell } from "@/components/portal/portal-shell";
 import { PropertyCard } from "@/components/property/property-card";
 import { PropertyRef } from "@/components/property/property-ref";
 import { DealStepper } from "@/components/process/deal-stepper";
+import { ReportQuality } from "@/components/portal/report-quality";
 import { compradorPortal } from "@/lib/data/client";
 import { propertyById } from "@/lib/data/mock";
 import { dealById } from "@/lib/data/deal";
@@ -104,6 +105,11 @@ export default function CompradorPortal() {
         <div className="mt-4 grid gap-6 sm:grid-cols-2">
           {saved.map((prop) => prop && <PropertyCard key={prop.id} property={prop} />)}
         </div>
+      </section>
+
+      {/* Voz do cliente → Qualidade */}
+      <section className="mt-10">
+        <ReportQuality consultantId={p.consultantId} clientName={p.name} />
       </section>
     </PortalShell>
   );

@@ -54,7 +54,6 @@ export default async function QualidadePage() {
           initial={events}
           meritBase={meritBase}
           agentId={agent.id}
-          agentName={agent.name}
           canManage={canManage}
         />
       </div>

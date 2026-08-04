@@ -28,22 +28,20 @@ export async function POST(request: Request) {
   }
   const email = (body.email ?? "").trim() || undefined;
 
-  // Posição do próximo afilhado direto (1.ª geração).
+  // Posição MONOTÓNICA do próximo afilhado direto (1.ª geração): baseada nos
+  // convites já emitidos (append-only), por isso NUNCA se reutiliza um número —
+  // se um afilhado sair, o seguinte recebe o número seguinte, não o vago.
   let position = 1;
   const prefix = agentPrefixOf(session.agent.id);
 
   if (isSupabaseConfigured() && !session.demo) {
     try {
       const supabase = await createClient();
-      const { count: kids } = await supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("sponsor_id", session.agent.id);
       const { count: invites } = await supabase
         .from("sponsorship_invites")
         .select("id", { count: "exact", head: true })
         .eq("sponsor_id", session.agent.id);
-      position = (kids ?? 0) + (invites ?? 0) + 1;
+      position = (invites ?? 0) + 1;
     } catch {
       /* best-effort */
     }

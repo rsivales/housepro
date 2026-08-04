@@ -219,7 +219,7 @@ export async function getAfilhadosTree(
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("id, name, whatsapp, sponsor_id, monthly_gross, created_at");
+    .select("id, name, whatsapp, sponsor_id, monthly_gross, created_at, network_active");
   const rows = (data ?? []) as Row[];
 
   // Filhos por padrinho.
@@ -231,35 +231,23 @@ export async function getAfilhadosTree(
   }
 
   const maxDepth = maxOverrideDepth();
-  const build = (id: string, name: string, gross: number, joinedAt: string, depth: number): AfilhadoNode => {
+  const build = (r: Row | undefined, id: string, name: string, depth: number): AfilhadoNode => {
+    const gross = Number(r?.monthly_gross ?? 0);
     const kids = depth < maxDepth ? childrenOf.get(id) ?? [] : [];
     return {
       id,
       name,
       contact: "",
-      joinedAt,
+      joinedAt: String(r?.created_at ?? new Date().toISOString()),
       active: gross > 0,
+      inactive: r?.network_active === false,
       monthlyGross: gross,
-      children: kids.map((k) =>
-        build(
-          String(k.id),
-          String(k.name ?? "Consultor"),
-          Number(k.monthly_gross ?? 0),
-          String(k.created_at ?? new Date().toISOString()),
-          depth + 1
-        )
-      ),
+      children: kids.map((k) => build(k, String(k.id), String(k.name ?? "Consultor"), depth + 1)),
     };
   };
 
   const rootRow = rows.find((r) => String(r.id) === rootId);
-  return build(
-    rootId,
-    rootName,
-    Number(rootRow?.monthly_gross ?? 0),
-    String(rootRow?.created_at ?? new Date().toISOString()),
-    0
-  );
+  return build(rootRow, rootId, rootName, 0);
 }
 
 /** Cadeia de padrinhos (upline) de um consultor, do direto para cima. */

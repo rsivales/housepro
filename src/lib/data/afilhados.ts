@@ -17,9 +17,35 @@ export interface AfilhadoNode {
   joinedAt: string;
   /** Já está a faturar? (afilhados novos podem ainda não gerar override). */
   active: boolean;
+  /** Saiu da rede: mantém a posição/código no histórico, mas não recebe nem
+   *  passa override. Não se reutiliza a sua numeração. */
+  inactive?: boolean;
   /** Faturação de comissão bruta no mês corrente (€) — base do override. */
   monthlyGross: number;
   children: AfilhadoNode[];
+}
+
+/** Marca um nó como inativo/ativo (mantém posição e histórico). */
+export function setNodeInactive(root: AfilhadoNode, id: string, value: boolean): AfilhadoNode {
+  const walk = (n: AfilhadoNode): AfilhadoNode => ({
+    ...n,
+    inactive: n.id === id ? value : n.inactive,
+    children: n.children.map(walk),
+  });
+  return walk(root);
+}
+
+/** Remove um nó da árvore; os filhos sobem para o padrinho dele (compressão). */
+export function removeNodeFromTree(root: AfilhadoNode, id: string): AfilhadoNode {
+  const walk = (n: AfilhadoNode): AfilhadoNode => {
+    const kept: AfilhadoNode[] = [];
+    for (const c of n.children) {
+      if (c.id === id) kept.push(...c.children.map(walk)); // filhos sobem
+      else kept.push(walk(c));
+    }
+    return { ...n, children: kept };
+  };
+  return walk(root);
 }
 
 /** Árvore demo, com raiz no consultor "rui" (o utilizador demo). */
@@ -116,10 +142,12 @@ export function flattenAfilhados(
         contact: child.contact,
         joinedAt: child.joinedAt,
         active: child.active,
+        inactive: child.inactive,
         monthlyGross: child.monthlyGross,
         level,
         overridePct,
-        override: child.active ? overrideForLevel(child.monthlyGross, level) : 0,
+        // Quem saiu (inactive) não gera override.
+        override: child.active && !child.inactive ? overrideForLevel(child.monthlyGross, level) : 0,
       });
       walk(child, level + 1);
     }

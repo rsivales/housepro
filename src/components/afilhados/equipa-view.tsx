@@ -6,7 +6,7 @@ import { ArrowLeft, Bell, ChevronRight, Info, Network, Phone, Users } from "luci
 
 import { cn } from "@/lib/utils";
 import { formatEuro } from "@/lib/format";
-import { afilhadoStats, flattenAfilhados, type AfilhadoNode } from "@/lib/data/afilhados";
+import { afilhadoStats, flattenAfilhados, setNodeInactive, removeNodeFromTree, type AfilhadoNode } from "@/lib/data/afilhados";
 import { DEFAULT_SPLIT, maxOverrideDepth } from "@/lib/commission/split";
 import { effectiveCommission } from "@/lib/data/commission";
 import type { OverridePayout } from "@/lib/commission/override-chain";
@@ -40,8 +40,24 @@ export function EquipaView({
   meId?: string;
   notifications?: Notification[];
 }) {
-  const stats = afilhadoStats(root);
+  const [tree, setTree] = React.useState(root);
+  const stats = afilhadoStats(tree);
   const maxDepth = maxOverrideDepth();
+
+  async function manage(memberId: string, action: "deactivate" | "reactivate" | "remove") {
+    setTree((t) =>
+      action === "remove" ? removeNodeFromTree(t, memberId) : setNodeInactive(t, memberId, action === "deactivate")
+    );
+    try {
+      await fetch("/api/sponsor/member", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ memberId, action }),
+      });
+    } catch {
+      /* best-effort */
+    }
+  }
   const [view, setView] = React.useState<"arvore" | "piramide">("arvore");
 
   return (
@@ -115,7 +131,7 @@ export function EquipaView({
         <NotificationsInbox notifications={notifications} />
 
         {/* Fecho de negócio → override + notificações */}
-        <CloseDealPanel root={root} meId={meId} />
+        <CloseDealPanel root={tree} meId={meId} />
 
         {/* Rede — árvore ou pirâmide */}
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
@@ -140,10 +156,50 @@ export function EquipaView({
         </div>
         <div className="mt-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
           {view === "arvore" ? (
-            <TreeNode node={root} level={0} maxDepth={maxDepth} isRoot />
+            <TreeNode node={tree} level={0} maxDepth={maxDepth} isRoot />
           ) : (
-            <PyramidView root={root} maxDepth={maxDepth} />
+            <PyramidView root={tree} maxDepth={maxDepth} />
           )}
+        </div>
+
+        {/* Gerir afilhados */}
+        <div className="mt-6 rounded-2xl border bg-card p-5 shadow-sm">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Gerir afilhados</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            <strong>Desativar</strong> mantém a posição e o código no histórico (deixa de gerar override).{" "}
+            <strong>Remover</strong> destaca da árvore — os afilhados dele sobem ao teu nível. A numeração nunca é reutilizada.
+          </p>
+          <ul className="mt-3 divide-y">
+            {flattenAfilhados(tree).map((m) => (
+              <li key={m.id} className="flex flex-wrap items-center gap-2 py-2.5">
+                <span className={cn("size-2 shrink-0 rounded-full", m.inactive ? "bg-muted-foreground" : "bg-primary")} />
+                <span className={cn("text-sm font-medium", m.inactive && "text-muted-foreground line-through")}>{m.name}</span>
+                <span className="text-xs text-muted-foreground">Nível {m.level}</span>
+                {m.inactive && <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">saiu</span>}
+                <div className="ml-auto flex gap-1.5">
+                  {m.inactive ? (
+                    <button type="button" onClick={() => manage(m.id, "reactivate")} className="rounded-md border px-2.5 py-1 text-xs hover:bg-secondary">
+                      Reativar
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => manage(m.id, "deactivate")} className="rounded-md border px-2.5 py-1 text-xs hover:bg-secondary">
+                      Desativar
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { if (confirm(`Remover ${m.name} da árvore? Os afilhados dele sobem ao teu nível.`)) manage(m.id, "remove"); }}
+                    className="rounded-md border px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10"
+                  >
+                    Remover
+                  </button>
+                </div>
+              </li>
+            ))}
+            {flattenAfilhados(tree).length === 0 && (
+              <li className="py-3 text-sm text-muted-foreground">Ainda não tens afilhados.</li>
+            )}
+          </ul>
         </div>
 
         {/* Como funciona */}
@@ -241,7 +297,12 @@ function TreeNode({
                 Nível {level} · {overridePct}%
               </span>
             )}
-            {!isRoot && !node.active && (
+            {!isRoot && node.inactive && (
+              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                saiu
+              </span>
+            )}
+            {!isRoot && !node.inactive && !node.active && (
               <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
                 ainda não fatura
               </span>

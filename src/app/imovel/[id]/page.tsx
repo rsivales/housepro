@@ -16,6 +16,7 @@ import {
   Ruler,
   Trees,
   Zap,
+  Sparkles,
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
@@ -37,6 +38,7 @@ import {
   type GalleryStat,
 } from "@/components/property/property-gallery";
 import { agentById } from "@/lib/data/mock";
+import { exclusiveEligibility } from "@/lib/data/exclusive";
 import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
 import { formatArea, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
 import type { ElementType } from "react";
@@ -153,6 +155,22 @@ export default async function ImovelPage({
             {formatPrice(property)}
           </p>
         </header>
+
+        {property.exclusive && exclusiveEligibility(property).eligible && (
+          <Link
+            href={`/exclusivo/${property.id}`}
+            className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent p-4 transition-colors hover:from-amber-500/15"
+          >
+            <span className="flex items-center gap-2.5">
+              <Sparkles className="size-5 text-amber-500" />
+              <span>
+                <span className="block text-sm font-medium">Imóvel da Coleção Exclusiva</span>
+                <span className="block text-xs text-muted-foreground">Ver a página dedicada, com apresentação premium</span>
+              </span>
+            </span>
+            <span className="text-sm font-medium text-primary">Abrir →</span>
+          </Link>
+        )}
 
         <div className="mt-6 grid gap-8 lg:grid-cols-[1.7fr_1fr]">
           {/* Coluna principal */}

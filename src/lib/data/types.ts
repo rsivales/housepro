@@ -151,6 +151,15 @@ export interface Property {
   /** Quem aprovou/rejeitou e porquê. */
   approvedBy?: string;
   rejectionReason?: string;
+  /** Imóvel EXCLUSIVO/luxury com página dedicada — só quando os critérios de
+   *  singularidade e valor comprovado estão cumpridos (ver exclusiveEligibility). */
+  exclusive?: boolean;
+  /** Frase-assinatura da página exclusiva (curta e editorial). */
+  exclusiveTagline?: string;
+  /** Narrativa/história do imóvel para a página exclusiva. */
+  exclusiveStory?: string;
+  /** Justificação da singularidade (o que o torna único). */
+  singularityNote?: string;
   /** Angariador principal. */
   agentId: string;
   /** Perfil real do angariador (resolvido do Supabase quando disponível). */

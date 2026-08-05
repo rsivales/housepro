@@ -280,8 +280,14 @@ export const properties: Property[] = [
     agentId: "carla",
     interest: 95,
     commissionType: "percent",
-    commissionPct: 5,
+    commissionPct: 6,
+    commissionJustification: "Exclusivo de luxo — mandato com angariação exclusiva e valor comprovado.",
     documents: ["caderneta", "certidao_predial", "cert_energetico", "planta"],
+    exclusive: true,
+    exclusiveTagline: "Onde o Algarve encontra o extraordinário.",
+    exclusiveStory:
+      "Poucas casas conseguem parar o tempo. Esta é uma delas. Sobre um lote virado a sul, a arquitetura desenha silêncio: pé-direito duplo, luz que atravessa a casa de manhã à noite, e uma piscina de água salgada que devolve o mar ao olhar. Cada suite é um refúgio; cada terraço, uma varanda sobre o horizonte. Uma residência para quem procura o que não se repete.",
+    singularityNote: "Arquitetura de autor, frente-mar, lote de 1.250 m² — oferta rara na zona premium do Algarve.",
     listedAt: "2026-07-20",
   },
   {

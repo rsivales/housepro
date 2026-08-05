@@ -17,6 +17,7 @@ import {
   Trees,
   Zap,
   Sparkles,
+  Pencil,
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
@@ -39,6 +40,8 @@ import {
 } from "@/components/property/property-gallery";
 import { agentById } from "@/lib/data/mock";
 import { exclusiveEligibility } from "@/lib/data/exclusive";
+import { getSession } from "@/lib/supabase/auth";
+import { isStaff } from "@/lib/data/roles";
 import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
 import { formatArea, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
 import type { ElementType } from "react";
@@ -64,6 +67,15 @@ export default async function ImovelPage({
   const { ref } = await searchParams;
   const property = await getPropertyById(id);
   if (!property) notFound();
+
+  // Edição: dono, co-angariador ou staff (coordenação/direção/admin/super admin).
+  const session = await getSession();
+  const canEdit = Boolean(
+    session &&
+      (property.agentId === session.agent.id ||
+        (property.coAgentIds ?? []).includes(session.agent.id) ||
+        isStaff(session.agent))
+  );
 
   const listingAgent = property.agent ?? agentById(property.agentId);
   // Attribution: the referring consultant (who brought the client) owns the
@@ -155,6 +167,18 @@ export default async function ImovelPage({
             {formatPrice(property)}
           </p>
         </header>
+
+        {canEdit && (
+          <div className="mt-4 flex items-center gap-2">
+            <Link
+              href={`/app/imovel/${property.id}/editar`}
+              className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-secondary"
+            >
+              <Pencil className="size-4 text-primary" /> Editar imóvel
+            </Link>
+            <span className="text-xs text-muted-foreground">com histórico de alterações</span>
+          </div>
+        )}
 
         {property.exclusive && exclusiveEligibility(property).eligible && (
           <Link

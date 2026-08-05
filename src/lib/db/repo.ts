@@ -12,6 +12,7 @@ import { leadsByOwner } from "@/lib/data/leads";
 import type { Lead } from "@/lib/data/leads";
 import { DEFAULT_CONCELHOS_CONFIG, type ConcelhosConfig } from "@/lib/data/concelhos";
 import { DEFAULT_AGENCIES_CONFIG, type AgenciesConfig } from "@/lib/data/agencies";
+import type { AuditEntry } from "@/lib/data/audit";
 import { SEVERITY, type QualityEvent, type QualitySeverity, type QualityCategory } from "@/lib/data/quality";
 import type { Agent, Property } from "@/lib/data/types";
 
@@ -398,6 +399,32 @@ export async function getConcelhosConfig(): Promise<ConcelhosConfig> {
     return { ...DEFAULT_CONCELHOS_CONFIG, ...(v ?? {}), photos: v?.photos ?? {} };
   } catch {
     return DEFAULT_CONCELHOS_CONFIG;
+  }
+}
+
+/** Histórico de rastreio de um imóvel (quem alterou o quê e quando). */
+export async function listPropertyAudit(propertyId: string): Promise<AuditEntry[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("property_audit")
+      .select("*")
+      .eq("property_id", propertyId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      propertyId: String(r.property_id ?? propertyId),
+      propertyRef: (r.property_ref as string) ?? undefined,
+      actorId: String(r.actor_id ?? ""),
+      actorName: String(r.actor_name ?? "—"),
+      actorRole: (r.actor_role as string) ?? undefined,
+      action: String(r.action ?? "editou"),
+      changes: (r.changes as AuditEntry["changes"]) ?? undefined,
+      at: String(r.created_at ?? new Date().toISOString()),
+    }));
+  } catch {
+    return [];
   }
 }
 

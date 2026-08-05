@@ -26,6 +26,24 @@ export interface ConcelhoProcura {
 /** Fotos de concelho carregadas pela administração (substituem o automático). */
 export type ConcelhoPhotos = Record<string, string>;
 
+/** Configuração da secção "Concelhos mais procurados" (marca + agências). */
+export interface ConcelhosConfig {
+  /** Mostrar/ocultar a secção na homepage (marca global). */
+  enabled: boolean;
+  /** Nº de concelhos em destaque (por defeito 3). */
+  count?: number;
+  /** Fotos por concelho (key = nome minúsculo) → URL. */
+  photos: ConcelhoPhotos;
+  /** Ativar por agência (key = agencyId) na respetiva montra. */
+  agencies?: Record<string, boolean>;
+}
+
+export const DEFAULT_CONCELHOS_CONFIG: ConcelhosConfig = { enabled: true, count: 3, photos: {} };
+
+export function concelhoKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
 function keyOf(name: string): string {
   return name.trim().toLowerCase();
 }

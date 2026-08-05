@@ -29,7 +29,7 @@ import { agents } from "@/lib/data/mock";
 import { listProperties } from "@/lib/db/repo";
 import { topFeatured } from "@/lib/data/ranking";
 import { topConcelhos } from "@/lib/data/concelhos";
-import { listDevelopments } from "@/lib/db/repo";
+import { listDevelopments, getConcelhosConfig } from "@/lib/db/repo";
 import { getNews, newsHref, isExternalNews } from "@/lib/data/news";
 
 const stats = [
@@ -45,7 +45,10 @@ export default async function Home() {
   const destaques = topFeatured(3, disponiveis);
   const destaqueIds = new Set(destaques.map((p) => p.id));
   const restantes = disponiveis.filter((p) => !destaqueIds.has(p.id));
-  const concelhos = topConcelhos(disponiveis, 3);
+  const concelhosCfg = await getConcelhosConfig();
+  const concelhos = concelhosCfg.enabled
+    ? topConcelhos(disponiveis, concelhosCfg.count ?? 3, concelhosCfg.photos)
+    : [];
   const empreendimentos = (await listDevelopments()).slice(0, 3);
 
   return (

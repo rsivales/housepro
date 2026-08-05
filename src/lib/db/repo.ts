@@ -10,6 +10,7 @@ import {
 } from "@/lib/data/mock";
 import { leadsByOwner } from "@/lib/data/leads";
 import type { Lead } from "@/lib/data/leads";
+import { DEFAULT_CONCELHOS_CONFIG, type ConcelhosConfig } from "@/lib/data/concelhos";
 import { SEVERITY, type QualityEvent, type QualitySeverity, type QualityCategory } from "@/lib/data/quality";
 import type { Agent, Property } from "@/lib/data/types";
 
@@ -379,6 +380,23 @@ export async function getPrizeArt(): Promise<Record<string, string>> {
     return (data?.value as Record<string, string>) ?? {};
   } catch {
     return {};
+  }
+}
+
+/** Configuração da secção "Concelhos mais procurados" (site_settings). */
+export async function getConcelhosConfig(): Promise<ConcelhosConfig> {
+  if (!isSupabaseConfigured()) return DEFAULT_CONCELHOS_CONFIG;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "concelhos")
+      .maybeSingle();
+    const v = data?.value as Partial<ConcelhosConfig> | undefined;
+    return { ...DEFAULT_CONCELHOS_CONFIG, ...(v ?? {}), photos: v?.photos ?? {} };
+  } catch {
+    return DEFAULT_CONCELHOS_CONFIG;
   }
 }
 

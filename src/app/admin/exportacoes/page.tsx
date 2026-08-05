@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Rss, Check, X, AlertTriangle, Link2 } from "lucide-react";
+import { ArrowLeft, Rss, Check, X, AlertTriangle } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
+import { PortalContracts } from "@/components/admin/portal-contracts";
 import { portalIntegrations, exportReadiness } from "@/lib/data/exports";
 import { properties } from "@/lib/data/mock";
 
 export const metadata: Metadata = { title: "Exportações · Back office" };
-
-function fmt(dt?: string) {
-  return dt ? new Date(dt).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
-}
 
 export default function ExportacoesPage() {
   const catalog = properties.filter((p) => p.status !== "vendido");
@@ -35,42 +32,7 @@ export default function ExportacoesPage() {
         </p>
 
         {/* Portais */}
-        <section className="mt-6 grid gap-4 sm:grid-cols-2">
-          {portalIntegrations.map((portal) => (
-            <div key={portal.id} className="rounded-2xl border bg-card p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-medium">{portal.name}</p>
-                <span
-                  className={
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium " +
-                    (portal.active ? "bg-success/15 text-success" : "bg-secondary text-muted-foreground")
-                  }
-                >
-                  <span className={"size-1.5 rounded-full " + (portal.active ? "bg-success" : "bg-muted-foreground/50")} />
-                  {portal.active ? "Ativo" : "Inativo"}
-                </span>
-              </div>
-              <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                <p className="flex items-center gap-1.5">
-                  <Link2 className="size-3.5" />
-                  Contrato: {portal.contract ? "estabelecido" : "por estabelecer"}
-                </p>
-                <p>Última exportação: {fmt(portal.lastExport)}</p>
-                {portal.note && <p className="text-xs">{portal.note}</p>}
-              </div>
-              <button
-                className={
-                  "mt-4 w-full rounded-full px-4 py-2 text-sm font-medium transition-colors " +
-                  (portal.active
-                    ? "border hover:bg-secondary"
-                    : "bg-primary text-primary-foreground hover:opacity-90")
-                }
-              >
-                {portal.active ? "Gerir contrato" : portal.contract ? "Ativar exportação" : "Estabelecer contrato"}
-              </button>
-            </div>
-          ))}
-        </section>
+        <PortalContracts initial={portalIntegrations} />
 
         {/* Estado de exportação por imóvel */}
         <section className="mt-10">

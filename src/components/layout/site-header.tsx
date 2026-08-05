@@ -13,6 +13,7 @@ const nav = [
   { label: "Comprar", href: "/imoveis?operacao=comprar" },
   { label: "Arrendar", href: "/imoveis?operacao=arrendar" },
   { label: "Empreendimentos", href: "/empreendimentos" },
+  { label: "Internacional", href: "/internacional" },
   { label: "Vender", href: "/vender" },
   { label: "Investir", href: "/investir" },
   { label: "Crédito", href: "/credito" },

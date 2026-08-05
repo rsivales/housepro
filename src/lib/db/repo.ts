@@ -11,6 +11,7 @@ import {
 import { leadsByOwner } from "@/lib/data/leads";
 import type { Lead } from "@/lib/data/leads";
 import { DEFAULT_CONCELHOS_CONFIG, type ConcelhosConfig } from "@/lib/data/concelhos";
+import { DEFAULT_AGENCIES_CONFIG, type AgenciesConfig } from "@/lib/data/agencies";
 import { SEVERITY, type QualityEvent, type QualitySeverity, type QualityCategory } from "@/lib/data/quality";
 import type { Agent, Property } from "@/lib/data/types";
 
@@ -397,6 +398,23 @@ export async function getConcelhosConfig(): Promise<ConcelhosConfig> {
     return { ...DEFAULT_CONCELHOS_CONFIG, ...(v ?? {}), photos: v?.photos ?? {} };
   } catch {
     return DEFAULT_CONCELHOS_CONFIG;
+  }
+}
+
+/** Configuração de gestão de agências (site_settings, chave "agencies"). */
+export async function getAgenciesConfig(): Promise<AgenciesConfig> {
+  if (!isSupabaseConfigured()) return DEFAULT_AGENCIES_CONFIG;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "agencies")
+      .maybeSingle();
+    const v = data?.value as Partial<AgenciesConfig> | undefined;
+    return { overrides: v?.overrides ?? {}, created: v?.created ?? [] };
+  } catch {
+    return DEFAULT_AGENCIES_CONFIG;
   }
 }
 

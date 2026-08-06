@@ -7,14 +7,15 @@ import {
   soldByAgency as mockSoldByAgency,
   similarProperties as mockSimilar,
   propertyById as mockById,
+  agencies as baseAgencies,
 } from "@/lib/data/mock";
 import { leadsByOwner } from "@/lib/data/leads";
 import type { Lead } from "@/lib/data/leads";
 import { DEFAULT_CONCELHOS_CONFIG, type ConcelhosConfig } from "@/lib/data/concelhos";
-import { DEFAULT_AGENCIES_CONFIG, type AgenciesConfig } from "@/lib/data/agencies";
+import { DEFAULT_AGENCIES_CONFIG, mergeAgencies, type AgenciesConfig } from "@/lib/data/agencies";
 import type { AuditEntry } from "@/lib/data/audit";
 import { SEVERITY, type QualityEvent, type QualitySeverity, type QualityCategory } from "@/lib/data/quality";
-import type { Agent, Property } from "@/lib/data/types";
+import type { Agency, Agent, Property } from "@/lib/data/types";
 
 /**
  * Data-access layer. Reads from Supabase when configured, otherwise falls back
@@ -443,6 +444,22 @@ export async function getAgenciesConfig(): Promise<AgenciesConfig> {
   } catch {
     return DEFAULT_AGENCIES_CONFIG;
   }
+}
+
+/** Agências da rede com as edições/criações aplicadas (para o site público). */
+export async function getMergedAgencies(): Promise<Agency[]> {
+  const config = await getAgenciesConfig();
+  return mergeAgencies(baseAgencies, config);
+}
+
+/** Agência por slug, já com as edições aplicadas. */
+export async function getAgencyBySlug(slug: string): Promise<Agency | undefined> {
+  return (await getMergedAgencies()).find((a) => a.slug === slug);
+}
+
+/** Agência por id, já com as edições aplicadas. */
+export async function getAgencyByIdMerged(id: string): Promise<Agency | undefined> {
+  return (await getMergedAgencies()).find((a) => a.id === id);
 }
 
 // --- Qualidade -------------------------------------------------------------

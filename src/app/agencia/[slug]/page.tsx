@@ -8,8 +8,8 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { PropertyCard } from "@/components/property/property-card";
 import { TopConcelhos } from "@/components/home/top-concelhos";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
-import { agencyBySlug, agentsByAgency } from "@/lib/data/mock";
-import { listPropertiesByAgency, listSoldByAgency } from "@/lib/db/repo";
+import { agentsByAgency } from "@/lib/data/mock";
+import { listPropertiesByAgency, listSoldByAgency, getAgencyBySlug } from "@/lib/db/repo";
 import { applyOrdering } from "@/lib/data/ordering";
 import { topConcelhos } from "@/lib/data/concelhos";
 
@@ -19,7 +19,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const a = agencyBySlug(slug);
+  const a = await getAgencyBySlug(slug);
   return { title: a ? `${a.name}` : "Agência" };
 }
 
@@ -29,7 +29,7 @@ export default async function AgenciaPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const agency = agencyBySlug(slug);
+  const agency = await getAgencyBySlug(slug);
   if (!agency) notFound();
 
   const team = agentsByAgency(agency.id);

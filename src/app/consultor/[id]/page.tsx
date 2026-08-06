@@ -12,7 +12,7 @@ import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { Button } from "@/components/ui/button";
 import { agents, agentById } from "@/lib/data/mock";
-import { listProperties, listPropertiesByAgent, getPrizeArt } from "@/lib/db/repo";
+import { listProperties, listPropertiesByAgent, getPrizeArt, getAgencyByIdMerged } from "@/lib/db/repo";
 
 export async function generateMetadata({
   params,
@@ -58,6 +58,8 @@ export default async function ConsultorPage({
     .filter((p) => p.agentId !== agent.id)
     .slice(0, 3);
   const prizeArt = await getPrizeArt();
+  // Nome da agência já com as edições da administração aplicadas.
+  const agencyName = (await getAgencyByIdMerged(agent.agencyId))?.name ?? agent.agency;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -75,7 +77,7 @@ export default async function ConsultorPage({
                   href={`/agencia/${agentById(agent.id).agencyId}`}
                   className="hover:text-foreground"
                 >
-                  {agent.agency}
+                  {agencyName}
                 </Link>
               </p>
             </div>

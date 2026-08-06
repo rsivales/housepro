@@ -5,6 +5,10 @@ import { getUplineChain, addMonthlyGross, getMonthlyGross, getAgentCompanyValida
 import { overrideChain, overrideChainTotal } from "@/lib/commission/override-chain";
 import { effectiveCommission } from "@/lib/data/commission";
 import { computeLeg } from "@/lib/commission/tiers";
+import { COMMISSION } from "@/lib/commission/config";
+import { buildPayouts } from "@/lib/data/payments";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { notifyGeneric } from "@/lib/notify";
 import { formatEuro } from "@/lib/format";
 
@@ -86,6 +90,34 @@ export async function POST(request: Request) {
     });
   }
 
+  // 4) Faturação → pagamentos: linhas por beneficiário (produção, override,
+  //    royalties e 2% do fundo de pensão). Persistência best-effort.
+  const royalties = Math.round((gross * COMMISSION.royaltiesPct) / 100);
+  const pension = Math.round((gross * COMMISSION.pensionPct) / 100);
+  const payoutLines = buildPayouts({
+    dealRef: dealRef ?? "negócio",
+    producerId,
+    producerName: producerName ?? producerId,
+    producerNet: split.agentNet,
+    royalties,
+    pension,
+    agencyId: session.agent.agencyId,
+    overrides: payouts.filter((p) => p.amount > 0).map((p) => ({ agentId: p.agentId, name: p.agentName ?? p.agentId, amount: p.amount })),
+  });
+  if (isSupabaseConfigured() && !session.demo) {
+    try {
+      const supabase = await createClient();
+      await supabase.from("payouts").insert(
+        payoutLines.map((l) => ({
+          deal_ref: l.dealRef, beneficiary_id: l.beneficiaryId, beneficiary_name: l.beneficiaryName,
+          role: l.role, amount: l.amount, status: l.status,
+        }))
+      );
+    } catch {
+      /* best-effort */
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     gross,
@@ -93,6 +125,9 @@ export async function POST(request: Request) {
     producerNet: split.agentNet,
     producerNetPct: split.agentSplitPct,
     payouts,
+    payoutLines,
+    royalties,
+    pension,
     overrideTotal: overrideChainTotal(payouts),
     notified: notifRows.length,
     persisted: notifRows.length, // no-op em modo demo (best-effort)

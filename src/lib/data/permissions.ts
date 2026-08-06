@@ -25,9 +25,10 @@ export const ROLE_LABEL: Record<RoleKey, string> = {
   coordenador: "Coordenação (equipa)",
   agente: "Agente",
   agente_ami: "Agente com AMI próprio",
+  advogado: "Advogado (LegalFlow)",
 };
 
-export const ROLE_ORDER: RoleKey[] = ["superadmin", "admin", "diretor", "coordenador", "agente_ami", "agente"];
+export const ROLE_ORDER: RoleKey[] = ["superadmin", "admin", "diretor", "coordenador", "advogado", "agente_ami", "agente"];
 
 /** Matriz de capacidades por papel. */
 export const ROLE_CAPS: Record<RoleKey, Record<string, boolean>> = {
@@ -85,6 +86,17 @@ export const ROLE_CAPS: Record<RoleKey, Record<string, boolean>> = {
   },
   agente: {
     view_commissions: true,
+    approve_publications: false,
+    commission_exceptions: false,
+    approve_teams: false,
+    view_client_data: true,
+    manage_exports: false,
+    manage_permissions: false,
+    view_all_agencies: false,
+  },
+  advogado: {
+    // Advogado (LegalFlow): trata dos documentos legais; não vê comissões.
+    view_commissions: false,
     approve_publications: false,
     commission_exceptions: false,
     approve_teams: false,

@@ -93,6 +93,17 @@ export const agents: Agent[] = [
     whatsapp: "351910000000",
     accent: "oklch(0.62 0.19 15)",
   },
+  {
+    id: "beatriz",
+    name: "Dra. Beatriz Lopes",
+    role: "Advogada",
+    roleKey: "advogado",
+    agency: "LegalFlow · Jurídico",
+    agencyId: "",
+    code: 0,
+    whatsapp: "351910000009",
+    accent: "oklch(0.55 0.12 280)",
+  },
 ];
 
 /** Prefixo legível de 7 dígitos do agente (país + agência + agente). */

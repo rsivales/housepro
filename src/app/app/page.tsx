@@ -168,6 +168,7 @@ export default async function AppPage() {
           <Action icon={Network} title="A minha equipa" href="/app/equipa" note="Afilhados, árvore e override" />
           <Action icon={Coins} title="Comissões" href="/app/comissoes" note="Faturação e override por código" />
           <Action icon={Wallet} title="Faturação & pagamentos" href="/app/pagamentos" note="Produção, override, royalties e 2%" />
+          <Action icon={Scale} title="LegalFlow" href="/app/legalflow" note="CPCV e documentos legais com o advogado" />
           <Action icon={Briefcase} title="Referências de serviços" href="/app/servicos" note="Crédito, jurídico, energético…" />
           <Action icon={PiggyBank} title="Fundo de pensão" href="/app/fundo-pensao" note="2% por negócio, com dividendos" />
           <Action icon={Scale} title="Qualidade" href="/app/qualidade" note="Reputação: méritos e infrações" />

@@ -18,10 +18,11 @@ export const ROLE_LABEL: Record<RoleKey, string> = {
   coordenador: "Coordenação",
   agente_ami: "Consultor (AMI próprio)",
   agente: "Consultor",
+  advogado: "Advogado",
 };
 
 /** Ordem hierárquica (do topo para a base) — para menus e navegação. */
-export const ROLE_ORDER: RoleKey[] = ["superadmin", "admin", "diretor", "coordenador", "agente_ami", "agente"];
+export const ROLE_ORDER: RoleKey[] = ["superadmin", "admin", "diretor", "coordenador", "advogado", "agente_ami", "agente"];
 
 export function roleLabel(role?: RoleKey): string {
   return role ? ROLE_LABEL[role] : "Consultor";

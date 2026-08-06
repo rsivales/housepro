@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import type { ElementType } from "react";
+import type { ElementType, ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -152,28 +152,48 @@ export default async function AppPage() {
           <ActivitiesBoard activities={activities} tip={tip} />
         </div>
 
-        {/* Quick actions */}
-        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+        {/* Navegação por secções — chips com ícone que saltam para o grupo (ótimo no telemóvel) */}
+        <nav className="mt-6 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <SectionChip icon={Store} label="Imóveis" href="#g-imoveis" />
+          <SectionChip icon={Target} label="Negócios" href="#g-negocios" />
+          <SectionChip icon={Coins} label="Rede & ganhos" href="#g-rede" />
+          <SectionChip icon={GraduationCap} label="Crescer" href="#g-crescer" />
+        </nav>
+
+        {/* Imóveis */}
+        <ActionGroup id="g-imoveis" title="Imóveis & montra">
           <Action icon={Upload} title="Carregar imóvel" href="/app/imovel/novo" note="Fotos + comissão + marca de água" />
           <Action icon={Store} title="Mercado & comissões" href="/app/mercado" note="Imóveis da rede + referências" />
-          <Action icon={Users} title="Referências" href="/app/referencias" note="Partilhar leads (mín. 25%)" badge={refsNovas} />
           <Action icon={LayoutGrid} title="A minha montra" href={`/consultor/${agent.id}`} note="Página pública" />
+          <Action icon={Share2} title="Portais & exportações" href="/app/portais" note="Idealista, Imovirtual, Facebook…" />
+        </ActionGroup>
+
+        {/* Negócios */}
+        <ActionGroup id="g-negocios" title="Clientes & negócios">
+          <Action icon={Target} title="CRM · Pipelines" href="/app/crm" note="Angariação e comprador (Kanban)" />
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
+          <Action icon={Scale} title="LegalFlow" href="/app/legalflow" note="CPCV e documentos legais com o advogado" />
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />
           <Action icon={BookOpen} title="Guiões de reunião" href="/app/guioes" note="Angariação, venda e objeções" />
-          <Action icon={GraduationCap} title="Formação" href="/app/formacao" note="Academia: cursos e certificação" />
-          <Action icon={Target} title="CRM · Pipelines" href="/app/crm" note="Angariação e comprador (Kanban)" />
-          <Action icon={Trophy} title="Objetivos & Prémios" href="/app/premios" note="Metas, escada, hall da fama e medalhas" />
-          <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />
+        </ActionGroup>
+
+        {/* Rede & ganhos */}
+        <ActionGroup id="g-rede" title="Rede & ganhos">
           <Action icon={Network} title="A minha equipa" href="/app/equipa" note="Afilhados, árvore e override" />
           <Action icon={Coins} title="Comissões" href="/app/comissoes" note="Faturação e override por código" />
           <Action icon={Wallet} title="Faturação & pagamentos" href="/app/pagamentos" note="Produção, override, royalties e 2%" />
-          <Action icon={Scale} title="LegalFlow" href="/app/legalflow" note="CPCV e documentos legais com o advogado" />
-          <Action icon={Briefcase} title="Referências de serviços" href="/app/servicos" note="Crédito, jurídico, energético…" />
           <Action icon={PiggyBank} title="Fundo de pensão" href="/app/fundo-pensao" note="2% por negócio, com dividendos" />
+          <Action icon={Users} title="Referências" href="/app/referencias" note="Partilhar leads (mín. 25%)" badge={refsNovas} />
+          <Action icon={Briefcase} title="Referências de serviços" href="/app/servicos" note="Crédito, jurídico, energético…" />
+        </ActionGroup>
+
+        {/* Crescer */}
+        <ActionGroup id="g-crescer" title="Crescer & qualidade">
+          <Action icon={Trophy} title="Objetivos & Prémios" href="/app/premios" note="Metas, escada, hall da fama e medalhas" />
+          <Action icon={GraduationCap} title="Formação" href="/app/formacao" note="Academia: cursos e certificação" />
           <Action icon={Scale} title="Qualidade" href="/app/qualidade" note="Reputação: méritos e infrações" />
-          <Action icon={Share2} title="Portais & exportações" href="/app/portais" note="Idealista, Imovirtual, Facebook…" />
-        </div>
+          <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />
+        </ActionGroup>
 
         {/* Contactos & pedidos de visita */}
         <section className="mt-10">
@@ -344,6 +364,26 @@ export default async function AppPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+function SectionChip({ icon: Icon, label, href }: { icon: ElementType; label: string; href: string }) {
+  return (
+    <a
+      href={href}
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-secondary"
+    >
+      <Icon className="size-4 text-primary" /> {label}
+    </a>
+  );
+}
+
+function ActionGroup({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section id={id} className="mt-8 scroll-mt-4">
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">{children}</div>
+    </section>
   );
 }
 

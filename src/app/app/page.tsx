@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Award,
+  BookOpen,
   Briefcase,
   CalendarClock,
   Calculator,
@@ -157,6 +158,7 @@ export default async function AppPage() {
           <Action icon={LayoutGrid} title="A minha montra" href={`/consultor/${agent.id}`} note="Página pública" />
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />
+          <Action icon={BookOpen} title="Guiões de reunião" href="/app/guioes" note="Angariação, venda e objeções" />
           <Action icon={Target} title="CRM · Pipelines" href="/app/crm" note="Angariação e comprador (Kanban)" />
           <Action icon={Trophy} title="Objetivos & Prémios" href="/app/premios" note="Metas, escada, hall da fama e medalhas" />
           <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />

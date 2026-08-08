@@ -242,8 +242,10 @@ insert into storage.buckets (id, name, public) values
   ('agent-photos', 'agent-photos', true)
 on conflict (id) do nothing;
 
+drop policy if exists "media public read" on storage.objects;
 create policy "media public read" on storage.objects for select
   using (bucket_id in ('property-media','agent-photos'));
+drop policy if exists "media upload authenticated" on storage.objects;
 create policy "media upload authenticated" on storage.objects for insert
   with check (bucket_id in ('property-media','agent-photos') and auth.role() = 'authenticated');
 
@@ -450,8 +452,10 @@ create policy "deal_events view" on deal_events for select
 -- Bucket privado para documentos do processo
 insert into storage.buckets (id, name, public) values ('deal-docs', 'deal-docs', false)
 on conflict (id) do nothing;
+drop policy if exists "deal docs read participants" on storage.objects;
 create policy "deal docs read participants" on storage.objects for select
   using (bucket_id = 'deal-docs' and auth.role() = 'authenticated');
+drop policy if exists "deal docs upload" on storage.objects;
 create policy "deal docs upload" on storage.objects for insert
   with check (bucket_id = 'deal-docs' and auth.role() = 'authenticated');
 

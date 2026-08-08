@@ -234,7 +234,9 @@ insert into storage.buckets (id, name, public) values
   ('agent-photos', 'agent-photos', true)
 on conflict (id) do nothing;
 
+drop policy if exists "media public read" on storage.objects;
 create policy "media public read" on storage.objects for select
   using (bucket_id in ('property-media','agent-photos'));
+drop policy if exists "media upload authenticated" on storage.objects;
 create policy "media upload authenticated" on storage.objects for insert
   with check (bucket_id in ('property-media','agent-photos') and auth.role() = 'authenticated');

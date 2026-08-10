@@ -119,6 +119,12 @@ export const agentById = (id: string): Agent =>
 export const agentsByAgency = (agencyId: string): Agent[] =>
   agents.filter((a) => a.agencyId === agencyId);
 
+/** Agentes visíveis ao público — exclui perfis de sistema (Super Admin) e
+ *  papéis não-comerciais (advogado). Usar em listagens públicas do website. */
+export const publicAgents: Agent[] = agents.filter(
+  (a) => a.roleKey !== "superadmin" && a.roleKey !== "advogado"
+);
+
 export const properties: Property[] = [
   {
     id: "1",

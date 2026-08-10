@@ -25,7 +25,7 @@ import { ConsentField } from "@/components/forms/consent-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { agents } from "@/lib/data/mock";
+import { publicAgents } from "@/lib/data/mock";
 import { listProperties } from "@/lib/db/repo";
 import { topFeatured } from "@/lib/data/ranking";
 import { topConcelhos } from "@/lib/data/concelhos";
@@ -281,7 +281,7 @@ export default async function Home() {
             </FadeIn>
 
             <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {agents.map((agent, i) => (
+              {publicAgents.map((agent, i) => (
                 <FadeIn key={agent.id} delay={i * 0.06}>
                   <div className="flex flex-col items-center gap-3 rounded-2xl border bg-card p-6 text-center shadow-sm">
                     <AgentAvatar agent={agent} className="size-16 text-lg" />

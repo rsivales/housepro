@@ -28,6 +28,17 @@ values
  ('b2222222-2222-4222-8222-222222222205','00000000-0000-0000-0000-000000000000','authenticated','authenticated','carla@housepro.pt',  crypt('housepro-demo', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}','{}')
 on conflict (id) do nothing;
 
+-- ── auth.identities (OBRIGATÓRIO para login no Supabase/GoTrue atual) ────────
+-- Sem uma identidade "email", o login devolve "Invalid login credentials"
+-- mesmo com o utilizador e a password corretos.
+insert into auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+select u.id::text, u.id,
+       jsonb_build_object('sub', u.id::text, 'email', u.email),
+       'email', now(), now(), now()
+from auth.users u
+where u.email like '%@housepro.pt'
+on conflict do nothing;
+
 -- ── Agências ────────────────────────────────────────────────────────────────
 insert into agencies (id, name, slug, region) values
  ('a1111111-1111-4111-8111-111111111101','HousePro Lisboa','lisboa','Lisboa'),

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, KeyRound, Mail } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, KeyRound, Mail } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -17,6 +17,7 @@ export default function EntrarPage() {
   const configured = isSupabaseConfigured();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [sent, setSent] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -32,6 +33,15 @@ export default function EntrarPage() {
     }
   }, []);
 
+  /** Mensagem legível a partir de um erro do Supabase (evita mostrar "{}"). */
+  function readError(err: unknown): string {
+    const e = err as { message?: string; name?: string; status?: number } | null;
+    const msg = (e?.message ?? "").trim();
+    if (msg && msg !== "{}" && msg !== "[object Object]") return msg;
+    // Erro sem mensagem útil → quase sempre falha de ligação/configuração.
+    return "Não foi possível ligar ao servidor. Confirma no Vercel o NEXT_PUBLIC_SUPABASE_URL (não pode ser o de exemplo) e faz um Redeploy novo.";
+  }
+
   async function signInPassword(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -40,11 +50,21 @@ export default function EntrarPage() {
       return;
     }
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) setError(error.message);
-    else router.push("/app");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        console.error("Login error:", error);
+        setError(readError(error));
+      } else {
+        router.push("/app");
+      }
+    } catch (err) {
+      console.error("Login exception:", err);
+      setError(readError(err));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function sendMagicLink() {
@@ -60,7 +80,7 @@ export default function EntrarPage() {
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setLoading(false);
-    if (error) setError(error.message);
+    if (error) setError(readError(error));
     else setSent(true);
   }
 
@@ -112,13 +132,24 @@ export default function EntrarPage() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="password">Palavra-passe</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label={showPassword ? "Ocultar palavra-passe" : "Mostrar palavra-passe"}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}

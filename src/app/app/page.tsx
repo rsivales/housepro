@@ -63,6 +63,9 @@ export default async function AppPage() {
   if (!session) redirect("/entrar");
   const { agent, demo } = session;
 
+  // O advogado tem o seu próprio ambiente (LegalFlow), não o painel de consultor.
+  if (agent.roleKey === "advogado") redirect("/app/legalflow");
+
   const mine = await listPropertiesByAgent(agent.id);
   const leads = await listLeadsByAgent(agent.id);
   const novas = leads.filter((l) => l.status === "novo").length;

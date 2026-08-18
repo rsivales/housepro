@@ -918,6 +918,84 @@ export async function listAllMetaLeads(pipeline?: string): Promise<Lead[]> {
   }
 }
 
+/** Cria uma campanha. Grava no Supabase quando configurado; em demo devolve
+ *  o objeto construído (para o fluxo ser testável ponta-a-ponta). */
+export async function createCampaign(input: {
+  name: string;
+  type: Campaign["type"];
+  ownerType: Campaign["ownerType"];
+  ownerId: string;
+  ownerName?: string;
+  responsibleId?: string;
+  responsibleName?: string;
+  objective?: string;
+  metaCampaignId?: string;
+  status?: Campaign["status"];
+  createdBy?: string;
+}): Promise<Campaign> {
+  const campaign: Campaign = {
+    id: `cmp-${Date.now()}`,
+    name: input.name,
+    type: input.type,
+    ownerType: input.ownerType,
+    ownerId: input.ownerId,
+    ownerName: input.ownerName,
+    responsibleId: input.responsibleId,
+    responsibleName: input.responsibleName,
+    objective: input.objective,
+    metaCampaignId: input.metaCampaignId,
+    status: input.status ?? "rascunho",
+    createdAt: new Date().toISOString(),
+  };
+  if (!isSupabaseConfigured()) return campaign;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("campaigns")
+      .insert({
+        name: input.name,
+        type: input.type,
+        owner_type: input.ownerType,
+        owner_id: input.ownerId,
+        responsible_id: input.responsibleId ?? null,
+        objective: input.objective ?? null,
+        meta_campaign_id: input.metaCampaignId ?? null,
+        status: input.status ?? "rascunho",
+        created_by: input.createdBy ?? null,
+      })
+      .select("id")
+      .single();
+    return { ...campaign, id: data ? String(data.id) : campaign.id };
+  } catch {
+    return campaign;
+  }
+}
+
+/** Guarda o mapeamento pergunta→campo de um formulário (substitui o existente). */
+export async function saveFieldMapping(
+  formId: string,
+  entries: FieldMapping["map"]
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true; // demo: assume guardado
+  try {
+    const supabase = await createClient();
+    await supabase.from("field_mappings").delete().eq("form_id", formId);
+    if (entries.length) {
+      await supabase.from("field_mappings").insert(
+        entries.map((e) => ({
+          form_id: formId,
+          question_key: e.questionKey,
+          lead_field: e.leadField,
+          note: e.note ?? null,
+        }))
+      );
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Atividade/linha do tempo de uma lead. */
 export async function listLeadActivity(leadId: string): Promise<LeadActivity[]> {
   if (!isSupabaseConfigured()) return [];

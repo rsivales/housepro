@@ -674,18 +674,272 @@ export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
     .select("*")
     .eq("owner_id", agentId)
     .order("created_at", { ascending: false });
-  return (data ?? []).map((r: Row) => ({
+  return (data ?? []).map(mapLeadRow);
+}
+
+/** Mapeia uma linha da tabela `leads` para o modelo Lead (inclui campos Meta). */
+function mapLeadRow(r: Row): Lead {
+  return {
     id: String(r.id),
     propertyId: (r.property_id as string) ?? undefined,
+    propertyRef: (r.property_ref as string) ?? undefined,
     ownerId: String(r.owner_id ?? ""),
     referrerId: (r.referrer_id as string) ?? undefined,
     name: String(r.name ?? ""),
     contact: String(r.contact ?? ""),
+    email: (r.email as string) ?? undefined,
     intent: (r.intent as Lead["intent"]) ?? "mensagem",
     message: (r.message as string) ?? undefined,
     preferredAt: (r.preferred_at as string) ?? undefined,
     source: (r.source as Lead["source"]) ?? "site",
     status: (r.status as Lead["status"]) ?? "novo",
     createdAt: String(r.created_at ?? new Date().toISOString()),
-  }));
+    campaignId: (r.campaign_id as string) ?? undefined,
+    formId: (r.form_id as string) ?? undefined,
+    commercialOriginId: (r.commercial_origin_id as string) ?? undefined,
+    assignedAgentId: (r.assigned_agent_id as string) ?? undefined,
+    assignedTeamId: (r.assigned_team_id as string) ?? undefined,
+    pipeline: (r.pipeline as string) ?? undefined,
+    stage: r.stage != null ? Number(r.stage) : undefined,
+    qualification: (r.qualification as Lead["qualification"]) ?? undefined,
+    score: r.score != null ? Number(r.score) : undefined,
+    unassigned: r.unassigned != null ? Boolean(r.unassigned) : undefined,
+    zone: (r.zone as string) ?? undefined,
+    budget: (r.budget as string) ?? undefined,
+    consent: (r.consent as Lead["consent"]) ?? undefined,
+  };
+}
+
+// --- Módulo Meta CRM -------------------------------------------------------
+
+import {
+  demoMetaConnection,
+  demoCampaigns,
+  demoLeadForms,
+  demoAssignmentRules,
+  fieldMappingForForm,
+  type MetaConnection,
+  type Campaign,
+  type LeadForm,
+  type FieldMapping,
+  type AssignmentRule,
+  type LeadActivity,
+} from "@/lib/data/meta";
+import {
+  metaLeadsByAgent,
+  unassignedMetaLeads,
+  allMetaLeads,
+} from "@/lib/data/leads";
+
+/** Ligação Meta ativa (ou a de demonstração). */
+export async function getMetaConnection(): Promise<MetaConnection> {
+  if (!isSupabaseConfigured()) return demoMetaConnection;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("meta_connections")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!data) return { ...demoMetaConnection, status: "desligada" };
+    return {
+      id: String(data.id),
+      pageId: String(data.page_id ?? ""),
+      pageName: (data.page_name as string) ?? undefined,
+      igId: (data.ig_id as string) ?? undefined,
+      igName: (data.ig_name as string) ?? undefined,
+      tokenRef: (data.token_ref as string) ?? undefined,
+      scopes: Array.isArray(data.scopes) ? (data.scopes as string[]) : [],
+      status: (data.status as MetaConnection["status"]) ?? "desligada",
+      connectedAt: (data.connected_at as string) ?? undefined,
+    };
+  } catch {
+    return { ...demoMetaConnection, status: "erro" };
+  }
+}
+
+/** Campanhas (todas — gestão). */
+export async function listCampaigns(): Promise<Campaign[]> {
+  if (!isSupabaseConfigured()) return demoCampaigns;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("campaigns")
+      .select("*")
+      .order("created_at", { ascending: false });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      name: String(r.name ?? ""),
+      type: (r.type as Campaign["type"]) ?? "OTHER",
+      ownerType: (r.owner_type as Campaign["ownerType"]) ?? "AGENCY",
+      ownerId: String(r.owner_id ?? ""),
+      responsibleId: (r.responsible_id as string) ?? undefined,
+      objective: (r.objective as string) ?? undefined,
+      metaCampaignId: (r.meta_campaign_id as string) ?? undefined,
+      status: (r.status as Campaign["status"]) ?? "rascunho",
+      createdAt: String(r.created_at ?? new Date().toISOString()),
+    }));
+  } catch {
+    return demoCampaigns;
+  }
+}
+
+/** Formulários Meta (todos, ou de uma campanha). */
+export async function listLeadForms(campaignId?: string): Promise<LeadForm[]> {
+  if (!isSupabaseConfigured()) {
+    return campaignId
+      ? demoLeadForms.filter((f) => f.campaignId === campaignId)
+      : demoLeadForms;
+  }
+  try {
+    const supabase = await createClient();
+    let q = supabase.from("lead_forms").select("*, lead_form_questions(*)");
+    if (campaignId) q = q.eq("campaign_id", campaignId);
+    const { data } = await q.order("created_at", { ascending: false });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      metaFormId: String(r.meta_form_id ?? ""),
+      name: String(r.name ?? ""),
+      campaignId: (r.campaign_id as string) ?? undefined,
+      createdAt: String(r.created_at ?? new Date().toISOString()),
+      questions: Array.isArray(r.lead_form_questions)
+        ? (r.lead_form_questions as Row[])
+            .map((q2) => ({
+              key: String(q2.key ?? ""),
+              label: String(q2.label ?? ""),
+              type: (q2.type as LeadForm["questions"][number]["type"]) ?? "text",
+              options: Array.isArray(q2.options) ? (q2.options as string[]) : undefined,
+            }))
+        : [],
+    }));
+  } catch {
+    return demoLeadForms;
+  }
+}
+
+/** Mapeamento pergunta→campo de um formulário. */
+export async function getFieldMapping(formId: string): Promise<FieldMapping | undefined> {
+  if (!isSupabaseConfigured()) return fieldMappingForForm(formId);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("field_mappings")
+      .select("*")
+      .eq("form_id", formId);
+    if (!data || data.length === 0) return fieldMappingForForm(formId);
+    return {
+      formId,
+      map: data.map((r: Row) => ({
+        questionKey: String(r.question_key ?? ""),
+        leadField: (r.lead_field as FieldMapping["map"][number]["leadField"]) ?? "custom",
+        note: (r.note as string) ?? undefined,
+      })),
+    };
+  } catch {
+    return fieldMappingForForm(formId);
+  }
+}
+
+/** Regras de atribuição (todas, ou de uma campanha). */
+export async function listAssignmentRules(campaignId?: string): Promise<AssignmentRule[]> {
+  if (!isSupabaseConfigured()) {
+    return campaignId
+      ? demoAssignmentRules.filter((r) => r.campaignId === campaignId)
+      : demoAssignmentRules;
+  }
+  try {
+    const supabase = await createClient();
+    let q = supabase.from("assignment_rules").select("*");
+    if (campaignId) q = q.eq("campaign_id", campaignId);
+    const { data } = await q.order("created_at", { ascending: false });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      campaignId: String(r.campaign_id ?? ""),
+      strategy: (r.strategy as AssignmentRule["strategy"]) ?? "unassigned",
+      agentId: (r.agent_id as string) ?? undefined,
+      teamId: (r.team_id as string) ?? undefined,
+      pool: Array.isArray(r.pool) ? (r.pool as string[]) : undefined,
+      rrIndex: r.rr_index != null ? Number(r.rr_index) : undefined,
+      zoneMap: (r.zone_map as Record<string, string>) ?? undefined,
+      active: r.active != null ? Boolean(r.active) : true,
+      createdAt: String(r.created_at ?? new Date().toISOString()),
+    }));
+  } catch {
+    return demoAssignmentRules;
+  }
+}
+
+/** Leads Meta do agente (responsável atual OU origem comercial). */
+export async function listMetaLeadsByAgent(agentId: string): Promise<Lead[]> {
+  if (!isSupabaseConfigured()) return metaLeadsByAgent(agentId);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("leads")
+      .select("*")
+      .not("campaign_id", "is", null)
+      .or(`assigned_agent_id.eq.${agentId},commercial_origin_id.eq.${agentId}`)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map(mapLeadRow);
+  } catch {
+    return metaLeadsByAgent(agentId);
+  }
+}
+
+/** Leads Meta sem responsável (inbox). */
+export async function listUnassignedMetaLeads(): Promise<Lead[]> {
+  if (!isSupabaseConfigured()) return unassignedMetaLeads();
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("leads")
+      .select("*")
+      .not("campaign_id", "is", null)
+      .eq("unassigned", true)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map(mapLeadRow);
+  } catch {
+    return unassignedMetaLeads();
+  }
+}
+
+/** Todas as leads Meta (gestão/relatórios), opcionalmente por pipeline. */
+export async function listAllMetaLeads(pipeline?: string): Promise<Lead[]> {
+  if (!isSupabaseConfigured()) return allMetaLeads(pipeline);
+  try {
+    const supabase = await createClient();
+    let q = supabase.from("leads").select("*").not("campaign_id", "is", null);
+    if (pipeline) q = q.eq("pipeline", pipeline);
+    const { data } = await q.order("created_at", { ascending: false });
+    return (data ?? []).map(mapLeadRow);
+  } catch {
+    return allMetaLeads(pipeline);
+  }
+}
+
+/** Atividade/linha do tempo de uma lead. */
+export async function listLeadActivity(leadId: string): Promise<LeadActivity[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("lead_activities")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      leadId: String(r.lead_id ?? leadId),
+      type: (r.type as LeadActivity["type"]) ?? "note",
+      actorId: (r.actor_id as string) ?? undefined,
+      actorName: (r.actor_name as string) ?? undefined,
+      note: (r.note as string) ?? undefined,
+      from: (r.from_val as string) ?? undefined,
+      to: (r.to_val as string) ?? undefined,
+      at: String(r.created_at ?? new Date().toISOString()),
+    }));
+  } catch {
+    return [];
+  }
 }

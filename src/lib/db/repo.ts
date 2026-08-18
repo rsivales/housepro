@@ -724,6 +724,7 @@ import {
   type FieldMapping,
   type AssignmentRule,
   type LeadActivity,
+  type LeadAnswer,
 } from "@/lib/data/meta";
 import {
   metaLeadsByAgent,
@@ -993,6 +994,113 @@ export async function saveFieldMapping(
     return true;
   } catch {
     return false;
+  }
+}
+
+/** Regista uma entrada na linha do tempo de uma lead (best-effort). */
+export async function addLeadActivity(input: {
+  leadId: string;
+  type: LeadActivity["type"];
+  actorId?: string;
+  actorName?: string;
+  note?: string;
+  from?: string;
+  to?: string;
+}): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const supabase = await createClient();
+    await supabase.from("lead_activities").insert({
+      lead_id: input.leadId,
+      type: input.type,
+      actor_id: input.actorId ?? null,
+      actor_name: input.actorName ?? null,
+      note: input.note ?? null,
+      from_val: input.from ?? null,
+      to_val: input.to ?? null,
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
+/**
+ * Recebe uma lead do Meta já normalizada e persiste-a (lead + respostas +
+ * atividade "created"). Em modo demo devolve o objeto construído sem persistir,
+ * para o fluxo ponta-a-ponta ser demonstrável sem Supabase nem Meta reais.
+ */
+export async function ingestMetaLead(input: {
+  lead: Partial<Lead>;
+  answers: Omit<LeadAnswer, "leadId">[];
+}): Promise<Lead> {
+  const now = new Date().toISOString();
+  const lead: Lead = {
+    id: `ml-${Date.now()}`,
+    ownerId: "",
+    name: "Sem nome",
+    contact: "",
+    intent: "mensagem",
+    source: "facebook",
+    status: "novo",
+    createdAt: now,
+    ...input.lead,
+  };
+
+  if (!isSupabaseConfigured()) return lead;
+
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("leads")
+      .insert({
+        name: lead.name,
+        contact: lead.contact,
+        email: lead.email ?? null,
+        message: lead.message ?? null,
+        intent: lead.intent,
+        preferred_at: lead.preferredAt ?? null,
+        source: lead.source,
+        status: lead.status,
+        property_id: lead.propertyId ?? null,
+        property_ref: lead.propertyRef ?? null,
+        owner_id: lead.ownerId || null,
+        campaign_id: lead.campaignId ?? null,
+        form_id: lead.formId ?? null,
+        commercial_origin_id: lead.commercialOriginId || null,
+        assigned_agent_id: lead.assignedAgentId ?? null,
+        assigned_team_id: lead.assignedTeamId ?? null,
+        pipeline: lead.pipeline ?? null,
+        stage: lead.stage ?? 0,
+        qualification: lead.qualification ?? "novo",
+        score: lead.score ?? null,
+        unassigned: lead.unassigned ?? true,
+        zone: lead.zone ?? null,
+        budget: lead.budget ?? null,
+        consent: lead.consent ?? null,
+      })
+      .select("id")
+      .single();
+    const id = data ? String(data.id) : lead.id;
+
+    if (input.answers.length) {
+      await supabase.from("lead_answers").insert(
+        input.answers.map((a) => ({
+          lead_id: id,
+          question_key: a.questionKey,
+          label: a.label ?? null,
+          value: a.value,
+          pii: a.pii ?? false,
+        }))
+      );
+    }
+    await supabase.from("lead_activities").insert({
+      lead_id: id,
+      type: "created",
+      note: "Lead recebida via Meta Lead Ads.",
+    });
+    return { ...lead, id };
+  } catch {
+    return lead;
   }
 }
 

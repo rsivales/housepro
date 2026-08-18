@@ -19,6 +19,7 @@ import {
   META_CONNECTION_STATUS,
   isCommercialCampaign,
 } from "@/lib/data/meta";
+import { TestLeadButton } from "@/components/meta/test-lead-button";
 
 export const metadata: Metadata = { title: "Meta CRM — campanhas e leads" };
 
@@ -90,6 +91,13 @@ export default async function MetaPage() {
         <div className="mt-6 flex flex-wrap gap-2">
           <SectionChip icon={Megaphone} label="Campanhas" href="/app/meta/campanhas" />
           <SectionChip icon={FileText} label="Formulários & mapeamento" href="/app/meta/formularios" />
+        </div>
+
+        {/* Simular receção de lead (demo) */}
+        <div className="mt-4">
+          <TestLeadButton
+            campaigns={campaigns.map((c) => ({ id: c.id, name: c.name }))}
+          />
         </div>
 
         {/* Resumo */}

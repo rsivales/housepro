@@ -9,10 +9,12 @@ import {
   AtSign,
   ListChecks,
   Users,
+  Inbox,
+  KanbanSquare,
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
-import { listCampaigns, getMetaConnection } from "@/lib/db/repo";
+import { listCampaigns, getMetaConnection, listUnassignedMetaLeads } from "@/lib/db/repo";
 import {
   CAMPAIGN_TYPE_LABEL,
   CAMPAIGN_STATUS,
@@ -27,9 +29,10 @@ export default async function MetaPage() {
   const session = await getSession();
   if (!session) redirect("/entrar");
 
-  const [campaigns, connection] = await Promise.all([
+  const [campaigns, connection, unassigned] = await Promise.all([
     listCampaigns(),
     getMetaConnection(),
+    listUnassignedMetaLeads(),
   ]);
 
   const conn = META_CONNECTION_STATUS[connection.status];
@@ -91,6 +94,12 @@ export default async function MetaPage() {
         <div className="mt-6 flex flex-wrap gap-2">
           <SectionChip icon={Megaphone} label="Campanhas" href="/app/meta/campanhas" />
           <SectionChip icon={FileText} label="Formulários & mapeamento" href="/app/meta/formularios" />
+          <SectionChip
+            icon={Inbox}
+            label={`Sem responsável${unassigned.length ? ` (${unassigned.length})` : ""}`}
+            href="/app/meta/inbox"
+          />
+          <SectionChip icon={KanbanSquare} label="Pipeline" href="/app/meta/pipeline" />
         </div>
 
         {/* Simular receção de lead (demo) */}
@@ -105,7 +114,7 @@ export default async function MetaPage() {
           <Stat label="Campanhas" value={campaigns.length} icon={Megaphone} />
           <Stat label="Comerciais" value={comerciais.length} icon={ListChecks} />
           <Stat label="Recrutamento" value={recrutamento.length} icon={Users} />
-          <Stat label="Ativas" value={campaigns.filter((c) => c.status === "ativa").length} icon={ListChecks} />
+          <Stat label="Sem responsável" value={unassigned.length} icon={Inbox} />
         </div>
 
         {/* Campanhas */}

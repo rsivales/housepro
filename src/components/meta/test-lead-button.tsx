@@ -20,6 +20,7 @@ export function TestLeadButton({ campaigns }: { campaigns: CampaignOpt[] }) {
   const [campaignId, setCampaignId] = React.useState(campaigns[0]?.id ?? "");
   const [busy, setBusy] = React.useState(false);
   const [lead, setLead] = React.useState<Lead | null>(null);
+  const [assignedName, setAssignedName] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   async function generate() {
@@ -35,6 +36,7 @@ export function TestLeadButton({ campaigns }: { campaigns: CampaignOpt[] }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Não foi possível gerar.");
       setLead(data.lead as Lead);
+      setAssignedName(data.assignment?.assignedName ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -92,7 +94,11 @@ export function TestLeadButton({ campaigns }: { campaigns: CampaignOpt[] }) {
             <dt className="text-muted-foreground">Pipeline</dt>
             <dd>{lead.pipeline}</dd>
             <dt className="text-muted-foreground">Estado</dt>
-            <dd>{lead.unassigned ? "Sem responsável (inbox)" : "Atribuída"}</dd>
+            <dd>
+              {lead.unassigned
+                ? "Sem responsável (inbox)"
+                : `Atribuída${assignedName ? ` a ${assignedName}` : ""}`}
+            </dd>
           </dl>
         </div>
       )}

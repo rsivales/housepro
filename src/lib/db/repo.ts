@@ -1104,6 +1104,69 @@ export async function ingestMetaLead(input: {
   }
 }
 
+/** Atribui (ou reatribui) uma lead ao agente responsável atual e regista. */
+export async function assignLead(input: {
+  leadId: string;
+  agentId?: string;
+  agentName?: string;
+  teamId?: string;
+  reassign?: boolean;
+  note?: string;
+  actorId?: string;
+  actorName?: string;
+}): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true; // demo: assume aplicado
+  try {
+    const supabase = await createClient();
+    await supabase
+      .from("leads")
+      .update({
+        assigned_agent_id: input.agentId ?? null,
+        assigned_team_id: input.teamId ?? null,
+        unassigned: false,
+      })
+      .eq("id", input.leadId);
+    await supabase.from("lead_activities").insert({
+      lead_id: input.leadId,
+      type: input.reassign ? "reassigned" : "assigned",
+      actor_id: input.actorId ?? null,
+      actor_name: input.actorName ?? null,
+      note: input.note ?? null,
+      to_val: input.agentName ?? input.agentId ?? null,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Move uma lead de etapa no pipeline (Kanban) e regista (dual). */
+export async function updateLeadStage(input: {
+  leadId: string;
+  stage: number;
+  pipeline?: string;
+  actorId?: string;
+  actorName?: string;
+}): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true; // demo: assume aplicado
+  try {
+    const supabase = await createClient();
+    const patch: Record<string, unknown> = { stage: input.stage };
+    if (input.pipeline) patch.pipeline = input.pipeline;
+    await supabase.from("leads").update(patch).eq("id", input.leadId);
+    await supabase.from("lead_activities").insert({
+      lead_id: input.leadId,
+      type: "stage",
+      actor_id: input.actorId ?? null,
+      actor_name: input.actorName ?? null,
+      to_val: String(input.stage),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Qualifica/desqualifica uma lead e regista na linha do tempo (dual). */
 export async function qualifyLead(input: {
   leadId: string;

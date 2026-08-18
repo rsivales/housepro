@@ -5,6 +5,8 @@ import {
   listCampaigns,
   listLeadForms,
   getFieldMapping,
+  listAssignmentRules,
+  getPropertyById,
   ingestMetaLead,
 } from "@/lib/db/repo";
 import {
@@ -13,6 +15,9 @@ import {
   buildMetaLead,
   type RawAnswer,
 } from "@/lib/meta/ingest";
+import { resolveAssignment } from "@/lib/meta/assignment";
+import { propertiesForCampaign } from "@/lib/data/meta";
+import { agents } from "@/lib/data/mock";
 
 /**
  * Gera uma LEAD DE TESTE e corre-a pelo mesmo pipeline de ingestão das leads
@@ -67,7 +72,36 @@ export async function POST(request: Request) {
 
   const normalized = normalizeAnswers(raw, form, mapping);
   const leadPartial = buildMetaLead(campaign, form, normalized);
-  const lead = await ingestMetaLead({ lead: leadPartial, answers: normalized.answers });
 
-  return NextResponse.json({ lead, demo: session.demo });
+  // Aplicar a regra de atribuição da campanha (motor da Fase E).
+  const rules = await listAssignmentRules(campaign.id);
+  const rule = rules.find((r) => r.active) ?? rules[0];
+  let propertyOwnerId: string | undefined;
+  if (rule?.strategy === "property") {
+    const cp = propertiesForCampaign(campaign.id)[0];
+    if (cp) {
+      const prop = await getPropertyById(cp.propertyId);
+      propertyOwnerId = prop?.agentId;
+    }
+  }
+  const assignment = resolveAssignment({
+    campaign,
+    rule,
+    propertyOwnerId,
+    zone: leadPartial.zone,
+  });
+  if (!assignment.unassigned) {
+    leadPartial.assignedAgentId = assignment.assignedAgentId;
+    leadPartial.assignedTeamId = assignment.assignedTeamId;
+    leadPartial.unassigned = false;
+  }
+
+  const lead = await ingestMetaLead({ lead: leadPartial, answers: normalized.answers });
+  const assignedName = agents.find((a) => a.id === lead.assignedAgentId)?.name;
+
+  return NextResponse.json({
+    lead,
+    assignment: { ...assignment, assignedName },
+    demo: session.demo,
+  });
 }

@@ -18,6 +18,7 @@ import {
 import { resolveAssignment } from "@/lib/meta/assignment";
 import { propertiesForCampaign } from "@/lib/data/meta";
 import { agents } from "@/lib/data/mock";
+import { notifyLeadAssigned } from "@/lib/meta/notify";
 
 /**
  * Gera uma LEAD DE TESTE e corre-a pelo mesmo pipeline de ingestão das leads
@@ -97,7 +98,19 @@ export async function POST(request: Request) {
   }
 
   const lead = await ingestMetaLead({ lead: leadPartial, answers: normalized.answers });
-  const assignedName = agents.find((a) => a.id === lead.assignedAgentId)?.name;
+  const assignedAgent = agents.find((a) => a.id === lead.assignedAgentId);
+  const assignedName = assignedAgent?.name;
+
+  // Comunicação ao consultor quando a lead nasce já atribuída (best-effort).
+  if (lead.assignedAgentId) {
+    await notifyLeadAssigned({
+      lead,
+      agentId: lead.assignedAgentId,
+      agentName: assignedName,
+      agentEmail: assignedAgent?.email,
+      campaignName: campaign.name,
+    });
+  }
 
   return NextResponse.json({
     lead,

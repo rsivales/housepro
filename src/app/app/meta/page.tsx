@@ -11,6 +11,7 @@ import {
   Users,
   Inbox,
   KanbanSquare,
+  BarChart3,
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
@@ -100,6 +101,7 @@ export default async function MetaPage() {
             href="/app/meta/inbox"
           />
           <SectionChip icon={KanbanSquare} label="Pipeline" href="/app/meta/pipeline" />
+          <SectionChip icon={BarChart3} label="Relatórios" href="/app/meta/relatorios" />
         </div>
 
         {/* Simular receção de lead (demo) */}

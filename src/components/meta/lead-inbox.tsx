@@ -79,7 +79,15 @@ function InboxCard({
       const res = await fetch("/api/leads/assign", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ leadId: lead.id, agentId }),
+        body: JSON.stringify({
+          leadId: lead.id,
+          agentId,
+          leadName: lead.name,
+          zone: lead.zone,
+          budget: lead.budget,
+          contact: lead.contact,
+          campaignName: campaignLabel,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Não foi possível atribuir.");

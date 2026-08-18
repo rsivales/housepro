@@ -7,6 +7,7 @@ import type {
   LeadField,
 } from "@/lib/data/meta";
 import { pipelineForCampaignType } from "@/lib/data/meta";
+import { scoreLead } from "@/lib/meta/scoring";
 
 /** Par bruto (chave da pergunta → valor) tal como chega do Meta. */
 export interface RawAnswer {
@@ -101,7 +102,7 @@ export function buildMetaLead(
   normalized: NormalizedLead
 ): Partial<Lead> {
   const now = new Date().toISOString();
-  return {
+  const base: Partial<Lead> = {
     name: normalized.fields.name ?? "Sem nome",
     contact: normalized.fields.contact ?? "",
     email: normalized.fields.email,
@@ -111,6 +112,9 @@ export function buildMetaLead(
     propertyRef: normalized.fields.propertyRef,
     preferredAt: normalized.fields.preferredAt,
     intent: normalized.fields.intent ?? "mensagem",
+  };
+  return {
+    ...base,
     source: "facebook",
     status: "novo",
     campaignId: campaign.id,
@@ -124,6 +128,7 @@ export function buildMetaLead(
     pipeline: pipelineForCampaignType(campaign.type),
     stage: 0,
     qualification: "novo",
+    score: scoreLead(base).score,
     consent: { base: "consentimento", at: now, text: "Formulário Meta Lead Ads" },
     createdAt: now,
   };

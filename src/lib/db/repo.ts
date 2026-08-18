@@ -1104,6 +1104,72 @@ export async function ingestMetaLead(input: {
   }
 }
 
+/** Qualifica/desqualifica uma lead e regista na linha do tempo (dual). */
+export async function qualifyLead(input: {
+  leadId: string;
+  qualification: Lead["qualification"];
+  score?: number;
+  note?: string;
+  actorId?: string;
+  actorName?: string;
+}): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true; // demo: assume aplicado
+  try {
+    const supabase = await createClient();
+    const patch: Record<string, unknown> = { qualification: input.qualification };
+    if (input.score != null) patch.score = input.score;
+    await supabase.from("leads").update(patch).eq("id", input.leadId);
+    await supabase.from("lead_activities").insert({
+      lead_id: input.leadId,
+      type: input.qualification === "desqualificado" ? "disqualified" : "qualified",
+      actor_id: input.actorId ?? null,
+      actor_name: input.actorName ?? null,
+      note: input.note ?? null,
+      to_val: input.qualification ?? null,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * RGPD — anonimiza uma lead (direito ao apagamento): remove os dados pessoais
+ * (nome, contacto, email, mensagem) e as respostas marcadas como PII, mantendo
+ * a lead para estatística sem identificar o titular. Regista a operação.
+ */
+export async function anonymizeLead(input: {
+  leadId: string;
+  actorId?: string;
+  actorName?: string;
+}): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true; // demo: assume anonimizada
+  try {
+    const supabase = await createClient();
+    await supabase
+      .from("leads")
+      .update({
+        name: "[anonimizada]",
+        contact: "",
+        email: null,
+        message: null,
+        consent: null,
+      })
+      .eq("id", input.leadId);
+    await supabase.from("lead_answers").delete().eq("lead_id", input.leadId).eq("pii", true);
+    await supabase.from("lead_activities").insert({
+      lead_id: input.leadId,
+      type: "note",
+      actor_id: input.actorId ?? null,
+      actor_name: input.actorName ?? null,
+      note: "Lead anonimizada (RGPD — direito ao apagamento).",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Atividade/linha do tempo de uma lead. */
 export async function listLeadActivity(leadId: string): Promise<LeadActivity[]> {
   if (!isSupabaseConfigured()) return [];

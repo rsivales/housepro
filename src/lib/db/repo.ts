@@ -1650,6 +1650,139 @@ export async function createVisit(input: {
   }
 }
 
+// --- X Call (chamadas assistidas, F3) --------------------------------------
+
+import {
+  callLogsByAgent as demoCallLogsByAgent,
+  stageNameForResult,
+  type CallLog,
+} from "@/lib/data/xcall";
+
+/** Chamadas do consultor (mais recente primeiro). */
+export async function listCallLogs(agentId: string): Promise<CallLog[]> {
+  if (!isSupabaseConfigured()) return demoCallLogsByAgent(agentId);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("call_logs")
+      .select("*")
+      .eq("agent_id", agentId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      agentId: String(r.agent_id ?? agentId),
+      contactId: (r.contact_id as string) ?? undefined,
+      leadId: (r.lead_id as string) ?? undefined,
+      scriptKey: (r.script_key as CallLog["scriptKey"]) ?? "comprador",
+      objective: (r.objective as string) ?? undefined,
+      result: (r.result as CallLog["result"]) ?? "outro",
+      temperature: (r.temperature as CallLog["temperature"]) ?? undefined,
+      score: r.score != null ? Number(r.score) : undefined,
+      notes: (r.notes as string) ?? undefined,
+      nextTaskTitle: (r.next_task_title as string) ?? undefined,
+      nextTaskDueAt: (r.next_task_due_at as string) ?? undefined,
+      lostReason: (r.lost_reason as string) ?? undefined,
+      durationSec: r.duration_sec != null ? Number(r.duration_sec) : undefined,
+      createdAt: String(r.created_at ?? new Date().toISOString()),
+    }));
+  } catch {
+    return demoCallLogsByAgent(agentId);
+  }
+}
+
+/**
+ * Regista uma chamada e propaga: cronologia do contacto, próxima tarefa e
+ * atualização da lead (estado/qualificação). Em demo devolve o objeto sem
+ * persistir. É o "depois da chamada" do X Call.
+ */
+export async function logCall(input: {
+  agentId: string;
+  agentName?: string;
+  contactId?: string;
+  contactName?: string;
+  leadId?: string;
+  scriptKey: CallLog["scriptKey"];
+  objective?: string;
+  result: CallLog["result"];
+  temperature?: CallLog["temperature"];
+  score?: number;
+  notes?: string;
+  nextTaskTitle?: string;
+  nextTaskDueAt?: string;
+  lostReason?: string;
+}): Promise<CallLog> {
+  const log: CallLog = {
+    id: `cl-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+  if (!isSupabaseConfigured()) return log;
+
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("call_logs")
+      .insert({
+        agent_id: input.agentId,
+        contact_id: input.contactId ?? null,
+        lead_id: input.leadId ?? null,
+        script_key: input.scriptKey,
+        objective: input.objective ?? null,
+        result: input.result,
+        temperature: input.temperature ?? null,
+        score: input.score ?? null,
+        notes: input.notes ?? null,
+        next_task_title: input.nextTaskTitle ?? null,
+        next_task_due_at: input.nextTaskDueAt ?? null,
+        lost_reason: input.lostReason ?? null,
+      })
+      .select("id")
+      .single();
+    const id = data ? String(data.id) : log.id;
+
+    // Cronologia do contacto.
+    if (input.contactId) {
+      await addContactActivity({
+        contactId: input.contactId,
+        type: "call",
+        title: `Chamada — ${input.result}`,
+        body: input.notes,
+        direction: "out",
+        actorId: input.agentId,
+        actorName: input.agentName,
+        leadId: input.leadId,
+      });
+    }
+    // Próxima tarefa.
+    if (input.nextTaskTitle) {
+      await createTask({
+        ownerId: input.agentId,
+        title: input.nextTaskTitle,
+        kind: "followup",
+        contactId: input.contactId,
+        contactName: input.contactName,
+        dueAt: input.nextTaskDueAt,
+      });
+    }
+    // Atualização da lead (estado/qualificação) conforme o resultado.
+    if (input.leadId) {
+      const patch: Record<string, unknown> = {};
+      if (stageNameForResult(input.result)) patch.status = "contactado";
+      if (input.result === "qualificada") patch.qualification = "qualificado";
+      if (input.result === "sem_interesse") {
+        patch.qualification = "desqualificado";
+        patch.status = "perdido";
+      }
+      if (Object.keys(patch).length) {
+        await supabase.from("leads").update(patch).eq("id", input.leadId);
+      }
+    }
+    return { ...log, id };
+  } catch {
+    return log;
+  }
+}
+
 /** Atividade/linha do tempo de uma lead. */
 export async function listLeadActivity(leadId: string): Promise<LeadActivity[]> {
   if (!isSupabaseConfigured()) return [];

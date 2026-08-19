@@ -178,6 +178,7 @@ export default async function AppPage() {
           <Action icon={CalendarClock} title="Agenda" href="/app/agenda" note="Tarefas e visitas" />
           <Action icon={Target} title="CRM · Pipelines" href="/app/crm" note="Angariação e comprador (Kanban)" />
           <Action icon={Megaphone} title="Meta CRM" href="/app/meta" note="Leads de Facebook e Instagram" />
+          <Action icon={PhoneCall} title="X Call" href="/app/x-call" note="Chamadas assistidas com guião" />
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
           <Action icon={Scale} title="LegalFlow" href="/app/legalflow" note="CPCV e documentos legais com o advogado" />
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />

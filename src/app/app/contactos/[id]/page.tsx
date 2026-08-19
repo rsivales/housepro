@@ -7,6 +7,7 @@ import { getSession } from "@/lib/supabase/auth";
 import { getContact, listContactActivities } from "@/lib/db/repo";
 import { CONTACT_TYPE_LABEL } from "@/lib/data/contacts";
 import { ContactTimeline } from "@/components/crm/contact-timeline";
+import { XCallButton } from "@/components/xcall/xcall-dialog";
 
 export const metadata: Metadata = { title: "Ficha de contacto" };
 
@@ -59,6 +60,14 @@ export default async function ContactDetailPage({
               {contact.zone && (<span className="inline-flex items-center gap-1"><MapPin className="size-3" /> {contact.zone}</span>)}
               {contact.budget && (<span className="inline-flex items-center gap-1"><Wallet className="size-3" /> {contact.budget}</span>)}
             </div>
+          </div>
+          <div className="ml-auto">
+            <XCallButton
+              contactId={contact.id}
+              contactName={contact.name}
+              phone={contact.phone}
+              scriptHint={contact.type}
+            />
           </div>
         </div>
 

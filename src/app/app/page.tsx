@@ -174,6 +174,8 @@ export default async function AppPage() {
 
         {/* Negócios */}
         <ActionGroup id="g-negocios" title="Clientes & negócios">
+          <Action icon={Users} title="Contactos" href="/app/contactos" note="Ficha central + cronologia única" />
+          <Action icon={CalendarClock} title="Agenda" href="/app/agenda" note="Tarefas e visitas" />
           <Action icon={Target} title="CRM · Pipelines" href="/app/crm" note="Angariação e comprador (Kanban)" />
           <Action icon={Megaphone} title="Meta CRM" href="/app/meta" note="Leads de Facebook e Instagram" />
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />

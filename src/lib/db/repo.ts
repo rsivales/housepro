@@ -1333,6 +1333,323 @@ export async function anonymizeLead(input: {
   }
 }
 
+// --- Contactos, cronologia, tarefas e agenda (F2) --------------------------
+
+import {
+  contactsByOwner as demoContactsByOwner,
+  contactById as demoContactById,
+  activitiesForContact as demoActivitiesForContact,
+  tasksByOwner as demoTasksByOwner,
+  visitsByOwner as demoVisitsByOwner,
+  buildTimeline,
+  type Contact,
+  type ContactActivity,
+  type Task,
+  type Visit,
+} from "@/lib/data/contacts";
+
+function mapContact(r: Row): Contact {
+  return {
+    id: String(r.id),
+    name: String(r.name ?? ""),
+    phone: (r.phone as string) ?? undefined,
+    email: (r.email as string) ?? undefined,
+    type: (r.type as Contact["type"]) ?? "outro",
+    ownerId: String(r.owner_id ?? ""),
+    agencyId: (r.agency_id as string) ?? undefined,
+    zone: (r.zone as string) ?? undefined,
+    budget: (r.budget as string) ?? undefined,
+    language: (r.language as string) ?? undefined,
+    tags: Array.isArray(r.tags) ? (r.tags as string[]) : undefined,
+    source: (r.source as string) ?? undefined,
+    consent: (r.consent as Contact["consent"]) ?? undefined,
+    createdAt: String(r.created_at ?? new Date().toISOString()),
+    lastActivityAt: (r.last_activity_at as string) ?? undefined,
+  };
+}
+
+function mapActivity(r: Row): ContactActivity {
+  return {
+    id: String(r.id),
+    contactId: String(r.contact_id ?? ""),
+    type: (r.type as ContactActivity["type"]) ?? "system",
+    title: String(r.title ?? ""),
+    body: (r.body as string) ?? undefined,
+    actorId: (r.actor_id as string) ?? undefined,
+    actorName: (r.actor_name as string) ?? undefined,
+    direction: (r.direction as ContactActivity["direction"]) ?? undefined,
+    leadId: (r.lead_id as string) ?? undefined,
+    dealRef: (r.deal_ref as string) ?? undefined,
+    propertyRef: (r.property_ref as string) ?? undefined,
+    at: String(r.created_at ?? new Date().toISOString()),
+  };
+}
+
+/** Contactos do consultor (mais recente atividade primeiro). */
+export async function listContactsByOwner(ownerId: string): Promise<Contact[]> {
+  if (!isSupabaseConfigured()) return demoContactsByOwner(ownerId);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("contacts")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .order("updated_at", { ascending: false });
+    return (data ?? []).map(mapContact);
+  } catch {
+    return demoContactsByOwner(ownerId);
+  }
+}
+
+/** Contacto por id. */
+export async function getContact(id: string): Promise<Contact | undefined> {
+  if (!isSupabaseConfigured()) return demoContactById(id);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("contacts").select("*").eq("id", id).maybeSingle();
+    return data ? mapContact(data as Row) : undefined;
+  } catch {
+    return demoContactById(id);
+  }
+}
+
+/** Cria um contacto (dual). Em demo devolve o objeto construído. */
+export async function createContact(input: {
+  name: string;
+  phone?: string;
+  email?: string;
+  type: Contact["type"];
+  ownerId: string;
+  agencyId?: string;
+  zone?: string;
+  budget?: string;
+  language?: string;
+  source?: string;
+}): Promise<Contact> {
+  const contact: Contact = {
+    id: `ct-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+  if (!isSupabaseConfigured()) return contact;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("contacts")
+      .insert({
+        name: input.name,
+        phone: input.phone ?? null,
+        email: input.email ?? null,
+        type: input.type,
+        owner_id: input.ownerId,
+        agency_id: input.agencyId ?? null,
+        zone: input.zone ?? null,
+        budget: input.budget ?? null,
+        language: input.language ?? null,
+        source: input.source ?? null,
+      })
+      .select("id")
+      .single();
+    return { ...contact, id: data ? String(data.id) : contact.id };
+  } catch {
+    return contact;
+  }
+}
+
+/** Cronologia única de um contacto (mais recente primeiro). */
+export async function listContactActivities(contactId: string): Promise<ContactActivity[]> {
+  if (!isSupabaseConfigured()) return demoActivitiesForContact(contactId);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("contact_activities")
+      .select("*")
+      .eq("contact_id", contactId)
+      .order("created_at", { ascending: false });
+    return buildTimeline((data ?? []).map(mapActivity));
+  } catch {
+    return demoActivitiesForContact(contactId);
+  }
+}
+
+/** Acrescenta um evento à cronologia de um contacto (best-effort). */
+export async function addContactActivity(input: {
+  contactId: string;
+  type: ContactActivity["type"];
+  title: string;
+  body?: string;
+  actorId?: string;
+  actorName?: string;
+  direction?: ContactActivity["direction"];
+  leadId?: string;
+  dealRef?: string;
+  propertyRef?: string;
+}): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true;
+  try {
+    const supabase = await createClient();
+    await supabase.from("contact_activities").insert({
+      contact_id: input.contactId,
+      type: input.type,
+      title: input.title,
+      body: input.body ?? null,
+      actor_id: input.actorId ?? null,
+      actor_name: input.actorName ?? null,
+      direction: input.direction ?? null,
+      lead_id: input.leadId ?? null,
+      deal_ref: input.dealRef ?? null,
+      property_ref: input.propertyRef ?? null,
+    });
+    await supabase.from("contacts").update({ updated_at: new Date().toISOString() }).eq("id", input.contactId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Tarefas do consultor (por prazo). */
+export async function listTasksByOwner(ownerId: string): Promise<Task[]> {
+  if (!isSupabaseConfigured()) return demoTasksByOwner(ownerId);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .order("due_at", { ascending: true });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      ownerId: String(r.owner_id ?? ownerId),
+      contactId: (r.contact_id as string) ?? undefined,
+      title: String(r.title ?? ""),
+      kind: (r.kind as Task["kind"]) ?? "other",
+      priority: (r.priority as Task["priority"]) ?? "normal",
+      dueAt: (r.due_at as string) ?? undefined,
+      done: Boolean(r.done),
+      createdAt: String(r.created_at ?? new Date().toISOString()),
+    }));
+  } catch {
+    return demoTasksByOwner(ownerId);
+  }
+}
+
+/** Cria uma tarefa (dual). */
+export async function createTask(input: {
+  ownerId: string;
+  title: string;
+  kind: Task["kind"];
+  priority?: Task["priority"];
+  contactId?: string;
+  contactName?: string;
+  dueAt?: string;
+}): Promise<Task> {
+  const task: Task = {
+    id: `tk-${Date.now()}`,
+    priority: input.priority ?? "normal",
+    done: false,
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+  if (!isSupabaseConfigured()) return task;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("tasks")
+      .insert({
+        owner_id: input.ownerId,
+        contact_id: input.contactId ?? null,
+        title: input.title,
+        kind: input.kind,
+        priority: input.priority ?? "normal",
+        due_at: input.dueAt ?? null,
+      })
+      .select("id")
+      .single();
+    return { ...task, id: data ? String(data.id) : task.id };
+  } catch {
+    return task;
+  }
+}
+
+/** Marca/desmarca uma tarefa como feita (best-effort). */
+export async function setTaskDone(id: string, done: boolean): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true;
+  try {
+    const supabase = await createClient();
+    await supabase.from("tasks").update({ done }).eq("id", id);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Agenda do consultor (visitas/eventos, por data). */
+export async function listVisitsByOwner(ownerId: string): Promise<Visit[]> {
+  if (!isSupabaseConfigured()) return demoVisitsByOwner(ownerId);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("visits")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .order("at", { ascending: true });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      ownerId: String(r.owner_id ?? ownerId),
+      contactId: (r.contact_id as string) ?? undefined,
+      propertyId: (r.property_id as string) ?? undefined,
+      propertyRef: (r.property_ref as string) ?? undefined,
+      kind: (r.kind as Visit["kind"]) ?? "visita",
+      at: String(r.at ?? new Date().toISOString()),
+      durationMin: r.duration_min != null ? Number(r.duration_min) : undefined,
+      status: (r.status as Visit["status"]) ?? "agendada",
+      note: (r.note as string) ?? undefined,
+    }));
+  } catch {
+    return demoVisitsByOwner(ownerId);
+  }
+}
+
+/** Cria uma visita/evento na agenda (dual). */
+export async function createVisit(input: {
+  ownerId: string;
+  contactId?: string;
+  contactName?: string;
+  propertyId?: string;
+  propertyRef?: string;
+  kind: Visit["kind"];
+  at: string;
+  durationMin?: number;
+  note?: string;
+}): Promise<Visit> {
+  const visit: Visit = {
+    id: `vs-${Date.now()}`,
+    status: "agendada",
+    ...input,
+  };
+  if (!isSupabaseConfigured()) return visit;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("visits")
+      .insert({
+        owner_id: input.ownerId,
+        contact_id: input.contactId ?? null,
+        property_id: input.propertyId ?? null,
+        property_ref: input.propertyRef ?? null,
+        kind: input.kind,
+        at: input.at,
+        duration_min: input.durationMin ?? null,
+        note: input.note ?? null,
+      })
+      .select("id")
+      .single();
+    return { ...visit, id: data ? String(data.id) : visit.id };
+  } catch {
+    return visit;
+  }
+}
+
 /** Atividade/linha do tempo de uma lead. */
 export async function listLeadActivity(leadId: string): Promise<LeadActivity[]> {
   if (!isSupabaseConfigured()) return [];

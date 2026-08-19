@@ -2086,6 +2086,98 @@ export async function createOrder(input: {
   }
 }
 
+/** Cria um produto no catálogo (staff). */
+export async function createProduct(input: Omit<Product, "id">): Promise<Product> {
+  const product: Product = { id: `p-${Date.now()}`, ...input };
+  if (!isSupabaseConfigured()) return product;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("products")
+      .insert({
+        name: input.name,
+        category: input.category,
+        price: input.price,
+        unit: input.unit ?? null,
+        supplier: input.supplier ?? null,
+        credit_type: input.creditType ?? null,
+        credit_amount: input.creditAmount ?? null,
+        stock: input.stock ?? null,
+        description: input.description ?? null,
+      })
+      .select("id")
+      .single();
+    return { ...product, id: data ? String(data.id) : product.id };
+  } catch {
+    return product;
+  }
+}
+
+/** Atualiza preço/stock/estado de um produto (staff). */
+export async function updateProduct(
+  id: string,
+  patch: Partial<Pick<Product, "price" | "stock" | "supplier" | "name">> & { active?: boolean }
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true;
+  try {
+    const supabase = await createClient();
+    const row: Record<string, unknown> = {};
+    if (patch.price != null) row.price = patch.price;
+    if (patch.stock != null) row.stock = patch.stock;
+    if (patch.supplier != null) row.supplier = patch.supplier;
+    if (patch.name != null) row.name = patch.name;
+    if (patch.active != null) row.active = patch.active;
+    await supabase.from("products").update(row).eq("id", id);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Encomendas pendentes de aprovação (staff — todas). */
+export async function listPendingOrders(): Promise<Order[]> {
+  if (!isSupabaseConfigured()) {
+    return demoOrdersByBuyer("rui").filter((o) => o.status === "pendente_aprovacao");
+  }
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("orders")
+      .select("*, order_items(*)")
+      .eq("status", "pendente_aprovacao")
+      .order("created_at", { ascending: false });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      buyerId: String(r.buyer_id ?? ""),
+      total: Number(r.total ?? 0),
+      status: (r.status as Order["status"]) ?? "pendente_aprovacao",
+      createdAt: String(r.created_at ?? new Date().toISOString()),
+      items: Array.isArray(r.order_items)
+        ? (r.order_items as Row[]).map((i) => ({
+            productId: String(i.product_id ?? ""),
+            name: String(i.name ?? ""),
+            qty: Number(i.qty ?? 1),
+            unitPrice: Number(i.unit_price ?? 0),
+          }))
+        : [],
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Aprova/rejeita/atualiza o estado de uma encomenda (staff). */
+export async function setOrderStatus(id: string, status: Order["status"]): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true;
+  try {
+    const supabase = await createClient();
+    await supabase.from("orders").update({ status }).eq("id", id);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Nº de encomendas pendentes de aprovação (observabilidade — staff). */
 export async function countPendingApprovals(): Promise<number> {
   if (!isSupabaseConfigured()) {

@@ -12,6 +12,7 @@ import {
   Inbox,
   KanbanSquare,
   BarChart3,
+  Shuffle,
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
@@ -94,6 +95,7 @@ export default async function MetaPage() {
         {/* Navegação do módulo */}
         <div className="mt-6 flex flex-wrap gap-2">
           <SectionChip icon={Megaphone} label="Campanhas" href="/app/meta/campanhas" />
+          <SectionChip icon={Shuffle} label="Distribuição" href="/app/meta/distribuicao" />
           <SectionChip icon={FileText} label="Formulários & mapeamento" href="/app/meta/formularios" />
           <SectionChip
             icon={Inbox}

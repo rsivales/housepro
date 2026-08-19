@@ -6,9 +6,15 @@ import {
   listLeadForms,
   getFieldMapping,
   listAssignmentRules,
+  listAllMetaLeads,
   getPropertyById,
   ingestMetaLead,
 } from "@/lib/db/repo";
+import {
+  unavailableAgents,
+  atCapacityAgents,
+  demoAvailability,
+} from "@/lib/data/availability";
 import {
   sampleAnswersForForm,
   normalizeAnswers,
@@ -87,6 +93,11 @@ export async function POST(request: Request) {
       propertyOwnerId = prop?.agentId;
     }
   }
+  // Disponibilidade (férias/horário) e limite diário → substituto/fallback/inbox.
+  const allLeads = await listAllMetaLeads();
+  const unavailable = unavailableAgents(demoAvailability);
+  const atCapacity = atCapacityAgents(allLeads, rule?.dailyLimit);
+
   const assignment = resolveAssignment({
     campaign,
     rule,
@@ -95,6 +106,8 @@ export async function POST(request: Request) {
     budget: leadPartial.budget,
     language: leadPartial.language,
     specialty: leadPartial.specialty,
+    unavailable,
+    atCapacity,
   });
   if (!assignment.unassigned) {
     leadPartial.assignedAgentId = assignment.assignedAgentId;

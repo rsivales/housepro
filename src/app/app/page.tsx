@@ -181,6 +181,7 @@ export default async function AppPage() {
           <Action icon={Megaphone} title="Meta CRM" href="/app/meta" note="Leads de Facebook e Instagram" />
           <Action icon={PhoneCall} title="X Call" href="/app/x-call" note="Chamadas assistidas com guião" />
           <Action icon={Mail} title="X Campaigns" href="/app/x-campaigns" note="Email marketing e automações" />
+          <Action icon={Store} title="X Market" href="/app/x-market" note="Créditos, serviços e materiais" />
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
           <Action icon={Scale} title="LegalFlow" href="/app/legalflow" note="CPCV e documentos legais com o advogado" />
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />

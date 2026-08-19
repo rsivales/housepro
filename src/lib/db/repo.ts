@@ -1925,6 +1925,167 @@ export async function recordSandboxSend(input: {
   }
 }
 
+// --- X Market (marketplace, carteira, créditos, F5) ------------------------
+
+import {
+  demoProducts,
+  demoWallet,
+  ordersByBuyer as demoOrdersByBuyer,
+  orderTotal,
+  needsApproval,
+  type Product,
+  type Wallet,
+  type Order,
+  type OrderItem,
+} from "@/lib/data/xmarket";
+
+/** Catálogo de produtos/serviços. */
+export async function listProducts(): Promise<Product[]> {
+  if (!isSupabaseConfigured()) return demoProducts;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("products").select("*").eq("active", true).order("category");
+    if (!data || data.length === 0) return demoProducts;
+    return data.map((r: Row) => ({
+      id: String(r.id),
+      name: String(r.name ?? ""),
+      category: (r.category as Product["category"]) ?? "outros",
+      price: Number(r.price ?? 0),
+      unit: (r.unit as string) ?? undefined,
+      supplier: (r.supplier as string) ?? undefined,
+      creditType: (r.credit_type as Product["creditType"]) ?? undefined,
+      creditAmount: r.credit_amount != null ? Number(r.credit_amount) : undefined,
+      stock: r.stock != null ? Number(r.stock) : undefined,
+      description: (r.description as string) ?? undefined,
+    }));
+  } catch {
+    return demoProducts;
+  }
+}
+
+/** Carteira do consultor (saldo + créditos). */
+export async function getWallet(ownerId: string, ownerName?: string): Promise<Wallet> {
+  if (!isSupabaseConfigured()) return demoWallet(ownerId, ownerName);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("wallets")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .eq("scope", "agent")
+      .maybeSingle();
+    if (!data) return demoWallet(ownerId, ownerName);
+    return {
+      id: String(data.id),
+      scope: (data.scope as Wallet["scope"]) ?? "agent",
+      ownerId: String(data.owner_id ?? ownerId),
+      ownerName,
+      balance: Number(data.balance ?? 0),
+      monthlyBudget: data.monthly_budget != null ? Number(data.monthly_budget) : undefined,
+      monthlySpent: Number(data.monthly_spent ?? 0),
+      approvalThreshold: data.approval_threshold != null ? Number(data.approval_threshold) : undefined,
+      blockWhenEmpty: Boolean(data.block_when_empty),
+      credits: Array.isArray(data.credits) ? (data.credits as Wallet["credits"]) : [],
+    };
+  } catch {
+    return demoWallet(ownerId, ownerName);
+  }
+}
+
+/** Encomendas do comprador. */
+export async function listOrders(buyerId: string): Promise<Order[]> {
+  if (!isSupabaseConfigured()) return demoOrdersByBuyer(buyerId);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("orders")
+      .select("*, order_items(*)")
+      .eq("buyer_id", buyerId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map((r: Row) => ({
+      id: String(r.id),
+      buyerId: String(r.buyer_id ?? buyerId),
+      total: Number(r.total ?? 0),
+      status: (r.status as Order["status"]) ?? "pendente_aprovacao",
+      createdAt: String(r.created_at ?? new Date().toISOString()),
+      items: Array.isArray(r.order_items)
+        ? (r.order_items as Row[]).map((i) => ({
+            productId: String(i.product_id ?? ""),
+            name: String(i.name ?? ""),
+            qty: Number(i.qty ?? 1),
+            unitPrice: Number(i.unit_price ?? 0),
+          }))
+        : [],
+    }));
+  } catch {
+    return demoOrdersByBuyer(buyerId);
+  }
+}
+
+/**
+ * Cria uma encomenda. Aplica a regra de aprovação (acima do limite da carteira
+ * → "pendente_aprovacao"), senão debita a carteira e marca "paga". Regista no
+ * livro-razão. Em demo devolve o objeto sem persistir.
+ */
+export async function createOrder(input: {
+  buyerId: string;
+  buyerName?: string;
+  items: OrderItem[];
+}): Promise<Order> {
+  const total = orderTotal(input.items);
+  const wallet = await getWallet(input.buyerId, input.buyerName);
+  const requiresApproval = needsApproval(total, wallet.approvalThreshold);
+  const status: Order["status"] = requiresApproval ? "pendente_aprovacao" : "paga";
+
+  const order: Order = {
+    id: `o-${Date.now()}`,
+    buyerId: input.buyerId,
+    buyerName: input.buyerName,
+    items: input.items,
+    total,
+    status,
+    createdAt: new Date().toISOString(),
+  };
+  if (!isSupabaseConfigured()) return order;
+
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("orders")
+      .insert({ buyer_id: input.buyerId, total, status })
+      .select("id")
+      .single();
+    const id = data ? String(data.id) : order.id;
+    if (input.items.length) {
+      await supabase.from("order_items").insert(
+        input.items.map((i) => ({
+          order_id: id,
+          product_id: i.productId || null,
+          name: i.name,
+          qty: i.qty,
+          unit_price: i.unitPrice,
+        }))
+      );
+    }
+    // Debita a carteira só quando não precisa de aprovação.
+    if (!requiresApproval) {
+      await supabase
+        .from("wallets")
+        .update({ balance: wallet.balance - total, monthly_spent: wallet.monthlySpent + total })
+        .eq("id", wallet.id);
+      await supabase.from("wallet_ledger").insert({
+        wallet_id: wallet.id,
+        kind: "encomenda",
+        amount: total,
+        note: input.items.map((i) => `${i.qty}× ${i.name}`).join(", "),
+      });
+    }
+    return { ...order, id };
+  } catch {
+    return order;
+  }
+}
+
 /** Atividade/linha do tempo de uma lead. */
 export async function listLeadActivity(leadId: string): Promise<LeadActivity[]> {
   if (!isSupabaseConfigured()) return [];

@@ -2086,6 +2086,23 @@ export async function createOrder(input: {
   }
 }
 
+/** Nº de encomendas pendentes de aprovação (observabilidade — staff). */
+export async function countPendingApprovals(): Promise<number> {
+  if (!isSupabaseConfigured()) {
+    return demoOrdersByBuyer("rui").filter((o) => o.status === "pendente_aprovacao").length;
+  }
+  try {
+    const supabase = await createClient();
+    const { count } = await supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pendente_aprovacao");
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** Atividade/linha do tempo de uma lead. */
 export async function listLeadActivity(leadId: string): Promise<LeadActivity[]> {
   if (!isSupabaseConfigured()) return [];

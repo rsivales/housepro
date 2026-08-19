@@ -31,6 +31,8 @@ import {
   Share2,
   Megaphone,
   Mail,
+  Search,
+  Activity,
   ArrowRight,
 } from "lucide-react";
 
@@ -204,6 +206,8 @@ export default async function AppPage() {
           <Action icon={GraduationCap} title="Formação" href="/app/formacao" note="Academia: cursos e certificação" />
           <Action icon={Scale} title="Qualidade" href="/app/qualidade" note="Reputação: méritos e infrações" />
           <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />
+          <Action icon={Search} title="Pesquisa" href="/app/pesquisa" note="Contactos, leads, imóveis e campanhas" />
+          <Action icon={Activity} title="Observabilidade" href="/app/observabilidade" note="Saúde operacional dos módulos" />
         </ActionGroup>
 
         {/* Contactos & pedidos de visita */}

@@ -5,6 +5,7 @@
  */
 
 import type { Notification } from "@/lib/db/repo";
+import { quoteTextOfDay } from "@/lib/data/quotes";
 
 /** Frases motivantes (a do dia é escolhida de forma determinística pela data). */
 export const MOTIVATION: string[] = [
@@ -20,11 +21,10 @@ export const MOTIVATION: string[] = [
   "Vende a experiência, não o imóvel. O imóvel vende-se sozinho.",
 ];
 
-/** Frase do dia — determinística (muda todos os dias, igual para todos). */
+/** Frase do dia — determinística (muda todos os dias, igual para todos).
+ *  Delega na biblioteca de frases (§7), que suporta datas especiais e campanhas. */
 export function phraseOfTheDay(now = new Date()): string {
-  const start = new Date(now.getFullYear(), 0, 0);
-  const day = Math.floor((now.getTime() - start.getTime()) / 86_400_000);
-  return MOTIVATION[day % MOTIVATION.length];
+  return quoteTextOfDay(now);
 }
 
 /** Notificações de exemplo (modo demo, sem Supabase). */

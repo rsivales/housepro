@@ -403,6 +403,23 @@ export async function getConcelhosConfig(): Promise<ConcelhosConfig> {
   }
 }
 
+/** Frases de campanha/datas especiais geridas na administração (site_settings). */
+export async function getQuotesConfig(): Promise<import("@/lib/data/quotes").DailyQuote[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "quotes")
+      .maybeSingle();
+    const v = data?.value as { extra?: import("@/lib/data/quotes").DailyQuote[] } | undefined;
+    return Array.isArray(v?.extra) ? v!.extra : [];
+  } catch {
+    return [];
+  }
+}
+
 /** Histórico de rastreio de um imóvel (quem alterou o quê e quando). */
 export async function listPropertyAudit(propertyId: string): Promise<AuditEntry[]> {
   if (!isSupabaseConfigured()) return [];

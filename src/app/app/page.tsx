@@ -39,7 +39,9 @@ import {
 
 import { getSession } from "@/lib/supabase/auth";
 import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications } from "@/lib/db/repo";
-import { phraseOfTheDay, demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
+import { demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
+import { quoteTextOfDay } from "@/lib/data/quotes";
+import { getQuotesConfig } from "@/lib/db/repo";
 import { PhraseOfTheDay, LastAngariadoBanner, NotificationsInbox, ActivitiesBoard } from "@/components/consultant/dashboard-extras";
 import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
 import { referralsIncoming } from "@/lib/data/referrals";
@@ -77,7 +79,7 @@ export default async function AppPage() {
   const refsNovas = referralsIncoming(agent.id).filter((r) => r.status === "pendente").length;
 
   // Dashboard: frase do dia, notificações, última angariação da agência, atividades.
-  const phrase = phraseOfTheDay();
+  const phrase = quoteTextOfDay(new Date(), await getQuotesConfig());
   const tip = tipOfTheDay();
   const realNotifs = await listNotifications(agent.id);
   const notifs = realNotifs.length ? realNotifs : demoNotifications();

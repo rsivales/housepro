@@ -1783,6 +1783,148 @@ export async function logCall(input: {
   }
 }
 
+// --- X Campaigns (email marketing, F4) -------------------------------------
+
+import {
+  emailCampaignsByOwner as demoEmailCampaignsByOwner,
+  type EmailCampaign,
+  type EmailStats,
+} from "@/lib/data/xcampaigns";
+
+function mapEmailCampaign(r: Row): EmailCampaign {
+  return {
+    id: String(r.id),
+    name: String(r.name ?? ""),
+    type: (r.type as EmailCampaign["type"]) ?? "campanha",
+    subject: String(r.subject ?? ""),
+    preheader: (r.preheader as string) ?? undefined,
+    blocks: Array.isArray(r.blocks) ? (r.blocks as EmailCampaign["blocks"]) : [],
+    segment: (r.segment as EmailCampaign["segment"]) ?? {},
+    status: (r.status as EmailCampaign["status"]) ?? "rascunho",
+    scheduleAt: (r.schedule_at as string) ?? undefined,
+    ownerId: String(r.owner_id ?? ""),
+    stats: (r.stats as EmailStats) ?? undefined,
+    createdAt: String(r.created_at ?? new Date().toISOString()),
+  };
+}
+
+/** Campanhas de email do consultor. */
+export async function listEmailCampaigns(ownerId: string): Promise<EmailCampaign[]> {
+  if (!isSupabaseConfigured()) return demoEmailCampaignsByOwner(ownerId);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("email_campaigns")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map(mapEmailCampaign);
+  } catch {
+    return demoEmailCampaignsByOwner(ownerId);
+  }
+}
+
+/** Cria uma campanha de email (dual). */
+export async function createEmailCampaign(input: {
+  ownerId: string;
+  name: string;
+  type: EmailCampaign["type"];
+  subject: string;
+  blocks: EmailCampaign["blocks"];
+  segment: EmailCampaign["segment"];
+  scheduleAt?: string;
+}): Promise<EmailCampaign> {
+  const campaign: EmailCampaign = {
+    id: `ec-${Date.now()}`,
+    status: input.scheduleAt ? "agendada" : "rascunho",
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+  if (!isSupabaseConfigured()) return campaign;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("email_campaigns")
+      .insert({
+        owner_id: input.ownerId,
+        name: input.name,
+        type: input.type,
+        subject: input.subject,
+        blocks: input.blocks,
+        segment: input.segment,
+        status: campaign.status,
+        schedule_at: input.scheduleAt ?? null,
+      })
+      .select("id")
+      .single();
+    return { ...campaign, id: data ? String(data.id) : campaign.id };
+  } catch {
+    return campaign;
+  }
+}
+
+/** Emails suprimidos (unsubscribe/devoluções) — nunca receber. */
+export async function listSuppressions(): Promise<string[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("email_suppressions").select("email");
+    return (data ?? []).map((r: Row) => String(r.email ?? "").toLowerCase());
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Regista o resultado de um envio SANDBOX: guarda as estatísticas, marca a
+ * campanha e escreve o email na cronologia dos destinatários. NÃO envia emails
+ * reais. Em demo devolve ok.
+ */
+export async function recordSandboxSend(input: {
+  campaignId: string;
+  subject: string;
+  recipients: { contactId?: string; email?: string; name?: string }[];
+  stats: EmailStats;
+  actorId?: string;
+  actorName?: string;
+}): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true;
+  try {
+    const supabase = await createClient();
+    await supabase
+      .from("email_campaigns")
+      .update({ status: "sandbox", stats: input.stats })
+      .eq("id", input.campaignId);
+    if (input.recipients.length) {
+      await supabase.from("email_sends").insert(
+        input.recipients.map((r) => ({
+          campaign_id: input.campaignId,
+          contact_id: r.contactId ?? null,
+          email: r.email ?? null,
+          status: "sandbox",
+          sandbox: true,
+        }))
+      );
+      // Cronologia de cada contacto conhecido.
+      for (const r of input.recipients) {
+        if (r.contactId) {
+          await addContactActivity({
+            contactId: r.contactId,
+            type: "email",
+            title: `Email (sandbox): ${input.subject}`,
+            direction: "out",
+            actorId: input.actorId,
+            actorName: input.actorName,
+          });
+        }
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Atividade/linha do tempo de uma lead. */
 export async function listLeadActivity(leadId: string): Promise<LeadActivity[]> {
   if (!isSupabaseConfigured()) return [];

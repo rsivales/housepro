@@ -706,6 +706,10 @@ function mapLeadRow(r: Row): Lead {
     unassigned: r.unassigned != null ? Boolean(r.unassigned) : undefined,
     zone: (r.zone as string) ?? undefined,
     budget: (r.budget as string) ?? undefined,
+    language: (r.language as string) ?? undefined,
+    specialty: (r.specialty as string) ?? undefined,
+    offeredTo: Array.isArray(r.offered_to) ? (r.offered_to as string[]) : undefined,
+    externalId: (r.external_id as string) ?? undefined,
     consent: (r.consent as Lead["consent"]) ?? undefined,
   };
 }
@@ -862,7 +866,16 @@ export async function listAssignmentRules(campaignId?: string): Promise<Assignme
       teamId: (r.team_id as string) ?? undefined,
       pool: Array.isArray(r.pool) ? (r.pool as string[]) : undefined,
       rrIndex: r.rr_index != null ? Number(r.rr_index) : undefined,
+      weights: (r.weights as Record<string, number>) ?? undefined,
       zoneMap: (r.zone_map as Record<string, string>) ?? undefined,
+      budgetMap: (r.budget_map as Record<string, string>) ?? undefined,
+      languageMap: (r.language_map as Record<string, string>) ?? undefined,
+      specialtyMap: (r.specialty_map as Record<string, string>) ?? undefined,
+      substituteId: (r.substitute_id as string) ?? undefined,
+      fallbackId: (r.fallback_id as string) ?? undefined,
+      dailyLimit: r.daily_limit != null ? Number(r.daily_limit) : undefined,
+      acceptanceDeadlineH: r.acceptance_deadline_h != null ? Number(r.acceptance_deadline_h) : undefined,
+      notifyManagerId: (r.notify_manager_id as string) ?? undefined,
       active: r.active != null ? Boolean(r.active) : true,
       createdAt: String(r.created_at ?? new Date().toISOString()),
     }));
@@ -972,6 +985,77 @@ export async function createCampaign(input: {
   }
 }
 
+/** Cria/atualiza a regra de atribuição de uma campanha (uma ativa por campanha). */
+export async function saveAssignmentRule(input: {
+  campaignId: string;
+  strategy: AssignmentRule["strategy"];
+  agentId?: string;
+  teamId?: string;
+  pool?: string[];
+  weights?: Record<string, number>;
+  zoneMap?: Record<string, string>;
+  budgetMap?: Record<string, string>;
+  languageMap?: Record<string, string>;
+  specialtyMap?: Record<string, string>;
+  substituteId?: string;
+  fallbackId?: string;
+  dailyLimit?: number;
+  acceptanceDeadlineH?: number;
+  notifyManagerId?: string;
+}): Promise<AssignmentRule> {
+  const rule: AssignmentRule = {
+    id: `rule-${Date.now()}`,
+    campaignId: input.campaignId,
+    strategy: input.strategy,
+    agentId: input.agentId,
+    teamId: input.teamId,
+    pool: input.pool,
+    weights: input.weights,
+    zoneMap: input.zoneMap,
+    budgetMap: input.budgetMap,
+    languageMap: input.languageMap,
+    specialtyMap: input.specialtyMap,
+    substituteId: input.substituteId,
+    fallbackId: input.fallbackId,
+    dailyLimit: input.dailyLimit,
+    acceptanceDeadlineH: input.acceptanceDeadlineH,
+    notifyManagerId: input.notifyManagerId,
+    active: true,
+    createdAt: new Date().toISOString(),
+  };
+  if (!isSupabaseConfigured()) return rule;
+  try {
+    const supabase = await createClient();
+    // uma regra ativa por campanha: desativa as anteriores.
+    await supabase.from("assignment_rules").update({ active: false }).eq("campaign_id", input.campaignId);
+    const { data } = await supabase
+      .from("assignment_rules")
+      .insert({
+        campaign_id: input.campaignId,
+        strategy: input.strategy,
+        agent_id: input.agentId ?? null,
+        team_id: input.teamId ?? null,
+        pool: input.pool ?? null,
+        weights: input.weights ?? null,
+        zone_map: input.zoneMap ?? null,
+        budget_map: input.budgetMap ?? null,
+        language_map: input.languageMap ?? null,
+        specialty_map: input.specialtyMap ?? null,
+        substitute_id: input.substituteId ?? null,
+        fallback_id: input.fallbackId ?? null,
+        daily_limit: input.dailyLimit ?? null,
+        acceptance_deadline_h: input.acceptanceDeadlineH ?? null,
+        notify_manager_id: input.notifyManagerId ?? null,
+        active: true,
+      })
+      .select("id")
+      .single();
+    return { ...rule, id: data ? String(data.id) : rule.id };
+  } catch {
+    return rule;
+  }
+}
+
 /** Guarda o mapeamento pergunta→campo de um formulário (substitui o existente). */
 export async function saveFieldMapping(
   formId: string,
@@ -1050,6 +1134,18 @@ export async function ingestMetaLead(input: {
 
   try {
     const supabase = await createClient();
+
+    // Idempotência: se já existe uma lead com o mesmo leadgen_id, devolve-a
+    // (não duplica na reentrega de webhooks).
+    if (lead.externalId) {
+      const { data: dup } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("external_id", lead.externalId)
+        .maybeSingle();
+      if (dup) return mapLeadRow(dup as Row);
+    }
+
     const { data } = await supabase
       .from("leads")
       .insert({
@@ -1076,6 +1172,10 @@ export async function ingestMetaLead(input: {
         unassigned: lead.unassigned ?? true,
         zone: lead.zone ?? null,
         budget: lead.budget ?? null,
+        language: lead.language ?? null,
+        specialty: lead.specialty ?? null,
+        offered_to: lead.offeredTo ?? null,
+        external_id: lead.externalId ?? null,
         consent: lead.consent ?? null,
       })
       .select("id")

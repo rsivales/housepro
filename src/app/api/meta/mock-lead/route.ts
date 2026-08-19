@@ -73,8 +73,10 @@ export async function POST(request: Request) {
 
   const normalized = normalizeAnswers(raw, form, mapping);
   const leadPartial = buildMetaLead(campaign, form, normalized);
+  // Chave de idempotência simulada (num evento real vem o leadgen_id do Meta).
+  leadPartial.externalId = `mock-${campaign.id}-${Date.now()}`;
 
-  // Aplicar a regra de atribuição da campanha (motor da Fase E).
+  // Aplicar a regra de atribuição da campanha (motor de atribuição).
   const rules = await listAssignmentRules(campaign.id);
   const rule = rules.find((r) => r.active) ?? rules[0];
   let propertyOwnerId: string | undefined;
@@ -90,11 +92,17 @@ export async function POST(request: Request) {
     rule,
     propertyOwnerId,
     zone: leadPartial.zone,
+    budget: leadPartial.budget,
+    language: leadPartial.language,
+    specialty: leadPartial.specialty,
   });
   if (!assignment.unassigned) {
     leadPartial.assignedAgentId = assignment.assignedAgentId;
     leadPartial.assignedTeamId = assignment.assignedTeamId;
     leadPartial.unassigned = false;
+  } else if (assignment.offeredTo) {
+    // "Primeiro a aceitar": fica no inbox, oferecida ao conjunto.
+    leadPartial.offeredTo = assignment.offeredTo;
   }
 
   const lead = await ingestMetaLead({ lead: leadPartial, answers: normalized.answers });

@@ -240,16 +240,28 @@ export type AssignStrategy =
   | "specific" // consultor específico (obrigatório indicar agentId)
   | "team" // uma equipa
   | "round_robin" // rotação por um conjunto de consultores
+  | "round_robin_weighted" // rotação ponderada (pesos por consultor)
   | "zone" // por zona/concelho → agência ou consultor
   | "property" // pelo angariador do imóvel associado
+  | "budget" // por escalão de orçamento → destino
+  | "language" // por idioma → destino
+  | "specialty" // por especialidade → destino
+  | "first_accept" // oferecida a um conjunto; o 1.º a aceitar fica com ela
+  | "manual" // distribuição manual (fica no inbox à espera do gestor)
   | "unassigned"; // fica no inbox "Leads sem responsável"
 
 export const ASSIGN_STRATEGY_LABEL: Record<AssignStrategy, string> = {
   specific: "Consultor específico",
   team: "Equipa",
   round_robin: "Rotação (round-robin)",
+  round_robin_weighted: "Rotação ponderada",
   zone: "Por zona / concelho",
   property: "Angariador do imóvel",
+  budget: "Por orçamento",
+  language: "Por idioma",
+  specialty: "Por especialidade",
+  first_accept: "Primeiro a aceitar",
+  manual: "Manual (inbox)",
   unassigned: "Sem responsável (inbox)",
 };
 
@@ -262,12 +274,30 @@ export interface AssignmentRule {
   agentName?: string;
   /** team → equipa de destino. */
   teamId?: string;
-  /** round_robin → conjunto de consultores em rotação. */
+  /** round_robin / round_robin_weighted / first_accept → conjunto de consultores. */
   pool?: string[];
   /** round_robin → índice do próximo a receber (estado). */
   rrIndex?: number;
+  /** round_robin_weighted → peso por consultor (agentId → peso ≥ 1). */
+  weights?: Record<string, number>;
   /** zone → mapa concelho→destino (agencyId ou agentId). */
   zoneMap?: Record<string, string>;
+  /** budget → mapa escalão→destino (ex.: "250k–500k" → agentId). */
+  budgetMap?: Record<string, string>;
+  /** language → mapa idioma→destino (ex.: "en" → agentId). */
+  languageMap?: Record<string, string>;
+  /** specialty → mapa especialidade→destino. */
+  specialtyMap?: Record<string, string>;
+  /** Substituto quando o destino está indisponível (horário/férias). */
+  substituteId?: string;
+  /** Último recurso antes do inbox, se ninguém elegível. */
+  fallbackId?: string;
+  /** Limite diário de leads por consultor (0/ausente = sem limite). */
+  dailyLimit?: number;
+  /** Prazo (horas) para aceitar em "primeiro a aceitar". */
+  acceptanceDeadlineH?: number;
+  /** Gestor a avisar em falhas de atribuição/SLA. */
+  notifyManagerId?: string;
   active: boolean;
   createdAt: string;
 }
@@ -325,17 +355,50 @@ export const META_PIPELINES: MetaPipeline[] = [
   {
     key: "compradores",
     label: "Compradores",
-    stages: ["Nova", "Qualificada", "Contactada", "Visita", "Proposta", "Fechada"],
+    stages: [
+      "Nova",
+      "Por contactar",
+      "Contactada",
+      "Qualificada",
+      "Imóveis enviados",
+      "Visita",
+      "Proposta",
+      "Negociação",
+      "Fechada",
+      "Perdida",
+      "Nutrição",
+    ],
   },
   {
     key: "proprietarios",
     label: "Proprietários",
-    stages: ["Nova", "Qualificada", "Contactada", "Reunião", "Angariado", "Publicado"],
+    stages: [
+      "Nova",
+      "Por contactar",
+      "Contactada",
+      "Qualificada",
+      "Avaliação",
+      "Proposta de serviço",
+      "Contrato",
+      "Angariação",
+      "Perdida",
+      "Nutrição",
+    ],
   },
   {
     key: "recrutamento",
     label: "Recrutamento",
-    stages: ["Nova", "Triagem", "Entrevista", "Proposta", "Integrado"],
+    stages: [
+      "Candidatura",
+      "Pré-qualificação",
+      "Contactada",
+      "Entrevista",
+      "Proposta",
+      "Onboarding",
+      "Contratada",
+      "Rejeitada",
+      "Banco de talento",
+    ],
   },
 ];
 

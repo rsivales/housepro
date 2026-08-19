@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { createCampaign, listCampaigns } from "@/lib/db/repo";
-import type { Campaign } from "@/lib/data/meta";
+import { createCampaign, listCampaigns, saveAssignmentRule } from "@/lib/db/repo";
+import type { Campaign, AssignStrategy } from "@/lib/data/meta";
+
+interface Distribution {
+  strategy: AssignStrategy;
+  agentId?: string;
+  teamId?: string;
+  pool?: string[];
+  dailyLimit?: number;
+  substituteId?: string;
+  fallbackId?: string;
+}
 
 /**
  * Campanhas do módulo Meta CRM.
@@ -34,9 +44,9 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: Partial<Campaign>;
+  let body: Partial<Campaign> & { distribution?: Distribution };
   try {
-    body = (await request.json()) as Partial<Campaign>;
+    body = (await request.json()) as Partial<Campaign> & { distribution?: Distribution };
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
@@ -61,6 +71,27 @@ export async function POST(request: Request) {
     status: body.status,
     createdBy: session.demo ? undefined : session.agent.id,
   });
+
+  // Regra de distribuição (opcional). "Consultor específico" exige o consultor.
+  const dist = body.distribution;
+  if (dist && dist.strategy) {
+    if (dist.strategy === "specific" && !dist.agentId) {
+      return NextResponse.json(
+        { error: "Distribuição “consultor específico” exige selecionar o consultor." },
+        { status: 400 }
+      );
+    }
+    await saveAssignmentRule({
+      campaignId: campaign.id,
+      strategy: dist.strategy,
+      agentId: dist.agentId,
+      teamId: dist.teamId,
+      pool: dist.pool,
+      dailyLimit: dist.dailyLimit,
+      substituteId: dist.substituteId,
+      fallbackId: dist.fallbackId,
+    });
+  }
 
   return NextResponse.json({ campaign, demo: session.demo });
 }

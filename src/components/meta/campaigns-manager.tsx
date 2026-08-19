@@ -7,10 +7,22 @@ import { Button } from "@/components/ui/button";
 import {
   CAMPAIGN_TYPE_LABEL,
   CAMPAIGN_STATUS,
+  ASSIGN_STRATEGY_LABEL,
   type Campaign,
   type CampaignType,
   type CampaignOwnerType,
+  type AssignStrategy,
 } from "@/lib/data/meta";
+
+/** Estratégias oferecidas no formulário de criação (as restantes por API). */
+const FORM_STRATEGIES: AssignStrategy[] = [
+  "unassigned",
+  "specific",
+  "round_robin",
+  "first_accept",
+  "property",
+  "manual",
+];
 
 interface Option {
   id: string;
@@ -45,6 +57,9 @@ export function CampaignsManager({
   const [ownerId, setOwnerId] = React.useState(agencies[0]?.id ?? "");
   const [responsibleId, setResponsibleId] = React.useState("");
   const [objective, setObjective] = React.useState("");
+  const [strategy, setStrategy] = React.useState<AssignStrategy>("unassigned");
+  const [distAgentId, setDistAgentId] = React.useState("");
+  const [pool, setPool] = React.useState<string[]>([]);
 
   const owners = ownerType === "AGENCY" ? agencies : agents;
 
@@ -58,9 +73,21 @@ export function CampaignsManager({
     setSaving(true);
     setError(null);
     setDone(false);
+    // Validação da distribuição: "consultor específico" exige o consultor.
+    if (strategy === "specific" && !distAgentId) {
+      setError("A distribuição “consultor específico” exige selecionar o consultor.");
+      setSaving(false);
+      return;
+    }
     try {
       const ownerName = owners.find((o) => o.id === ownerId)?.name;
       const responsibleName = agents.find((a) => a.id === responsibleId)?.name;
+      const usesPool = strategy === "round_robin" || strategy === "first_accept";
+      const distribution = {
+        strategy,
+        agentId: strategy === "specific" ? distAgentId : undefined,
+        pool: usesPool ? pool : undefined,
+      };
       const res = await fetch("/api/meta/campaigns", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -74,6 +101,7 @@ export function CampaignsManager({
           responsibleName,
           objective: objective || undefined,
           status: "ativa",
+          distribution,
         }),
       });
       const data = await res.json();
@@ -83,6 +111,9 @@ export function CampaignsManager({
       setName("");
       setObjective("");
       setResponsibleId("");
+      setStrategy("unassigned");
+      setDistAgentId("");
+      setPool([]);
       setTimeout(() => setOpen(false), 700);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
@@ -180,6 +211,69 @@ export function CampaignsManager({
                 className="input"
               />
             </Field>
+
+            {/* Distribuição das leads */}
+            <Field label="Distribuição das leads" className="sm:col-span-2">
+              <select
+                value={strategy}
+                onChange={(e) => setStrategy(e.target.value as AssignStrategy)}
+                className="input"
+              >
+                {FORM_STRATEGIES.map((s) => (
+                  <option key={s} value={s}>
+                    {ASSIGN_STRATEGY_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            {strategy === "specific" && (
+              <Field label="Consultor específico *" className="sm:col-span-2">
+                <select
+                  value={distAgentId}
+                  onChange={(e) => setDistAgentId(e.target.value)}
+                  className="input"
+                >
+                  <option value="">— selecionar consultor —</option>
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+
+            {(strategy === "round_robin" || strategy === "first_accept") && (
+              <Field
+                label={strategy === "round_robin" ? "Consultores na rotação" : "Consultores a quem oferecer"}
+                className="sm:col-span-2"
+              >
+                <div className="flex flex-wrap gap-2 rounded-lg border p-2">
+                  {agents.map((a) => {
+                    const on = pool.includes(a.id);
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() =>
+                          setPool((prev) =>
+                            on ? prev.filter((x) => x !== a.id) : [...prev, a.id]
+                          )
+                        }
+                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          on
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {a.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            )}
           </div>
 
           {error && <p className="mt-3 text-sm text-destructive">{error}</p>}

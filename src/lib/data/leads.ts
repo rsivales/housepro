@@ -88,6 +88,20 @@ export interface Lead {
   zone?: string;
   /** Orçamento indicado (texto livre do formulário). */
   budget?: string;
+  /** Idioma preferido do contacto (para atribuição por idioma). */
+  language?: string;
+  /** Especialidade pretendida (ex.: luxo, comercial, arrendamento). */
+  specialty?: string;
+  /**
+   * "Primeiro a aceitar": conjunto de consultores a quem a lead foi oferecida.
+   * Fica no inbox até um deles aceitar.
+   */
+  offeredTo?: string[];
+  /**
+   * Identificador externo do Meta (leadgen_id) — chave de idempotência para
+   * evitar criar a mesma lead duas vezes na receção de webhooks.
+   */
+  externalId?: string;
 }
 
 /** Leads de exemplo (modo demo, sem Supabase) — associadas ao consultor Rui. */

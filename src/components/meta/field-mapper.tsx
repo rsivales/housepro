@@ -10,6 +10,7 @@ import {
   type LeadField,
   type FieldMapping,
 } from "@/lib/data/meta";
+import { detectUnmappedQuestions } from "@/lib/meta/ingest";
 
 /**
  * Editor de mapeamento pergunta→campo por formulário. Para cada pergunta do
@@ -84,11 +85,18 @@ function FormCard({
     }
   }
 
+  const unmapped = detectUnmappedQuestions(form, mapping);
+
   return (
     <div className="rounded-2xl border bg-card p-4 shadow-sm">
       <div className="flex items-center gap-2">
         <FileText className="size-4 text-primary" />
         <p className="font-medium">{form.name}</p>
+        {unmapped.length > 0 && (
+          <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[11px] font-medium text-gold-foreground">
+            {unmapped.length} por mapear
+          </span>
+        )}
         <span className="ml-auto text-[11px] text-muted-foreground">
           {form.questions.length} pergunta{form.questions.length === 1 ? "" : "s"}
         </span>

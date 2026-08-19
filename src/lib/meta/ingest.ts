@@ -168,6 +168,18 @@ export function sampleAnswersForForm(form: LeadForm): RawAnswer[] {
   });
 }
 
+/**
+ * Deteta perguntas do formulário que ainda não têm mapeamento (perguntas novas
+ * ou por mapear). Alimenta o indicador de "campos não mapeados".
+ */
+export function detectUnmappedQuestions(
+  form: LeadForm,
+  mapping: FieldMapping | undefined
+): LeadForm["questions"] {
+  const mapped = new Set((mapping?.map ?? []).map((m) => m.questionKey));
+  return form.questions.filter((q) => !mapped.has(q.key));
+}
+
 /** Converte respostas normalizadas em linhas LeadAnswer (para a persistência). */
 export function toLeadAnswers(
   leadId: string,

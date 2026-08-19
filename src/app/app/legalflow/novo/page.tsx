@@ -42,8 +42,15 @@ export default function NovoProcessoPage() {
       sections: templateSections(type),
       checklist: [],
       updatedAt: new Date().toISOString(),
+      clientVisible: false,
     };
     setCreated(proc);
+    // Avisa o advogado (app + email) que há um pedido novo — best-effort.
+    void fetch("/api/legal/request", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type, propertyRef: title.trim(), note: note.trim() || undefined }),
+    }).catch(() => {});
   }
 
   return (

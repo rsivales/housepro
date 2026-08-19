@@ -403,6 +403,29 @@ export async function getConcelhosConfig(): Promise<ConcelhosConfig> {
   }
 }
 
+/** Configuração do advogado (honorários/serviços/pagamento) — site_settings. */
+export async function getLawyerConfig(): Promise<import("@/lib/data/legalflow").LawyerConfig> {
+  const { DEFAULT_LAWYER_CONFIG } = await import("@/lib/data/legalflow");
+  if (!isSupabaseConfigured()) return DEFAULT_LAWYER_CONFIG;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "lawyer")
+      .maybeSingle();
+    const v = data?.value as Partial<import("@/lib/data/legalflow").LawyerConfig> | undefined;
+    if (!v) return DEFAULT_LAWYER_CONFIG;
+    return {
+      services: Array.isArray(v.services) ? v.services : DEFAULT_LAWYER_CONFIG.services,
+      methods: Array.isArray(v.methods) ? v.methods : DEFAULT_LAWYER_CONFIG.methods,
+      note: v.note ?? DEFAULT_LAWYER_CONFIG.note,
+    };
+  } catch {
+    return DEFAULT_LAWYER_CONFIG;
+  }
+}
+
 /** Frases de campanha/datas especiais geridas na administração (site_settings). */
 export async function getQuotesConfig(): Promise<import("@/lib/data/quotes").DailyQuote[]> {
   if (!isSupabaseConfigured()) return [];

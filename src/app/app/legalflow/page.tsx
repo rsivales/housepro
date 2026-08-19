@@ -43,11 +43,18 @@ export default async function LegalFlowPage() {
             </h1>
             <p className="text-sm text-muted-foreground">Gestão de CPCV e documentos legais — comum a advogado, coordenação, consultor e cliente.</p>
           </div>
-          {canCreate && (
-            <Link href="/app/legalflow/novo" className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
-              <PenLine className="size-4" /> Novo processo
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {(role === "advogado" || role === "admin" || role === "superadmin") && (
+              <Link href="/app/legalflow/config" className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-secondary">
+                <Scale className="size-4 text-primary" /> Configuração
+              </Link>
+            )}
+            {canCreate && (
+              <Link href="/app/legalflow/novo" className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+                <PenLine className="size-4" /> Novo processo
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* KPIs */}

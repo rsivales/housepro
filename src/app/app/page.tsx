@@ -33,6 +33,7 @@ import {
   Mail,
   Search,
   Activity,
+  Gauge,
   ArrowRight,
 } from "lucide-react";
 
@@ -172,6 +173,7 @@ export default async function AppPage() {
           <Action icon={Upload} title="Carregar imóvel" href="/app/imovel/novo" note="Fotos + comissão + marca de água" />
           <Action icon={Store} title="Mercado & comissões" href="/app/mercado" note="Imóveis da rede + referências" />
           <Action icon={LayoutGrid} title="A minha montra" href={`/consultor/${agent.id}`} note="Página pública" />
+          <Action icon={Gauge} title="Desempenho dos imóveis" href="/app/desempenho" note="Sem contacto, pouca procura, rever preço" />
           <Action icon={Share2} title="Portais & exportações" href="/app/portais" note="Idealista, Imovirtual, Facebook…" />
         </ActionGroup>
 

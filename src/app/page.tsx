@@ -85,10 +85,8 @@ export default async function Home() {
           <UsefulTools />
         </div>
 
-        {/* 8. Histórias reais */}
-        <div className="mt-16 sm:mt-24">
-          <RealStories />
-        </div>
+        {/* 8. Histórias reais (oculta enquanto não houver histórias reais) */}
+        <RealStories />
 
         {/* 9. Recrutamento */}
         <div className="mt-16 sm:mt-24">

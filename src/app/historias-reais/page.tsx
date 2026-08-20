@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { PublicHeader } from "@/components/home/public-header";
 import { PublicFooter } from "@/components/home/public-footer";
 import { StoriesGrid } from "@/components/home/stories-grid";
-import { STORIES } from "@/lib/data/stories";
+import { publishedStories } from "@/lib/data/stories";
 
 export const metadata: Metadata = {
   title: "Histórias reais — HousePro",
@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default function HistoriasReaisPage() {
+  const stories = publishedStories();
   return (
     <div className="hp min-h-dvh bg-background">
       <PublicHeader />
@@ -27,19 +28,30 @@ export default function HistoriasReaisPage() {
               A nossa melhor prova são as pessoas.
             </h1>
             <p className="mt-4 max-w-xl text-white/75">
-              Cada história começou com um contacto e terminou numa chave nova. Estas são algumas
-              delas — partilhadas com o consentimento de quem as viveu.
+              Partilhamos apenas histórias verdadeiras, com o consentimento de quem as viveu.
             </p>
           </div>
         </section>
 
-        {/* Grelha com filtros */}
+        {/* Grelha com filtros — ou estado de preparação, sem conteúdos fictícios */}
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <StoriesGrid stories={STORIES} />
-          <p className="mt-8 text-xs text-muted-foreground">
-            Respeitamos a privacidade: não são apresentados documentos, valores não autorizados,
-            moradas completas ou imagens sem consentimento.
-          </p>
+          {stories.length > 0 ? (
+            <>
+              <StoriesGrid stories={stories} />
+              <p className="mt-8 text-xs text-muted-foreground">
+                Respeitamos a privacidade: não são apresentados documentos, valores não autorizados,
+                moradas completas ou imagens sem consentimento.
+              </p>
+            </>
+          ) : (
+            <div className="rounded-3xl border bg-card p-8 text-center shadow-sm sm:p-12">
+              <h2 className="font-display text-xl sm:text-2xl">Histórias reais, em preparação</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                Estamos a reunir testemunhos verdadeiros, com autorização de quem os viveu. Não
+                publicamos histórias, nomes ou fotografias fictícias.
+              </p>
+            </div>
+          )}
         </section>
 
         {/* CTA */}

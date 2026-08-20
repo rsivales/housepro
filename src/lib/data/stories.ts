@@ -1,53 +1,53 @@
 /**
- * Histórias reais de clientes. Geridas (no futuro) pelo admin com registo de
- * consentimento. Privacidade: SEM documentos legíveis, assinaturas, NIF,
- * moradas completas, valores não autorizados ou rostos sem consentimento.
+ * Histórias reais de clientes.
  *
- * `videoSrc`/`poster` entram pelo admin quando há vídeo com consentimento;
- * na ausência mostra-se apenas a citação (capa Deep Navy).
+ * REGRA (obrigatória): NUNCA inventar clientes, nomes, testemunhos ou
+ * fotografias. A secção pública só mostra histórias que estejam:
+ *  - publicadas (`published`),
+ *  - com consentimento válido e autorização de uso no website (`consent`),
+ *  - com identificação autorizada (`name`),
+ *  - com testemunho verdadeiro (`quote`),
+ *  - com vídeo (capa) ou fotografia real (`videoSrc`/`poster`).
+ *
+ * Enquanto não existirem conteúdos reais, `publishedStories()` devolve [] e a
+ * secção fica OCULTA na homepage (não são mostrados cartões vazios nem fundos
+ * Navy como substitutos de fotografias de clientes). O estado de preparação
+ * vive apenas no admin.
  */
 export type StoryOperation = "Compra" | "Venda" | "Arrendamento" | "Investimento";
 
 export interface Story {
   id: string;
   quote: string;
+  /** Identificação autorizada pelo cliente. */
   name: string;
   locality: string;
   operation: StoryOperation;
   videoSrc?: string;
   poster?: string;
   transcript?: string;
+  /** Gerido no admin: publicado no website. */
+  published?: boolean;
+  /** Gerido no admin: consentimento válido + autorização de uso no site. */
+  consent?: boolean;
 }
 
-export const STORIES: Story[] = [
-  {
-    id: "ana-miguel",
-    quote: "Sentimo-nos acompanhados do primeiro contacto à escritura.",
-    name: "Ana e Miguel",
-    locality: "Faro",
-    operation: "Compra",
-  },
-  {
-    id: "carla",
-    quote: "Venderam a minha casa em poucas semanas, com um preço justo e sem stress.",
-    name: "Carla",
-    locality: "Portimão",
-    operation: "Venda",
-  },
-  {
-    id: "joao",
-    quote: "Explicaram-me a rentabilidade com números claros. Investi com confiança.",
-    name: "João",
-    locality: "Lisboa",
-    operation: "Investimento",
-  },
-  {
-    id: "sofia",
-    quote: "Encontrei o apartamento certo para arrendar sem perder tempo com visitas a mais.",
-    name: "Sofia",
-    locality: "Porto",
-    operation: "Arrendamento",
-  },
-];
+/**
+ * Histórias reais publicadas. Vazio até existirem conteúdos verdadeiros,
+ * carregados no admin com consentimento — nunca preencher com exemplos.
+ */
+export const STORIES: Story[] = [];
+
+/** Só histórias com todos os requisitos cumpridos (nunca fictícias). */
+export function publishedStories(all: Story[] = STORIES): Story[] {
+  return all.filter(
+    (s) =>
+      s.published === true &&
+      s.consent === true &&
+      Boolean(s.name?.trim()) &&
+      Boolean(s.quote?.trim()) &&
+      Boolean(s.videoSrc || s.poster),
+  );
+}
 
 export const STORY_OPERATIONS: StoryOperation[] = ["Compra", "Venda", "Arrendamento", "Investimento"];

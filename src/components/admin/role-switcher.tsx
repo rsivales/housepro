@@ -31,7 +31,7 @@ export function RoleSwitcher({ currentId }: { currentId: string }) {
     <>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-4 left-4 z-50 inline-flex items-center gap-2 rounded-full border bg-card/95 px-3.5 py-2 text-sm font-medium shadow-lg backdrop-blur transition-colors hover:bg-secondary"
+        className="fixed bottom-24 left-4 z-[60] inline-flex items-center gap-2 rounded-full border bg-card/95 px-3.5 py-2 text-sm font-medium shadow-lg backdrop-blur transition-colors hover:bg-secondary"
         title="Vista de supervisão (Super Admin)"
       >
         <ShieldHalf className="size-4 text-primary" />
@@ -46,7 +46,7 @@ export function RoleSwitcher({ currentId }: { currentId: string }) {
       {open && (
         <>
           <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setOpen(false)} />
-          <div className="fixed bottom-16 left-4 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border bg-card p-3 shadow-2xl">
+          <div className="fixed bottom-36 left-4 z-[60] w-80 max-w-[calc(100vw-2rem)] rounded-2xl border bg-card p-3 shadow-2xl">
             <div className="flex items-center justify-between px-1 pb-2">
               <p className="flex items-center gap-1.5 text-sm font-semibold">
                 <Eye className="size-4 text-primary" /> Ver como

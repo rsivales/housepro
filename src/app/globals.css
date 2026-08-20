@@ -221,3 +221,76 @@
     color: var(--muted-foreground);
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Helix — sistema visual do dashboard do consultor (escopo .helix).
+   Tokens próprios (Deep Navy lidera; vermelho reservado a ação/alerta).
+   Não altera os tokens globais do site público.
+   ───────────────────────────────────────────────────────────── */
+.helix {
+  --hx-navy: #0B1F3A;
+  --hx-navy-2: #244765;
+  --hx-blue: #3478A5;
+  --hx-red: #D62832;
+  --hx-red-hover: #B71D26;
+  --hx-bg: #F5F7FA;
+  --hx-surface: #FFFFFF;
+  --hx-surface-blue: #EDF3F7;
+  --hx-text: #142033;
+  --hx-text-2: #667085;
+  --hx-success: #24815D;
+  --hx-warn: #D99026;
+  --hx-error: #D62832;
+  --hx-border: #E5EAF1;
+  --hx-radius: 18px;
+  --hx-shadow: 0 1px 2px rgba(11, 31, 58, 0.05), 0 10px 26px -16px rgba(11, 31, 58, 0.22);
+
+  background: var(--hx-bg);
+  color: var(--hx-text);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.helix .hx-card {
+  background: var(--hx-surface);
+  border: 1px solid var(--hx-border);
+  border-radius: var(--hx-radius);
+  box-shadow: var(--hx-shadow);
+}
+.helix .hx-tnum { font-variant-numeric: tabular-nums; }
+.helix .hx-muted { color: var(--hx-text-2); }
+.helix .hx-red { color: var(--hx-red); }
+.helix .hx-section-title { font-weight: 700; letter-spacing: -0.01em; color: var(--hx-text); }
+.helix .hx-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  border-radius: 999px; font-weight: 600; font-size: 0.9rem;
+  min-height: 44px; padding: 0 1.1rem; border: 1px solid transparent; cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.helix .hx-btn-red { background: var(--hx-red); color: #fff; }
+.helix .hx-btn-red:hover { background: var(--hx-red-hover); }
+.helix .hx-btn-outline-red { background: transparent; color: var(--hx-red); border-color: color-mix(in srgb, var(--hx-red) 40%, transparent); }
+.helix .hx-btn-outline-red:hover { background: color-mix(in srgb, var(--hx-red) 8%, transparent); }
+.helix .hx-btn-ghost { background: var(--hx-surface-blue); color: var(--hx-navy); }
+.helix .hx-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.75rem; font-weight: 600;
+}
+.helix .hx-chip-blue { background: var(--hx-surface-blue); color: var(--hx-blue); }
+.helix .hx-chip-navy { background: color-mix(in srgb, var(--hx-navy) 8%, transparent); color: var(--hx-navy-2); }
+.helix .hx-chip-red { background: color-mix(in srgb, var(--hx-red) 12%, transparent); color: var(--hx-red); }
+.helix .hx-chip-warn { background: color-mix(in srgb, var(--hx-warn) 16%, transparent); color: var(--hx-warn); }
+.helix .hx-chip-success { background: color-mix(in srgb, var(--hx-success) 15%, transparent); color: var(--hx-success); }
+.helix .hx-icon-btn {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px;
+  color: var(--hx-navy); background: transparent; cursor: pointer;
+}
+.helix .hx-icon-btn:hover { background: var(--hx-surface-blue); }
+.helix :focus-visible { outline: 2px solid var(--hx-blue); outline-offset: 2px; border-radius: 6px; }
+
+/* Rotação suave da hélice no loader (respeita reduzir movimento). */
+@keyframes hx-spin { to { transform: rotate(360deg); } }
+.helix .hx-spin, .hx-spin { animation: hx-spin 2.4s linear infinite; transform-origin: 50% 50%; }
+@media (prefers-reduced-motion: reduce) {
+  .helix .hx-spin, .hx-spin { animation: none; }
+  .helix .hx-fan-item { transition: none !important; }
+}

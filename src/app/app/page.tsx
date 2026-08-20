@@ -42,6 +42,7 @@ import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNo
 import { demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
 import { quoteTextOfDay } from "@/lib/data/quotes";
 import { getQuotesConfig } from "@/lib/db/repo";
+import { ConsultantHome } from "@/components/helix/consultant-home";
 import { PhraseOfTheDay, LastAngariadoBanner, NotificationsInbox, ActivitiesBoard } from "@/components/consultant/dashboard-extras";
 import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
 import { referralsIncoming } from "@/lib/data/referrals";
@@ -72,6 +73,14 @@ export default async function AppPage() {
 
   // O advogado tem o seu próprio ambiente (LegalFlow), não o painel de consultor.
   if (agent.roleKey === "advogado") redirect("/app/legalflow");
+
+  // Consultores veem o novo dashboard Helix. Os papéis de gestão (direção/
+  // coordenação/admin) mantêm, por agora, o painel existente (a reformular
+  // só com nova aprovação).
+  const roleKey = agent.roleKey ?? "agente";
+  if (roleKey === "agente" || roleKey === "agente_ami") {
+    return <ConsultantHome agent={agent} demo={demo} />;
+  }
 
   const mine = await listPropertiesByAgent(agent.id);
   const leads = await listLeadsByAgent(agent.id);

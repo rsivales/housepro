@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { SafeImage } from "@/components/home/safe-image";
+import { ArticleImage } from "@/components/home/article-image";
 import { type NewsItem, newsHref, isExternalNews, newsImage, NEWS_FALLBACK } from "@/lib/data/news";
 
 /**
@@ -38,8 +38,9 @@ export function HouseProGuide({ articles }: { articles: NewsItem[] }) {
         {/* Artigo em destaque — imagem 16:9 com altura controlada */}
         <Link {...articleLinkProps(featured)} className="group flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-shadow hover:shadow-lg">
           <div className="relative aspect-[16/9] max-h-[230px] w-full overflow-hidden">
-            <SafeImage
-              src={newsImage(featured)}
+            <ArticleImage
+              id={featured.id}
+              base={newsImage(featured)}
               fallback={NEWS_FALLBACK}
               alt={featured.title}
               className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
@@ -65,8 +66,9 @@ export function HouseProGuide({ articles }: { articles: NewsItem[] }) {
             <li key={item.id}>
               <Link {...articleLinkProps(item)} className="group flex min-h-[100px] items-center gap-4 rounded-2xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
                 <span className="relative size-[92px] shrink-0 overflow-hidden rounded-xl">
-                  <SafeImage
-                    src={newsImage(item)}
+                  <ArticleImage
+                    id={item.id}
+                    base={newsImage(item)}
                     fallback={NEWS_FALLBACK}
                     alt={item.title}
                     className="absolute inset-0 size-full object-cover"

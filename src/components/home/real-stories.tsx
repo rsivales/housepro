@@ -1,17 +1,26 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { VideoTestimonial } from "@/components/home/video-testimonial";
-import { publishedStories } from "@/lib/data/stories";
+import { publishedStories, type Story } from "@/lib/data/stories";
+import { readStories } from "@/lib/data/site-content";
 
 /**
  * "Histórias reais". Secção OCULTA enquanto não existirem histórias reais
- * publicadas com consentimento (nunca cartões vazios nem fundos Navy a
- * substituir fotografias de clientes; nunca nomes/testemunhos fictícios).
- * Quando existirem: vídeo (capa + play) à esquerda + duas fotografias reais.
+ * publicadas com consentimento (geridas no admin). Nunca cartões vazios, nunca
+ * fundos Navy a substituir fotografias de clientes, nunca nomes/testemunhos
+ * fictícios. Quando existirem: vídeo (capa + play) + duas fotografias reais.
  */
 export function RealStories() {
-  const stories = publishedStories();
+  const [stories, setStories] = React.useState<Story[]>([]);
+
+  React.useEffect(() => {
+    setStories(publishedStories(readStories()));
+  }, []);
+
   if (stories.length === 0) return null;
 
   const featured = stories[0];

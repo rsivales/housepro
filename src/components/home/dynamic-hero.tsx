@@ -4,7 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { Search, Home, Pause, Play } from "lucide-react";
 
-import { type Banner } from "@/lib/data/banners";
+import { activeBanners, type Banner } from "@/lib/data/banners";
+import { readBanners } from "@/lib/data/site-content";
 
 const ROTATE_MS = 7000;
 
@@ -15,21 +16,30 @@ const ROTATE_MS = 7000;
  * Fallback Deep Navy quando não há fotografia carregada no admin.
  */
 export function DynamicHero({ banners }: { banners: Banner[] }) {
+  const [list, setList] = React.useState<Banner[]>(banners);
   const [index, setIndex] = React.useState(0);
   const [paused, setPaused] = React.useState(false);
   const hoverRef = React.useRef(false);
-  const banner = banners[index] ?? banners[0];
+  const banner = list[index] ?? list[0];
+
+  // Banners geridos no admin (localStorage) têm prioridade sobre os defaults.
+  React.useEffect(() => {
+    const active = activeBanners(readBanners());
+    if (active.length > 0) setList(active);
+  }, []);
 
   // Sessão estável: memoriza o banner escolhido para não recomeçar do zero.
   React.useEffect(() => {
     try {
       const stored = sessionStorage.getItem("hp:banner");
-      const i = banners.findIndex((b) => b.id === stored);
+      const i = list.findIndex((b) => b.id === stored);
       if (i > 0) setIndex(i);
+      else if (index >= list.length) setIndex(0);
     } catch {
       /* mantém o principal */
     }
-  }, [banners]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list]);
 
   React.useEffect(() => {
     try {
@@ -40,7 +50,7 @@ export function DynamicHero({ banners }: { banners: Banner[] }) {
   }, [banner.id]);
 
   React.useEffect(() => {
-    if (banners.length <= 1 || paused) return;
+    if (list.length <= 1 || paused) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce) return;
     const t = window.setInterval(() => {
@@ -48,10 +58,10 @@ export function DynamicHero({ banners }: { banners: Banner[] }) {
       const el = document.activeElement;
       const typing = el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
       if (typing || hoverRef.current) return;
-      setIndex((i) => (i + 1) % banners.length);
+      setIndex((i) => (i + 1) % list.length);
     }, ROTATE_MS);
     return () => window.clearInterval(t);
-  }, [banners.length, paused]);
+  }, [list.length, paused]);
 
   return (
     <section
@@ -110,10 +120,10 @@ export function DynamicHero({ banners }: { banners: Banner[] }) {
         </div>
 
         {/* Controlos do carrossel */}
-        {banners.length > 1 && (
+        {list.length > 1 && (
           <div className="mt-8 flex items-center gap-3">
             <div className="flex items-center gap-2" role="tablist" aria-label="Escolher destaque">
-              {banners.map((b, i) => (
+              {list.map((b, i) => (
                 <button
                   key={b.id}
                   type="button"

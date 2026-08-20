@@ -69,6 +69,7 @@ export function DynamicHero({ banners }: { banners: Banner[] }) {
           src={banner.image}
           alt={banner.alt ?? ""}
           className="absolute inset-0 -z-10 size-full object-cover"
+          style={{ objectPosition: banner.focal ?? "center" }}
           fetchPriority="high"
         />
       ) : (

@@ -92,7 +92,7 @@ export default async function Home() {
 
         {/* 9. Recrutamento */}
         <div className="mt-16 sm:mt-24">
-          <RecruitmentCTA />
+          <RecruitmentCTA image="/home/equipa.webp" />
         </div>
 
         {/* 10. Confiança reconhecida */}

@@ -20,6 +20,8 @@ export interface Banner {
   image?: string;
   video?: string;
   alt?: string;
+  /** object-position da fotografia (mantém o assunto visível no recorte mobile). */
+  focal?: string;
   /** Segmentação. */
   location?: "Algarve" | "Lisboa" | "Porto";
   audience?: string;
@@ -42,7 +44,9 @@ export const DEFAULT_BANNERS: Banner[] = [
     intent: "comprar",
     priority: 100,
     active: true,
-    alt: "Família a começar uma nova etapa de vida com a HousePro.",
+    image: "/home/banner-familia.webp",
+    focal: "72% 50%",
+    alt: "Família a visitar uma casa com vista mar, acompanhada por uma consultora HousePro.",
   },
   {
     id: "vender",

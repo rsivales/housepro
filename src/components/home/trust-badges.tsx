@@ -1,33 +1,31 @@
-import { BadgeCheck, ShieldCheck, Star, Landmark } from "lucide-react";
+import Link from "next/link";
+import { ShieldCheck, BadgeCheck, Trophy, Star, ArrowRight } from "lucide-react";
 
 /**
  * "Confiança reconhecida" — apenas distinções REAIS e verificáveis.
  *
- * IMPORTANTE (constrangimento explícito): a HousePro ainda NÃO tem o selo
- * DECO PROteste. Por isso NÃO é aqui apresentado — nem selo, nem nome como
- * certificação, nem placeholder, nem logótipo, nem sugestão de atribuição.
- * Selos futuros só entram após aprovação/autorização oficial, ficheiro,
- * validade e link de verificação, com ativação manual no admin.
+ * IMPORTANTE (constrangimento explícito, confirmado pelo cliente): a HousePro
+ * ainda NÃO tem o selo DECO PROteste. Por isso NÃO é aqui apresentado — nem
+ * selo, nem nome como certificação, nem placeholder, nem logótipo, nem
+ * sugestão de atribuição/avaliação em curso. Selos futuros só entram após
+ * aprovação/autorização oficial, ficheiro, validade e link de verificação,
+ * com ativação manual no admin.
  *
- * Os itens abaixo são de natureza institucional/verificável (licença AMI e
- * enquadramento legal). O número de AMI é gerido no admin (Dados legais da
- * agência) — aqui usa-se o mesmo marcador do restante site até ser preenchido.
+ * O número AMI é gerido no admin (Dados legais da agência) — aqui usa-se o
+ * mesmo marcador do restante site até ser preenchido.
  */
 const ITEMS = [
-  { icon: BadgeCheck, title: "Licença AMI", note: "Mediação imobiliária autorizada · AMI 0000" },
-  { icon: ShieldCheck, title: "RGPD", note: "Tratamento de dados conforme a lei" },
-  { icon: Landmark, title: "Intermediação de crédito", note: "Apoio ao financiamento com rigor" },
-  { icon: Star, title: "Avaliações de clientes", note: "Testemunhos reais e verificados" },
+  { icon: ShieldCheck, title: "AMI", note: "Mediador imobiliário licenciado" },
+  { icon: BadgeCheck, title: "Qualidade", note: "Processos auditados e documentados" },
+  { icon: Trophy, title: "Prémios", note: "Reconhecimento do setor" },
+  { icon: Star, title: "Avaliações", note: "Testemunhos reais e verificados" },
 ];
 
 export function TrustBadges() {
   return (
     <section aria-labelledby="trust-title" className="mx-auto max-w-6xl px-4 sm:px-6">
       <div className="text-center">
-        <p className="hp-eyebrow">Confiança reconhecida</p>
-        <h2 id="trust-title" className="mt-1 font-display text-2xl sm:text-3xl">
-          Rigor que se comprova
-        </h2>
+        <h2 id="trust-title" className="font-display text-2xl sm:text-3xl">Confiança reconhecida</h2>
       </div>
 
       <ul className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -41,6 +39,12 @@ export function TrustBadges() {
           </li>
         ))}
       </ul>
+
+      <div className="mt-6 text-center">
+        <Link href="/privacidade" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--hp-navy)] transition-opacity hover:opacity-70">
+          Ver certificações <ArrowRight className="size-4" />
+        </Link>
+      </div>
     </section>
   );
 }

@@ -1,54 +1,30 @@
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ConsentField } from "@/components/forms/consent-field";
-
 /**
- * CTA final — "O próximo passo começa aqui." Fundo Deep Navy. Reutiliza o
- * formulário de contacto (Input/Label/ConsentField). Campos ocultos registam
- * a origem (página/campanha) para atribuição da lead ao consultor.
+ * CTA final — "O próximo passo começa aqui." Barra Deep Navy compacta (como na
+ * arte aprovada): mensagem à esquerda, ação à direita. O botão encaminha para
+ * o fluxo de contacto, onde a lead é registada com origem/página para
+ * atribuição ao consultor.
  */
 export function FinalContactCTA() {
   return (
     <section id="contacto" aria-labelledby="final-title" className="scroll-mt-20" style={{ background: "var(--hp-navy)" }}>
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-2 lg:items-center">
+      <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-5 px-4 py-10 sm:px-6 md:flex-row md:items-center">
         <div className="text-white">
-          <h2 id="final-title" className="font-display text-3xl leading-tight text-white sm:text-4xl">
+          <h2 id="final-title" className="font-display text-2xl leading-tight text-white sm:text-3xl">
             O próximo passo começa aqui.
           </h2>
-          <p className="mt-3 max-w-md text-white/75">
+          <p className="mt-2 max-w-lg text-sm text-white/75 sm:text-base">
             Fale com alguém que conhece o mercado e escuta o que procura.
           </p>
         </div>
-
-        <form className="rounded-2xl bg-card p-5 shadow-xl sm:p-6" aria-label="Falar com um consultor">
-          <input type="hidden" name="origin" value="homepage" />
-          <input type="hidden" name="page" value="/" />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="cta-nome">Nome</Label>
-              <Input id="cta-nome" name="nome" placeholder="O seu nome" autoComplete="name" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cta-contacto">Contacto</Label>
-              <Input id="cta-contacto" name="contacto" placeholder="Telemóvel ou email" autoComplete="tel" />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="cta-msg">Como podemos ajudar?</Label>
-              <Input id="cta-msg" name="mensagem" placeholder="Comprar, vender, investir…" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <ConsentField id="rgpd-cta" />
-          </div>
-          <button
-            type="submit"
-            className="hp-btn-red mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold"
-          >
-            Falar com um consultor <ArrowRight className="size-4" />
-          </button>
-        </form>
+        <Link
+          href="/vender#contacto"
+          className="hp-btn-red inline-flex min-h-[48px] shrink-0 items-center gap-2 rounded-full px-7 text-sm font-semibold shadow-lg"
+        >
+          Falar com um consultor <ArrowRight className="size-4" />
+        </Link>
       </div>
     </section>
   );

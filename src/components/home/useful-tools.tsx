@@ -46,16 +46,15 @@ export function UsefulTools() {
             <Link
               key={t.title}
               href={t.href}
-              className="group flex flex-col justify-between gap-6 rounded-2xl border border-white/15 bg-white/5 p-5 transition-colors hover:bg-white/10"
+              className="group flex items-center gap-3.5 rounded-2xl border border-white/15 bg-white/5 p-4 transition-colors hover:bg-white/10"
             >
-              <span className="grid size-11 place-items-center rounded-xl bg-white/10 text-white">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/10 text-white">
                 <t.icon className="size-5" />
               </span>
-              <span>
-                <span className="block font-display text-lg text-white">{t.title}</span>
-                <span className="mt-1 block text-sm text-white/70">{t.desc}</span>
-                <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-white">
-                  Abrir <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+              <span className="min-w-0">
+                <span className="block font-display text-base leading-tight text-white">{t.title}</span>
+                <span className="mt-0.5 flex items-center gap-1 text-xs text-white/65">
+                  Abrir <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </span>
             </Link>

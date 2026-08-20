@@ -11,7 +11,7 @@ import { RecruitmentCTA } from "@/components/home/recruitment-cta";
 import { TrustBadges } from "@/components/home/trust-badges";
 import { FinalContactCTA } from "@/components/home/final-contact-cta";
 import { PublicFooter } from "@/components/home/public-footer";
-import { SearchBar } from "@/components/property/search-bar";
+import { HeroSearch } from "@/components/home/hero-search";
 import { activeBanners, DEFAULT_BANNERS } from "@/lib/data/banners";
 import { listProperties } from "@/lib/db/repo";
 import { topFeatured } from "@/lib/data/ranking";
@@ -60,13 +60,13 @@ export default async function Home() {
         {/* 2. Banner emocional dinâmico */}
         <DynamicHero banners={banners} />
 
-        {/* 3. Pesquisa de imóveis — sobrepõe ligeiramente o banner */}
-        <div className="relative z-10 mx-auto -mt-16 max-w-3xl px-4 sm:-mt-20 sm:px-6">
-          <SearchBar />
+        {/* 3. Pesquisa de imóveis — sobrepõe o banner */}
+        <div className="relative z-10 mx-auto -mt-14 max-w-3xl px-4 sm:-mt-16 sm:px-6">
+          <HeroSearch />
         </div>
 
         {/* 4. Comece pelo que precisa */}
-        <div className="mt-16 sm:mt-20">
+        <div className="mt-8 sm:mt-10">
           <NeedSelector />
         </div>
 

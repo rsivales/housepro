@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Heart, Globe, Menu, X } from "lucide-react";
+import { Heart, ChevronDown, Menu, X } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 
@@ -64,8 +64,8 @@ export function PublicHeader() {
           <Link href="/cliente/favoritos" aria-label="Favoritos" className="grid size-11 place-items-center rounded-full" style={{ color: light ? "#fff" : "var(--foreground)" }}>
             <Heart className="size-5" />
           </Link>
-          <button aria-label="Idioma (Português)" className="hidden size-11 place-items-center rounded-full sm:grid" style={{ color: light ? "#fff" : "var(--foreground)" }}>
-            <Globe className="size-5" />
+          <button aria-label="Idioma: Português" className="hidden min-h-[44px] items-center gap-1 rounded-full px-2 text-sm font-semibold sm:inline-flex" style={{ color: light ? "#fff" : "var(--foreground)" }}>
+            PT <ChevronDown className="size-4" />
           </button>
           <button onClick={() => setOpen(true)} aria-label="Menu" className="grid size-11 place-items-center rounded-full lg:hidden" style={{ color: light ? "#fff" : "var(--foreground)" }}>
             <Menu className="size-6" />

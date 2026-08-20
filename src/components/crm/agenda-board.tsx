@@ -10,6 +10,7 @@ import {
   type Task,
   type Visit,
   type TaskKind,
+  type VisitKind,
 } from "@/lib/data/contacts";
 
 const fmt = (iso?: string) =>
@@ -27,17 +28,49 @@ const PRIORITY_DOT: Record<Task["priority"], string> = {
  */
 export function AgendaBoard({
   initialTasks,
-  visits,
+  visits: initialVisits,
+  openForm,
 }: {
   initialTasks: Task[];
   visits: Visit[];
+  /** Abrir automaticamente o formulário de tarefa ou de visita (via ?novo=). */
+  openForm?: "tarefa" | "visita";
 }) {
   const [tasks, setTasks] = React.useState<Task[]>(initialTasks);
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(openForm === "tarefa");
   const [title, setTitle] = React.useState("");
   const [kind, setKind] = React.useState<TaskKind>("followup");
   const [dueAt, setDueAt] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+
+  // Visitas
+  const [visits, setVisits] = React.useState<Visit[]>(initialVisits);
+  const [vOpen, setVOpen] = React.useState(openForm === "visita");
+  const [vName, setVName] = React.useState("");
+  const [vKind, setVKind] = React.useState<VisitKind>("visita");
+  const [vAt, setVAt] = React.useState("");
+  const [vRef, setVRef] = React.useState("");
+  const [vBusy, setVBusy] = React.useState(false);
+
+  async function createVisit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!vAt) return;
+    setVBusy(true);
+    try {
+      const res = await fetch("/api/visits", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: vKind, at: vAt, contactName: vName || undefined, propertyRef: vRef || undefined }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVisits((prev) => [...prev, data.visit as Visit].sort((a, b) => a.at.localeCompare(b.at)));
+        setVName(""); setVAt(""); setVRef(""); setVOpen(false);
+      }
+    } finally {
+      setVBusy(false);
+    }
+  }
 
   async function toggle(t: Task) {
     setTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)));
@@ -151,7 +184,34 @@ export function AgendaBoard({
 
       {/* Visitas / eventos */}
       <section>
-        <h2 className="font-display text-xl">Próximas visitas</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl">Próximas visitas</h2>
+          <Button size="sm" onClick={() => setVOpen((v) => !v)}>
+            <Plus className="size-4" /> Nova visita
+          </Button>
+        </div>
+
+        {vOpen && (
+          <form onSubmit={createVisit} className="mt-3 rounded-2xl border bg-card p-3 shadow-sm">
+            <input value={vName} onChange={(e) => setVName(e.target.value)} placeholder="Contacto (opcional)" className="input" />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <select value={vKind} onChange={(e) => setVKind(e.target.value as VisitKind)} className="input w-36">
+                <option value="visita">Visita</option>
+                <option value="reuniao">Reunião</option>
+                <option value="avaliacao">Avaliação</option>
+                <option value="outro">Outro</option>
+              </select>
+              <input type="datetime-local" required value={vAt} onChange={(e) => setVAt(e.target.value)} className="input flex-1" />
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <input value={vRef} onChange={(e) => setVRef(e.target.value)} placeholder="Imóvel (ref.)" className="input flex-1" />
+              <Button type="submit" size="sm" disabled={vBusy}>
+                {vBusy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Agendar
+              </Button>
+            </div>
+          </form>
+        )}
+
         <ul className="mt-3 space-y-2">
           {visits.map((v) => (
             <li key={v.id} className="rounded-2xl border bg-card p-3 shadow-sm">

@@ -9,9 +9,16 @@ import { AgendaBoard } from "@/components/crm/agenda-board";
 
 export const metadata: Metadata = { title: "Agenda" };
 
-export default async function AgendaPage() {
+export default async function AgendaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ novo?: string }>;
+}) {
   const session = await getSession();
   if (!session) redirect("/entrar");
+
+  const { novo } = await searchParams;
+  const openForm = novo === "tarefa" || novo === "visita" ? novo : undefined;
 
   const [tasks, visits] = await Promise.all([
     listTasksByOwner(session.agent.id),
@@ -37,7 +44,7 @@ export default async function AgendaPage() {
         </p>
 
         <div className="mt-6">
-          <AgendaBoard initialTasks={tasks} visits={visits} />
+          <AgendaBoard initialTasks={tasks} visits={visits} openForm={openForm} />
         </div>
       </div>
     </div>

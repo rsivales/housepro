@@ -30,7 +30,7 @@ const QUICK = [
   { label: "Lead", icon: UserPlus, href: "/app/contactos" },
   { label: "Imóvel", icon: Building2, href: "/app/imovel/novo" },
   { label: "Chamada", icon: Phone, href: "/app/x-call" },
-  { label: "Tarefa", icon: ListChecks, href: "/app/agenda" },
+  { label: "Tarefa", icon: ListChecks, href: "/app/agenda?novo=tarefa" },
   { label: "E-mail", icon: Mail, href: "/app/x-campaigns" },
 ];
 

@@ -294,6 +294,19 @@
   font-weight: 700;
   letter-spacing: -0.015em;
 }
+
+/* Variante "Processos" — verde em destaque (reflete as propostas verdes que
+   dão origem ao processo). Só neste menu. */
+.helix.helix-processos {
+  --primary: #1F7A54;
+  --primary-foreground: #FFFFFF;
+  --brand: #1F7A54;
+  --brand-foreground: #FFFFFF;
+  --ring: #2E9E73;
+  --sidebar-primary: #1F7A54;
+  --hx-navy: #1F7A54;
+  --hx-blue: #2E9E73;
+}
 .helix .hx-card {
   background: var(--hx-surface);
   border: 1px solid var(--hx-border);

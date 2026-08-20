@@ -8,10 +8,6 @@ import {
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
-import { AppHeader } from "@/components/helix/app-header";
-import { MobileBottomNavigation } from "@/components/helix/bottom-nav";
-import { HelixSidebar } from "@/components/helix/helix-sidebar";
-import { agencyById } from "@/lib/data/mock";
 
 export const metadata: Metadata = { title: "Menu — Helix" };
 
@@ -77,16 +73,8 @@ export default async function MenuPage() {
   ];
 
   return (
-    <div className="helix min-h-dvh pb-28">
-      <AppHeader
-        name={agent.name}
-        photo={agent.photo}
-        agency={agent.agency}
-        code={agencyById(agent.agencyId)?.region}
-      />
-
-      <HelixSidebar active="menu" />
-      <main className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:pl-[calc(76px+1rem)]">
+    <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+      <main>
         <Link href="/app/pesquisa" className="hx-card flex items-center gap-2 p-3 text-sm hx-muted">
           <Search className="size-4" /> Procurar módulos, contactos, imóveis…
         </Link>
@@ -113,8 +101,6 @@ export default async function MenuPage() {
           ))}
         </div>
       </main>
-
-      <MobileBottomNavigation active="menu" />
     </div>
   );
 }

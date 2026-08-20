@@ -2,13 +2,21 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Home, Users, KanbanSquare, CalendarClock, Menu as MenuIcon,
   Plus, X, PanelLeftClose, PanelLeftOpen,
   UserPlus, Building2, Phone, ListChecks, Mail,
 } from "lucide-react";
 
-type Tab = "inicio" | "leads" | "pipeline" | "menu";
+function activeFor(path: string): string {
+  if (path === "/app") return "inicio";
+  if (path.startsWith("/app/contactos")) return "leads";
+  if (path.startsWith("/app/meta/pipeline") || path.startsWith("/app/crm")) return "pipeline";
+  if (path.startsWith("/app/agenda")) return "agenda";
+  if (path.startsWith("/app/menu")) return "menu";
+  return "";
+}
 
 const NAV = [
   { key: "inicio", label: "Início", href: "/app", icon: Home },
@@ -27,9 +35,10 @@ const QUICK = [
 ];
 
 /** Barra lateral recolhível (desktop/tablet lg+). Só aparece em ecrãs largos. */
-export function HelixSidebar({ active = "inicio" }: { active?: Tab }) {
+export function HelixSidebar() {
   const [expanded, setExpanded] = React.useState(false);
   const [quick, setQuick] = React.useState(false);
+  const active = activeFor(usePathname() ?? "/app");
 
   React.useEffect(() => {
     try { setExpanded(localStorage.getItem("helix:sidebar") === "1"); } catch {}

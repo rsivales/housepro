@@ -10,10 +10,7 @@ import { perfSummary } from "@/lib/data/property-perf";
 import type { Agent } from "@/lib/data/types";
 import type { Lead } from "@/lib/data/leads";
 
-import { AppHeader } from "./app-header";
 import { ConsultantDashboard, type DashboardData } from "./consultant-dashboard";
-import { MobileBottomNavigation } from "./bottom-nav";
-import { HelixSidebar } from "./helix-sidebar";
 import type { ActionItem } from "./action-center";
 import type { LatestProperty } from "./dashboard-cards";
 
@@ -141,20 +138,5 @@ export async function ConsultantHome({ agent, demo }: { agent: Agent; demo: bool
     },
   };
 
-  return (
-    <div className="helix min-h-dvh pb-28">
-      <AppHeader
-        name={agent.name}
-        photo={agent.photo}
-        agency={agent.agency}
-        code={agencyById(agent.agencyId)?.region}
-        hasUnread
-      />
-      <HelixSidebar active="inicio" />
-      <div className="lg:pl-[76px]">
-        <ConsultantDashboard data={data} />
-      </div>
-      <MobileBottomNavigation active="inicio" />
-    </div>
-  );
+  return <ConsultantDashboard data={data} />;
 }

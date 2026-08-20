@@ -2,12 +2,21 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Home, Users, Plus, X, KanbanSquare, Menu,
   UserPlus, Building2, Phone, ListChecks, Mail, CalendarClock, Megaphone,
 } from "lucide-react";
 
-type Tab = "inicio" | "leads" | "pipeline" | "menu";
+type Tab = "inicio" | "leads" | "pipeline" | "menu" | "none";
+
+function tabFor(path: string): Tab {
+  if (path === "/app") return "inicio";
+  if (path.startsWith("/app/contactos")) return "leads";
+  if (path.startsWith("/app/meta/pipeline") || path.startsWith("/app/crm")) return "pipeline";
+  if (path.startsWith("/app/menu")) return "menu";
+  return "none";
+}
 
 const QUICK = [
   { label: "Lead", icon: UserPlus, href: "/app/contactos" },
@@ -24,8 +33,9 @@ const QUICK = [
  * leque. O "+" roda para "×" quando aberto. Animação fluida (tipo dock), com
  * recolha subtil; desativada quando "reduzir movimento" está ativo (via CSS).
  */
-export function MobileBottomNavigation({ active = "inicio" }: { active?: Tab }) {
+export function MobileBottomNavigation() {
   const [open, setOpen] = React.useState(false);
+  const active = tabFor(usePathname() ?? "/app");
 
   // Posições em arco (semicírculo superior) para as ações.
   const R = 116;

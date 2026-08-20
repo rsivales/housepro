@@ -245,10 +245,54 @@
   --hx-radius: 18px;
   --hx-shadow: 0 1px 2px rgba(11, 31, 58, 0.05), 0 10px 26px -16px rgba(11, 31, 58, 0.22);
 
+  /* Remapeamento dos tokens do sistema (shadcn) para a paleta Helix — assim
+     TODOS os módulos que usam estes tokens ficam uniformes, sem reescrever
+     página a página. Deep Navy lidera; o vermelho fica no destructive/urgência. */
+  --radius: 0.9rem;
+  --background: #F5F7FA;
+  --foreground: #142033;
+  --card: #FFFFFF;
+  --card-foreground: #142033;
+  --popover: #FFFFFF;
+  --popover-foreground: #142033;
+  --primary: #0B1F3A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EDF3F7;
+  --secondary-foreground: #244765;
+  --muted: #EDF3F7;
+  --muted-foreground: #667085;
+  --accent: #EDF3F7;
+  --accent-foreground: #244765;
+  --destructive: #D62832;
+  --destructive-foreground: #FFFFFF;
+  --success: #24815D;
+  --warning: #D99026;
+  --border: #E5EAF1;
+  --input: #E5EAF1;
+  --ring: #3478A5;
+  --brand: #0B1F3A;
+  --brand-foreground: #FFFFFF;
+  --gold: #D99026;
+  --gold-foreground: #FFFFFF;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #142033;
+  --sidebar-primary: #0B1F3A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EDF3F7;
+  --sidebar-accent-foreground: #244765;
+  --sidebar-border: #E5EAF1;
+
   background: var(--hx-bg);
   color: var(--hx-text);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+/* No Helix a tipografia é sans (o mockup não usa serifas): as áreas display
+   ficam sans-bold, uniformes com o dashboard. */
+.helix .font-display {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 .helix .hx-card {
   background: var(--hx-surface);

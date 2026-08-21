@@ -1110,3 +1110,656 @@ create policy payouts_staff_all on payouts
       and p.role_key in ('coordenador','diretor','admin','superadmin'))
   );
 
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 0020_meta_crm.sql
+-- ─────────────────────────────────────────────────────────────
+-- HousePro — Módulo CRM de Leads Meta (Facebook/Instagram).
+--
+-- Campanhas, formulários Meta, mapeamento pergunta→campo, regras de atribuição,
+-- respostas e atividade das leads. Amplia a tabela `leads` (colunas OPCIONAIS,
+-- retrocompatível) com os conceitos do módulo. Depende de 0001–0008.
+--
+-- SEGURANÇA: nenhuma coluna guarda tokens Meta. `meta_connections.token_ref`
+-- guarda apenas uma REFERÊNCIA a um segredo mantido server-side (env/vault).
+--
+-- Idempotente: pode ser reexecutada (if not exists / drop policy if exists).
+
+-- ─────────────────────────────────────────────────────────────
+-- Ligações Meta (página/conta) — sem tokens em claro
+-- ─────────────────────────────────────────────────────────────
+create table if not exists meta_connections (
+  id           uuid primary key default gen_random_uuid(),
+  page_id      text not null,
+  page_name    text,
+  ig_id        text,
+  ig_name      text,
+  token_ref    text,                         -- referência a segredo server-side (NUNCA o token)
+  scopes       text[] default '{}',
+  status       text not null default 'demo', -- demo | ligada | desligada | erro
+  agency_id    uuid references agencies (id) on delete set null,
+  created_at   timestamptz not null default now(),
+  connected_at timestamptz
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- Campanhas
+-- ─────────────────────────────────────────────────────────────
+create table if not exists campaigns (
+  id               uuid primary key default gen_random_uuid(),
+  name             text not null,
+  type             text not null default 'OTHER', -- BUYER|SELLER|PROPERTY|PROPERTY_SET|RECRUITMENT|INSTITUTIONAL|OTHER
+  owner_type       text not null default 'AGENCY', -- AGENCY | AGENT  (1) DONO
+  owner_id         text,                           -- agencyId ou agentId
+  responsible_id   uuid references profiles (id) on delete set null, -- (2) RESPONSÁVEL
+  objective        text,
+  meta_campaign_id text,                           -- referência externa (Meta Ads)
+  status           text not null default 'rascunho', -- rascunho|ativa|pausada|terminada
+  created_by       uuid references profiles (id) on delete set null,
+  created_at       timestamptz not null default now()
+);
+create index if not exists campaigns_owner_idx on campaigns (owner_type, owner_id);
+create index if not exists campaigns_responsible_idx on campaigns (responsible_id);
+
+-- Associação campanha ↔ imóvel (PROPERTY / PROPERTY_SET)
+create table if not exists campaign_properties (
+  campaign_id  uuid not null references campaigns (id) on delete cascade,
+  property_id  uuid not null references properties (id) on delete cascade,
+  property_ref text,
+  primary key (campaign_id, property_id)
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- Formulários Meta e perguntas
+-- ─────────────────────────────────────────────────────────────
+create table if not exists lead_forms (
+  id           uuid primary key default gen_random_uuid(),
+  meta_form_id text not null,
+  name         text not null,
+  campaign_id  uuid references campaigns (id) on delete set null,
+  created_at   timestamptz not null default now()
+);
+create index if not exists lead_forms_campaign_idx on lead_forms (campaign_id);
+
+create table if not exists lead_form_questions (
+  id        uuid primary key default gen_random_uuid(),
+  form_id   uuid not null references lead_forms (id) on delete cascade,
+  key       text not null,             -- field key da pergunta no Meta
+  label     text,
+  type      text not null default 'text', -- text|email|phone|select|multiselect|number|date|boolean|other
+  options   text[] default '{}',
+  position  integer default 0
+);
+create index if not exists lead_form_questions_form_idx on lead_form_questions (form_id);
+
+-- Mapeamento pergunta → campo normalizado da lead
+create table if not exists field_mappings (
+  id           uuid primary key default gen_random_uuid(),
+  form_id      uuid not null references lead_forms (id) on delete cascade,
+  question_key text not null,
+  lead_field   text not null,          -- name|email|contact|message|intent|preferredAt|propertyRef|budget|zone|custom
+  note         text,
+  primary key (id)
+);
+create unique index if not exists field_mappings_form_q_idx on field_mappings (form_id, question_key);
+
+-- ─────────────────────────────────────────────────────────────
+-- Regras de atribuição
+-- ─────────────────────────────────────────────────────────────
+create table if not exists assignment_rules (
+  id          uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null references campaigns (id) on delete cascade,
+  strategy    text not null default 'unassigned', -- specific|team|round_robin|zone|property|unassigned
+  agent_id    uuid references profiles (id) on delete set null,  -- specific
+  team_id     uuid references teams (id) on delete set null,     -- team
+  pool        uuid[] default '{}',                               -- round_robin
+  rr_index    integer default 0,                                 -- round_robin (estado)
+  zone_map    jsonb,                                             -- zone → destino
+  active      boolean not null default true,
+  created_at  timestamptz not null default now()
+);
+create index if not exists assignment_rules_campaign_idx on assignment_rules (campaign_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- Ampliação da tabela `leads` (colunas opcionais — retrocompatível)
+-- ─────────────────────────────────────────────────────────────
+alter table leads
+  add column if not exists campaign_id          uuid references campaigns (id) on delete set null,
+  add column if not exists form_id              uuid references lead_forms (id) on delete set null,
+  add column if not exists commercial_origin_id uuid references profiles (id) on delete set null, -- (3)
+  add column if not exists assigned_agent_id    uuid references profiles (id) on delete set null, -- (4)
+  add column if not exists assigned_team_id     uuid references teams (id) on delete set null,
+  add column if not exists pipeline             text,
+  add column if not exists stage                integer default 0,
+  add column if not exists qualification        text default 'novo', -- novo|qualificado|desqualificado|duplicado
+  add column if not exists score                integer,
+  add column if not exists unassigned           boolean default false,
+  add column if not exists zone                 text,
+  add column if not exists budget               text,
+  add column if not exists consent              jsonb;   -- { base, at, text } (RGPD)
+
+create index if not exists leads_campaign_idx on leads (campaign_id);
+create index if not exists leads_assigned_idx on leads (assigned_agent_id);
+create index if not exists leads_unassigned_idx on leads (unassigned) where unassigned = true;
+
+-- Respostas do formulário (uma linha por pergunta) — PII a mascarar em logs
+create table if not exists lead_answers (
+  id           uuid primary key default gen_random_uuid(),
+  lead_id      uuid not null references leads (id) on delete cascade,
+  question_key text not null,
+  label        text,
+  value        text,
+  pii          boolean default false,
+  created_at   timestamptz not null default now()
+);
+create index if not exists lead_answers_lead_idx on lead_answers (lead_id);
+
+-- Linha do tempo / atividade da lead
+create table if not exists lead_activities (
+  id         uuid primary key default gen_random_uuid(),
+  lead_id    uuid not null references leads (id) on delete cascade,
+  type       text not null,       -- created|assigned|reassigned|contacted|qualified|disqualified|note|stage|status|message
+  actor_id   uuid references profiles (id) on delete set null,
+  actor_name text,
+  note       text,
+  from_val   text,
+  to_val     text,
+  created_at timestamptz not null default now()
+);
+create index if not exists lead_activities_lead_idx on lead_activities (lead_id, created_at desc);
+
+-- ─────────────────────────────────────────────────────────────
+-- RLS — staff gere tudo; consultor vê o que lhe diz respeito
+-- ─────────────────────────────────────────────────────────────
+alter table meta_connections   enable row level security;
+alter table campaigns          enable row level security;
+alter table campaign_properties enable row level security;
+alter table lead_forms         enable row level security;
+alter table lead_form_questions enable row level security;
+alter table field_mappings     enable row level security;
+alter table assignment_rules   enable row level security;
+alter table lead_answers       enable row level security;
+alter table lead_activities    enable row level security;
+
+-- helper local: é staff de gestão?
+create or replace function is_meta_staff() returns boolean
+  language sql stable security definer set search_path = public as $$
+  select exists (select 1 from profiles p where p.id = auth.uid()
+    and p.role_key in ('coordenador','diretor','admin','superadmin'))
+$$;
+
+-- meta_connections: só staff (contém referências a segredos).
+drop policy if exists meta_connections_staff on meta_connections;
+create policy meta_connections_staff on meta_connections
+  for all using (is_meta_staff()) with check (is_meta_staff());
+
+-- campaigns: staff gere tudo; consultor vê as que possui/é responsável.
+drop policy if exists campaigns_staff on campaigns;
+create policy campaigns_staff on campaigns
+  for all using (is_meta_staff()) with check (is_meta_staff());
+drop policy if exists campaigns_own_read on campaigns;
+create policy campaigns_own_read on campaigns
+  for select using (
+    responsible_id = auth.uid()
+    or (owner_type = 'AGENT' and owner_id = auth.uid()::text)
+  );
+
+-- campaign_properties / lead_forms / questions / mappings / rules:
+-- leitura a autenticados, escrita a staff.
+drop policy if exists campaign_properties_read on campaign_properties;
+create policy campaign_properties_read on campaign_properties
+  for select using (auth.uid() is not null);
+drop policy if exists campaign_properties_write on campaign_properties;
+create policy campaign_properties_write on campaign_properties
+  for all using (is_meta_staff()) with check (is_meta_staff());
+
+drop policy if exists lead_forms_read on lead_forms;
+create policy lead_forms_read on lead_forms
+  for select using (auth.uid() is not null);
+drop policy if exists lead_forms_write on lead_forms;
+create policy lead_forms_write on lead_forms
+  for all using (is_meta_staff()) with check (is_meta_staff());
+
+drop policy if exists lead_form_questions_read on lead_form_questions;
+create policy lead_form_questions_read on lead_form_questions
+  for select using (auth.uid() is not null);
+drop policy if exists lead_form_questions_write on lead_form_questions;
+create policy lead_form_questions_write on lead_form_questions
+  for all using (is_meta_staff()) with check (is_meta_staff());
+
+drop policy if exists field_mappings_read on field_mappings;
+create policy field_mappings_read on field_mappings
+  for select using (auth.uid() is not null);
+drop policy if exists field_mappings_write on field_mappings;
+create policy field_mappings_write on field_mappings
+  for all using (is_meta_staff()) with check (is_meta_staff());
+
+drop policy if exists assignment_rules_read on assignment_rules;
+create policy assignment_rules_read on assignment_rules
+  for select using (auth.uid() is not null);
+drop policy if exists assignment_rules_write on assignment_rules;
+create policy assignment_rules_write on assignment_rules
+  for all using (is_meta_staff()) with check (is_meta_staff());
+
+-- lead_answers / lead_activities: staff, ou o agente responsável/origem da lead.
+drop policy if exists lead_answers_scope on lead_answers;
+create policy lead_answers_scope on lead_answers
+  for all using (
+    is_meta_staff()
+    or exists (select 1 from leads l where l.id = lead_id
+      and (l.assigned_agent_id = auth.uid() or l.commercial_origin_id = auth.uid() or l.owner_id = auth.uid()))
+  ) with check (
+    is_meta_staff()
+    or exists (select 1 from leads l where l.id = lead_id
+      and (l.assigned_agent_id = auth.uid() or l.commercial_origin_id = auth.uid() or l.owner_id = auth.uid()))
+  );
+
+drop policy if exists lead_activities_scope on lead_activities;
+create policy lead_activities_scope on lead_activities
+  for all using (
+    is_meta_staff()
+    or exists (select 1 from leads l where l.id = lead_id
+      and (l.assigned_agent_id = auth.uid() or l.commercial_origin_id = auth.uid() or l.owner_id = auth.uid()))
+  ) with check (
+    is_meta_staff()
+    or exists (select 1 from leads l where l.id = lead_id
+      and (l.assigned_agent_id = auth.uid() or l.commercial_origin_id = auth.uid() or l.owner_id = auth.uid()))
+  );
+
+
+-- ============================================================
+-- 0021_meta_completion.sql
+-- ============================================================
+-- HousePro / Helix — conclusão do módulo Meta (F1).
+--
+-- Amplia `leads` (idempotência de webhooks + idioma/especialidade + oferta a
+-- conjunto) e `assignment_rules` (estratégias e configuração em falta:
+-- rotação ponderada, orçamento/idioma/especialidade, substituto, fallback,
+-- limite diário, prazo de aceitação, gestor a avisar).
+--
+-- Aditiva e idempotente. Depende de 0020_meta_crm.sql. NÃO é aplicada
+-- automaticamente — corre no SQL editor quando quiseres passar à BD.
+
+-- ── leads ──────────────────────────────────────────────────────────────
+alter table leads
+  add column if not exists external_id text,           -- leadgen_id do Meta (dedup)
+  add column if not exists language    text,
+  add column if not exists specialty   text,
+  add column if not exists offered_to  uuid[] default '{}'; -- "primeiro a aceitar"
+
+-- Idempotência: a mesma lead do Meta nunca entra duas vezes.
+create unique index if not exists leads_external_id_uidx
+  on leads (external_id) where external_id is not null;
+
+-- ── assignment_rules ───────────────────────────────────────────────────
+alter table assignment_rules
+  add column if not exists weights             jsonb,   -- { agentId: peso }
+  add column if not exists budget_map          jsonb,   -- { escalão: destino }
+  add column if not exists language_map        jsonb,
+  add column if not exists specialty_map       jsonb,
+  add column if not exists substitute_id       uuid references profiles (id) on delete set null,
+  add column if not exists fallback_id         uuid references profiles (id) on delete set null,
+  add column if not exists daily_limit         integer,
+  add column if not exists acceptance_deadline_h integer,
+  add column if not exists notify_manager_id   uuid references profiles (id) on delete set null;
+
+
+-- ============================================================
+-- 0022_contacts_timeline_agenda.sql
+-- ============================================================
+-- HousePro / Helix — F2: Contactos, cronologia única, tarefas e agenda.
+--
+-- `contacts` é a entidade central de pessoa. `contact_activities` é a CRONOLOGIA
+-- ÚNICA e auditável. `tasks` e `visits` cobrem a agenda. A `leads` ganha
+-- `contact_id` (nullable, retrocompatível) para se ligar a um contacto sem se
+-- duplicar. RLS por dono/agência/staff, alinhada com os restantes módulos.
+--
+-- Aditiva e idempotente. Depende de 0001–0021. NÃO é aplicada automaticamente.
+
+-- ── Contactos ──────────────────────────────────────────────────────────────
+create table if not exists contacts (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  phone      text,
+  email      text,
+  type       text not null default 'outro', -- comprador|vendedor|investidor|recrutamento|fornecedor|outro
+  owner_id   uuid references profiles (id) on delete set null,
+  agency_id  uuid references agencies (id) on delete set null,
+  zone       text,
+  budget     text,
+  language   text,
+  tags       text[] default '{}',
+  source     text,
+  consent    jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists contacts_owner_idx on contacts (owner_id);
+create index if not exists contacts_agency_idx on contacts (agency_id);
+
+-- Ligação lead → contacto (sem duplicar a lead).
+alter table leads add column if not exists contact_id uuid references contacts (id) on delete set null;
+create index if not exists leads_contact_idx on leads (contact_id);
+
+-- ── Cronologia única ───────────────────────────────────────────────────────
+create table if not exists contact_activities (
+  id           uuid primary key default gen_random_uuid(),
+  contact_id   uuid not null references contacts (id) on delete cascade,
+  type         text not null, -- lead|call|email|whatsapp|note|task|visit|stage|deal|document|system
+  title        text not null,
+  body         text,
+  actor_id     uuid references profiles (id) on delete set null,
+  actor_name   text,
+  direction    text,          -- in | out
+  lead_id      uuid references leads (id) on delete set null,
+  deal_ref     text,
+  property_ref text,
+  created_at   timestamptz not null default now()
+);
+create index if not exists contact_activities_contact_idx on contact_activities (contact_id, created_at desc);
+
+-- ── Tarefas ────────────────────────────────────────────────────────────────
+create table if not exists tasks (
+  id         uuid primary key default gen_random_uuid(),
+  owner_id   uuid references profiles (id) on delete cascade,
+  contact_id uuid references contacts (id) on delete set null,
+  title      text not null,
+  kind       text not null default 'other', -- call|visit|followup|email|doc|other
+  priority   text not null default 'normal',-- baixa|normal|alta
+  due_at     timestamptz,
+  done       boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists tasks_owner_idx on tasks (owner_id, due_at);
+
+-- ── Agenda (visitas/eventos) ─────────────────────────────────────────────────
+create table if not exists visits (
+  id           uuid primary key default gen_random_uuid(),
+  owner_id     uuid references profiles (id) on delete cascade,
+  contact_id   uuid references contacts (id) on delete set null,
+  property_id  uuid references properties (id) on delete set null,
+  property_ref text,
+  kind         text not null default 'visita', -- visita|reuniao|avaliacao|outro
+  at           timestamptz not null,
+  duration_min integer,
+  status       text not null default 'agendada', -- agendada|feita|cancelada|noshow
+  note         text,
+  created_at   timestamptz not null default now()
+);
+create index if not exists visits_owner_idx on visits (owner_id, at);
+
+-- ── RLS ──────────────────────────────────────────────────────────────────────
+alter table contacts           enable row level security;
+alter table contact_activities enable row level security;
+alter table tasks              enable row level security;
+alter table visits             enable row level security;
+
+-- Staff de gestão (reutiliza o helper criado em 0020).
+-- Contactos: dono, mesma agência, ou staff.
+drop policy if exists contacts_scope on contacts;
+create policy contacts_scope on contacts
+  for all using (
+    owner_id = auth.uid()
+    or is_meta_staff()
+    or exists (select 1 from profiles p where p.id = auth.uid() and p.agency_id = contacts.agency_id)
+  ) with check (
+    owner_id = auth.uid()
+    or is_meta_staff()
+    or exists (select 1 from profiles p where p.id = auth.uid() and p.agency_id = contacts.agency_id)
+  );
+
+-- Cronologia: quem pode ver o contacto pode ver/escrever a cronologia.
+drop policy if exists contact_activities_scope on contact_activities;
+create policy contact_activities_scope on contact_activities
+  for all using (
+    is_meta_staff()
+    or exists (select 1 from contacts c where c.id = contact_id
+      and (c.owner_id = auth.uid()
+        or exists (select 1 from profiles p where p.id = auth.uid() and p.agency_id = c.agency_id)))
+  ) with check (
+    is_meta_staff()
+    or exists (select 1 from contacts c where c.id = contact_id
+      and (c.owner_id = auth.uid()
+        or exists (select 1 from profiles p where p.id = auth.uid() and p.agency_id = c.agency_id)))
+  );
+
+-- Tarefas e visitas: do dono, ou staff.
+drop policy if exists tasks_scope on tasks;
+create policy tasks_scope on tasks
+  for all using (owner_id = auth.uid() or is_meta_staff())
+  with check (owner_id = auth.uid() or is_meta_staff());
+
+drop policy if exists visits_scope on visits;
+create policy visits_scope on visits
+  for all using (owner_id = auth.uid() or is_meta_staff())
+  with check (owner_id = auth.uid() or is_meta_staff());
+
+
+-- ============================================================
+-- 0023_xcall.sql
+-- ============================================================
+-- HousePro / Helix — F3: X Call (chamadas assistidas).
+--
+-- Regista cada chamada: guião, objetivo, resultado, temperatura, notas, próximo
+-- passo e (futuro) duração. Escreve também na cronologia do contacto (feito no
+-- servidor). Preparado para telefonia sem ligar serviços pagos.
+--
+-- Aditiva e idempotente. Depende de 0001–0022. NÃO é aplicada automaticamente.
+
+create table if not exists call_logs (
+  id             uuid primary key default gen_random_uuid(),
+  agent_id       uuid references profiles (id) on delete set null,
+  contact_id     uuid references contacts (id) on delete set null,
+  lead_id        uuid references leads (id) on delete set null,
+  script_key     text not null default 'comprador',
+  objective      text,
+  result         text not null,          -- atendeu|nao_atendeu|invalido|ligar_mais_tarde|qualificada|visita_marcada|sem_interesse|outro
+  temperature    text,                   -- quente|morna|fria
+  score          integer,
+  notes          text,
+  next_task_title text,
+  next_task_due_at timestamptz,
+  lost_reason    text,
+  duration_sec   integer,
+  created_at     timestamptz not null default now()
+);
+create index if not exists call_logs_agent_idx on call_logs (agent_id, created_at desc);
+create index if not exists call_logs_contact_idx on call_logs (contact_id, created_at desc);
+
+alter table call_logs enable row level security;
+
+-- O próprio agente e o staff de gestão (helper de 0020).
+drop policy if exists call_logs_scope on call_logs;
+create policy call_logs_scope on call_logs
+  for all using (agent_id = auth.uid() or is_meta_staff())
+  with check (agent_id = auth.uid() or is_meta_staff());
+
+
+-- ============================================================
+-- 0024_xcampaigns.sql
+-- ============================================================
+-- HousePro / Helix — F4: X Campaigns (email marketing).
+--
+-- Campanhas de email com blocos (jsonb), segmento (jsonb) e estatísticas. Os
+-- envios ficam registados (email_sends) e a lista de supressões (unsubscribe /
+-- devoluções) garante que não se comunica com quem não deve. O envio real só
+-- acontece com credenciais e autorização — em desenvolvimento é sandbox.
+--
+-- Aditiva e idempotente. Depende de 0001–0023. NÃO é aplicada automaticamente.
+
+create table if not exists email_campaigns (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  type        text not null default 'campanha',
+  subject     text not null,
+  preheader   text,
+  blocks      jsonb not null default '[]',
+  segment     jsonb not null default '{}',
+  status      text not null default 'rascunho', -- rascunho|agendada|sandbox|enviada
+  schedule_at timestamptz,
+  owner_id    uuid references profiles (id) on delete set null,
+  stats       jsonb,
+  created_at  timestamptz not null default now()
+);
+create index if not exists email_campaigns_owner_idx on email_campaigns (owner_id, created_at desc);
+
+create table if not exists email_sends (
+  id          uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null references email_campaigns (id) on delete cascade,
+  contact_id  uuid references contacts (id) on delete set null,
+  email       text,
+  status      text not null default 'sandbox', -- sandbox|sent|delivered|opened|clicked|bounced|unsubscribed
+  sandbox     boolean not null default true,
+  created_at  timestamptz not null default now()
+);
+create index if not exists email_sends_campaign_idx on email_sends (campaign_id);
+
+-- Supressões: quem cancelou subscrição ou devolveu — nunca receber.
+create table if not exists email_suppressions (
+  email      text primary key,
+  reason     text,            -- unsubscribe | bounce | complaint | manual
+  created_at timestamptz not null default now()
+);
+
+alter table email_campaigns    enable row level security;
+alter table email_sends        enable row level security;
+alter table email_suppressions enable row level security;
+
+drop policy if exists email_campaigns_scope on email_campaigns;
+create policy email_campaigns_scope on email_campaigns
+  for all using (owner_id = auth.uid() or is_meta_staff())
+  with check (owner_id = auth.uid() or is_meta_staff());
+
+drop policy if exists email_sends_scope on email_sends;
+create policy email_sends_scope on email_sends
+  for all using (
+    is_meta_staff()
+    or exists (select 1 from email_campaigns c where c.id = campaign_id and c.owner_id = auth.uid())
+  ) with check (
+    is_meta_staff()
+    or exists (select 1 from email_campaigns c where c.id = campaign_id and c.owner_id = auth.uid())
+  );
+
+-- Supressões: leitura a autenticados (para respeitar antes de enviar), escrita a staff.
+drop policy if exists email_suppressions_read on email_suppressions;
+create policy email_suppressions_read on email_suppressions
+  for select using (auth.uid() is not null);
+drop policy if exists email_suppressions_write on email_suppressions;
+create policy email_suppressions_write on email_suppressions
+  for all using (is_meta_staff()) with check (is_meta_staff());
+
+
+-- ============================================================
+-- 0025_xmarket.sql
+-- ============================================================
+-- HousePro / Helix — F5: X Market (marketplace, carteira e créditos).
+--
+-- Catálogo de produtos/serviços, carteira (saldo + créditos incluídos/consumidos),
+-- livro-razão da carteira, e encomendas com estados e aprovação acima de valor.
+-- Pagamentos/consumos são simulados em desenvolvimento (sem serviços pagos).
+--
+-- Aditiva e idempotente. Depende de 0001–0024. NÃO é aplicada automaticamente.
+
+create table if not exists products (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  category    text not null default 'outros',
+  price       numeric not null default 0,
+  unit        text,
+  supplier    text,
+  credit_type text,             -- email|sms|whatsapp|xcall|meta_ads (recarga)
+  credit_amount numeric,
+  stock       integer,
+  description text,
+  active      boolean not null default true,
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists wallets (
+  id                 uuid primary key default gen_random_uuid(),
+  scope              text not null default 'agent',  -- agent|team|agency|cost_center
+  owner_id           text not null,                  -- profile/team/agency id
+  balance            numeric not null default 0,
+  monthly_budget     numeric,
+  monthly_spent      numeric not null default 0,
+  approval_threshold numeric,
+  block_when_empty   boolean not null default false,
+  credits            jsonb not null default '[]',    -- [{type, included, consumed, unitCostExtra}]
+  created_at         timestamptz not null default now()
+);
+create index if not exists wallets_owner_idx on wallets (scope, owner_id);
+
+create table if not exists wallet_ledger (
+  id         uuid primary key default gen_random_uuid(),
+  wallet_id  uuid not null references wallets (id) on delete cascade,
+  kind       text not null,        -- carga | consumo | encomenda | reembolso | ajuste
+  credit_type text,                -- quando é consumo de crédito
+  amount     numeric not null default 0,  -- € (ou nº de unidades quando credit_type)
+  note       text,
+  created_at timestamptz not null default now()
+);
+create index if not exists wallet_ledger_wallet_idx on wallet_ledger (wallet_id, created_at desc);
+
+create table if not exists orders (
+  id         uuid primary key default gen_random_uuid(),
+  buyer_id   uuid references profiles (id) on delete set null,
+  total      numeric not null default 0,
+  status     text not null default 'pendente_aprovacao',
+  created_at timestamptz not null default now()
+);
+create index if not exists orders_buyer_idx on orders (buyer_id, created_at desc);
+
+create table if not exists order_items (
+  id         uuid primary key default gen_random_uuid(),
+  order_id   uuid not null references orders (id) on delete cascade,
+  product_id uuid references products (id) on delete set null,
+  name       text not null,
+  qty        integer not null default 1,
+  unit_price numeric not null default 0
+);
+create index if not exists order_items_order_idx on order_items (order_id);
+
+alter table products      enable row level security;
+alter table wallets       enable row level security;
+alter table wallet_ledger enable row level security;
+alter table orders        enable row level security;
+alter table order_items   enable row level security;
+
+-- Catálogo: leitura a autenticados; escrita a staff (helper de 0020).
+drop policy if exists products_read on products;
+create policy products_read on products for select using (auth.uid() is not null);
+drop policy if exists products_write on products;
+create policy products_write on products for all using (is_meta_staff()) with check (is_meta_staff());
+
+-- Carteira: o dono (agent scope) ou staff.
+drop policy if exists wallets_scope on wallets;
+create policy wallets_scope on wallets
+  for all using (owner_id = auth.uid()::text or is_meta_staff())
+  with check (owner_id = auth.uid()::text or is_meta_staff());
+
+drop policy if exists wallet_ledger_scope on wallet_ledger;
+create policy wallet_ledger_scope on wallet_ledger
+  for all using (
+    is_meta_staff()
+    or exists (select 1 from wallets w where w.id = wallet_id and w.owner_id = auth.uid()::text)
+  ) with check (
+    is_meta_staff()
+    or exists (select 1 from wallets w where w.id = wallet_id and w.owner_id = auth.uid()::text)
+  );
+
+-- Encomendas: o comprador ou staff.
+drop policy if exists orders_scope on orders;
+create policy orders_scope on orders
+  for all using (buyer_id = auth.uid() or is_meta_staff())
+  with check (buyer_id = auth.uid() or is_meta_staff());
+
+drop policy if exists order_items_scope on order_items;
+create policy order_items_scope on order_items
+  for all using (
+    is_meta_staff()
+    or exists (select 1 from orders o where o.id = order_id and o.buyer_id = auth.uid())
+  ) with check (
+    is_meta_staff()
+    or exists (select 1 from orders o where o.id = order_id and o.buyer_id = auth.uid())
+  );

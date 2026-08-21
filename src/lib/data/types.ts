@@ -41,7 +41,18 @@ export interface Agency {
  *  diretor = diretor de agência / broker (gere uma agência);
  *  coordenador = coordenação de equipa dentro da agência;
  *  agente / agente_ami = consultor (com AMI próprio = independente). */
-export type RoleKey = "superadmin" | "admin" | "diretor" | "coordenador" | "agente" | "agente_ami" | "advogado";
+export type RoleKey =
+  | "superadmin"
+  | "admin"
+  | "diretor"
+  | "coordenador"
+  | "marketing"
+  | "recrutamento"
+  | "apoio"
+  | "agente"
+  | "agente_ami"
+  | "advogado"
+  | "parceiro";
 
 export interface Agent {
   id: string;

@@ -20,8 +20,35 @@ export interface NewsItem {
   url: string;
   /** Corpo do artigo (parágrafos) para a página interna. */
   body?: string[];
+  /** Imagem de destaque definida no admin (prioridade máxima). */
+  featuredImage?: string;
+  /** Imagem associada ao artigo (ex.: capa da fonte importada). */
+  image?: string;
   /** Tailwind gradient for the placeholder thumbnail. */
   tint: string;
+}
+
+/** Fallbacks locais por categoria (nunca cinzento no estado final). */
+const CATEGORY_FALLBACK: Record<NewsCategory, string> = {
+  Mercado: "/news/mercado.webp",
+  Legislação: "/news/legislacao.webp",
+  Investimento: "/news/investimento.webp",
+  Dicas: "/news/dicas.webp",
+  Eventos: "/news/eventos.webp",
+  Internacional: "/news/internacional.webp",
+};
+
+/** Fallback geral HousePro (último recurso). */
+export const NEWS_FALLBACK = "/news/geral.webp";
+
+/**
+ * Imagem do artigo por ordem de prioridade:
+ * 1) featuredImage (admin) → 2) imagem associada/importada →
+ * 3) fallback da categoria → 4) fallback geral HousePro.
+ * Nunca devolve vazio, por isso nunca há <img> sem src válido.
+ */
+export function newsImage(item: NewsItem): string {
+  return item.featuredImage || item.image || CATEGORY_FALLBACK[item.category] || NEWS_FALLBACK;
 }
 
 /**

@@ -226,6 +226,8 @@ export default function AdminPage() {
           <NavCard href="/admin/vinculos" icon={ShieldHalf} title="Vínculos & comissão" note="Empresa/recibos verdes · validação" />
           <NavCard href="/admin/agencia-legal" icon={ShieldAlert} title="Dados legais da agência" note="AMI, certidões, registo — obrigatório" />
           <NavCard href="/admin/premios" icon={TrendingUp} title="Artes dos prémios" note="Troféus/renders por distinção" />
+          <NavCard href="/admin/frases" icon={Type} title="Frases diárias" note="Biblioteca + campanhas e datas especiais" />
+          <NavCard href="/admin/website" icon={ImagePlus} title="Website público" note="Banners, histórias, vagas e imagens de artigos" />
         </section>
 
         {/* Pipeline de negócios */}

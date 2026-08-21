@@ -5,7 +5,7 @@
  * documento. Menos atrasos, menos atritos, menos erros.
  */
 
-export type LegalDocType = "cpcv" | "arrendamento" | "procuracao" | "outro";
+export type LegalDocType = "cpcv" | "arrendamento" | "procuracao" | "consulta" | "outro";
 export type LegalStatus = "normal" | "pendencias" | "bloqueado" | "concluido";
 export type LegalPartyRole = "advogado" | "coordenacao" | "consultor" | "vendedor" | "comprador";
 
@@ -13,8 +13,29 @@ export const DOC_TYPE_LABEL: Record<LegalDocType, string> = {
   cpcv: "CPCV",
   arrendamento: "Contrato de arrendamento",
   procuracao: "Procuração",
+  consulta: "Consulta jurídica",
   outro: "Documento",
 };
+
+/** Honorários e modo de pagamento de um serviço jurídico. */
+export type PaymentMethod = "transferencia" | "mbway" | "multibanco" | "numerario" | "outro";
+
+export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  transferencia: "Transferência bancária",
+  mbway: "MB WAY",
+  multibanco: "Multibanco",
+  numerario: "Numerário",
+  outro: "Outro",
+};
+
+export type FeeStatus = "por_pagar" | "pago" | "isento";
+
+export interface LegalFee {
+  amount: number;
+  method: PaymentMethod;
+  status: FeeStatus;
+  note?: string;
+}
 
 export const STATUS_LABEL: Record<LegalStatus, { label: string; dot: string; badge: string }> = {
   normal: { label: "Normal", dot: "bg-emerald-500", badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
@@ -55,6 +76,10 @@ export interface LegalProcess {
   sections: LegalSection[];
   checklist: ChecklistItem[];
   updatedAt: string;
+  /** Honorários e pagamento definidos pelo advogado. */
+  fee?: LegalFee;
+  /** O cliente pode pré-visualizar a minuta? (o advogado ativa/desativa). */
+  clientVisible?: boolean;
 }
 
 /** Cláusulas por defeito de cada tipo de documento (o advogado preenche). */
@@ -69,7 +94,47 @@ export function templateSections(type: LegalDocType): LegalSection[] {
   if (type === "procuracao") {
     return ["Identificação do mandante", "Identificação do procurador", "Poderes conferidos", "Prazo e validade", "Disposições finais"].map(mk);
   }
+  if (type === "consulta") {
+    return ["Questão colocada", "Enquadramento jurídico", "Análise", "Parecer / recomendação"].map(mk);
+  }
   return [mk("Introdução"), mk("Cláusulas"), mk("Disposições finais")];
+}
+
+// ── Configuração do advogado (honorários, serviços, pagamento) ──────────────
+
+export interface LawyerService {
+  type: LegalDocType;
+  label: string;
+  /** Honorário base (€). */
+  basePrice: number;
+  /** Prazo de entrega padrão (dias). */
+  deadlineDays: number;
+  active: boolean;
+}
+
+export interface LawyerConfig {
+  services: LawyerService[];
+  /** Métodos de pagamento aceites. */
+  methods: PaymentMethod[];
+  /** Nota/condições gerais (mostradas ao consultor ao pedir). */
+  note?: string;
+}
+
+export const DEFAULT_LAWYER_CONFIG: LawyerConfig = {
+  services: [
+    { type: "cpcv", label: "CPCV", basePrice: 250, deadlineDays: 5, active: true },
+    { type: "arrendamento", label: "Contrato de arrendamento", basePrice: 150, deadlineDays: 4, active: true },
+    { type: "procuracao", label: "Procuração", basePrice: 90, deadlineDays: 2, active: true },
+    { type: "consulta", label: "Consulta jurídica", basePrice: 60, deadlineDays: 2, active: true },
+    { type: "outro", label: "Outro documento", basePrice: 120, deadlineDays: 5, active: true },
+  ],
+  methods: ["transferencia", "mbway", "multibanco"],
+  note: "Honorários acrescidos de IVA à taxa legal. Prazo conta a partir da receção de todos os documentos.",
+};
+
+/** Honorário/serviço configurado para um tipo. */
+export function serviceFor(config: LawyerConfig, type: LegalDocType): LawyerService | undefined {
+  return config.services.find((s) => s.type === type && s.active);
 }
 
 /** Navegação do LegalFlow por papel (espelha as permissões definidas). */

@@ -198,4 +198,218 @@
       transparent 78%
     );
   }
+
+  /* Campo de formulário reutilizável (input/select/textarea) — token-based,
+     para a futura reformulação estética se aplicar num só sítio. */
+  .input {
+    width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--background);
+    color: var(--foreground);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input:focus-visible {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 25%, transparent);
+  }
+  .input::placeholder {
+    color: var(--muted-foreground);
+  }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Helix — sistema visual do dashboard do consultor (escopo .helix).
+   Tokens próprios (Deep Navy lidera; vermelho reservado a ação/alerta).
+   Não altera os tokens globais do site público.
+   ───────────────────────────────────────────────────────────── */
+.helix {
+  --hx-navy: #0B1F3A;
+  --hx-navy-2: #244765;
+  --hx-blue: #3478A5;
+  --hx-red: #D62832;
+  --hx-red-hover: #B71D26;
+  --hx-bg: #F5F7FA;
+  --hx-surface: #FFFFFF;
+  --hx-surface-blue: #EDF3F7;
+  --hx-text: #142033;
+  --hx-text-2: #667085;
+  --hx-success: #24815D;
+  --hx-warn: #D99026;
+  --hx-error: #D62832;
+  --hx-border: #E5EAF1;
+  --hx-radius: 18px;
+  --hx-shadow: 0 1px 2px rgba(11, 31, 58, 0.05), 0 10px 26px -16px rgba(11, 31, 58, 0.22);
+
+  /* Remapeamento dos tokens do sistema (shadcn) para a paleta Helix — assim
+     TODOS os módulos que usam estes tokens ficam uniformes, sem reescrever
+     página a página. Deep Navy lidera; o vermelho fica no destructive/urgência. */
+  --radius: 0.9rem;
+  --background: #F5F7FA;
+  --foreground: #142033;
+  --card: #FFFFFF;
+  --card-foreground: #142033;
+  --popover: #FFFFFF;
+  --popover-foreground: #142033;
+  --primary: #0B1F3A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EDF3F7;
+  --secondary-foreground: #244765;
+  --muted: #EDF3F7;
+  --muted-foreground: #667085;
+  --accent: #EDF3F7;
+  --accent-foreground: #244765;
+  --destructive: #D62832;
+  --destructive-foreground: #FFFFFF;
+  --success: #24815D;
+  --warning: #D99026;
+  --border: #E5EAF1;
+  --input: #E5EAF1;
+  --ring: #3478A5;
+  --brand: #0B1F3A;
+  --brand-foreground: #FFFFFF;
+  --gold: #D99026;
+  --gold-foreground: #FFFFFF;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #142033;
+  --sidebar-primary: #0B1F3A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EDF3F7;
+  --sidebar-accent-foreground: #244765;
+  --sidebar-border: #E5EAF1;
+
+  background: var(--hx-bg);
+  color: var(--hx-text);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+/* No Helix a tipografia é sans (o mockup não usa serifas): as áreas display
+   ficam sans-bold, uniformes com o dashboard. */
+.helix .font-display {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* Variante "Processos" — verde em destaque (reflete as propostas verdes que
+   dão origem ao processo). Só neste menu. */
+.helix.helix-processos {
+  --primary: #1F7A54;
+  --primary-foreground: #FFFFFF;
+  --brand: #1F7A54;
+  --brand-foreground: #FFFFFF;
+  --ring: #2E9E73;
+  --sidebar-primary: #1F7A54;
+  --hx-navy: #1F7A54;
+  --hx-blue: #2E9E73;
+}
+.helix .hx-card {
+  background: var(--hx-surface);
+  border: 1px solid var(--hx-border);
+  border-radius: var(--hx-radius);
+  box-shadow: var(--hx-shadow);
+}
+.helix .hx-tnum { font-variant-numeric: tabular-nums; }
+.helix .hx-muted { color: var(--hx-text-2); }
+.helix .hx-red { color: var(--hx-red); }
+.helix .hx-section-title { font-weight: 700; letter-spacing: -0.01em; color: var(--hx-text); }
+.helix .hx-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  border-radius: 999px; font-weight: 600; font-size: 0.9rem;
+  min-height: 44px; padding: 0 1.1rem; border: 1px solid transparent; cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.helix .hx-btn-red { background: var(--hx-red); color: #fff; }
+.helix .hx-btn-red:hover { background: var(--hx-red-hover); }
+.helix .hx-btn-outline-red { background: transparent; color: var(--hx-red); border-color: color-mix(in srgb, var(--hx-red) 40%, transparent); }
+.helix .hx-btn-outline-red:hover { background: color-mix(in srgb, var(--hx-red) 8%, transparent); }
+.helix .hx-btn-ghost { background: var(--hx-surface-blue); color: var(--hx-navy); }
+.helix .hx-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.75rem; font-weight: 600;
+}
+.helix .hx-chip-blue { background: var(--hx-surface-blue); color: var(--hx-blue); }
+.helix .hx-chip-navy { background: color-mix(in srgb, var(--hx-navy) 8%, transparent); color: var(--hx-navy-2); }
+.helix .hx-chip-red { background: color-mix(in srgb, var(--hx-red) 12%, transparent); color: var(--hx-red); }
+.helix .hx-chip-warn { background: color-mix(in srgb, var(--hx-warn) 16%, transparent); color: var(--hx-warn); }
+.helix .hx-chip-success { background: color-mix(in srgb, var(--hx-success) 15%, transparent); color: var(--hx-success); }
+.helix .hx-icon-btn {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px;
+  color: var(--hx-navy); background: transparent; cursor: pointer;
+}
+.helix .hx-icon-btn:hover { background: var(--hx-surface-blue); }
+.helix :focus-visible { outline: 2px solid var(--hx-blue); outline-offset: 2px; border-radius: 6px; }
+
+/* Rotação suave da hélice no loader (respeita reduzir movimento). */
+@keyframes hx-spin { to { transform: rotate(360deg); } }
+.helix .hx-spin, .hx-spin { animation: hx-spin 2.4s linear infinite; transform-origin: 50% 50%; }
+@media (prefers-reduced-motion: reduce) {
+  .helix .hx-spin, .hx-spin { animation: none; }
+  .helix .hx-fan-item { transition: none !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Homepage pública HousePro — escopo .hp (mesma direção Deep Navy do
+   Helix). Remapeia os tokens do sistema para a paleta aprovada, sem
+   alterar os tokens globais nem as restantes páginas públicas.
+   ───────────────────────────────────────────────────────────── */
+.hp {
+  --radius: 1rem;
+  --background: #F5F7FA;
+  --foreground: #142033;
+  --card: #FFFFFF;
+  --card-foreground: #142033;
+  --popover: #FFFFFF;
+  --popover-foreground: #142033;
+  --primary: #0B1F3A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EDF3F7;
+  --secondary-foreground: #244765;
+  --muted: #EDF3F7;
+  --muted-foreground: #667085;
+  --accent: #EDF3F7;
+  --accent-foreground: #244765;
+  --destructive: #D62832;
+  --destructive-foreground: #FFFFFF;
+  --success: #24815D;
+  --warning: #D99026;
+  --border: #E5EAF1;
+  --input: #E5EAF1;
+  --ring: #3478A5;
+  --brand: #0B1F3A;
+  --brand-foreground: #FFFFFF;
+  --gold: #D99026;
+  --gold-foreground: #FFFFFF;
+
+  /* Tokens próprios da homepage. */
+  --hp-navy: #0B1F3A;
+  --hp-navy-2: #244765;
+  --hp-blue: #3478A5;
+  --hp-red: #D62832;
+  --hp-red-hover: #B71D26;
+  --hp-text-2: #667085;
+
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.hp .font-display {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.hp .hp-btn-red {
+  background: var(--hp-red); color: #fff;
+  transition: background-color .15s;
+}
+.hp .hp-btn-red:hover { background: var(--hp-red-hover); }
+.hp .hp-eyebrow {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--hp-blue);
+}
+.hp :focus-visible { outline: 2px solid var(--hp-blue); outline-offset: 2px; border-radius: 6px; }

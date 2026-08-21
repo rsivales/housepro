@@ -29,12 +29,20 @@ import {
   ShieldCheck,
   Scale,
   Share2,
+  Megaphone,
+  Mail,
+  Search,
+  Activity,
+  Gauge,
   ArrowRight,
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications } from "@/lib/db/repo";
-import { phraseOfTheDay, demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
+import { demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
+import { quoteTextOfDay } from "@/lib/data/quotes";
+import { getQuotesConfig } from "@/lib/db/repo";
+import { ConsultantHome } from "@/components/helix/consultant-home";
 import { PhraseOfTheDay, LastAngariadoBanner, NotificationsInbox, ActivitiesBoard } from "@/components/consultant/dashboard-extras";
 import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
 import { referralsIncoming } from "@/lib/data/referrals";
@@ -66,13 +74,21 @@ export default async function AppPage() {
   // O advogado tem o seu próprio ambiente (LegalFlow), não o painel de consultor.
   if (agent.roleKey === "advogado") redirect("/app/legalflow");
 
+  // Consultores veem o novo dashboard Helix. Os papéis de gestão (direção/
+  // coordenação/admin) mantêm, por agora, o painel existente (a reformular
+  // só com nova aprovação).
+  const roleKey = agent.roleKey ?? "agente";
+  if (roleKey === "agente" || roleKey === "agente_ami") {
+    return <ConsultantHome agent={agent} demo={demo} />;
+  }
+
   const mine = await listPropertiesByAgent(agent.id);
   const leads = await listLeadsByAgent(agent.id);
   const novas = leads.filter((l) => l.status === "novo").length;
   const refsNovas = referralsIncoming(agent.id).filter((r) => r.status === "pendente").length;
 
   // Dashboard: frase do dia, notificações, última angariação da agência, atividades.
-  const phrase = phraseOfTheDay();
+  const phrase = quoteTextOfDay(new Date(), await getQuotesConfig());
   const tip = tipOfTheDay();
   const realNotifs = await listNotifications(agent.id);
   const notifs = realNotifs.length ? realNotifs : demoNotifications();
@@ -168,12 +184,19 @@ export default async function AppPage() {
           <Action icon={Upload} title="Carregar imóvel" href="/app/imovel/novo" note="Fotos + comissão + marca de água" />
           <Action icon={Store} title="Mercado & comissões" href="/app/mercado" note="Imóveis da rede + referências" />
           <Action icon={LayoutGrid} title="A minha montra" href={`/consultor/${agent.id}`} note="Página pública" />
+          <Action icon={Gauge} title="Desempenho dos imóveis" href="/app/desempenho" note="Sem contacto, pouca procura, rever preço" />
           <Action icon={Share2} title="Portais & exportações" href="/app/portais" note="Idealista, Imovirtual, Facebook…" />
         </ActionGroup>
 
         {/* Negócios */}
         <ActionGroup id="g-negocios" title="Clientes & negócios">
+          <Action icon={Users} title="Contactos" href="/app/contactos" note="Ficha central + cronologia única" />
+          <Action icon={CalendarClock} title="Agenda" href="/app/agenda" note="Tarefas e visitas" />
           <Action icon={Target} title="CRM · Pipelines" href="/app/crm" note="Angariação e comprador (Kanban)" />
+          <Action icon={Megaphone} title="Meta CRM" href="/app/meta" note="Leads de Facebook e Instagram" />
+          <Action icon={PhoneCall} title="X Call" href="/app/x-call" note="Chamadas assistidas com guião" />
+          <Action icon={Mail} title="X Campaigns" href="/app/x-campaigns" note="Email marketing e automações" />
+          <Action icon={Store} title="X Market" href="/app/x-market" note="Créditos, serviços e materiais" />
           <Action icon={TrendingUp} title="Processos" href="/processo/d1" note="Acompanhar negócios" />
           <Action icon={Scale} title="LegalFlow" href="/app/legalflow" note="CPCV e documentos legais com o advogado" />
           <Action icon={Presentation} title="Reunião Uau" href="/app/reuniao" note="Apresentações + PDF" />
@@ -196,6 +219,8 @@ export default async function AppPage() {
           <Action icon={GraduationCap} title="Formação" href="/app/formacao" note="Academia: cursos e certificação" />
           <Action icon={Scale} title="Qualidade" href="/app/qualidade" note="Reputação: méritos e infrações" />
           <Action icon={Calculator} title="Ferramentas" href="/app/ferramentas" note="IMT + Selo e outras calculadoras" />
+          <Action icon={Search} title="Pesquisa" href="/app/pesquisa" note="Contactos, leads, imóveis e campanhas" />
+          <Action icon={Activity} title="Observabilidade" href="/app/observabilidade" note="Saúde operacional dos módulos" />
         </ActionGroup>
 
         {/* Contactos & pedidos de visita */}

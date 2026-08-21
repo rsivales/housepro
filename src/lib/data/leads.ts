@@ -102,6 +102,32 @@ export interface Lead {
    * evitar criar a mesma lead duas vezes na receção de webhooks.
    */
   externalId?: string;
+
+  // ── Funil público de avaliação de imóvel (todos opcionais) ─────────────
+  /** Suborigem (ex.: "Avaliação de imóvel"). */
+  subSource?: string;
+  /** URL da página onde a lead foi captada (sem dados pessoais). */
+  pageUrl?: string;
+  /** Referrer do navegador. */
+  referrerUrl?: string;
+  /** Parâmetros de campanha (utm_*, gclid, fbclid). */
+  utm?: Record<string, string>;
+  /** Versão do formulário que gerou a lead. */
+  formVersion?: string;
+  /** Tipo de imóvel indicado. */
+  propertyType?: string;
+  /** Estado do imóvel indicado. */
+  propertyCondition?: string;
+  /** Motivo da avaliação. */
+  evaluationReason?: string;
+  /** Prazo provável para vender. */
+  sellTimeframe?: string;
+  /** Preferência de contacto. */
+  contactPreference?: "telefone" | "whatsapp" | "email";
+  /** Melhor horário para contacto (texto livre). */
+  bestTime?: string;
+  /** Consentimento de marketing (separado do consentimento necessário). */
+  marketingConsent?: boolean;
 }
 
 /** Leads de exemplo (modo demo, sem Supabase) — associadas ao consultor Rui. */

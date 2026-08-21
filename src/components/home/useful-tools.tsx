@@ -22,7 +22,7 @@ const TOOLS = [
     icon: Gauge,
     title: "Quanto vale a minha casa?",
     desc: "Peça uma avaliação gratuita e sem compromisso.",
-    href: "/vender#avaliacao",
+    href: "/avaliacao-imovel#comecar",
   },
 ];
 

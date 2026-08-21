@@ -358,7 +358,7 @@
    alterar os tokens globais nem as restantes páginas públicas.
    ───────────────────────────────────────────────────────────── */
 .hp {
-  --radius: 1rem;
+  --radius: 0.75rem;
   --background: #F5F7FA;
   --foreground: #142033;
   --card: #FFFFFF;

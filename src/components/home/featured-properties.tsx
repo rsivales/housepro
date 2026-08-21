@@ -20,7 +20,7 @@ const PROPERTY_FALLBACK = "/news/geral.webp";
 function FeaturedCard({ property }: { property: Property }) {
   const href = `/imovel/${property.id}`;
   return (
-    <article className="grid h-full grid-cols-[1.05fr_1fr] overflow-hidden rounded-3xl border bg-card shadow-sm">
+    <article className="grid h-full grid-cols-[1.05fr_1fr] overflow-hidden rounded-2xl border bg-card shadow-sm">
       <Link href={href} aria-label={property.title} className="relative block">
         <SafeImage
           src={property.image}

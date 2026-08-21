@@ -27,7 +27,7 @@ export function VideoTestimonial({ t }: { t: Testimonial }) {
   const [showTranscript, setShowTranscript] = React.useState(false);
 
   return (
-    <figure className="overflow-hidden rounded-3xl border bg-card shadow-sm">
+    <figure className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="relative aspect-video">
         {t.videoSrc && playing ? (
           <video

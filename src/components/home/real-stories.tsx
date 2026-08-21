@@ -42,7 +42,7 @@ export function RealStories() {
         <VideoTestimonial t={featured} />
         <div className="grid grid-rows-2 gap-4">
           {gallery.map((s) => (
-            <div key={s.id} className="relative overflow-hidden rounded-3xl border bg-card">
+            <div key={s.id} className="relative overflow-hidden rounded-2xl border bg-card">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={s.poster} alt={`Cliente HousePro — ${s.name}`} className="absolute inset-0 size-full object-cover" loading="lazy" />
               <div className="relative min-h-[130px]" />

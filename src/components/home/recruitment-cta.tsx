@@ -27,7 +27,7 @@ export function RecruitmentCTA({ image }: { image?: string }) {
           </div>
         </div>
 
-        <div className="relative order-first aspect-[16/10] overflow-hidden rounded-3xl lg:order-none">
+        <div className="relative order-first aspect-[16/10] overflow-hidden rounded-2xl lg:order-none">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={image} alt="Equipa HousePro" className="absolute inset-0 size-full object-cover" loading="lazy" />

@@ -54,7 +54,7 @@ export const DEFAULT_BANNERS: Banner[] = [
     text: "Avaliação honesta e uma estratégia de venda pensada ao pormenor.",
     line: "Avaliação gratuita · sem compromisso",
     primary: { label: "Vender imóvel", href: "/vender" },
-    secondary: { label: "Avaliar a minha casa", href: "/vender" },
+    secondary: { label: "Avaliar a minha casa", href: "/avaliacao-imovel#comecar" },
     intent: "vender",
     priority: 60,
     active: true,

@@ -662,17 +662,12 @@ export async function reassignLeadOwner(leadId: string, toAgentId: string): Prom
 
 // --- Leads -----------------------------------------------------------------
 
-export interface NewLead {
-  propertyId?: string;
+export interface NewLead extends Partial<Omit<Lead, "id" | "status" | "createdAt">> {
+  /** Dono comercial da lead. */
   ownerId: string;
-  referrerId?: string;
   name: string;
   contact: string;
-  email?: string;
   intent: Lead["intent"];
-  message?: string;
-  preferredAt?: string;
-  source?: Lead["source"];
 }
 
 /** Regista uma lead. Grava no Supabase quando configurado; caso contrário

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
+import { site, fullAddress } from "@/lib/site";
 
 function FooterCol({
   title,
@@ -71,7 +72,7 @@ export function SiteFooter() {
         <div className="mt-10 space-y-1 border-t pt-6 text-xs text-muted-foreground">
           <div className="flex flex-col justify-between gap-2 sm:flex-row">
             <p>© {new Date().getFullYear()} HousePro. Todos os direitos reservados.</p>
-            <p>www.housepro.pt · AMI 0000</p>
+            <p>{site.legalName} · AMI {site.amiLicense} · {fullAddress}</p>
           </div>
           <p>
             Chamadas para os números dos consultores: chamada para rede móvel

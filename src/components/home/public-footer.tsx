@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Mail, Phone, MapPin, Globe } from "lucide-react";
+import { Mail, MapPin, Globe } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
+import { site, fullAddress } from "@/lib/site";
 
 const SOCIAL: { label: string; href: string; path: string }[] = [
   { label: "Instagram", href: "https://instagram.com/", path: "M12 2.2c3.2 0 3.6 0 4.9.07 1.17.05 1.8.25 2.23.42.56.22.96.48 1.38.9.42.42.68.82.9 1.38.17.42.37 1.06.42 2.23.06 1.27.07 1.65.07 4.85s0 3.58-.07 4.85c-.05 1.17-.25 1.8-.42 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.17-1.06.37-2.23.42-1.27.06-1.65.07-4.85.07s-3.58 0-4.85-.07c-1.17-.05-1.8-.25-2.23-.42a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.17-.42-.37-1.06-.42-2.23C2.2 15.58 2.2 15.2 2.2 12s0-3.58.07-4.85c.05-1.17.25-1.8.42-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.17 1.06-.37 2.23-.42C8.42 2.2 8.8 2.2 12 2.2Zm0 3.05A6.75 6.75 0 1 0 18.75 12 6.75 6.75 0 0 0 12 5.25Zm0 11.13A4.38 4.38 0 1 1 16.38 12 4.38 4.38 0 0 1 12 16.38Zm6.96-11.4a1.58 1.58 0 1 1-1.58-1.58 1.58 1.58 0 0 1 1.58 1.58Z" },
@@ -59,9 +60,8 @@ export function PublicFooter() {
               Paixão por casas. Foco nas pessoas.
             </p>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2"><Phone className="size-4" /> +351 000 000 000</li>
-              <li className="flex items-center gap-2"><Mail className="size-4" /> ola@housepro.pt</li>
-              <li className="flex items-center gap-2"><MapPin className="size-4" /> Algarve · Lisboa · Porto</li>
+              <li className="flex items-center gap-2"><Mail className="size-4" /> {site.email.general}</li>
+              <li className="flex items-center gap-2"><MapPin className="size-4" /> {fullAddress}</li>
               <li className="flex items-center gap-2"><Globe className="size-4" /> Português</li>
             </ul>
             <div className="mt-4 flex items-center gap-2">
@@ -105,7 +105,7 @@ export function PublicFooter() {
         </div>
 
         <div className="mt-10 flex flex-col items-start justify-between gap-2 border-t pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} HousePro — Mediação Imobiliária · AMI 0000</p>
+          <p>© {new Date().getFullYear()} HousePro · {site.legalName} · AMI {site.amiLicense} · {fullAddress}</p>
           <p>Resultados de ferramentas indicativos e sem valor contratual.</p>
         </div>
       </div>

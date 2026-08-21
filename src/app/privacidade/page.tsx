@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { site, fullAddress } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade (RGPD)",
@@ -24,8 +25,8 @@ export default function PrivacidadePage() {
           <section>
             <h2 className="font-medium text-foreground">Responsável pelo tratamento</h2>
             <p className="mt-1">
-              HousePro — Mediação Imobiliária (AMI 0000), com sede em Portugal.
-              Contacto do encarregado de proteção de dados: dpo@housepro.pt.
+              {site.brand} — {site.legalName} (AMI {site.amiLicense}), {fullAddress}.
+              Contacto do encarregado de proteção de dados: {site.email.dpo}.
             </p>
           </section>
           <section>

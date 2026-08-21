@@ -8,7 +8,7 @@ import { Home, Tag, Gauge, Euro } from "lucide-react";
 const ACTIONS = [
   { icon: Home, label: "Comprar", href: "/imoveis?operacao=comprar" },
   { icon: Tag, label: "Vender", href: "/vender" },
-  { icon: Gauge, label: "Avaliar imóvel", href: "/vender#avaliacao" },
+  { icon: Gauge, label: "Avaliar imóvel", href: "/avaliacao-imovel" },
   { icon: Euro, label: "Simular crédito", href: "/credito" },
 ];
 

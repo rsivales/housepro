@@ -14,7 +14,18 @@ export type AnalyticsEvent =
   | "valuation_form_submit"
   | "valuation_form_error"
   | "valuation_testimonial_play"
-  | "valuation_contact_click";
+  | "valuation_contact_click"
+  | "mv_page_view"
+  | "mv_cta_click"
+  | "mv_sim_start"
+  | "mv_step1_complete"
+  | "mv_step2_complete"
+  | "mv_step3_complete"
+  | "mv_sim_submit"
+  | "mv_email_sent"
+  | "mv_email_failed"
+  | "mv_resend"
+  | "mv_consultant_click";
 
 type DataLayerWindow = Window & { dataLayer?: Record<string, unknown>[] };
 

@@ -10,13 +10,13 @@ const TOOLS = [
     icon: Coins,
     title: "Calcular mais-valias",
     desc: "Estime o imposto sobre a venda do seu imóvel.",
-    href: "/ferramentas",
+    href: "/ferramentas#mais-valias",
   },
   {
     icon: Calculator,
     title: "Simular prestação",
     desc: "Saiba a prestação mensal do seu crédito à habitação.",
-    href: "/credito",
+    href: "/ferramentas#credito",
   },
   {
     icon: Gauge,

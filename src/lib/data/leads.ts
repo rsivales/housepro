@@ -128,6 +128,10 @@ export interface Lead {
   bestTime?: string;
   /** Consentimento de marketing (separado do consentimento necessário). */
   marketingConsent?: boolean;
+  /** Estado do envio do relatório por e-mail (ex.: "enviado", "pendente"). */
+  emailStatus?: string;
+  /** Ano fiscal usado na simulação (calculadora de mais-valias). */
+  fiscalYear?: number;
 }
 
 /** Leads de exemplo (modo demo, sem Supabase) — associadas ao consultor Rui. */

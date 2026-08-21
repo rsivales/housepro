@@ -41,19 +41,19 @@ export function UsefulTools() {
           <p className="mt-2 text-sm text-white/70">Resultados indicativos · gratuitos</p>
         </div>
 
-        <div className="mt-5 grid gap-2.5 sm:mt-8 sm:grid-cols-3 sm:gap-4">
+        <div className="mt-5 grid grid-cols-3 gap-2 sm:mt-8 sm:gap-4">
           {TOOLS.map((t) => (
             <Link
               key={t.title}
               href={t.href}
-              className="group flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 p-3 transition-colors hover:bg-white/10 sm:rounded-2xl"
+              className="group flex flex-col gap-2 rounded-xl border border-white/15 bg-white/5 p-3 transition-colors hover:bg-white/10 sm:flex-row sm:items-center sm:gap-3 sm:rounded-2xl sm:p-4"
             >
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/10 text-white">
+              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/10 text-white sm:size-9">
                 <t.icon className="size-4" />
               </span>
               <span className="min-w-0">
-                <span className="block font-display text-sm leading-tight text-white sm:text-base">{t.title}</span>
-                <span className="mt-0.5 flex items-center gap-1 text-[0.7rem] text-white/65">
+                <span className="block font-display text-xs leading-tight text-white sm:text-base">{t.title}</span>
+                <span className="mt-0.5 hidden items-center gap-1 text-[0.7rem] text-white/65 sm:flex">
                   Abrir <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </span>

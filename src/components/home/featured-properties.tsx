@@ -12,6 +12,11 @@ import { FavoriteButton } from "@/components/property/favorite-button";
 
 const PROPERTY_FALLBACK = "/news/geral.webp";
 
+/** Fotografia real (não uma ilustração/placeholder SVG). */
+function isRealPhoto(src: string) {
+  return /\.(jpe?g|png|webp|avif)$/i.test(src);
+}
+
 /**
  * "SELEÇÃO HOUSEPRO" — imóveis em destaque com dados reais. Carrossel
  * horizontal com scroll-snap (sem autoplay): 1.º cartão a ~88% da largura,
@@ -23,7 +28,7 @@ function FeaturedCard({ property }: { property: Property }) {
     <article className="grid h-full grid-cols-[1.05fr_1fr] overflow-hidden rounded-2xl border bg-card shadow-sm">
       <Link href={href} aria-label={property.title} className="relative block">
         <SafeImage
-          src={property.image}
+          src={isRealPhoto(property.image) ? property.image : PROPERTY_FALLBACK}
           fallback={PROPERTY_FALLBACK}
           alt={`${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}`}
           className="absolute inset-0 size-full object-cover"

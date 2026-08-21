@@ -46,7 +46,11 @@ const orgSchema = {
 export default async function Home() {
   const banners = activeBanners(DEFAULT_BANNERS);
   const disponiveis = await listProperties();
-  const destaques = topFeatured(6, disponiveis);
+  // Destaques: fotos reais primeiro (evita as ilustrações/placeholders).
+  const isRealPhoto = (s: string) => /\.(jpe?g|png|webp|avif)$/i.test(s);
+  const destaques = topFeatured(6, disponiveis).sort(
+    (a, b) => Number(isRealPhoto(b.image)) - Number(isRealPhoto(a.image)),
+  );
   const news = await getNews(4);
 
   return (

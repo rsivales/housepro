@@ -104,7 +104,7 @@ function ProfileMenu({
           {code && <p className="flex items-center gap-1.5 text-xs hx-muted"><Hash className="size-3.5" /> {code}</p>}
         </div>
         <nav className="p-1 text-sm">
-          <Link href="/app/afilhados" onClick={onClose} className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-[var(--hx-surface-blue)]">
+          <Link href="/app/perfil" onClick={onClose} className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-[var(--hx-surface-blue)]">
             <User className="size-4 hx-muted" /> O meu perfil
           </Link>
           <button onClick={toggleClientMode} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-[var(--hx-surface-blue)]">

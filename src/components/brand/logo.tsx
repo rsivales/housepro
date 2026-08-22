@@ -2,38 +2,38 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-/** HousePro house-mark. Uses currentColor so it inherits brand color. */
-export function LogoMark({ className }: { className?: string }) {
+/**
+ * Logótipo oficial HousePro (ficheiro da marca, fundo transparente).
+ * - `Logo` → lockup horizontal (HOUSEPRO + andorinha), sem slogan — cabeçalhos.
+ * - `LogoFull` → lockup completo com o slogan "Paixão pelo que fazemos" — rodapés.
+ * Servido em WebP (transparente), funciona sobre fundo claro ou Deep Navy.
+ */
+export function Logo({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 32 32"
-      fill="none"
-      aria-hidden="true"
-      className={cn("size-7", className)}
-    >
-      <path
-        d="M16 3.5 4 12.5V28h8v-8h8v8h8V12.5L16 3.5Z"
-        className="fill-brand"
-      />
-      <path
-        d="M20 20h-8v8"
-        className="stroke-gold"
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/brand/housepro-logo.webp"
+      alt="HousePro"
+      className={cn("h-7 w-auto select-none", className)}
+      draggable={false}
+    />
   );
 }
 
-export function Logo({ className }: { className?: string }) {
+/** Lockup completo com slogan (rodapés / contextos com mais espaço). */
+export function LogoFull({ className }: { className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
-      <LogoMark />
-      <span className="text-lg font-semibold tracking-tight">
-        House<span className="text-brand">Pro</span>
-      </span>
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/brand/housepro-logo-full.webp"
+      alt="HousePro — Paixão pelo que fazemos"
+      className={cn("h-12 w-auto select-none", className)}
+      draggable={false}
+    />
   );
+}
+
+/** Compatibilidade: usado internamente; devolve o lockup horizontal. */
+export function LogoMark({ className }: { className?: string }) {
+  return <Logo className={className} />;
 }

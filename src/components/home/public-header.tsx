@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Heart, ChevronDown, Menu, X } from "lucide-react";
+import { Heart, ChevronDown, Menu, X, Briefcase } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 
@@ -64,6 +64,13 @@ export function PublicHeader() {
           <Link href="/cliente/favoritos" aria-label="Favoritos" className="grid size-11 place-items-center rounded-full" style={{ color: light ? "#fff" : "var(--foreground)" }}>
             <Heart className="size-5" />
           </Link>
+          <Link
+            href="/entrar"
+            className="hidden min-h-[44px] items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold transition-colors sm:inline-flex"
+            style={{ borderColor: light ? "rgba(255,255,255,0.5)" : "var(--border)", color: light ? "#fff" : "var(--foreground)" }}
+          >
+            <Briefcase className="size-4" /> Profissionais
+          </Link>
           <button aria-label="Idioma: Português" className="hidden min-h-[44px] items-center gap-1 rounded-full px-2 text-sm font-semibold sm:inline-flex" style={{ color: light ? "#fff" : "var(--foreground)" }}>
             PT <ChevronDown className="size-4" />
           </button>
@@ -88,8 +95,11 @@ export function PublicHeader() {
                 {n.label}
               </Link>
             ))}
-            <Link href="/cliente/favoritos" onClick={() => setOpen(false)} className="flex items-center gap-2 py-4 text-lg font-medium">
-              <Heart className="size-5" /> Favoritos
+            <Link href="/cliente/favoritos" onClick={() => setOpen(false)} className="flex items-center gap-2 border-b border-[var(--border)] py-4 text-lg font-medium">
+              <Heart className="size-5" /> A minha conta
+            </Link>
+            <Link href="/entrar" onClick={() => setOpen(false)} className="mt-2 flex items-center gap-2 rounded-full px-4 py-3 text-lg font-semibold text-white" style={{ background: "var(--hp-navy)" }}>
+              <Briefcase className="size-5" /> Profissionais
             </Link>
           </nav>
         </div>

@@ -23,6 +23,16 @@ export default function EntrarPage() {
   const [loading, setLoading] = React.useState(false);
   const [padrinho, setPadrinho] = React.useState("");
 
+  // Já autenticado? Reencaminha direto para o Helix (evita pedir login de novo
+  // quando o profissional volta do website público com sessão ativa).
+  React.useEffect(() => {
+    if (!configured) return;
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) router.replace("/app");
+    });
+  }, [configured, router]);
+
   // Lê o código de padrinho do link (?padrinho=) e guarda-o para ser resgatado
   // automaticamente ao entrar (sobrevive ao magic-link por email).
   React.useEffect(() => {

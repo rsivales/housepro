@@ -12,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/vender", priority: 0.7 },
     { path: "/investir", priority: 0.7 },
     { path: "/ferramentas", priority: 0.6 },
+    { path: "/ferramentas/calculadora-mais-valias", priority: 0.8 },
     { path: "/credito", priority: 0.6 },
     { path: "/noticias", priority: 0.6 },
     { path: "/carreiras", priority: 0.5 },

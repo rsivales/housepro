@@ -10,7 +10,7 @@ const TOOLS = [
     icon: Coins,
     title: "Calcular mais-valias",
     desc: "Estime o imposto sobre a venda do seu imóvel.",
-    href: "/ferramentas#mais-valias",
+    href: "/ferramentas/calculadora-mais-valias#simular",
   },
   {
     icon: Calculator,

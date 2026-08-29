@@ -3,6 +3,13 @@
 import type { ReactNode } from "react";
 
 import { notifyContact } from "@/lib/contact-notify";
+import { track, type AnalyticsEvent } from "@/lib/analytics";
+
+const EVENT: Record<string, AnalyticsEvent> = {
+  WhatsApp: "pdp_whatsapp_click",
+  Chamada: "pdp_call_click",
+  SMS: "pdp_sms_click",
+};
 
 /** <a> de contacto que dispara a notificação (email ao agente + direção). */
 export function ContactLink({
@@ -26,7 +33,10 @@ export function ContactLink({
     <a
       href={href}
       className={className}
-      onClick={() => notifyContact(channel, { propertyId, ref: refId })}
+      onClick={() => {
+        if (EVENT[channel]) track(EVENT[channel]);
+        notifyContact(channel, { propertyId, ref: refId });
+      }}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
       {children}

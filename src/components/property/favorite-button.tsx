@@ -37,9 +37,12 @@ function lerFavoritos(): string[] {
 export function FavoriteButton({
   propertyId,
   variant = "icon",
+  onToggle,
 }: {
   propertyId: string;
-  variant?: "icon" | "labeled";
+  variant?: "icon" | "labeled" | "icon-light";
+  /** Chamado quando o favorito é efetivamente alternado (para analytics). */
+  onToggle?: () => void;
 }) {
   const [fav, setFav] = React.useState(false);
   const [dialog, setDialog] = React.useState(false);
@@ -59,6 +62,7 @@ export function FavoriteButton({
     window.localStorage.setItem(FAV_KEY, JSON.stringify(next));
     setFav(next.includes(propertyId));
     window.dispatchEvent(new Event("housepro:favoritos"));
+    onToggle?.();
   }
 
   function onHeart(e: React.MouseEvent) {
@@ -184,6 +188,28 @@ export function FavoriteButton({
             className={cn("size-4", fav && "fill-destructive stroke-destructive")}
           />
           {fav ? "Guardado nos favoritos" : "Guardar nos favoritos"}
+        </button>
+        {dialogEl}
+      </>
+    );
+  }
+
+  if (variant === "icon-light") {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={onHeart}
+          aria-pressed={fav}
+          aria-label={fav ? "Remover dos favoritos" : "Guardar nos favoritos"}
+          className="pointer-events-auto grid size-10 place-items-center rounded-full text-white transition-colors hover:bg-white/10"
+        >
+          <Heart
+            className={cn(
+              "size-5 transition-all",
+              fav ? "fill-destructive stroke-destructive scale-110" : "stroke-current"
+            )}
+          />
         </button>
         {dialogEl}
       </>

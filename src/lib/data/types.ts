@@ -118,8 +118,13 @@ export interface Property {
   videoUrl?: string;
   /** Link do tour virtual 3D (Matterport, etc.). */
   tourUrl?: string;
+  /** Plantas do imóvel (imagens). Ativa o separador "Plantas" quando existem. */
+  plans?: string[];
   /** Pares antes/depois (virtual staging / obras) para o slider interativo. */
   beforeAfter?: { before: string; after: string; label?: string }[];
+  /** Título editorial da página do imóvel (ex.: "Uma casa desenhada para o
+   *  mar"). Editável no CMS; quando ausente usa-se um título neutro. */
+  editorialTitle?: string;
   /** One-line teaser shown on the listing page. */
   shortDescription?: string;
   /** Full marketing description (paragraphs). */
@@ -139,6 +144,11 @@ export interface Property {
   /** Coordenadas para marcador preciso no mapa; opcional. */
   lat?: number;
   lng?: number;
+  /** Privacidade da localização: exata, aproximada, só localidade ou oculta.
+   *  Quando ausente assume-se "approx" (não revela a morada exata). */
+  locationPrivacy?: "exact" | "approx" | "locality" | "hidden";
+  /** object-position da fotografia de capa no hero (ex.: "center 30%"). */
+  imageFocus?: string;
   /** Base da comissão: percentagem do preço ou valor fixo. */
   commissionType?: "percent" | "fixed";
   /** Comissão em % do preço de venda (quando commissionType = "percent"). */

@@ -684,20 +684,35 @@ export async function createLead(input: NewLead): Promise<Lead> {
   if (!isSupabaseConfigured()) return lead;
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("leads")
-    .insert({
-      property_id: input.propertyId ?? null,
-      owner_id: input.ownerId,
-      referrer_id: input.referrerId ?? null,
-      name: input.name,
-      contact: input.contact,
-      message: input.message ?? null,
-      source: input.source ?? "site",
-    })
-    .select("id, created_at")
-    .single();
-  return { ...lead, id: data ? String(data.id) : lead.id };
+  // Colunas garantidas (existem desde o esquema base).
+  const base = {
+    property_id: input.propertyId ?? null,
+    owner_id: input.ownerId,
+    referrer_id: input.referrerId ?? null,
+    name: input.name,
+    contact: input.contact,
+    message: input.message ?? null,
+    source: input.source ?? "site",
+  };
+  // Metadados de funil — persistem quando a migração 'lead_funnel_fields' foi
+  // aplicada. Se as colunas ainda não existirem, o insert é repetido só com as
+  // colunas base para NUNCA perder o pedido.
+  const extra = {
+    sub_source: input.subSource ?? null,
+    page_url: input.pageUrl ?? null,
+    referrer_url: input.referrerUrl ?? null,
+    utm: input.utm ?? null,
+    contact_preference: input.contactPreference ?? null,
+    marketing_consent: input.marketingConsent ?? null,
+    email_status: input.emailStatus ?? null,
+  };
+
+  let res = await supabase.from("leads").insert({ ...base, ...extra }).select("id, created_at").single();
+  if (res.error) {
+    // Provável coluna em falta → grava o essencial para não perder a lead.
+    res = await supabase.from("leads").insert(base).select("id, created_at").single();
+  }
+  return { ...lead, id: res.data ? String(res.data.id) : lead.id };
 }
 
 export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {

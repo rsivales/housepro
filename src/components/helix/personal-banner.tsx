@@ -3,6 +3,9 @@
 import * as React from "react";
 import { Pencil, Upload, Trash2, Quote, Target, Check, ImageIcon, ThermometerSun } from "lucide-react";
 
+import { useSetting } from "@/lib/helix/settings";
+import { downscaleImage } from "@/lib/img/downscale";
+
 const KEY = "helix:banner";
 
 /** Fundos predefinidos (Deep Navy) para quem não carrega fotografia. */
@@ -16,15 +19,6 @@ interface Stored {
   photo?: string; // data URL
   preset?: string;
   posY?: number; // 0–100 object-position
-}
-
-function readFile(file: File): Promise<string> {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(String(r.result));
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
 }
 
 interface Props {
@@ -41,33 +35,21 @@ interface Props {
 const eur = (n: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
 export function PersonalMotivationBanner(props: Props) {
-  const [store, setStore] = React.useState<Stored>({});
+  const [store, setStore, ready] = useSetting<Stored>(KEY, KEY, {});
   const [editing, setEditing] = React.useState(false);
-  const [firstUse, setFirstUse] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setStore(JSON.parse(raw));
-      else setFirstUse(true);
-    } catch {
-      setFirstUse(true);
-    }
-  }, []);
+  // Primeira utilização: já leu do servidor/local e ainda não há nada guardado.
+  const firstUse = ready && !store.photo && !store.preset;
 
-  function save(next: Stored) {
-    setStore(next);
-    setFirstUse(false);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {}
-  }
+  const save = (next: Stored) => setStore(next);
 
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    save({ ...store, photo: await readFile(f), preset: undefined, posY: store.posY ?? 50 });
+    // Comprime no cliente para caber em profiles.settings sem bucket.
+    const photo = await downscaleImage(f, 1600, 0.82);
+    save({ ...store, photo, preset: undefined, posY: store.posY ?? 50 });
   }
 
   const bg = store.photo

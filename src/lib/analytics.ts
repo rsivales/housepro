@@ -25,7 +25,25 @@ export type AnalyticsEvent =
   | "mv_email_sent"
   | "mv_email_failed"
   | "mv_resend"
-  | "mv_consultant_click";
+  | "mv_consultant_click"
+  | "pdp_view"
+  | "pdp_gallery_open"
+  | "pdp_gallery_next"
+  | "pdp_video_play"
+  | "pdp_plans_open"
+  | "pdp_favorite"
+  | "pdp_share"
+  | "pdp_map_open"
+  | "pdp_finance_open"
+  | "pdp_visit_open"
+  | "pdp_message_open"
+  | "pdp_lead_submit"
+  | "pdp_whatsapp_click"
+  | "pdp_call_click"
+  | "pdp_sms_click"
+  | "pdp_pdf"
+  | "pdp_print"
+  | "pdp_similar_click";
 
 type DataLayerWindow = Window & { dataLayer?: Record<string, unknown>[] };
 

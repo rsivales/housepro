@@ -47,8 +47,25 @@ export async function POST(request: Request) {
   // Valida que o owner existe (evita atribuir a um id inválido).
   const owner = ownerId ? agentById(ownerId) : undefined;
 
+  // Metadados de funil (origem/campanha) — sem dados pessoais nos analytics.
+  const utm =
+    body.utm && typeof body.utm === "object"
+      ? (Object.fromEntries(
+          Object.entries(body.utm as Record<string, unknown>)
+            .filter(([, v]) => typeof v === "string")
+            .map(([k, v]) => [k, String(v)])
+        ) as Record<string, string>)
+      : undefined;
+  const contactPreference =
+    body.contactPreference === "whatsapp" || body.contactPreference === "email"
+      ? body.contactPreference
+      : body.contactPreference === "telefone"
+        ? "telefone"
+        : undefined;
+
   const lead = await createLead({
     propertyId,
+    propertyRef: property?.reference,
     ownerId: owner?.id ?? ownerId,
     referrerId,
     name,
@@ -58,6 +75,14 @@ export async function POST(request: Request) {
     message: body.message ? String(body.message) : undefined,
     preferredAt: body.preferredAt ? String(body.preferredAt) : undefined,
     source: "site",
+    subSource: body.subSource ? String(body.subSource) : "Página de imóvel",
+    pageUrl: body.pageUrl ? String(body.pageUrl) : undefined,
+    referrerUrl: body.referrerUrl ? String(body.referrerUrl) : undefined,
+    utm,
+    contactPreference,
+    marketingConsent: Boolean(body.marketingConsent),
+    language: body.language ? String(body.language) : "pt",
+    consent: { base: "consentimento", at: new Date().toISOString() },
   });
 
   // Notifica o consultor (best-effort; não bloqueia a resposta em caso de falha).

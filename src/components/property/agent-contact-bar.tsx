@@ -5,7 +5,14 @@ import { Phone, MessageSquare } from "lucide-react";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { notifyContact } from "@/lib/contact-notify";
+import { track, type AnalyticsEvent } from "@/lib/analytics";
 import type { Agent } from "@/lib/data/types";
+
+const EVENT: Record<string, AnalyticsEvent> = {
+  WhatsApp: "pdp_whatsapp_click",
+  Chamada: "pdp_call_click",
+  SMS: "pdp_sms_click",
+};
 
 /**
  * Barra de contacto do consultor, fixa no fundo em telemóvel. Cada ação
@@ -29,11 +36,13 @@ export function AgentContactBar({
   propertyId: string;
   refId?: string;
 }) {
-  const notify = (channel: string) =>
+  const notify = (channel: string) => {
+    if (EVENT[channel]) track(EVENT[channel]);
     notifyContact(channel, { propertyId, ref: refId });
+  };
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 py-2.5 shadow-[0_-6px_24px_rgba(0,0,0,0.10)] backdrop-blur lg:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] shadow-[0_-6px_24px_rgba(0,0,0,0.10)] backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-6xl items-center gap-3">
         <a
           href={telHref}

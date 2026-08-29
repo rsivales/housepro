@@ -14,11 +14,17 @@ export function LocationMap({
   municipality,
   lat,
   lng,
+  approximate = true,
+  onOpen,
 }: {
   parish: string;
   municipality: string;
   lat?: number;
   lng?: number;
+  /** Mostra o aviso "Localização aproximada" quando a morada exata não é revelada. */
+  approximate?: boolean;
+  /** Chamado quando o mapa interativo é carregado (para analytics). */
+  onOpen?: () => void;
 }) {
   const [live, setLive] = React.useState(false);
   const hasCoords = typeof lat === "number" && typeof lng === "number";
@@ -49,7 +55,7 @@ export function LocationMap({
         ) : (
           <button
             type="button"
-            onClick={() => setLive(true)}
+            onClick={() => { setLive(true); onOpen?.(); }}
             className="group relative block size-full"
             aria-label="Carregar mapa interativo"
           >
@@ -95,9 +101,12 @@ export function LocationMap({
           rel="noopener noreferrer"
           className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
         >
-          Ver no mapa <ExternalLink className="size-3.5" />
+          Explorar a zona <ExternalLink className="size-3.5" />
         </a>
       </div>
+      {approximate && (
+        <p className="border-t px-4 py-2 text-xs text-muted-foreground">Localização aproximada</p>
+      )}
     </div>
   );
 }

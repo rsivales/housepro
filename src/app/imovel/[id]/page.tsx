@@ -2,49 +2,30 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
-import {
-  Bath,
-  BedDouble,
-  Building2,
-  CalendarDays,
-  Car,
-  ChevronRight,
-  ChevronUp,
-  MapPin,
-  Maximize2,
-  Phone,
-  Ruler,
-  Trees,
-  Zap,
-  Sparkles,
-  Pencil,
-} from "lucide-react";
+import { ChevronRight, Pencil, Sparkles, Zap } from "lucide-react";
 
-import { SiteHeader } from "@/components/layout/site-header";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { AgentAvatar } from "@/components/brand/agent-avatar";
-import { WhatsappIcon } from "@/components/icons/whatsapp";
-import { PhoneNote } from "@/components/legal/phone-note";
-import { PropertyActions } from "@/components/property/property-actions";
-import { FavoriteButton } from "@/components/property/favorite-button";
+import { PropertyHeader } from "@/components/property/property-header";
+import { PropertyHero, type HeroStat } from "@/components/property/property-hero";
+import { PropertyEditorialGallery } from "@/components/property/property-editorial-gallery";
+import { PropertyDescription } from "@/components/property/property-description";
+import { PropertyLocation } from "@/components/property/property-location";
+import { FinancingPanel } from "@/components/property/financing-panel";
+import { VisitRequest } from "@/components/property/visit-request";
+import { SimilarCarousel } from "@/components/property/similar-carousel";
+import { PropertyShareRow } from "@/components/property/property-share-row";
+import { ConsultantPanel } from "@/components/property/consultant-panel";
 import { AgentContactBar } from "@/components/property/agent-contact-bar";
-import { ContactLink } from "@/components/property/contact-link";
-import { ContactDialog } from "@/components/property/contact-dialog";
-import { CostWizard } from "@/components/property/cost-wizard";
-import { CreditSimulator } from "@/components/property/credit-simulator";
-import { LocationMap } from "@/components/property/location-map";
-import { PropertyCard } from "@/components/property/property-card";
-import {
-  PropertyGallery,
-  type GalleryStat,
-} from "@/components/property/property-gallery";
+import { PropertyFooter } from "@/components/property/property-footer";
+import { PdpView } from "@/components/property/pdp-view";
 import { agentById } from "@/lib/data/mock";
 import { exclusiveEligibility } from "@/lib/data/exclusive";
 import { getSession } from "@/lib/supabase/auth";
-import { isStaff } from "@/lib/data/roles";
+import { isStaff, roleLabel } from "@/lib/data/roles";
 import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
 import { formatArea, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
-import type { ElementType } from "react";
+import { site, postalAddressJsonLd } from "@/lib/site";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
 
 export async function generateMetadata({
   params,
@@ -53,7 +34,23 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const p = await getPropertyById(id);
-  return { title: p ? `${p.title} · ${p.reference}` : "Imóvel" };
+  if (!p) return { title: "Imóvel" };
+  const canonical = `${SITE_URL}/imovel/${p.id}`;
+  const description =
+    p.shortDescription ??
+    `${p.type}${p.typology ? " " + p.typology : ""} em ${p.parish}, ${p.municipality}. ${formatPrice(p)} · Ref. ${p.reference}. Acompanhamento HousePro do primeiro contacto à escritura.`;
+  return {
+    title: `${p.title} · ${p.reference}`,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: `${p.title} · HousePro`,
+      description,
+      url: canonical,
+      type: "website",
+      images: p.image ? [{ url: p.image.startsWith("http") ? p.image : `${SITE_URL}${p.image}` }] : undefined,
+    },
+  };
 }
 
 export default async function ImovelPage({
@@ -68,7 +65,7 @@ export default async function ImovelPage({
   const property = await getPropertyById(id);
   if (!property) notFound();
 
-  // Edição: dono, co-angariador ou staff (coordenação/direção/admin/super admin).
+  // Edição: dono, co-angariador ou staff (validado no servidor — nunca só CSS).
   const session = await getSession();
   const canEdit = Boolean(
     session &&
@@ -78,299 +75,269 @@ export default async function ImovelPage({
   );
 
   const listingAgent = property.agent ?? agentById(property.agentId);
-  // Attribution: the referring consultant (who brought the client) owns the
-  // contact — not the listing agent (angariador).
+  // Atribuição: o consultor que trouxe o cliente (?ref) fica com o contacto.
   const referrer = ref && ref !== property.agentId ? agentById(ref) : undefined;
   const contact = referrer ?? listingAgent;
+  // Papel público (nunca expor "admin" ao público).
+  const publicRole = contact.roleKey
+    ? roleLabel(contact.roleKey)
+    : /admin/i.test(contact.role)
+      ? "Consultor HousePro"
+      : contact.role;
 
   const hdrs = await headers();
   const host = hdrs.get("host") ?? "www.housepro.pt";
   const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https";
   const propertyUrl = `${proto}://${host}/imovel/${property.id}${ref ? `?ref=${ref}` : ""}`;
+
   const gallery = property.gallery && property.gallery.length
     ? property.gallery
     : property.image
       ? [property.image]
       : [];
-  const similares = await listSimilarProperties(property, 3);
+  const similares = await listSimilarProperties(property, 4);
 
+  const editorialTitle = property.editorialTitle ?? "Sobre este imóvel";
+  const shortSummary =
+    property.shortDescription ??
+    `${property.type}${property.typology ? " " + property.typology : ""} em ${property.parish}, ${property.municipality}.`;
   const description =
     property.description ??
-    `${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}, com ${property.area} m² e certificado energético ${property.energy}. Excelente oportunidade acompanhada de perto por um consultor HousePro, do primeiro contacto à escritura.`;
+    `${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}, com ${formatArea(property.area)} e certificado energético ${property.energy}. Acompanhado de perto por um consultor HousePro, do primeiro contacto à escritura.`;
 
-  // Ícones embutidos na foto
-  const galleryStats: GalleryStat[] = [
+  // Características na faixa do hero (só valores reais; sem repetir noutra grelha).
+  const heroStats: HeroStat[] = [
     { key: "beds", label: "Quartos", value: `${property.beds} quartos` },
+    { key: "baths", label: "Casas de banho", value: `${property.baths} WC` },
     {
       key: "areaUtil",
       label: "Área útil",
       value: `${property.areaUtil ?? property.area} m²${property.areaUtil ? " úteis" : ""}`,
     },
     ...(property.areaDependente
-      ? [{ key: "areaDependente" as const, label: "Área dependente", value: `${property.areaDependente} m² dep.` }]
+      ? [{ key: "areaDependente", label: "Área dependente", value: `${property.areaDependente} m² dep.` }]
       : []),
-    ...(property.landArea
-      ? [{ key: "land" as const, label: "Terreno", value: `Lote ${property.landArea} m²` }]
-      : []),
-    ...(property.garage ? [{ key: "garage" as const, label: "Garagem", value: "Garagem" }] : []),
-    ...(property.elevator ? [{ key: "elevator" as const, label: "Elevador", value: "Elevador" }] : []),
-    ...(property.constructionYear
-      ? [{ key: "year" as const, label: "Ano", value: `${property.constructionYear}` }]
-      : []),
-    { key: "location", label: "Localização", value: property.parish },
+    ...(property.landArea ? [{ key: "land", label: "Terreno", value: `Lote ${property.landArea} m²` }] : []),
+    ...(property.garage ? [{ key: "garage", label: "Garagem", value: "Garagem" }] : []),
+    ...(property.elevator ? [{ key: "elevator", label: "Elevador", value: "Elevador" }] : []),
+    ...(property.constructionYear ? [{ key: "year", label: "Ano", value: `${property.constructionYear}` }] : []),
   ];
 
-  // Características detalhadas
-  const specs: { icon?: ElementType; label: string; value: string }[] = [
-    { icon: Building2, label: "Tipo", value: property.type },
+  // Ficha técnica mínima (o que NÃO está na faixa do hero — sem duplicar).
+  const printSpecs = [
+    { label: "Tipo", value: property.type },
     { label: "Tipologia", value: property.typology ?? "—" },
-    { icon: BedDouble, label: "Quartos", value: String(property.beds) },
-    { icon: Bath, label: "Casas de banho", value: String(property.baths) },
-    { icon: Maximize2, label: "Área bruta", value: formatArea(property.area) },
-    ...(property.areaUtil ? [{ icon: Maximize2, label: "Área útil", value: formatArea(property.areaUtil) }] : []),
-    ...(property.areaDependente ? [{ icon: Ruler, label: "Área dependente", value: formatArea(property.areaDependente) }] : []),
-    ...(property.landArea ? [{ icon: Trees, label: "Terreno / lote", value: formatArea(property.landArea) }] : []),
-    { icon: Car, label: "Estacionamento", value: property.garage ? "Sim" : "—" },
-    { icon: ChevronUp, label: "Elevador", value: property.elevator ? "Sim" : "—" },
-    ...(property.constructionYear ? [{ icon: CalendarDays, label: "Ano de construção", value: String(property.constructionYear) }] : []),
-    { icon: Zap, label: "Certificado energético", value: property.energy },
+    { label: "Quartos", value: String(property.beds) },
+    { label: "Casas de banho", value: String(property.baths) },
+    { label: "Área bruta", value: formatArea(property.area) },
+    ...(property.areaUtil ? [{ label: "Área útil", value: formatArea(property.areaUtil) }] : []),
+    { label: "Certificado energético", value: property.energy },
     { label: "Referência", value: property.reference },
   ];
 
-  return (
-    <div className="min-h-dvh bg-background">
-      <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 pt-6 pb-28 sm:px-6 sm:pt-8 lg:pb-8">
-        {/* Breadcrumbs — links de origem */}
-        <nav aria-label="Navegação" className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-          <Link href="/" className="hover:text-foreground">Início</Link>
-          <ChevronRight className="size-3.5" />
-          <Link href="/imoveis" className="hover:text-foreground">Imóveis</Link>
-          <ChevronRight className="size-3.5" />
-          <Link href="/imoveis" className="hover:text-foreground">{property.municipality}</Link>
-          <ChevronRight className="size-3.5" />
-          <span className="text-foreground">{property.reference}</span>
-        </nav>
+  const priceLabel = formatPrice(property);
+  const unavailable = property.status === "vendido" || property.status === "reservado";
 
-        {/* Cabeçalho (mobile-first: título e preço primeiro) */}
-        <header className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="font-display text-2xl leading-tight sm:text-3xl">
-              {property.title}
-            </h1>
-            <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin className="size-4 shrink-0 text-primary" />
-              {property.parish}, {property.municipality}
-            </p>
-          </div>
-          <p className="shrink-0 text-3xl font-semibold tracking-tight">
-            {formatPrice(property)}
-          </p>
-        </header>
+  // Dados estruturados: BreadcrumbList + Residence/Offer + RealEstateAgent.
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Início", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "Imóveis", item: `${SITE_URL}/imoveis` },
+          { "@type": "ListItem", position: 3, name: property.municipality, item: `${SITE_URL}/imoveis` },
+          { "@type": "ListItem", position: 4, name: property.reference },
+        ],
+      },
+      {
+        "@type": "Residence",
+        name: property.title,
+        description,
+        numberOfRoomsTotal: property.beds,
+        numberOfBathroomsTotal: property.baths,
+        floorSize: { "@type": "QuantitativeValue", value: property.area, unitCode: "MTK" },
+        address: { "@type": "PostalAddress", addressLocality: property.municipality, addressRegion: property.district, addressCountry: "PT" },
+        ...(property.image ? { image: property.image.startsWith("http") ? property.image : `${SITE_URL}${property.image}` } : {}),
+        offers: {
+          "@type": "Offer",
+          price: property.price,
+          priceCurrency: "EUR",
+          availability: unavailable ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+          url: `${SITE_URL}/imovel/${property.id}`,
+        },
+      },
+      {
+        "@type": "RealEstateAgent",
+        name: site.brand,
+        legalName: site.legalName,
+        identifier: `AMI ${site.amiLicense}`,
+        address: postalAddressJsonLd,
+        email: site.email.general,
+        url: SITE_URL,
+      },
+    ],
+  };
+
+  return (
+    <div className="hp min-h-dvh bg-[var(--card)] text-[var(--hp-navy)]">
+      <PdpView />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <PropertyHeader />
+
+      {/* Breadcrumbs — linha única com scroll horizontal no telemóvel */}
+      <nav
+        aria-label="Navegação"
+        className="mx-auto max-w-6xl overflow-x-auto px-4 pt-4 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <ol className="flex w-max items-center gap-1 whitespace-nowrap text-sm text-[var(--hp-text-2)]">
+          <li><Link href="/" className="hover:text-[var(--hp-navy)]">Início</Link></li>
+          <ChevronRight className="size-3.5 shrink-0" />
+          <li><Link href="/imoveis" className="hover:text-[var(--hp-navy)]">Imóveis</Link></li>
+          <ChevronRight className="size-3.5 shrink-0" />
+          <li><Link href="/imoveis" className="hover:text-[var(--hp-navy)]">{property.municipality}</Link></li>
+          <ChevronRight className="size-3.5 shrink-0" />
+          <li className="font-medium text-[var(--hp-navy)]">{property.reference}</li>
+        </ol>
+      </nav>
+
+      <main className="pb-28 lg:pb-8">
+        {/* Hero imersivo */}
+        <div className="mx-auto max-w-6xl px-0 pt-3 sm:px-6">
+          <PropertyHero
+            images={gallery}
+            title={property.title}
+            parish={property.parish}
+            municipality={property.municipality}
+            price={priceLabel}
+            status={property.status}
+            operation={property.operation}
+            stats={heroStats}
+            propertyId={property.id}
+            objectPosition={property.imageFocus}
+          />
+        </div>
 
         {canEdit && (
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
             <Link
               href={`/app/imovel/${property.id}/editar`}
-              className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-secondary"
+              className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-black/[0.03]"
             >
-              <Pencil className="size-4 text-primary" /> Editar imóvel
+              <Pencil className="size-4 text-[var(--hp-red)]" /> Editar imóvel
+              <span className="text-xs text-[var(--hp-text-2)]">· com histórico</span>
             </Link>
-            <span className="text-xs text-muted-foreground">com histórico de alterações</span>
           </div>
         )}
 
-        {property.exclusive && exclusiveEligibility(property).eligible && (
-          <Link
-            href={`/exclusivo/${property.id}`}
-            className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent p-4 transition-colors hover:from-amber-500/15"
-          >
-            <span className="flex items-center gap-2.5">
-              <Sparkles className="size-5 text-amber-500" />
-              <span>
-                <span className="block text-sm font-medium">Imóvel da Coleção Exclusiva</span>
-                <span className="block text-xs text-muted-foreground">Ver a página dedicada, com apresentação premium</span>
-              </span>
-            </span>
-            <span className="text-sm font-medium text-primary">Abrir →</span>
-          </Link>
-        )}
-
-        <div className="mt-6 grid gap-8 lg:grid-cols-[1.7fr_1fr]">
-          {/* Coluna principal */}
-          <div className="min-w-0 space-y-8">
-            <PropertyGallery
-              images={gallery}
-              title={property.title}
-              status={property.status}
-              operation={property.operation}
-              stats={galleryStats}
-              videoUrl={property.videoUrl}
-              tourUrl={property.tourUrl}
-              beforeAfter={property.beforeAfter}
-            />
-
-            {/* Descrição curta em destaque */}
-            {property.shortDescription && (
-              <p className="text-lg leading-relaxed text-foreground/90">
-                {property.shortDescription}
+        <div className="mx-auto mt-8 grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_340px]">
+          {/* Coluna editorial */}
+          <div className="min-w-0 space-y-12">
+            {/* Introdução editorial */}
+            <section>
+              <h2 className="font-display text-2xl text-[var(--hp-navy)]">{editorialTitle}</h2>
+              <div className="mt-2 h-0.5 w-12 rounded bg-[var(--hp-red)]" />
+              <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--hp-navy)]/90">{shortSummary}</p>
+              <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--hp-text-2)]">
+                <span className="inline-flex items-center gap-1.5"><Zap className="size-4 text-[var(--hp-red)]" /> Certificado {property.energy}</span>
+                <span aria-hidden>·</span>
+                <span>Ref. {property.reference}</span>
               </p>
+              <a href="#descricao" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--hp-red)] hover:underline">
+                Ler descrição completa <ChevronRight className="size-4" />
+              </a>
+            </section>
+
+            {unavailable && (
+              <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 px-5 py-4 text-sm text-amber-800">
+                Este imóvel está {property.status === "vendido" ? "vendido" : "reservado"}. Fale com o consultor —
+                encontramos alternativas semelhantes para si (veja em baixo).
+              </div>
             )}
 
-            {/* Características */}
-            <section>
-              <h2 className="font-display text-xl">Características</h2>
-              <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 rounded-2xl border bg-card p-5 sm:grid-cols-3">
-                {specs.map((s) => (
-                  <div key={s.label}>
-                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      {s.icon && <s.icon className="size-3.5" />} {s.label}
-                    </p>
-                    <p className="mt-0.5 font-medium">{s.value}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Descrição completa */}
-            <section>
-              <h2 className="font-display text-xl">Descrição</h2>
-              <p className="mt-3 whitespace-pre-line leading-relaxed text-muted-foreground">
-                {description}
-              </p>
-            </section>
-
-            {/* Localização */}
-            <section>
-              <h2 className="font-display text-xl">Localização</h2>
-              <div className="mt-3">
-                <LocationMap
-                  parish={property.parish}
-                  municipality={property.municipality}
-                  lat={property.lat}
-                  lng={property.lng}
-                />
-              </div>
-            </section>
-
-            {/* Financiamento */}
-            <section>
-              <h2 className="font-display text-xl">Financiamento</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Simule a prestação ou peça ao consultor o valor total com as
-                despesas de compra incluídas.
-              </p>
-              <div className="mt-4 rounded-2xl border bg-card p-5 shadow-sm">
-                <CreditSimulator initialPrice={property.price} />
-                <div className="mt-6 border-t pt-5">
-                  <CostWizard
-                    propertyId={property.id}
-                    reference={property.reference}
-                    price={property.price}
-                    referrerId={ref}
-                  />
-                  <p className="mt-2 text-center text-xs text-muted-foreground">
-                    Valores indicativos e estimados. Não dispensam simulação
-                    bancária nem a validação do consultor.
-                  </p>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          {/* Coluna de contacto (sticky) */}
-          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-2xl border bg-card p-5 shadow-sm">
-              {referrer && (
-                <p className="mb-3 rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
-                  Apresentado por{" "}
-                  <span className="font-medium text-foreground">{referrer.name}</span>{" "}
-                  — o seu consultor dedicado.
-                </p>
-              )}
-              <div className="flex items-center gap-3">
-                <AgentAvatar agent={contact} className="size-12" />
-                <div className="min-w-0">
-                  <p className="font-medium">{contact.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {contact.role} · {contact.agency}
-                  </p>
-                </div>
-              </div>
-              <ContactLink
-                href={whatsappLink(contact.whatsapp, property, propertyUrl)}
-                channel="WhatsApp"
-                propertyId={property.id}
-                refId={ref}
-                external
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-medium text-white transition-transform hover:scale-[1.02]"
+            {property.exclusive && exclusiveEligibility(property).eligible && (
+              <Link
+                href={`/exclusivo/${property.id}`}
+                className="flex items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent p-4 transition-colors hover:from-amber-500/15"
               >
-                <WhatsappIcon className="size-4" /> Falar por WhatsApp
-              </ContactLink>
-              <ContactLink
-                href={telLink(contact.whatsapp)}
-                channel="Chamada"
-                propertyId={property.id}
-                refId={ref}
-                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
-              >
-                <Phone className="size-4" /> {formatPhone(contact.whatsapp)}
-              </ContactLink>
-              <p className="mt-1.5 text-center">
-                <PhoneNote />
-              </p>
-              <div className="mt-4 border-t pt-4">
-                <ContactDialog
-                  propertyId={property.id}
-                  referrerId={ref}
-                  reference={property.reference}
-                />
-              </div>
+                <span className="flex items-center gap-2.5">
+                  <Sparkles className="size-5 text-amber-500" />
+                  <span>
+                    <span className="block text-sm font-medium">Imóvel da Coleção Exclusiva</span>
+                    <span className="block text-xs text-[var(--hp-text-2)]">Ver a apresentação premium dedicada</span>
+                  </span>
+                </span>
+                <span className="text-sm font-medium text-[var(--hp-red)]">Abrir →</span>
+              </Link>
+            )}
 
-              <div className="mt-3">
-                <FavoriteButton propertyId={property.id} variant="labeled" />
-              </div>
-            </div>
+            <PropertyEditorialGallery
+              images={gallery}
+              plans={property.plans}
+              videoUrl={property.videoUrl}
+              tourUrl={property.tourUrl}
+              title={property.title}
+            />
 
-            <PropertyActions
+            <PropertyDescription text={description} />
+
+            <PropertyLocation
+              parish={property.parish}
+              municipality={property.municipality}
+              lat={property.lat}
+              lng={property.lng}
+              privacy={property.locationPrivacy}
+            />
+
+            <FinancingPanel
+              price={property.price}
+              propertyId={property.id}
+              reference={property.reference}
+              referrerId={ref}
+            />
+
+            <VisitRequest propertyId={property.id} reference={property.reference} referrerId={ref} />
+
+            <PropertyShareRow
+              propertyId={property.id}
               info={{
                 title: property.title,
-                price: formatPrice(property),
+                price: priceLabel,
                 reference: property.reference,
                 location: `${property.parish}, ${property.municipality}`,
-                image: gallery[0],
+                image: gallery[0] ?? "",
                 description,
-                specs: specs.map((s) => ({ label: s.label, value: s.value })),
+                specs: printSpecs,
                 contactName: contact.name,
-                contactRole: `${contact.role} · ${contact.agency}`,
+                contactRole: `${publicRole} · ${contact.agency}`,
                 contactPhoneNote: "Chamada para rede móvel nacional",
               }}
             />
-          </aside>
+          </div>
+
+          {/* Painel do consultor (sticky, desktop) */}
+          <ConsultantPanel
+            agent={contact}
+            role={`${publicRole} · ${contact.agency}`}
+            whatsappHref={whatsappLink(contact.whatsapp, property, propertyUrl)}
+            telHref={telLink(contact.whatsapp)}
+            phone={formatPhone(contact.whatsapp)}
+            propertyId={property.id}
+            refId={ref}
+            referrerName={referrer?.name}
+          />
         </div>
 
         {/* Imóveis semelhantes */}
         {similares.length > 0 && (
-          <section className="mt-14">
-            <div className="flex items-end justify-between">
-              <h2 className="font-display text-2xl">Imóveis semelhantes</h2>
-              <Link href="/imoveis" className="text-sm font-medium text-primary hover:underline">
-                Ver todos
-              </Link>
-            </div>
-            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {similares.map((p) => (
-                <PropertyCard
-                  key={p.id}
-                  property={p}
-                  referrer={referrer}
-                />
-              ))}
-            </div>
-          </section>
+          <div className="mx-auto mt-16 max-w-6xl px-4 sm:px-6">
+            <SimilarCarousel properties={similares} referrer={referrer} />
+          </div>
         )}
       </main>
 
+      {/* Barra fixa do consultor (telemóvel) */}
       <AgentContactBar
         agent={contact}
         whatsappHref={whatsappLink(contact.whatsapp, property, propertyUrl)}
@@ -380,7 +347,8 @@ export default async function ImovelPage({
         propertyId={property.id}
         refId={ref}
       />
-      <SiteFooter />
+
+      <PropertyFooter />
     </div>
   );
 }

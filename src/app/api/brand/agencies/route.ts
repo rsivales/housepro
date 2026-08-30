@@ -20,7 +20,9 @@ export async function GET() {
     const supabase = await createClient();
     const { data } = await supabase.from("site_settings").select("value").eq("key", KEY).maybeSingle();
     const v = (data?.value as Partial<AgenciesConfig>) ?? {};
-    return NextResponse.json({ config: { overrides: v.overrides ?? {}, created: v.created ?? [] } });
+    return NextResponse.json({
+      config: { overrides: v.overrides ?? {}, created: v.created ?? [], suspended: v.suspended ?? [], removed: v.removed ?? [] },
+    });
   } catch {
     return NextResponse.json({ config: DEFAULT_AGENCIES_CONFIG });
   }
@@ -43,9 +45,13 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
+  const strArray = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
   const config: AgenciesConfig = {
     overrides: body.config?.overrides && typeof body.config.overrides === "object" ? body.config.overrides : {},
     created: Array.isArray(body.config?.created) ? body.config!.created! : [],
+    suspended: strArray(body.config?.suspended),
+    removed: strArray(body.config?.removed),
   };
 
   try {

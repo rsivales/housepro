@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft, Building2, ShieldAlert } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { agencies, agentsByAgency, agentById } from "@/lib/data/mock";
 import { listProperties, getAgenciesConfig } from "@/lib/db/repo";
+import { getSession } from "@/lib/supabase/auth";
+import { isBrandAdmin } from "@/lib/data/roles";
 import { AgenciesAdmin } from "@/components/admin/agencies-admin";
 
 export const metadata: Metadata = { title: "Agências · Back office" };
 
 export default async function AdminAgenciasPage() {
+  const session = await getSession();
+  // Gestão da rede: direção e acima. Coordenação vê o back office mas não gere agências.
+  const canManage = Boolean(session && isBrandAdmin(session.agent));
   const config = await getAgenciesConfig();
   const all = await listProperties();
   // Contagem de imóveis por agência (via agência do angariador).
@@ -40,11 +45,21 @@ export default async function AdminAgenciasPage() {
           <Building2 className="size-7 text-primary" /> Agências
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Cria, renomeia e consulta as agências da rede. Abre uma agência para ver a
-          equipa, o número de imóveis e os dados de identificação.
+          Cria, edita, suspende ou elimina agências da rede. As alterações são
+          guardadas automaticamente. Abre uma agência para ver a equipa e os imóveis.
         </p>
 
-        <AgenciesAdmin base={base} initial={config} />
+        {canManage ? (
+          <AgenciesAdmin base={base} initial={config} />
+        ) : (
+          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-5 text-sm">
+            <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-600" />
+            <p className="text-muted-foreground">
+              A gestão da rede de agências está reservada à direção e super admin. Fala
+              com a administração para obteres acesso.
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );

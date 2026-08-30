@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Building2, Check, ChevronDown, Home, MapPin, Pencil, Plus, Save, Users, X } from "lucide-react";
+import { Building2, Check, ChevronDown, Home, Loader2, MapPin, Pause, Pencil, Play, Plus, RotateCcw, Trash2, Users, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,41 +14,79 @@ interface BaseAgency {
   id: string; name: string; region: string; slug: string; code: number;
   propertyCount: number; team: TeamMember[];
 }
-type Row = BaseAgency & { created?: boolean };
+type Row = BaseAgency & { created?: boolean; suspended?: boolean };
 
 const box = "rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40";
 
-/** Gestão de agências: criar, renomear/editar região e abrir o detalhe (equipa + imóveis). */
+/**
+ * Gestão de agências (direção/super admin): criar, editar, suspender/reativar e
+ * eliminar. Cada alteração é guardada automaticamente no Supabase
+ * (site_settings), com o localStorage como cache/fallback em modo demo.
+ */
 export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: AgenciesConfig }) {
-  const [overrides, setOverrides] = React.useState<AgenciesConfig["overrides"]>(initial.overrides ?? {});
-  const [created, setCreated] = React.useState<AgenciesConfig["created"]>(initial.created ?? []);
+  const [cfg, setCfg] = React.useState<AgenciesConfig>({
+    overrides: initial.overrides ?? {},
+    created: initial.created ?? [],
+    suspended: initial.suspended ?? [],
+    removed: initial.removed ?? [],
+  });
   const [editing, setEditing] = React.useState<string | null>(null);
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState<{ name: string; region: string }>({ name: "", region: "" });
   const [creating, setCreating] = React.useState(false);
   const [newAg, setNewAg] = React.useState({ name: "", region: "" });
-  const [saving, setSaving] = React.useState(false);
-  const [saved, setSaved] = React.useState<null | "ok" | "demo" | "err">(null);
+  const [status, setStatus] = React.useState<null | "saving" | "ok" | "demo" | "err">(null);
 
-  // Linhas a mostrar = base (com overrides) + criadas.
+  const suspended = new Set(cfg.suspended ?? []);
+  const removed = new Set(cfg.removed ?? []);
+
+  // Guarda automaticamente a configuração completa.
+  const commit = React.useCallback(async (next: AgenciesConfig) => {
+    setCfg(next);
+    setStatus("saving");
+    try {
+      const res = await fetch("/api/brand/agencies", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ config: next }),
+      });
+      setStatus(res.ok ? "ok" : res.status === 401 ? "demo" : "err");
+    } catch {
+      setStatus("err");
+    } finally {
+      try { localStorage.setItem("agenciesConfig", JSON.stringify(next)); } catch {}
+      setTimeout(() => setStatus((s) => (s === "saving" ? s : null)), 2500);
+    }
+  }, []);
+
+  // Linhas visíveis = base (sem eliminadas, com overrides) + criadas.
   const rows: Row[] = [
-    ...base.map((a) => ({
-      ...a,
-      name: overrides[a.id]?.name ?? a.name,
-      region: overrides[a.id]?.region ?? a.region,
+    ...base
+      .filter((a) => !removed.has(a.id))
+      .map((a) => ({
+        ...a,
+        name: cfg.overrides[a.id]?.name ?? a.name,
+        region: cfg.overrides[a.id]?.region ?? a.region,
+        suspended: suspended.has(a.id),
+      })),
+    ...(cfg.created ?? []).map((c) => ({
+      id: c.id, name: c.name, region: c.region, slug: c.slug, code: c.code,
+      propertyCount: 0, team: [] as TeamMember[], created: true, suspended: suspended.has(c.id),
     })),
-    ...created.map((c) => ({ id: c.id, name: c.name, region: c.region, slug: c.slug, code: c.code, propertyCount: 0, team: [] as TeamMember[], created: true })),
   ];
+  const removedRows = base.filter((a) => removed.has(a.id));
 
   function startEdit(r: Row) {
     setEditing(r.id);
     setDraft({ name: r.name, region: r.region });
   }
   function applyEdit(r: Row) {
+    const name = draft.name.trim();
+    const region = draft.region.trim();
     if (r.created) {
-      setCreated((prev) => prev.map((c) => (c.id === r.id ? { ...c, name: draft.name.trim() || c.name, region: draft.region.trim() || c.region } : c)));
+      commit({ ...cfg, created: cfg.created.map((c) => (c.id === r.id ? { ...c, name: name || c.name, region: region || c.region } : c)) });
     } else {
-      setOverrides((prev) => ({ ...prev, [r.id]: { name: draft.name.trim() || r.name, region: draft.region.trim() || r.region } }));
+      commit({ ...cfg, overrides: { ...cfg.overrides, [r.id]: { name: name || r.name, region: region || r.region } } });
     }
     setEditing(null);
   }
@@ -60,36 +98,43 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
     let code = 1;
     while (used.has(code)) code += 1;
     const id = `ag-${slug}-${Date.now().toString(36).slice(-4)}`;
-    setCreated((prev) => [...prev, { id, name, slug, region: newAg.region.trim() || "—", code }]);
+    commit({ ...cfg, created: [...cfg.created, { id, name, slug, region: newAg.region.trim() || "—", code }] });
     setNewAg({ name: "", region: "" });
     setCreating(false);
   }
-
-  async function save() {
-    setSaving(true);
-    setSaved(null);
-    const config: AgenciesConfig = { overrides, created };
-    try {
-      const res = await fetch("/api/brand/agencies", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ config }),
-      });
-      if (res.ok) setSaved("ok");
-      else if (res.status === 401) setSaved("demo");
-      else setSaved("err");
-    } catch {
-      setSaved("err");
-    } finally {
-      setSaving(false);
-      try { localStorage.setItem("agenciesConfig", JSON.stringify(config)); } catch {}
+  function toggleSuspend(r: Row) {
+    const set = new Set(cfg.suspended ?? []);
+    if (set.has(r.id)) set.delete(r.id); else set.add(r.id);
+    commit({ ...cfg, suspended: [...set] });
+  }
+  function remove(r: Row) {
+    if (!confirm(`Eliminar a agência "${r.name}"? Deixa de aparecer no site. ${r.created ? "Esta ação é definitiva para agências criadas." : "Podes repor depois."}`)) return;
+    if (r.created) {
+      commit({ ...cfg, created: cfg.created.filter((c) => c.id !== r.id), suspended: (cfg.suspended ?? []).filter((i) => i !== r.id) });
+    } else {
+      commit({ ...cfg, removed: [...new Set([...(cfg.removed ?? []), r.id])] });
     }
+  }
+  function restore(id: string) {
+    commit({ ...cfg, removed: (cfg.removed ?? []).filter((i) => i !== id) });
   }
 
   return (
     <div className="mt-6 space-y-4">
-      {/* Criar */}
-      {creating ? (
+      {/* Barra de estado da gravação */}
+      <div className="flex items-center justify-between">
+        {creating ? <span /> : (
+          <Button variant="outline" onClick={() => setCreating(true)}><Plus className="size-4" /> Nova agência</Button>
+        )}
+        <span className="text-sm" aria-live="polite">
+          {status === "saving" && <span className="inline-flex items-center gap-1 text-muted-foreground"><Loader2 className="size-4 animate-spin" /> A guardar…</span>}
+          {status === "ok" && <span className="inline-flex items-center gap-1 text-primary"><Check className="size-4" /> Guardado</span>}
+          {status === "demo" && <span className="text-muted-foreground">Guardado localmente (modo demo)</span>}
+          {status === "err" && <span className="text-destructive">Falha ao guardar</span>}
+        </span>
+      </div>
+
+      {creating && (
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
           <p className="text-sm font-medium">Nova agência</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -101,8 +146,6 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
             <Button size="sm" variant="ghost" onClick={() => setCreating(false)}>Cancelar</Button>
           </div>
         </div>
-      ) : (
-        <Button variant="outline" onClick={() => setCreating(true)}><Plus className="size-4" /> Nova agência</Button>
       )}
 
       {/* Lista */}
@@ -111,7 +154,7 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
           const isEditing = editing === r.id;
           const isOpen = openId === r.id;
           return (
-            <div key={r.id} className="rounded-2xl border bg-card shadow-sm">
+            <div key={r.id} className={cn("rounded-2xl border bg-card shadow-sm", r.suspended && "opacity-70")}>
               <div className="flex items-center gap-3 p-4">
                 <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
                   <Building2 className="size-5" />
@@ -123,11 +166,12 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
                   </div>
                 ) : (
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 font-medium">
+                    <p className="flex flex-wrap items-center gap-2 font-medium">
                       {r.name}
                       {r.created && <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">nova</span>}
+                      {r.suspended && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">suspensa</span>}
                     </p>
-                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1"><MapPin className="size-3" /> {r.region}</span>
                       <span className="inline-flex items-center gap-1"><Users className="size-3" /> {r.team.length}</span>
                       <span className="inline-flex items-center gap-1"><Home className="size-3" /> {r.propertyCount}</span>
@@ -144,7 +188,13 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
                   ) : (
                     <>
                       <Button size="sm" variant="outline" onClick={() => startEdit(r)}><Pencil className="size-3.5" /> Editar</Button>
-                      <button onClick={() => setOpenId(isOpen ? null : r.id)} className="rounded-lg border p-2 text-muted-foreground hover:bg-secondary">
+                      <button onClick={() => toggleSuspend(r)} title={r.suspended ? "Reativar" : "Suspender"} className="grid size-9 place-items-center rounded-lg border text-muted-foreground hover:bg-secondary">
+                        {r.suspended ? <Play className="size-4 text-emerald-600" /> : <Pause className="size-4" />}
+                      </button>
+                      <button onClick={() => remove(r)} title="Eliminar" className="grid size-9 place-items-center rounded-lg border text-destructive hover:bg-destructive/5">
+                        <Trash2 className="size-4" />
+                      </button>
+                      <button onClick={() => setOpenId(isOpen ? null : r.id)} aria-label="Detalhe" className="grid size-9 place-items-center rounded-lg border text-muted-foreground hover:bg-secondary">
                         <ChevronDown className={cn("size-4 transition-transform", isOpen && "rotate-180")} />
                       </button>
                     </>
@@ -152,7 +202,6 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
                 </div>
               </div>
 
-              {/* Detalhe: equipa + info */}
               {isOpen && !isEditing && (
                 <div className="border-t p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Equipa</p>
@@ -183,13 +232,22 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
         })}
       </div>
 
-      {/* Guardar */}
-      <div className="flex items-center gap-3 pt-2">
-        <Button onClick={save} disabled={saving}><Save className="size-4" /> {saving ? "A guardar…" : "Guardar alterações"}</Button>
-        {saved === "ok" && <span className="inline-flex items-center gap-1 text-sm text-primary"><Check className="size-4" /> Guardado.</span>}
-        {saved === "demo" && <span className="text-sm text-muted-foreground">Guardado localmente (modo demo — sem Supabase).</span>}
-        {saved === "err" && <span className="text-sm text-destructive">Falha ao guardar.</span>}
-      </div>
+      {/* Eliminadas (repor) */}
+      {removedRows.length > 0 && (
+        <div className="rounded-2xl border border-dashed bg-secondary/30 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Eliminadas</p>
+          <ul className="mt-2 space-y-1.5">
+            {removedRows.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground line-through">{cfg.overrides[a.id]?.name ?? a.name}</span>
+                <button onClick={() => restore(a.id)} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                  <RotateCcw className="size-3.5" /> Repor
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

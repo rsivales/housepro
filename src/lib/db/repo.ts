@@ -492,6 +492,30 @@ export async function getMergedAgencies(): Promise<Agency[]> {
   return mergeAgencies(baseAgencies, config);
 }
 
+/** Conteúdos geríveis da homepage (banners, histórias, vagas, imagens). */
+export async function getSiteContent(): Promise<{
+  banners?: unknown; stories?: unknown; vacancies?: unknown; newsimg?: unknown; homerule?: unknown;
+}> {
+  if (!isSupabaseConfigured()) return {};
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("key, value")
+      .in("key", ["hp_banners", "hp_stories", "hp_vacancies", "hp_newsimg", "hp_homerule"]);
+    const map = Object.fromEntries((data ?? []).map((r) => [r.key, r.value]));
+    return {
+      banners: map["hp_banners"],
+      stories: map["hp_stories"],
+      vacancies: map["hp_vacancies"],
+      newsimg: map["hp_newsimg"],
+      homerule: map["hp_homerule"],
+    };
+  } catch {
+    return {};
+  }
+}
+
 /** Dados legais por agência (site_settings, chave "agency_legal"). */
 export async function getAgencyLegalConfig(): Promise<Record<string, import("@/lib/data/agency-legal").AgencyLegal>> {
   if (!isSupabaseConfigured()) return {};

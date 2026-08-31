@@ -12,6 +12,7 @@ import {
   type OrderingRule,
 } from "@/lib/data/ordering";
 import { siteConfig, HOME_RULE_KEY, WATERMARK_KEY, defaultWatermark, type WatermarkConfig } from "@/lib/config";
+import { publishSection } from "@/lib/data/site-content";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { WATERMARK_POSITIONS, docStatus } from "@/lib/imovel/model";
@@ -72,6 +73,7 @@ export default function AdminPage() {
   function choose(r: OrderingRule) {
     setRule(r);
     localStorage.setItem(HOME_RULE_KEY, r);
+    publishSection("homerule", r); // publica globalmente (Supabase)
   }
 
   function patchWm(p: Partial<WatermarkConfig>) {

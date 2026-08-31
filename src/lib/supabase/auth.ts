@@ -45,6 +45,10 @@ export async function getSession(): Promise<Session | null> {
     .eq("id", user.id)
     .single();
 
+  // Sem perfil = não é profissional (ex.: comprador com conta de portal). A
+  // área profissional (/app, /admin) não deve ficar acessível a estes users.
+  if (!profile) return null;
+
   const agent: Agent = {
     id: user.id,
     name: profile?.name ?? user.email ?? "Consultor",

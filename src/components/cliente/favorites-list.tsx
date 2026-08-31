@@ -2,14 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Heart, X } from "lucide-react";
+import { Heart, Mail, X } from "lucide-react";
 
 import { PropertyCard } from "@/components/property/property-card";
 import { propertyById } from "@/lib/data/mock";
 import { formatArea, formatPrice } from "@/lib/format";
 import type { Property } from "@/lib/data/types";
-
-const FAV_KEY = "housepro:favoritos";
+import { loadFavorites, currentFavorites, isLoggedIn } from "@/lib/cliente/favorites";
 
 const ROWS: { label: string; get: (p: Property) => string }[] = [
   { label: "Preço", get: (p) => formatPrice(p) },
@@ -111,20 +110,36 @@ function ComparisonModal({
 
 export function FavoritesList() {
   const [ids, setIds] = React.useState<string[] | null>(null);
+  const [loggedIn, setLoggedIn] = React.useState<boolean | null>(null);
   const [selected, setSelected] = React.useState<string[]>([]);
   const [comparing, setComparing] = React.useState(false);
 
   React.useEffect(() => {
-    try {
-      setIds(JSON.parse(localStorage.getItem(FAV_KEY) || "[]"));
-    } catch {
-      setIds([]);
-    }
+    loadFavorites().then((list) => {
+      setIds(list);
+      setLoggedIn(isLoggedIn());
+    });
+    const sync = () => setIds(currentFavorites());
+    window.addEventListener("housepro:favoritos", sync);
+    return () => window.removeEventListener("housepro:favoritos", sync);
   }, []);
 
   if (ids === null) {
     return <p className="mt-8 text-sm text-muted-foreground">A carregar…</p>;
   }
+
+  const loginBanner = loggedIn === false && ids.length > 0 ? (
+    <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-sm">
+      <Mail className="size-5 shrink-0 text-primary" />
+      <p className="min-w-0 flex-1 text-muted-foreground">
+        Estes favoritos estão guardados só neste dispositivo. Entre com o seu
+        e-mail para os manter em qualquer lado.
+      </p>
+      <Link href="/cliente/entrar" className="shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+        Entrar
+      </Link>
+    </div>
+  ) : null;
 
   const props = ids.map((id) => propertyById(id)).filter(Boolean) as Property[];
 
@@ -156,6 +171,7 @@ export function FavoritesList() {
 
   return (
     <>
+      {loginBanner}
       <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
         <span>
           {props.length} {props.length === 1 ? "imóvel guardado" : "imóveis guardados"}

@@ -480,7 +480,7 @@ export async function getAgenciesConfig(): Promise<AgenciesConfig> {
       .eq("key", "agencies")
       .maybeSingle();
     const v = data?.value as Partial<AgenciesConfig> | undefined;
-    return { overrides: v?.overrides ?? {}, created: v?.created ?? [] };
+    return { overrides: v?.overrides ?? {}, created: v?.created ?? [], suspended: v?.suspended ?? [], removed: v?.removed ?? [] };
   } catch {
     return DEFAULT_AGENCIES_CONFIG;
   }

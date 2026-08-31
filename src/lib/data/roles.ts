@@ -53,3 +53,9 @@ export function isStaff(agent?: Pick<Agent, "roleKey" | "role">): boolean {
   const r = agent?.roleKey;
   return r === "superadmin" || r === "admin" || r === "diretor" || r === "coordenador" || agent?.role === "admin";
 }
+
+/** Gestão de marca/rede (agências): direção e acima. Coordenação não gere a rede. */
+export function isBrandAdmin(agent?: Pick<Agent, "roleKey" | "role">): boolean {
+  const r = agent?.roleKey;
+  return r === "superadmin" || r === "admin" || r === "diretor" || agent?.role === "admin";
+}

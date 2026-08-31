@@ -19,8 +19,9 @@ const box =
 /**
  * Espaço de trabalho do processo LegalFlow. O advogado (ou coordenação)
  * constrói o documento por cláusulas e PARTILHA versões; as restantes partes
- * acompanham em tempo real e podem comentar. Estado guardado localmente (o
- * protótipo simula a partilha; a sincronização real chega com o Supabase).
+ * acompanham em tempo real e podem comentar. O estado (secções, checklist,
+ * atividade, versão) persiste por processo no Supabase (legal_workspaces), com
+ * o localStorage como cache/fallback.
  */
 export function LegalWorkspace({
   process, actorName, canEditDoc, canManageChecklist,
@@ -37,30 +38,54 @@ export function LegalWorkspace({
   const [version, setVersion] = React.useState(process.docVersion);
   const [comment, setComment] = React.useState("");
   const [savedFlash, setSavedFlash] = React.useState(false);
+  const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Carrega o estado guardado (protótipo).
+  type Snapshot = { sections: LegalSection[]; checklist: ChecklistItem[]; activity: LegalActivity[]; version: number };
+
+  function applySnapshot(s: Partial<Snapshot>) {
+    if (s.sections) setSections(s.sections);
+    if (s.checklist) setChecklist(s.checklist);
+    if (s.activity) setActivity(s.activity);
+    if (s.version) setVersion(s.version);
+  }
+
+  // Carrega o estado guardado: servidor primeiro (se houver sessão), senão local.
   React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const s = JSON.parse(raw);
-        if (s.sections) setSections(s.sections);
-        if (s.checklist) setChecklist(s.checklist);
-        if (s.activity) setActivity(s.activity);
-        if (s.version) setVersion(s.version);
-      }
-    } catch {/* ignore */}
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/legal/workspace?process=${encodeURIComponent(process.id)}`);
+        if (res.ok) {
+          const j = (await res.json()) as { data?: Partial<Snapshot> | null };
+          if (alive && j.data) { applySnapshot(j.data); return; }
+        }
+      } catch {/* cai para local */}
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw && alive) applySnapshot(JSON.parse(raw));
+      } catch {/* ignore */}
+    })();
+    return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, process.id]);
 
-  function persist(next: Partial<{ sections: LegalSection[]; checklist: ChecklistItem[]; activity: LegalActivity[]; version: number }>) {
-    const snapshot = {
+  function persist(next: Partial<Snapshot>) {
+    const snapshot: Snapshot = {
       sections: next.sections ?? sections,
       checklist: next.checklist ?? checklist,
       activity: next.activity ?? activity,
       version: next.version ?? version,
     };
     try { localStorage.setItem(key, JSON.stringify(snapshot)); } catch {/* ignore */}
+    // Grava no servidor (debounced) — best-effort; o local é a cache.
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      void fetch("/api/legal/workspace", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ processId: process.id, data: snapshot }),
+      }).catch(() => {});
+    }, 700);
   }
 
   function setBody(id: string, body: string) {

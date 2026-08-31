@@ -34,8 +34,53 @@ function writeJSON<T>(key: string, value: T): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    /* quota/again — ignora no protótipo */
+    /* quota/again — ignora */
   }
+}
+
+/* ── Persistência global (Supabase via /api/brand/site-content) ─────────── */
+
+type Section = "banners" | "stories" | "vacancies" | "newsimg" | "homerule";
+
+/** Publica uma secção arbitrária (ex.: regra de ordenação da homepage). */
+export function publishSection(section: Section, value: unknown): void {
+  putSection(section, value);
+}
+
+/** Publica uma secção globalmente. Best-effort: o localStorage é a cache. */
+function putSection(section: Section, value: unknown): void {
+  if (typeof window === "undefined") return;
+  void fetch("/api/brand/site-content", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ section, value }),
+  }).catch(() => {});
+}
+
+export interface ServerContent {
+  banners?: Banner[];
+  stories?: Story[];
+  vacancies?: Vacancy[];
+  newsimg?: NewsImageMap;
+  homerule?: string;
+}
+
+let serverCache: Promise<ServerContent> | null = null;
+
+/**
+ * Lê (uma vez por sessão de página) os conteúdos publicados no servidor. Os
+ * componentes públicos usam isto e caem para o localStorage/defaults quando a
+ * secção ainda não foi publicada (ou em modo demo).
+ */
+export function loadSiteContent(): Promise<ServerContent> {
+  if (typeof window === "undefined") return Promise.resolve({});
+  if (!serverCache) {
+    serverCache = fetch("/api/brand/site-content")
+      .then((r) => (r.ok ? r.json() : { content: {} }))
+      .then((j) => (j && typeof j.content === "object" ? (j.content as ServerContent) : {}))
+      .catch(() => ({}));
+  }
+  return serverCache;
 }
 
 /* ── Banners ───────────────────────────────────────────────────────────── */
@@ -45,6 +90,7 @@ export function readBanners(): Banner[] {
 }
 export function writeBanners(banners: Banner[]): void {
   writeJSON(BANNERS_KEY, banners);
+  putSection("banners", banners);
 }
 
 /* ── Histórias reais ───────────────────────────────────────────────────── */
@@ -53,6 +99,7 @@ export function readStories(): Story[] {
 }
 export function writeStories(stories: Story[]): void {
   writeJSON(STORIES_KEY, stories);
+  putSection("stories", stories);
 }
 
 /* ── Vagas (carreiras) ─────────────────────────────────────────────────── */
@@ -62,6 +109,7 @@ export function readVacancies(): Vacancy[] {
 }
 export function writeVacancies(vacancies: Vacancy[]): void {
   writeJSON(VACANCIES_KEY, vacancies);
+  putSection("vacancies", vacancies);
 }
 
 /* ── Imagens de artigos (Guia HousePro) ────────────────────────────────── */
@@ -71,6 +119,7 @@ export function readNewsImages(): NewsImageMap {
 }
 export function writeNewsImages(map: NewsImageMap): void {
   writeJSON(NEWSIMG_KEY, map);
+  putSection("newsimg", map);
 }
 
 /** Lê um ficheiro de imagem como data URL (protótipo em browser). */

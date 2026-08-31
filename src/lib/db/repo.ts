@@ -492,6 +492,22 @@ export async function getMergedAgencies(): Promise<Agency[]> {
   return mergeAgencies(baseAgencies, config);
 }
 
+/** Dados legais por agência (site_settings, chave "agency_legal"). */
+export async function getAgencyLegalConfig(): Promise<Record<string, import("@/lib/data/agency-legal").AgencyLegal>> {
+  if (!isSupabaseConfigured()) return {};
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "agency_legal")
+      .maybeSingle();
+    return (data?.value as Record<string, import("@/lib/data/agency-legal").AgencyLegal>) ?? {};
+  } catch {
+    return {};
+  }
+}
+
 /** Agência por slug, já com as edições aplicadas. */
 export async function getAgencyBySlug(slug: string): Promise<Agency | undefined> {
   return (await getMergedAgencies()).find((a) => a.slug === slug);

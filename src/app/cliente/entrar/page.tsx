@@ -23,6 +23,13 @@ export default function ClienteEntrarPage() {
   const [sent, setSent] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  // Link expirado/inválido ou aberto noutro dispositivo (?erro=link).
+  React.useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("erro") === "link") {
+      setError("O link expirou ou foi aberto noutro dispositivo. Peça um novo e abra-o no mesmo telemóvel/computador onde o pediu.");
+    }
+  }, []);
+
   async function sendLink(e: React.FormEvent) {
     e.preventDefault();
     setError(null);

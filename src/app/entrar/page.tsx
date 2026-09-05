@@ -33,6 +33,13 @@ export default function EntrarPage() {
     });
   }, [configured, router]);
 
+  // Link de acesso expirado/inválido ou aberto noutro dispositivo.
+  React.useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("erro") === "link") {
+      setError("O link de acesso expirou ou foi aberto noutro dispositivo. Peça um novo e abra-o no mesmo dispositivo onde o pediu.");
+    }
+  }, []);
+
   // Lê o código de padrinho do link (?padrinho=) e guarda-o para ser resgatado
   // automaticamente ao entrar (sobrevive ao magic-link por email).
   React.useEffect(() => {

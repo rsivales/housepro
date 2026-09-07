@@ -14,7 +14,7 @@ const nav = [
   { label: "Arrendar", href: "/imoveis?operacao=arrendar" },
   { label: "Empreendimentos", href: "/empreendimentos" },
   { label: "Internacional", href: "/internacional" },
-  { label: "Vender", href: "/vender" },
+  { label: "Vender", href: "/avaliacao-imovel" },
   { label: "Investir", href: "/investir" },
   { label: "Crédito", href: "/credito" },
   { label: "Ferramentas", href: "/ferramentas" },
@@ -62,7 +62,7 @@ export function SiteHeader() {
             </Link>
           </Button>
           <Button variant="brand" size="sm" className="hidden sm:inline-flex" asChild>
-            <Link href="/vender">Avaliação gratuita</Link>
+            <Link href="/avaliacao-imovel">Avaliação gratuita</Link>
           </Button>
           <button
             type="button"
@@ -111,7 +111,7 @@ export function SiteHeader() {
           ))}
 
           <Button variant="brand" className="mt-2" asChild>
-            <Link href="/vender" onClick={() => setOpen(false)}>
+            <Link href="/avaliacao-imovel" onClick={() => setOpen(false)}>
               Avaliação gratuita
             </Link>
           </Button>

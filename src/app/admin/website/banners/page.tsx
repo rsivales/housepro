@@ -137,7 +137,7 @@ export default function BannersAdminPage() {
                 </label>
                 <label className="block">
                   <span className="text-sm font-medium">Botão secundário — texto</span>
-                  <input className={field} value={b.secondary?.label ?? ""} onChange={(e) => patch(b.id, { secondary: e.target.value ? { label: e.target.value, href: b.secondary?.href ?? "/vender" } : undefined })} />
+                  <input className={field} value={b.secondary?.label ?? ""} onChange={(e) => patch(b.id, { secondary: e.target.value ? { label: e.target.value, href: b.secondary?.href ?? "/avaliacao-imovel#comecar" } : undefined })} />
                 </label>
                 <label className="block">
                   <span className="text-sm font-medium">Botão secundário — link</span>

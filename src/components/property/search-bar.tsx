@@ -43,7 +43,7 @@ const tabs: {
     placeholder: "Morada do imóvel a vender…",
     cta: "Avaliar",
     hint: "Avaliação gratuita e plano de venda com um consultor.",
-    build: (v) => `/vender?morada=${encodeURIComponent(v)}`,
+    build: (v) => `/avaliacao-imovel?morada=${encodeURIComponent(v)}#comecar`,
   },
   {
     key: "investir",

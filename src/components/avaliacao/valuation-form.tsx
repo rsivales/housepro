@@ -37,6 +37,7 @@ export function ValuationForm() {
 
   // Recupera progresso da sessão e captura UTMs/ref.
   React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) setData((d) => ({ ...d, ...JSON.parse(raw) }));
@@ -46,7 +47,8 @@ export function ValuationForm() {
       pageUrl: window.location.origin + window.location.pathname,
       referrerUrl: document.referrer || undefined,
       utm: parseCampaign(window.location.search),
-      ref: new URLSearchParams(window.location.search).get("ref") || undefined,
+      ref: params.get("ref") || undefined,
+      location: d.location || params.get("morada") || "",
       language: document.documentElement.lang || "pt",
     }));
   }, []);

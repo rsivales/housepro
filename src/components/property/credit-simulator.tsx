@@ -108,7 +108,7 @@ export function CreditSimulator({ initialPrice = 300000 }: { initialPrice?: numb
           </div>
         </dl>
         <Button variant="brand" size="lg" className="w-full" asChild>
-          <Link href="/vender#contacto">
+          <Link href="/avaliacao-imovel#comecar">
             Falar com um consultor <ArrowRight className="size-4" />
           </Link>
         </Button>

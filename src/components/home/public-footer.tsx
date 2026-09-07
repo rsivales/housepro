@@ -17,7 +17,7 @@ const COLS: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "Comprar", href: "/imoveis?operacao=comprar" },
       { label: "Arrendar", href: "/imoveis?operacao=arrendar" },
       { label: "Investir", href: "/investir" },
-      { label: "Vender", href: "/vender" },
+      { label: "Vender", href: "/avaliacao-imovel" },
     ],
   },
   {

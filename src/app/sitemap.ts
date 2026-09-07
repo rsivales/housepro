@@ -9,7 +9,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/", priority: 1 },
     { path: "/avaliacao-imovel", priority: 0.9 },
     { path: "/imoveis", priority: 0.8 },
-    { path: "/vender", priority: 0.7 },
     { path: "/investir", priority: 0.7 },
     { path: "/ferramentas", priority: 0.6 },
     { path: "/ferramentas/calculadora-mais-valias", priority: 0.8 },

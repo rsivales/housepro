@@ -46,6 +46,7 @@ function mapAgent(a: Row | null | undefined): Agent | undefined {
 function mapRow(r: Row): Property {
   return {
     id: String(r.id),
+    slug: (r.slug as string) ?? undefined,
     reference: String(r.reference ?? ""),
     title: String(r.title ?? ""),
     operation: (r.operation as Property["operation"]) ?? "venda",
@@ -62,6 +63,17 @@ function mapRow(r: Row): Property {
     developmentName: (r.development_name as string) ?? undefined,
     developmentStage: (r.development_stage as Property["developmentStage"]) ?? undefined,
     developmentUnits: r.development_units != null ? Number(r.development_units) : undefined,
+    isSignature: r.is_signature != null ? Boolean(r.is_signature) : undefined,
+    signatureStatus: r.signature_status as Property["signatureStatus"],
+    signatureOrder: r.signature_order != null ? Number(r.signature_order) : undefined,
+    signatureHeroUrl: r.signature_hero_url as string | undefined,
+    signatureEditorialTitle: r.signature_editorial_title as string | undefined,
+    signatureEditorialIntro: r.signature_editorial_intro as string | undefined,
+    signatureAttributes: Array.isArray(r.signature_attributes) ? r.signature_attributes as string[] : undefined,
+    signatureCollection: r.signature_collection as string | undefined,
+    signatureVisibility: r.signature_visibility as Property["signatureVisibility"],
+    signaturePriceVisible: r.signature_price_visible != null ? Boolean(r.signature_price_visible) : undefined,
+    signatureFeatured: r.signature_featured != null ? Boolean(r.signature_featured) : undefined,
     energy: (r.energy as Property["energy"]) ?? "C",
     status: (r.status as Property["status"]) ?? null,
     image: String(r.cover_url ?? ""),
@@ -149,6 +161,21 @@ export async function listDevelopments(): Promise<Property[]> {
     .eq("approval", "aprovado")
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
+}
+
+/** Coleção pública, editorialmente aprovada, de imóveis portugueses Signature. */
+export async function listSignatureProperties(): Promise<Property[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("properties").select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
+    .eq("is_signature", true).eq("signature_status", "approved").eq("signature_visibility", "public")
+    .neq("status", "vendido").order("signature_order", { ascending: true, nullsFirst: false });
+  return (data ?? []).map(mapRow);
+}
+
+export async function getSignaturePropertyBySlug(slug: string): Promise<Property | null> {
+  const rows = await listSignatureProperties();
+  return rows.find((p) => p.id === slug || p.reference === slug || p.slug === slug) ?? null;
 }
 
 export async function listPropertiesByAgency(agencyId: string): Promise<Property[]> {

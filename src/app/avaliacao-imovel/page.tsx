@@ -156,10 +156,10 @@ export default function AvaliacaoImovelPage() {
 
         {/* BLOCO HUMANO */}
         <section className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
-          <div className="relative grid min-h-[190px] items-stretch overflow-hidden rounded-2xl bg-gradient-to-r from-[#071d37] to-[#123f6d] sm:grid-cols-[210px_1fr]">
+          <div className="relative grid min-h-[190px] items-stretch overflow-hidden rounded-2xl bg-gradient-to-r from-[#071d37] to-[#123f6d] sm:grid-cols-[270px_1fr]">
             <div className="relative min-h-[210px] sm:min-h-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/agents/ana.jpg" alt="Consultora HousePro" className="absolute inset-0 size-full object-cover" />
+              <img src="/home/equipa.webp" alt="Equipa imobiliária HousePro a analisar um imóvel" className="absolute inset-0 size-full object-cover" style={{ objectPosition: "66% center" }} />
             </div>
             <div className="relative z-10 flex flex-col justify-center p-7 text-white sm:p-10">
               <h2 className="max-w-lg font-display text-xl leading-snug sm:text-2xl">A sua casa merece uma avaliação feita por quem conhece o mercado local.</h2>

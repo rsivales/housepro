@@ -27,8 +27,10 @@ import { formatEuro } from "@/lib/format";
 export default function AdminPage() {
   const [rule, setRule] = React.useState<OrderingRule>(siteConfig.homeMoreRule);
   const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
+  const [canManageWebsite, setCanManageWebsite] = React.useState(false);
 
   React.useEffect(() => {
+    fetch("/api/me/role").then((r) => r.json()).then((data) => setCanManageWebsite(data?.superadmin === true)).catch(() => {});
     const stored = localStorage.getItem(HOME_RULE_KEY) as OrderingRule | null;
     if (stored && stored in ORDERING_LABELS) setRule(stored);
     const wmRaw = localStorage.getItem(WATERMARK_KEY);
@@ -229,7 +231,7 @@ export default function AdminPage() {
           <NavCard href="/admin/agencia-legal" icon={ShieldAlert} title="Dados legais da agência" note="AMI, certidões, registo — obrigatório" />
           <NavCard href="/admin/premios" icon={TrendingUp} title="Artes dos prémios" note="Troféus/renders por distinção" />
           <NavCard href="/admin/frases" icon={Type} title="Frases diárias" note="Biblioteca + campanhas e datas especiais" />
-          <NavCard href="/admin/website" icon={ImagePlus} title="Website público" note="Banners, histórias, vagas e imagens de artigos" />
+          {canManageWebsite && <NavCard href="/admin/website" icon={ImagePlus} title="Website público" note="Banners, histórias, vagas e imagens de artigos" />}
         </section>
 
         {/* Pipeline de negócios */}

@@ -5,8 +5,9 @@ import Link from "next/link";
 import { ArrowLeft, Plus, Trash2, ImagePlus, CheckCircle2, AlertTriangle } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
+import { UploadProgress, type UploadState } from "@/components/admin/upload-progress";
 import { STORY_OPERATIONS, publishedStories, type Story, type StoryOperation } from "@/lib/data/stories";
-import { readStories, writeStories, fileToDataUrl, newId } from "@/lib/data/site-content";
+import { readStories, writeStories, loadSiteContent, uploadSiteImage, newId } from "@/lib/data/site-content";
 
 const field = "mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
@@ -23,33 +24,44 @@ function missing(s: Story): string[] {
 
 export default function HistoriasAdminPage() {
   const [stories, setStories] = React.useState<Story[]>([]);
-  const [saved, setSaved] = React.useState(false);
+  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [uploading, setUploading] = React.useState<Record<string, UploadState | undefined>>({});
 
-  React.useEffect(() => setStories(readStories()), []);
+  React.useEffect(() => { loadSiteContent(true).then((content) => setStories(content.stories ?? readStories())); }, []);
 
-  function persist(next: Story[]) {
+  async function persist(next: Story[]) {
     setStories(next);
-    writeStories(next);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
+    setSaveState("saving");
+    const result = await writeStories(next);
+    setSaveState(result.persisted ? "saved" : "error");
+    window.setTimeout(() => setSaveState("idle"), 2500);
+    return result;
   }
   function patch(id: string, p: Partial<Story>) {
-    persist(stories.map((s) => (s.id === id ? { ...s, ...p } : s)));
+    void persist(stories.map((s) => (s.id === id ? { ...s, ...p } : s)));
   }
   function add() {
-    persist([
+    void persist([
       ...stories,
       { id: newId("hist"), name: "", quote: "", locality: "", operation: "Compra", published: false, consent: false },
     ]);
   }
   function remove(id: string) {
-    persist(stories.filter((s) => s.id !== id));
+    void persist(stories.filter((s) => s.id !== id));
   }
   async function onPoster(id: string, e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f || !f.type.startsWith("image/")) return;
-    patch(id, { poster: await fileToDataUrl(f) });
+    try {
+      const url = await uploadSiteImage(f, "stories", (state) => setUploading((current) => ({ ...current, [id]: state })));
+      const next = stories.map((story) => story.id === id ? { ...story, poster: url } : story);
+      const result = await persist(next);
+      if (!result.persisted) throw new Error(result.error ?? "save_failed");
+      setUploading((current) => ({ ...current, [id]: { percent: 100, label: "✓ Fotografia carregada e publicada", tone: "success" } }));
+    } catch {
+      setUploading((current) => ({ ...current, [id]: { percent: 100, label: "Não foi possível guardar. Tenta novamente.", tone: "error" } }));
+    }
   }
 
   const liveCount = publishedStories(stories).length;
@@ -72,7 +84,9 @@ export default function HistoriasAdminPage() {
           <p className="flex items-center gap-2 font-medium text-amber-700"><AlertTriangle className="size-4" /> Regra de conteúdo</p>
           Nunca inventar clientes, nomes, testemunhos ou fotografias. Uma história só aparece no site
           quando tiver identificação, testemunho, vídeo/fotografia, <strong>consentimento válido</strong> e
-          estiver <strong>publicada</strong>. {saved && <span className="font-medium text-emerald-600">✓ Guardado</span>}
+          estiver <strong>publicada</strong>. {saveState === "saving" && <span className="font-medium text-muted-foreground">A guardar…</span>}
+          {saveState === "saved" && <span className="font-medium text-emerald-600">✓ Guardado no website</span>}
+          {saveState === "error" && <span className="font-medium text-destructive">Não foi possível guardar.</span>}
         </div>
         <p className="mt-3 text-sm">
           Visíveis no site agora: <strong>{liveCount}</strong> · em preparação: <strong>{stories.length - liveCount}</strong>
@@ -127,7 +141,7 @@ export default function HistoriasAdminPage() {
                     <div className="mt-2 flex flex-wrap items-center gap-3">
                       <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
                         <ImagePlus className="size-4" /> {s.poster ? "Trocar" : "Carregar"}
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => onPoster(s.id, e)} />
+                        <input type="file" accept="image/*" className="hidden" disabled={!!uploading[s.id] && uploading[s.id]?.tone === undefined} onChange={(e) => onPoster(s.id, e)} />
                       </label>
                       {s.poster && (
                         <>
@@ -136,6 +150,7 @@ export default function HistoriasAdminPage() {
                           <button onClick={() => patch(s.id, { poster: undefined })} className="text-xs text-muted-foreground hover:underline">Remover</button>
                         </>
                       )}
+                      <UploadProgress state={uploading[s.id]} />
                     </div>
                   </div>
                   <label className="block sm:col-span-2">

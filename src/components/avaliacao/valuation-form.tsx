@@ -14,7 +14,7 @@ import {
 const STORAGE_KEY = "hp:avaliacao";
 const STEPS = ["Imóvel", "Contexto", "Contacto"] as const;
 
-const inputCls = "h-11 w-full rounded-xl border bg-[var(--card)] px-3 text-sm outline-none focus-visible:ring-[3px]";
+const inputCls = "h-14 w-full rounded-xl border bg-white px-4 text-base outline-none transition-shadow focus-visible:ring-[3px]";
 const inputStyle: React.CSSProperties = { borderColor: "var(--border)" };
 
 function Err({ msg }: { msg?: string }) {
@@ -129,17 +129,18 @@ export function ValuationForm() {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-2xl border bg-[var(--card)] p-5 shadow-sm sm:p-6" style={{ borderColor: "var(--border)" }} noValidate>
+    <form onSubmit={submit} className="rounded-[24px] border border-[#dfe7f0] bg-white p-6 shadow-[0_24px_70px_-34px_rgba(11,31,58,.38)] sm:p-10" noValidate>
       {/* Indicador de etapas */}
-      <ol className="flex items-center gap-2" aria-label="Progresso">
+      <ol className="mx-auto flex max-w-2xl items-center gap-2" aria-label="Progresso">
         {STEPS.map((label, i) => (
           <React.Fragment key={label}>
             <li className="flex items-center gap-2">
               <span
-                className={cn("grid size-7 place-items-center rounded-full text-xs font-bold")}
+                className={cn("grid size-9 place-items-center rounded-full border text-sm font-bold")}
                 style={{
-                  background: i <= step ? "var(--hp-navy)" : "var(--secondary)",
+                  background: i <= step ? "var(--hp-navy)" : "#fff",
                   color: i <= step ? "#fff" : "var(--muted-foreground)",
+                  borderColor: i <= step ? "var(--hp-navy)" : "#dce5ef",
                 }}
                 aria-current={i === step ? "step" : undefined}
               >
@@ -152,15 +153,15 @@ export function ValuationForm() {
         ))}
       </ol>
 
-      <div className="mt-6">
+      <div className="mt-8">
         {step === 0 && (
           <fieldset className="space-y-4">
-            <legend className="font-display text-xl">Comecemos pelo imóvel</legend>
+            <legend className="mb-2 font-display text-2xl tracking-[-0.025em] sm:text-3xl">Comecemos pelo imóvel</legend>
             <div>
               <label htmlFor="v-loc" className="text-sm font-medium">Localização do imóvel</label>
-              <div className="mt-1.5 flex items-center gap-2 rounded-xl border px-3" style={inputStyle}>
+              <div className="mt-2 flex h-14 items-center gap-3 rounded-xl border border-[#d9e1eb] bg-white px-4 shadow-sm">
                 <MapPin className="size-4 shrink-0" style={{ color: "var(--hp-navy)" }} />
-                <input id="v-loc" ref={firstInvalidRef} value={data.location} onChange={(e) => patch({ location: e.target.value })} placeholder="Rua, freguesia ou concelho" className="h-11 w-full bg-transparent text-sm outline-none" autoComplete="address-level2" />
+                <input id="v-loc" ref={firstInvalidRef} value={data.location} onChange={(e) => patch({ location: e.target.value })} placeholder="Rua, freguesia ou concelho" className="h-full w-full bg-transparent text-base outline-none" autoComplete="address-level2" />
               </div>
               <Err msg={errors.location} />
             </div>
@@ -182,13 +183,12 @@ export function ValuationForm() {
                 <Err msg={errors.propertyCondition} />
               </div>
             </div>
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Lock className="size-3.5" /> Demora cerca de 1 minuto · Os seus dados estão protegidos.</p>
           </fieldset>
         )}
 
         {step === 1 && (
           <fieldset className="space-y-4">
-            <legend className="font-display text-xl">Um pouco de contexto</legend>
+            <legend className="mb-2 font-display text-2xl tracking-[-0.025em] sm:text-3xl">Um pouco de contexto</legend>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Tipologia (ex.: T2)" value={data.typology} onChange={(v) => patch({ typology: v })} />
               <Field label="Área aproximada (m²)" value={data.area} onChange={(v) => patch({ area: v })} type="number" />
@@ -214,7 +214,7 @@ export function ValuationForm() {
 
         {step === 2 && (
           <fieldset className="space-y-4">
-            <legend className="font-display text-xl">Como prefere receber a avaliação?</legend>
+            <legend className="mb-2 font-display text-2xl tracking-[-0.025em] sm:text-3xl">Como prefere receber a avaliação?</legend>
             <p className="text-sm text-muted-foreground">
               A avaliação é personalizada e entregue por um consultor — por isso precisamos de pelo menos um contacto válido.
             </p>
@@ -258,7 +258,7 @@ export function ValuationForm() {
       </div>
 
       {/* Navegação */}
-      <div className="mt-6 flex items-center justify-between gap-3">
+      <div className="mt-7 flex items-center justify-between gap-3">
         {step > 0 ? (
           <button type="button" onClick={back} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border px-5 text-sm font-semibold" style={inputStyle}>
             <ArrowLeft className="size-4" /> Voltar
@@ -266,8 +266,8 @@ export function ValuationForm() {
         ) : <span />}
 
         {step < 2 ? (
-          <button type="button" onClick={next} className="hp-btn-red inline-flex min-h-[44px] items-center gap-2 rounded-full px-6 text-sm font-semibold">
-            Continuar <ArrowRight className="size-4" />
+          <button type="button" onClick={next} className="inline-flex min-h-[54px] flex-1 items-center justify-center gap-3 rounded-xl bg-[#08294c] px-7 text-base font-bold text-white transition-colors hover:bg-[#0e3b68]">
+            Continuar <ArrowRight className="size-5" />
           </button>
         ) : (
           <button type="submit" disabled={status === "loading"} className="hp-btn-red inline-flex min-h-[44px] items-center gap-2 rounded-full px-6 text-sm font-semibold disabled:opacity-70">
@@ -275,6 +275,7 @@ export function ValuationForm() {
           </button>
         )}
       </div>
+      <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-[#7b8495]"><Lock className="size-4" /> Demora cerca de 1 minuto · Os seus dados estão protegidos.</p>
     </form>
   );
 }
@@ -293,7 +294,7 @@ function Field({
         id={id} type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder} required={required} autoComplete={autoComplete}
         aria-invalid={!!error}
-        className="mt-1.5 h-11 w-full rounded-xl border bg-[var(--card)] px-3 text-sm outline-none focus-visible:ring-[3px]"
+        className="mt-2 h-14 w-full rounded-xl border bg-white px-4 text-base outline-none focus-visible:ring-[3px]"
         style={{ borderColor: error ? "var(--hp-red)" : "var(--border)" }}
       />
       <Err msg={error} />

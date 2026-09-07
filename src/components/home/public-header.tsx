@@ -10,6 +10,7 @@ const NAV = [
   { label: "Imóveis", href: "/imoveis" },
   { label: "Comprar", href: "/imoveis" },
   { label: "Empreendimentos", href: "/empreendimentos" },
+  { label: "Signature", href: "/signature" },
   { label: "Internacional", href: "/internacional" },
   { label: "Vender", href: "/avaliacao-imovel" },
   { label: "Investir", href: "/investir" },

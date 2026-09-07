@@ -37,6 +37,8 @@ export default async function MenuPage() {
         { label: "Mercado", href: "/app/mercado", icon: Store },
         { label: "A minha montra", href: `/consultor/${agent.id}`, icon: LayoutGrid },
         { label: "Imóveis da agência", href: "/imoveis", icon: Building2 },
+        { label: "Empreendimentos", href: "/app/empreendimentos", icon: Building2 },
+        { label: "Parcerias internacionais", href: "/app/parcerias", icon: Network },
       ],
     },
     {

@@ -6,39 +6,48 @@ import { ArrowLeft, Plus, Trash2, ImagePlus, Eye, EyeOff } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { DEFAULT_BANNERS, type Banner } from "@/lib/data/banners";
-import { readBanners, writeBanners, fileToDataUrl, newId } from "@/lib/data/site-content";
+import { readBanners, writeBanners, newId, loadSiteContent } from "@/lib/data/site-content";
+import { downscaleImage } from "@/lib/img/downscale";
+import { SaveBar, type SaveState } from "@/components/admin/save-bar";
 
 const field = "mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 export default function BannersAdminPage() {
   const [banners, setBanners] = React.useState<Banner[]>(DEFAULT_BANNERS);
-  const [saved, setSaved] = React.useState(false);
+  const [state, setState] = React.useState<SaveState>("idle");
 
-  React.useEffect(() => setBanners(readBanners()), []);
+  // Lê o que está publicado (servidor), com fallback para localStorage/defaults.
+  React.useEffect(() => {
+    loadSiteContent().then((c) => setBanners(c.banners ?? readBanners()));
+  }, []);
 
-  function persist(next: Banner[]) {
+  async function persist(next: Banner[]) {
     setBanners(next);
-    writeBanners(next);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
+    setState("saving");
+    const ok = await writeBanners(next);
+    setState(ok ? "saved" : "error");
+    if (ok) window.setTimeout(() => setState("idle"), 2000);
   }
   function patch(id: string, p: Partial<Banner>) {
-    persist(banners.map((b) => (b.id === id ? { ...b, ...p } : b)));
+    void persist(banners.map((b) => (b.id === id ? { ...b, ...p } : b)));
   }
   function add() {
-    persist([
+    void persist([
       ...banners,
       { id: newId("banner"), title: "Novo destaque", text: "", primary: { label: "Encontrar casa", href: "/imoveis" }, active: true, priority: 10 },
     ]);
   }
   function remove(id: string) {
-    persist(banners.filter((b) => b.id !== id));
+    void persist(banners.filter((b) => b.id !== id));
   }
   async function onImage(id: string, e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f || !f.type.startsWith("image/")) return;
-    patch(id, { image: await fileToDataUrl(f) });
+    setState("optimizing");
+    // Comprime para o banner caber no armazenamento (imagens grandes falhavam).
+    const image = await downscaleImage(f, 1920, 0.82);
+    await persist(banners.map((b) => (b.id === id ? { ...b, image } : b)));
   }
 
   return (
@@ -56,8 +65,13 @@ export default function BannersAdminPage() {
         </div>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           O banner de maior prioridade ativo é o principal. A rotação é lenta e pausável no site.
-          {saved && <span className="ml-2 font-medium text-emerald-600">✓ Guardado</span>}
         </p>
+        <SaveBar state={state} />
+        {state === "error" && (
+          <p className="mt-2 text-sm text-destructive">
+            Não foi possível guardar (a imagem pode ser demasiado grande). Tenta uma imagem mais pequena.
+          </p>
+        )}
 
         <div className="mt-6 space-y-5">
           {banners.map((b) => (

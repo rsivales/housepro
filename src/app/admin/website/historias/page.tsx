@@ -6,7 +6,9 @@ import { ArrowLeft, Plus, Trash2, ImagePlus, CheckCircle2, AlertTriangle } from 
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { STORY_OPERATIONS, publishedStories, type Story, type StoryOperation } from "@/lib/data/stories";
-import { readStories, writeStories, fileToDataUrl, newId } from "@/lib/data/site-content";
+import { readStories, writeStories, newId, loadSiteContent } from "@/lib/data/site-content";
+import { downscaleImage } from "@/lib/img/downscale";
+import { SaveBar, type SaveState } from "@/components/admin/save-bar";
 
 const field = "mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
@@ -23,33 +25,38 @@ function missing(s: Story): string[] {
 
 export default function HistoriasAdminPage() {
   const [stories, setStories] = React.useState<Story[]>([]);
-  const [saved, setSaved] = React.useState(false);
+  const [state, setState] = React.useState<SaveState>("idle");
 
-  React.useEffect(() => setStories(readStories()), []);
+  React.useEffect(() => {
+    loadSiteContent().then((c) => setStories(c.stories ?? readStories()));
+  }, []);
 
-  function persist(next: Story[]) {
+  async function persist(next: Story[]) {
     setStories(next);
-    writeStories(next);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
+    setState("saving");
+    const ok = await writeStories(next);
+    setState(ok ? "saved" : "error");
+    if (ok) window.setTimeout(() => setState("idle"), 2000);
   }
   function patch(id: string, p: Partial<Story>) {
-    persist(stories.map((s) => (s.id === id ? { ...s, ...p } : s)));
+    void persist(stories.map((s) => (s.id === id ? { ...s, ...p } : s)));
   }
   function add() {
-    persist([
+    void persist([
       ...stories,
       { id: newId("hist"), name: "", quote: "", locality: "", operation: "Compra", published: false, consent: false },
     ]);
   }
   function remove(id: string) {
-    persist(stories.filter((s) => s.id !== id));
+    void persist(stories.filter((s) => s.id !== id));
   }
   async function onPoster(id: string, e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f || !f.type.startsWith("image/")) return;
-    patch(id, { poster: await fileToDataUrl(f) });
+    setState("optimizing");
+    const poster = await downscaleImage(f, 1280, 0.8);
+    await persist(stories.map((s) => (s.id === id ? { ...s, poster } : s)));
   }
 
   const liveCount = publishedStories(stories).length;
@@ -72,8 +79,12 @@ export default function HistoriasAdminPage() {
           <p className="flex items-center gap-2 font-medium text-amber-700"><AlertTriangle className="size-4" /> Regra de conteúdo</p>
           Nunca inventar clientes, nomes, testemunhos ou fotografias. Uma história só aparece no site
           quando tiver identificação, testemunho, vídeo/fotografia, <strong>consentimento válido</strong> e
-          estiver <strong>publicada</strong>. {saved && <span className="font-medium text-emerald-600">✓ Guardado</span>}
+          estiver <strong>publicada</strong>.
         </div>
+        <SaveBar state={state} />
+        {state === "error" && (
+          <p className="mt-2 text-sm text-destructive">Não foi possível guardar. Tenta uma fotografia mais pequena.</p>
+        )}
         <p className="mt-3 text-sm">
           Visíveis no site agora: <strong>{liveCount}</strong> · em preparação: <strong>{stories.length - liveCount}</strong>
         </p>

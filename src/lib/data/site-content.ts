@@ -44,17 +44,22 @@ type Section = "banners" | "stories" | "vacancies" | "newsimg" | "homerule";
 
 /** Publica uma secção arbitrária (ex.: regra de ordenação da homepage). */
 export function publishSection(section: Section, value: unknown): void {
-  putSection(section, value);
+  void putSection(section, value);
 }
 
-/** Publica uma secção globalmente. Best-effort: o localStorage é a cache. */
-function putSection(section: Section, value: unknown): void {
-  if (typeof window === "undefined") return;
-  void fetch("/api/brand/site-content", {
-    method: "PUT",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ section, value }),
-  }).catch(() => {});
+/** Publica uma secção globalmente. Devolve true se o servidor confirmou. */
+async function putSection(section: Section, value: unknown): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  try {
+    const res = await fetch("/api/brand/site-content", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ section, value }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export interface ServerContent {
@@ -88,18 +93,18 @@ export function readBanners(): Banner[] {
   const stored = readJSON<Banner[] | null>(BANNERS_KEY, null);
   return stored && stored.length > 0 ? stored : DEFAULT_BANNERS;
 }
-export function writeBanners(banners: Banner[]): void {
+export function writeBanners(banners: Banner[]): Promise<boolean> {
   writeJSON(BANNERS_KEY, banners);
-  putSection("banners", banners);
+  return putSection("banners", banners);
 }
 
 /* ── Histórias reais ───────────────────────────────────────────────────── */
 export function readStories(): Story[] {
   return readJSON<Story[]>(STORIES_KEY, []);
 }
-export function writeStories(stories: Story[]): void {
+export function writeStories(stories: Story[]): Promise<boolean> {
   writeJSON(STORIES_KEY, stories);
-  putSection("stories", stories);
+  return putSection("stories", stories);
 }
 
 /* ── Vagas (carreiras) ─────────────────────────────────────────────────── */
@@ -107,9 +112,9 @@ export function readVacancies(): Vacancy[] {
   const stored = readJSON<Vacancy[] | null>(VACANCIES_KEY, null);
   return stored ?? VACANCIES;
 }
-export function writeVacancies(vacancies: Vacancy[]): void {
+export function writeVacancies(vacancies: Vacancy[]): Promise<boolean> {
   writeJSON(VACANCIES_KEY, vacancies);
-  putSection("vacancies", vacancies);
+  return putSection("vacancies", vacancies);
 }
 
 /* ── Imagens de artigos (Guia HousePro) ────────────────────────────────── */
@@ -117,9 +122,9 @@ export type NewsImageMap = Record<string, string>;
 export function readNewsImages(): NewsImageMap {
   return readJSON<NewsImageMap>(NEWSIMG_KEY, {});
 }
-export function writeNewsImages(map: NewsImageMap): void {
+export function writeNewsImages(map: NewsImageMap): Promise<boolean> {
   writeJSON(NEWSIMG_KEY, map);
-  putSection("newsimg", map);
+  return putSection("newsimg", map);
 }
 
 /** Lê um ficheiro de imagem como data URL (protótipo em browser). */

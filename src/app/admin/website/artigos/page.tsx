@@ -6,29 +6,34 @@ import { ArrowLeft, ImagePlus, RotateCcw } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { getNews, newsImage, type NewsItem } from "@/lib/data/news";
-import { readNewsImages, writeNewsImages, fileToDataUrl, type NewsImageMap } from "@/lib/data/site-content";
+import { readNewsImages, writeNewsImages, loadSiteContent, type NewsImageMap } from "@/lib/data/site-content";
+import { downscaleImage } from "@/lib/img/downscale";
+import { SaveBar, type SaveState } from "@/components/admin/save-bar";
 
 export default function ArtigosAdminPage() {
   const [articles, setArticles] = React.useState<NewsItem[]>([]);
   const [map, setMap] = React.useState<NewsImageMap>({});
-  const [saved, setSaved] = React.useState(false);
+  const [state, setState] = React.useState<SaveState>("idle");
 
   React.useEffect(() => {
     getNews().then(setArticles);
-    setMap(readNewsImages());
+    loadSiteContent().then((c) => setMap(c.newsimg ?? readNewsImages()));
   }, []);
 
-  function persist(next: NewsImageMap) {
+  async function persist(next: NewsImageMap) {
     setMap(next);
-    writeNewsImages(next);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
+    setState("saving");
+    const ok = await writeNewsImages(next);
+    setState(ok ? "saved" : "error");
+    if (ok) window.setTimeout(() => setState("idle"), 2000);
   }
   async function onImage(id: string, e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f || !f.type.startsWith("image/")) return;
-    persist({ ...map, [id]: await fileToDataUrl(f) });
+    setState("optimizing");
+    const img = await downscaleImage(f, 1280, 0.8);
+    await persist({ ...map, [id]: img });
   }
   function reset(id: string) {
     const next = { ...map };
@@ -45,9 +50,13 @@ export default function ArtigosAdminPage() {
         </Link>
         <h1 className="mt-2 font-display text-2xl sm:text-3xl">Imagens de artigos</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Define a imagem de destaque de cada artigo do Guia. Sem imagem definida, o site usa o
-          fallback da categoria (nunca cinzento). {saved && <span className="font-medium text-emerald-600">✓ Guardado</span>}
+          Define a imagem de destaque de cada artigo do Guia. <strong>Nenhum artigo aparece sem
+          foto</strong>: sem imagem definida, o site usa automaticamente a imagem da categoria.
         </p>
+        <SaveBar state={state} />
+        {state === "error" && (
+          <p className="mt-2 text-sm text-destructive">Não foi possível guardar. Tenta uma imagem mais pequena.</p>
+        )}
 
         <div className="mt-6 space-y-3">
           {articles.map((a) => {

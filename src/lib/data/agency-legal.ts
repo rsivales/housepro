@@ -4,6 +4,16 @@
  * Protótipo em browser; em produção persiste nas colunas de `agencies` (0016).
  */
 
+export interface AgencyPrize {
+  title: string;
+  year?: string;
+}
+
+/**
+ * Ficha completa da agência: dados legais obrigatórios + apresentação pública
+ * (descrição, fotos, prémios). Guardada por agência em site_settings
+ * ("agency_legal"). Um só registo por agência — editado num só sítio.
+ */
 export interface AgencyLegal {
   amiLicense: string;   // nº de licença AMI
   amiExpires: string;   // validade (ISO date)
@@ -12,6 +22,10 @@ export interface AgencyLegal {
   legalEmail: string;   // email da direção/legal
   /** Comprovativos carregados por tipo (url/dataURL). */
   docs: Partial<Record<AgencyDocKind, string>>;
+  /** Apresentação pública (opcional). */
+  description?: string;
+  photos?: string[];
+  prizes?: AgencyPrize[];
 }
 
 export type AgencyDocKind =
@@ -30,7 +44,7 @@ export const AGENCY_DOCS: { kind: AgencyDocKind; label: string; required: boolea
 export const REQUIRED_FIELDS: (keyof AgencyLegal)[] = ["amiLicense", "amiExpires", "nipc", "cae", "legalEmail"];
 
 export function blankLegal(): AgencyLegal {
-  return { amiLicense: "", amiExpires: "", nipc: "", cae: "", legalEmail: "", docs: {} };
+  return { amiLicense: "", amiExpires: "", nipc: "", cae: "", legalEmail: "", docs: {}, description: "", photos: [], prizes: [] };
 }
 
 export interface LegalStatus {

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import type { Agent } from "@/lib/data/types";
 import { slugify, type AgenciesConfig } from "@/lib/data/agencies";
+import { AgencyProfileEditor } from "@/components/admin/agency-profile-editor";
+import { FileText } from "lucide-react";
 
 interface TeamMember { id: string; name: string; role: string; photo: string | null; accent: string }
 interface BaseAgency {
@@ -32,6 +34,7 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
   });
   const [editing, setEditing] = React.useState<string | null>(null);
   const [openId, setOpenId] = React.useState<string | null>(null);
+  const [fichaId, setFichaId] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState<{ name: string; region: string }>({ name: "", region: "" });
   const [creating, setCreating] = React.useState(false);
   const [newAg, setNewAg] = React.useState({ name: "", region: "" });
@@ -187,7 +190,8 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
                     </>
                   ) : (
                     <>
-                      <Button size="sm" variant="outline" onClick={() => startEdit(r)}><Pencil className="size-3.5" /> Editar</Button>
+                      <Button size="sm" variant="outline" onClick={() => startEdit(r)}><Pencil className="size-3.5" /> Nome</Button>
+                      <Button size="sm" variant={fichaId === r.id ? "default" : "outline"} onClick={() => setFichaId(fichaId === r.id ? null : r.id)}><FileText className="size-3.5" /> Ficha</Button>
                       <button onClick={() => toggleSuspend(r)} title={r.suspended ? "Reativar" : "Suspender"} className="grid size-9 place-items-center rounded-lg border text-muted-foreground hover:bg-secondary">
                         {r.suspended ? <Play className="size-4 text-emerald-600" /> : <Pause className="size-4" />}
                       </button>
@@ -225,6 +229,12 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
                     <span>Código: <span className="font-mono">{String(r.code).padStart(2, "0")}</span></span>
                     <span>Imóveis ativos: {r.propertyCount}</span>
                   </div>
+                </div>
+              )}
+
+              {fichaId === r.id && !isEditing && (
+                <div className="border-t bg-secondary/20">
+                  <AgencyProfileEditor agencyId={r.id} />
                 </div>
               )}
             </div>

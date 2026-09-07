@@ -83,6 +83,8 @@ export type ApprovalStatus = "rascunho" | "pendente" | "aprovado" | "rejeitado";
 
 export interface Property {
   id: string;
+  /** Slug SEO opcional da ficha pública. */
+  slug?: string;
   /** Public listing reference, e.g. "HP-1024". */
   reference: string;
   title: string;
@@ -108,6 +110,18 @@ export interface Property {
   developmentStage?: "planta" | "construcao" | "pronto";
   /** Nº total de frações/lotes do empreendimento (informativo). */
   developmentUnits?: number;
+  /** Curadoria HousePro Signature — só fica visível após aprovação editorial. */
+  isSignature?: boolean;
+  signatureStatus?: "candidate" | "pending" | "approved" | "rejected";
+  signatureOrder?: number;
+  signatureHeroUrl?: string;
+  signatureEditorialTitle?: string;
+  signatureEditorialIntro?: string;
+  signatureAttributes?: string[];
+  signatureCollection?: string;
+  signatureVisibility?: "public" | "private";
+  signaturePriceVisible?: boolean;
+  signatureFeatured?: boolean;
   energy: EnergyRating;
   status: PropertyStatus | null;
   /** Cover image path under /public/properties. */

@@ -43,7 +43,15 @@ export type AnalyticsEvent =
   | "pdp_sms_click"
   | "pdp_pdf"
   | "pdp_print"
-  | "pdp_similar_click";
+  | "pdp_similar_click"
+  | "signature_view"
+  | "signature_hero_explore"
+  | "signature_property_select"
+  | "signature_theme_filter"
+  | "signature_private_search"
+  | "signature_present_property"
+  | "signature_build_start"
+  | "signature_form_complete";
 
 type DataLayerWindow = Window & { dataLayer?: Record<string, unknown>[] };
 

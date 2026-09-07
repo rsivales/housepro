@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Settings, ExternalLink, Stamp, ImagePlus, Trash2, Type } from "lucide-react";
+import { Settings, ExternalLink, Stamp, ImagePlus, Trash2, Type, KeyRound } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -232,6 +232,7 @@ export default function AdminPage() {
           <NavCard href="/admin/premios" icon={TrendingUp} title="Artes dos prémios" note="Troféus/renders por distinção" />
           <NavCard href="/admin/frases" icon={Type} title="Frases diárias" note="Biblioteca + campanhas e datas especiais" />
           {canManageWebsite && <NavCard href="/admin/website" icon={ImagePlus} title="Website público" note="Banners, histórias, vagas e imagens de artigos" />}
+          {canManageWebsite && <NavCard href="/admin/seguranca" icon={KeyRound} title="Segurança da conta" note="Definir ou alterar a palavra-passe do Super Admin" />}
         </section>
 
         {/* Pipeline de negócios */}

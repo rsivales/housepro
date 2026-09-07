@@ -20,8 +20,12 @@ const STAGE_LABEL: Record<string, string> = {
   pronto: "Pronto a habitar",
 };
 
-export default async function EmpreendimentosPage() {
-  const list = await listDevelopments();
+export default async function EmpreendimentosPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q = "" } = await searchParams;
+  const query = q.trim().toLowerCase();
+  const list = (await listDevelopments()).filter((p) =>
+    !query || `${p.developmentName ?? ""} ${p.title} ${p.parish} ${p.municipality}`.toLowerCase().includes(query)
+  );
 
   return (
     <div className="min-h-dvh bg-background">

@@ -13,7 +13,12 @@ export const metadata: Metadata = {
 
 const eur = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
-export default function InternacionalPage() {
+export default async function InternacionalPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q = "" } = await searchParams;
+  const query = q.trim().toLowerCase();
+  const projects = internationalProjects.filter((p) =>
+    !query || `${p.title} ${p.country} ${p.city} ${p.partner}`.toLowerCase().includes(query)
+  );
   return (
     <div className="min-h-dvh bg-background">
       <SiteHeader />
@@ -42,7 +47,7 @@ export default function InternacionalPage() {
       {/* Projetos */}
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid gap-6 sm:grid-cols-2">
-          {internationalProjects.map((p) => (
+          {projects.map((p) => (
             <Link
               key={p.id}
               href={`/internacional/${p.id}`}
@@ -71,6 +76,10 @@ export default function InternacionalPage() {
             </Link>
           ))}
         </div>
+
+        {projects.length === 0 && (
+          <p className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">Não encontrámos projetos com essa pesquisa.</p>
+        )}
 
         <div className="mt-10 rounded-2xl border bg-secondary/40 p-5 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">Tem um projeto internacional para divulgar?</p>

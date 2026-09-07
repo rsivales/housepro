@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Search, TrendingUp, KeyRound, Home, Tag } from "lucide-react";
+import { Search, TrendingUp, KeyRound, Home, Tag, Building2, Globe2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-type TabKey = "comprar" | "arrendar" | "vender" | "investir";
+type TabKey = "comprar" | "arrendar" | "empreendimentos" | "internacional" | "vender" | "investir";
 
 const tabs: {
   key: TabKey;
@@ -35,6 +35,24 @@ const tabs: {
     cta: "Procurar",
     hint: "Arrendamentos filtrados por localização.",
     build: (v) => `/imoveis?operacao=arrendar&local=${encodeURIComponent(v)}`,
+  },
+  {
+    key: "empreendimentos",
+    label: "Empreendimentos",
+    icon: Building2,
+    placeholder: "Zona ou nome do empreendimento…",
+    cta: "Ver empreendimentos",
+    hint: "Projetos de obra nova e as respetivas unidades disponíveis.",
+    build: (v) => `/empreendimentos${v ? `?q=${encodeURIComponent(v)}` : ""}`,
+  },
+  {
+    key: "internacional",
+    label: "Internacional",
+    icon: Globe2,
+    placeholder: "País, cidade ou projeto…",
+    cta: "Ver internacional",
+    hint: "Projetos internacionais divulgados através de parcerias validadas.",
+    build: (v) => `/internacional${v ? `?q=${encodeURIComponent(v)}` : ""}`,
   },
   {
     key: "vender",
@@ -76,7 +94,7 @@ export function SearchBar({ className }: { className?: string }) {
       )}
     >
       {/* Tabs */}
-      <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1 sm:grid-cols-4">
+      <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1 sm:grid-cols-3 lg:grid-cols-6">
         {tabs.map((t) => (
           <button
             key={t.key}

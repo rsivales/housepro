@@ -9,6 +9,8 @@ import { Logo } from "@/components/brand/logo";
 const NAV = [
   { label: "Imóveis", href: "/imoveis" },
   { label: "Comprar", href: "/imoveis" },
+  { label: "Empreendimentos", href: "/empreendimentos" },
+  { label: "Internacional", href: "/internacional" },
   { label: "Vender", href: "/avaliacao-imovel" },
   { label: "Investir", href: "/investir" },
   { label: "Guia HousePro", href: "/noticias" },

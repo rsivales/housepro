@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Building2, Globe2, Handshake, MapPin } from "lucide-react";
+import { ArrowRight, Building2, Globe2, Handshake, MapPin, Sparkles } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -24,28 +24,22 @@ export default async function InternacionalPage({ searchParams }: { searchParams
       <SiteHeader />
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b bg-gradient-to-br from-primary/15 via-background to-background">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-            <Globe2 className="size-4" /> HousePro Internacional
-          </p>
-          <h1 className="mt-2 max-w-3xl font-display text-4xl leading-tight sm:text-5xl">
-            Investir além-fronteiras, com a confiança HousePro
-          </h1>
-          <p className="mt-4 max-w-2xl text-muted-foreground">
-            Selecionámos projetos internacionais de nova construção que divulgamos
-            através de <strong>parcerias autorizadas</strong> — como o Dubai. Cada
-            oportunidade é acompanhada por um consultor HousePro, com informação clara
-            e nota fiscal para o investidor português.
-          </p>
-          <div className="mt-6 inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
-            <Handshake className="size-4 text-primary" /> Divulgação autorizada por parceria
+      <section className="relative isolate overflow-hidden bg-[#061b34] text-white">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_72%_35%,rgba(39,142,205,.5),transparent_25%),radial-gradient(circle_at_86%_65%,rgba(235,179,78,.22),transparent_28%),linear-gradient(120deg,#06172d,#082d55_55%,#071525)]" />
+        <div className="absolute -bottom-20 right-[10%] -z-10 text-[20rem] font-black leading-none text-white/[.035]">DXB</div>
+        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_360px] lg:py-28">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full border border-sky-300/40 bg-sky-300/10 px-4 py-2 text-sm font-semibold text-sky-100"><Globe2 className="size-4" /> HousePro Internacional</p>
+            <h1 className="mt-6 max-w-3xl font-display text-5xl leading-[1.02] tracking-tight sm:text-7xl">O próximo capítulo do seu património começa no mundo.</h1>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-white/75">Projetos selecionados com parceiros locais validados, informação transparente e acompanhamento português do primeiro contacto à compra.</p>
+            <div className="mt-8 flex flex-wrap gap-3 text-sm"><span className="rounded-full bg-white/10 px-4 py-2">Dubai em destaque</span><span className="rounded-full bg-white/10 px-4 py-2">Parcerias documentadas</span><span className="rounded-full bg-white/10 px-4 py-2">Acompanhamento dedicado</span></div>
           </div>
+          <aside className="self-end rounded-3xl border border-white/15 bg-white/10 p-6 backdrop-blur"><p className="flex items-center gap-2 text-sm font-semibold text-amber-200"><Sparkles className="size-4" /> Em destaque</p><p className="mt-4 text-xs uppercase tracking-[.18em] text-white/60">Dubai · Emirados Árabes Unidos</p><h2 className="mt-2 font-display text-3xl">Viver e investir onde a cidade não para.</h2><a href="#projetos" className="mt-6 inline-flex items-center gap-2 font-semibold text-white underline underline-offset-4">Ver projetos no Dubai <ArrowRight className="size-4" /></a></aside>
         </div>
       </section>
 
       {/* Projetos */}
-      <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <main id="projetos" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="grid gap-6 sm:grid-cols-2">
           {projects.map((p) => (
             <Link

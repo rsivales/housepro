@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Building2, HardHat } from "lucide-react";
+import { ArrowRight, Building2, HardHat, Layers3, MapPinned } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -32,21 +32,24 @@ export default async function EmpreendimentosPage({ searchParams }: { searchPara
       <SiteHeader />
       <main>
         {/* Hero */}
-        <section className="border-b bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+        <section className="relative isolate overflow-hidden bg-[#071d37] text-white">
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_25%,rgba(58,152,215,.42),transparent_23%),linear-gradient(120deg,#061629,#0b3763)]" />
+          <div className="absolute -right-4 bottom-0 -z-10 text-[15rem] font-black tracking-tighter text-white/[.035]">NEW</div>
+          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1fr_360px] lg:items-end">
             <FadeIn>
-              <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
-                <Building2 className="size-3.5" /> Obra nova
+              <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium">
+                <Building2 className="size-4" /> Novos empreendimentos
               </p>
-              <h1 className="mt-4 max-w-2xl font-display text-4xl sm:text-5xl">
-                Empreendimentos novos
+              <h1 className="mt-5 max-w-3xl font-display text-5xl leading-[1.03] tracking-tight sm:text-6xl">
+                Espaços que ainda não existem — mas já podem ser seus.
               </h1>
-              <p className="mt-3 max-w-xl text-primary-foreground/85">
+              <p className="mt-5 max-w-xl text-lg leading-8 text-white/75">
                 Apartamentos e moradias de construção nova, em pré-venda ou
                 prontos a habitar — com plantas, acabamentos e acompanhamento de
                 um consultor dedicado do início à escritura.
               </p>
             </FadeIn>
+            <div className="grid grid-cols-2 gap-3 rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur"><div><Layers3 className="size-5 text-sky-200" /><p className="mt-3 text-sm font-semibold">Um projeto, várias escolhas</p><p className="mt-1 text-xs text-white/65">Unidades organizadas por empreendimento.</p></div><div><MapPinned className="size-5 text-sky-200" /><p className="mt-3 text-sm font-semibold">Um responsável</p><p className="mt-1 text-xs text-white/65">O mesmo consultor acompanha todo o projeto.</p></div></div>
           </div>
         </section>
 

@@ -226,9 +226,8 @@ export default function AdminPage() {
           <NavCard href="/admin/permissoes" icon={ShieldHalf} title="Permissões" note="Hierarquia · quem aprova/vê" />
           <NavCard href="/admin/exportacoes" icon={Rss} title="Exportações & portais" note="Contratos e estado por imóvel" />
           <NavCard href="/admin/concelhos" icon={TrendingUp} title="Concelhos em destaque" note="Mostrar/ocultar · fotos por concelho" />
-          <NavCard href="/admin/agencias" icon={Building2} title="Agências" note="Criar, renomear e ver equipa" />
+          <NavCard href="/admin/agencias" icon={Building2} title="Agências" note="Criar, editar ficha completa (legal + apresentação), equipa" />
           <NavCard href="/admin/vinculos" icon={ShieldHalf} title="Vínculos & comissão" note="Empresa/recibos verdes · validação" />
-          <NavCard href="/admin/agencia-legal" icon={ShieldAlert} title="Dados legais da agência" note="AMI, certidões, registo — obrigatório" />
           <NavCard href="/admin/premios" icon={TrendingUp} title="Artes dos prémios" note="Troféus/renders por distinção" />
           <NavCard href="/admin/frases" icon={Type} title="Frases diárias" note="Biblioteca + campanhas e datas especiais" />
           {canManageWebsite && <NavCard href="/admin/website" icon={ImagePlus} title="Website público" note="Banners, histórias, vagas e imagens de artigos" />}

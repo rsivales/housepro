@@ -20,25 +20,27 @@ const NAV = [
  * Cabeçalho público compacto. Transparente sobre o banner; passa a fundo branco
  * ao fazer scroll. Reutiliza o logótipo HousePro (não redesenhado).
  */
-export function PublicHeader() {
+export function PublicHeader({ solid = false }: { solid?: boolean }) {
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
 
   React.useEffect(() => {
+    if (solid) return; // sólido: fixo no topo, sem depender do scroll
     const onScroll = () => setScrolled(window.scrollY > 40);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [solid]);
 
-  const light = !scrolled; // texto claro sobre o banner
+  const filled = solid || scrolled; // fundo branco + texto escuro
+  const light = !filled; // texto claro só quando transparente sobre o banner
   return (
     <header
-      className="fixed inset-x-0 top-0 z-50 transition-colors duration-300"
+      className={(solid ? "sticky" : "fixed inset-x-0") + " top-0 z-50 transition-colors duration-300"}
       style={{
-        background: scrolled ? "var(--card)" : "transparent",
-        borderBottom: scrolled ? "1px solid var(--border)" : "1px solid transparent",
-        boxShadow: scrolled ? "0 6px 24px -18px rgba(11,31,58,.4)" : "none",
+        background: filled ? "var(--card)" : "transparent",
+        borderBottom: filled ? "1px solid var(--border)" : "1px solid transparent",
+        boxShadow: filled ? "0 6px 24px -18px rgba(11,31,58,.4)" : "none",
       }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">

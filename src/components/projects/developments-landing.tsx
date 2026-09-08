@@ -161,7 +161,7 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
   return (
     <>
       <section className="relative isolate overflow-hidden bg-[#061a31] text-white">
-        {projects[0]?.image && <img src={projects[0].image} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55" />}
+        <img src={projects[0]?.image || "/properties/villa-aerial.jpg"} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55" />
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(100deg,rgba(3,19,39,.98)_0%,rgba(4,28,54,.88)_42%,rgba(4,28,54,.32)_100%)]" />
         <div className="mx-auto max-w-6xl px-4 pb-28 pt-16 sm:px-6 sm:pt-24 lg:pb-36">
           <p className="text-xs font-semibold uppercase tracking-[.2em] text-white/65">Novos empreendimentos</p>

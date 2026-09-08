@@ -60,23 +60,23 @@ export default function CalculadoraMaisValiasPage() {
 
       <main>
         {/* HERO */}
-        <section className="relative isolate min-h-[430px] overflow-hidden" style={{ background: "#0B1F3A" }}>
-          <Image src="/home/equipa.jpg" alt="Equipa HousePro a analisar documentos imobiliários" fill priority sizes="100vw" className="object-cover object-[72%_center]" />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,20,42,.98)_0%,rgba(8,31,62,.94)_38%,rgba(8,31,62,.46)_65%,rgba(8,31,62,.14)_100%)]" />
+        <section className="relative isolate min-h-[470px] overflow-hidden" style={{ background: "#0B1F3A" }}>
+          <Image src="/clinica/mais-valias-hero.jpg" alt="Consultor a apresentar uma estimativa de mais-valias a um casal" fill priority sizes="100vw" className="object-cover object-[68%_center]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,20,42,1)_0%,rgba(8,31,62,.97)_38%,rgba(8,31,62,.52)_66%,rgba(8,31,62,.08)_100%)]" />
           {/* Grafismo analítico discreto */}
           <svg className="pointer-events-none absolute inset-0 size-full opacity-[0.18]" aria-hidden><defs><pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#bcd5ef" strokeWidth="1" /></pattern></defs><rect width="100%" height="100%" fill="url(#grid)" /></svg>
-          <div className="relative mx-auto max-w-5xl px-4 pb-20 pt-12 sm:px-6 sm:pb-24 sm:pt-16">
+          <div className="relative mx-auto max-w-5xl px-4 pb-36 pt-10 sm:px-6 sm:pb-40 sm:pt-14">
             <div className="max-w-xl text-white">
               <span className="inline-block rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em]">Mais-valias imobiliárias</span>
               <h1 className="mt-4 max-w-md font-display text-4xl leading-[1.04] sm:text-5xl">Venda com as contas bem feitas.</h1>
-              <p className="mt-4 max-w-md text-base text-white/85 sm:text-lg">Simule a possível mais-valia da venda do seu imóvel e receba uma estimativa detalhada no seu e-mail.</p>
+              <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/85 sm:text-base">Simule a possível mais-valia da venda do seu imóvel e receba uma estimativa detalhada no seu e-mail.</p>
               <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm">
                 {["Cálculo personalizado", "Metodologia transparente", "Gratuito e confidencial"].map((t) => (
                   <li key={t} className="flex items-center gap-1.5"><Check className="size-4" style={{ color: "#7fb3d8" }} /> {t}</li>
                 ))}
               </ul>
               <div className="mt-7 flex flex-wrap items-center gap-4">
-                <a href="#simular" className="hp-btn-red inline-flex min-h-[48px] items-center gap-2 rounded-full px-7 text-sm font-semibold shadow-lg">Calcular agora <ArrowRight className="size-4" /></a>
+                <a href="#simular" className="hp-btn-red inline-flex min-h-[48px] items-center gap-2 rounded-lg px-7 text-sm font-semibold shadow-lg">Calcular agora <ArrowRight className="size-4" /></a>
                 <a href="#como-funciona" className="text-sm font-semibold text-white underline-offset-4 hover:underline">Como funciona? ›</a>
               </div>
               <p className="mt-4 flex items-center gap-1.5 text-sm text-white/75"><Mail className="size-4" /> O resultado é enviado por e-mail.</p>
@@ -86,8 +86,7 @@ export default function CalculadoraMaisValiasPage() {
 
         {/* CALCULADORA (#simular) */}
         <section id="simular" className="scroll-mt-16">
-          <div className="mx-auto -mt-14 max-w-3xl px-4 sm:-mt-16 sm:px-6">
-            <p className="mb-3 font-display text-xl text-foreground sm:hidden">Simulador de mais-valias</p>
+          <div className="relative z-10 mx-auto -mt-32 max-w-3xl px-4 sm:-mt-36 sm:px-6">
             <MvForm />
           </div>
         </section>
@@ -153,7 +152,7 @@ export default function CalculadoraMaisValiasPage() {
             ))}
             </div>
             <div className="relative min-h-60 border-t sm:border-l sm:border-t-0" style={{ borderColor: "var(--border)" }}>
-              <Image src="/home/equipa.jpg" alt="Análise de documentação e plantas imobiliárias" fill sizes="(min-width: 640px) 50vw, 100vw" className="object-cover object-[68%_bottom]" />
+              <Image src="/clinica/mais-valias-documentos.jpg" alt="Documentos, recibos e calculadora usados numa simulação" fill sizes="(min-width: 640px) 50vw, 100vw" className="object-cover" />
               <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(255,255,255,.1),transparent_60%)]" />
             </div>
           </div>

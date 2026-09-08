@@ -63,6 +63,7 @@ function mapRow(r: Row): Property {
     developmentName: (r.development_name as string) ?? undefined,
     developmentStage: (r.development_stage as Property["developmentStage"]) ?? undefined,
     developmentUnits: r.development_units != null ? Number(r.development_units) : undefined,
+    developmentBrochureUrl: (r.development_brochure_url as string) ?? undefined,
     isSignature: r.is_signature != null ? Boolean(r.is_signature) : undefined,
     signatureStatus: r.signature_status as Property["signatureStatus"],
     signatureOrder: r.signature_order != null ? Number(r.signature_order) : undefined,

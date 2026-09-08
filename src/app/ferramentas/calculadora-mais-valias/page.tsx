@@ -61,7 +61,7 @@ export default function CalculadoraMaisValiasPage() {
       <main>
         {/* HERO */}
         <section className="relative isolate min-h-[430px] overflow-hidden" style={{ background: "#0B1F3A" }}>
-          <Image src="/home/banner-familia.jpg" alt="Consultora HousePro a acompanhar uma família na venda de uma casa" fill priority sizes="100vw" className="object-cover object-[68%_center]" />
+          <Image src="/home/equipa.jpg" alt="Equipa HousePro a analisar documentos imobiliários" fill priority sizes="100vw" className="object-cover object-[72%_center]" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,20,42,.98)_0%,rgba(8,31,62,.94)_38%,rgba(8,31,62,.46)_65%,rgba(8,31,62,.14)_100%)]" />
           {/* Grafismo analítico discreto */}
           <svg className="pointer-events-none absolute inset-0 size-full opacity-[0.18]" aria-hidden><defs><pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#bcd5ef" strokeWidth="1" /></pattern></defs><rect width="100%" height="100%" fill="url(#grid)" /></svg>
@@ -116,14 +116,15 @@ export default function CalculadoraMaisValiasPage() {
           <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-14">
             <p className="hp-eyebrow text-center">Metodologia transparente</p>
             <h2 className="mt-1 text-center font-display text-2xl sm:text-3xl">Perceba como chegamos à estimativa.</h2>
-            <ol className="mt-8 grid gap-4 sm:grid-cols-4">
+            <ol className="mt-8 grid gap-3 sm:grid-cols-4 sm:gap-0">
               {[
                 { n: 1, icon: Euro, t: "Venda", d: "Valor previsto de venda." },
                 { n: 2, icon: HomeIcon, t: "Aquisição corrigida", d: "Valor de aquisição atualizado." },
                 { n: 3, icon: FileText, t: "Despesas elegíveis", d: "Encargos e obras considerados." },
                 { n: 4, icon: BarChart3, t: "Mais-valia estimada", d: "Diferença apurada (após ajustes)." },
               ].map((s) => (
-                <li key={s.n} className="flex flex-col items-center gap-2 rounded-2xl border bg-background p-4 text-center shadow-sm" style={{ borderColor: "var(--border)" }}>
+                <li key={s.n} className="relative flex flex-col items-center gap-2 rounded-2xl border bg-background p-4 text-center shadow-sm sm:mx-2 sm:border-0 sm:bg-transparent sm:shadow-none" style={{ borderColor: "var(--border)" }}>
+                  {s.n < 4 && <span className="absolute left-[calc(50%+2rem)] top-8 hidden h-px w-[calc(100%-4rem)] bg-[var(--border)] sm:block" aria-hidden />}
                   <span className="grid size-8 place-items-center rounded-full text-xs font-bold text-white" style={{ background: "var(--hp-navy)" }}>{s.n}</span>
                   <s.icon className="size-6" style={{ color: "var(--hp-navy)" }} />
                   <p className="text-sm font-semibold">{s.t}</p>
@@ -138,20 +139,23 @@ export default function CalculadoraMaisValiasPage() {
         {/* O QUE PODE INFLUENCIAR */}
         <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-14">
           <h2 className="font-display text-2xl sm:text-3xl">O que pode influenciar o cálculo?</h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="mt-6 grid overflow-hidden rounded-2xl border bg-card sm:grid-cols-[.95fr_1.05fr]" style={{ borderColor: "var(--border)" }}>
+            <div className="divide-y p-3" style={{ borderColor: "var(--border)" }}>
             {[
-              { t: "Obras e despesas documentadas", d: "Faturas e comprovativos podem aumentar o valor dedutível e reduzir a mais-valia." },
-              { t: "Habitação própria e reinvestimento", d: "O destino do valor da venda pode ter impacto no cálculo." },
-              { t: "Residência e situação fiscal", d: "O seu domicílio fiscal e outros fatores podem influenciar a estimativa." },
-              { t: "Aquisição por herança ou doação", d: "O valor de aquisição corresponde ao VPT considerado para Imposto do Selo." },
-              { t: "Percentagem de propriedade", d: "Se o imóvel é partilhado, o cálculo é proporcional à sua quota." },
-              { t: "Importância dos comprovativos", d: "Sem documentos, algumas despesas podem não ser aceites." },
+              { icon: Wrench, t: "Obras e despesas documentadas", d: "Faturas e comprovativos podem aumentar o valor dedutível e reduzir a mais-valia." },
+              { icon: HomeIcon, t: "Habitação própria e reinvestimento", d: "O destino do valor da venda pode ter impacto no cálculo." },
+              { icon: FileText, t: "Residência e situação fiscal", d: "O seu domicílio fiscal e outros fatores podem influenciar a estimativa." },
             ].map((c) => (
-              <div key={c.t} className="rounded-2xl border bg-card p-4 shadow-sm">
-                <p className="font-display text-base">{c.t}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{c.d}</p>
+              <div key={c.t} className="flex gap-3 px-2 py-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--secondary)] text-[var(--hp-navy)]"><c.icon className="size-4" /></span>
+                <div><p className="font-semibold text-sm">{c.t}</p><p className="mt-0.5 text-xs text-muted-foreground">{c.d}</p></div>
               </div>
             ))}
+            </div>
+            <div className="relative min-h-60 border-t sm:border-l sm:border-t-0" style={{ borderColor: "var(--border)" }}>
+              <Image src="/home/equipa.jpg" alt="Análise de documentação e plantas imobiliárias" fill sizes="(min-width: 640px) 50vw, 100vw" className="object-cover object-[68%_bottom]" />
+              <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(255,255,255,.1),transparent_60%)]" />
+            </div>
           </div>
         </section>
 
@@ -198,8 +202,8 @@ export default function CalculadoraMaisValiasPage() {
         {/* FAQ */}
         <section id="faq" className="scroll-mt-16 mx-auto max-w-3xl px-4 pb-12 sm:px-6">
           <h2 className="font-display text-2xl sm:text-3xl">Mais-valias, sem complicações.</h2>
-          <div className="mt-6 divide-y" style={{ borderColor: "var(--border)" }}>
-            {FAQ.map((f) => (
+          <div className="mt-6 divide-y rounded-2xl border bg-card px-4" style={{ borderColor: "var(--border)" }}>
+            {FAQ.slice(0, 4).map((f) => (
               <details key={f.q} className="group py-4">
                 <summary className="cursor-pointer list-none font-display text-base marker:hidden sm:text-lg">{f.q}</summary>
                 <p className="mt-2 text-sm text-muted-foreground">{f.a}</p>
@@ -210,8 +214,8 @@ export default function CalculadoraMaisValiasPage() {
         </section>
 
         {/* CTA FINAL */}
-        <section style={{ background: "var(--hp-navy)" }}>
-          <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-5 px-4 py-10 sm:px-6 md:flex-row md:items-center">
+        <section className="mx-auto max-w-5xl px-4 pb-8 sm:px-6">
+          <div className="flex flex-col items-start justify-between gap-5 rounded-2xl px-6 py-8 sm:px-8 md:flex-row md:items-center" style={{ background: "var(--hp-navy)" }}>
             <div className="text-white">
               <h2 className="font-display text-2xl leading-tight text-white sm:text-3xl">Vai vender? Comece por perceber os números.</h2>
               <p className="mt-2 text-sm text-white/75">Faça a simulação gratuitamente e receba a estimativa no seu e-mail.</p>

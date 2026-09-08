@@ -43,7 +43,7 @@ function writeJSON<T>(key: string, value: T): boolean {
 
 /* ── Persistência global (Supabase via /api/brand/site-content) ─────────── */
 
-type Section = "banners" | "stories" | "vacancies" | "newsimg" | "homerule";
+type Section = "banners" | "stories" | "vacancies" | "newsimg" | "homerule" | "homepromo";
 
 /** Publica uma secção arbitrária (ex.: regra de ordenação da homepage). */
 export function publishSection(section: Section, value: unknown): Promise<SaveResult> {
@@ -87,6 +87,7 @@ export interface ServerContent {
   vacancies?: Vacancy[];
   newsimg?: NewsImageMap;
   homerule?: string;
+  homepromo?: { title?: string; label?: string; href?: string; image?: string };
 }
 
 let serverCache: Promise<ServerContent> | null = null;

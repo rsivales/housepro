@@ -10,6 +10,7 @@ import { RealStories } from "@/components/home/real-stories";
 import { RecruitmentCTA } from "@/components/home/recruitment-cta";
 import { TrustBadges } from "@/components/home/trust-badges";
 import { FinalContactCTA } from "@/components/home/final-contact-cta";
+import { AboutHouseProBanner } from "@/components/home/about-housepro-banner";
 import Link from "next/link";
 import { PublicFooter } from "@/components/home/public-footer";
 import { HeroSearch } from "@/components/home/hero-search";
@@ -103,18 +104,7 @@ export default async function Home() {
           <UsefulTools />
         </div>
 
-        <section className="bg-[#0b1f3a] px-4 pb-14 sm:px-6 sm:pb-20">
-          <div className="mx-auto max-w-6xl overflow-hidden rounded-2xl border border-white/40 bg-white/5">
-            <div className="grid md:grid-cols-[1.05fr_.95fr]">
-              <div className="p-7 text-white sm:p-10">
-                <p className="text-4xl font-serif leading-none text-[#d62832]">“</p>
-                <h2 className="mt-2 max-w-md font-display text-3xl leading-tight sm:text-4xl">Tratamos de tudo, do primeiro contacto à escritura.</h2>
-                <Link href="/historias-reais" className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/45 px-5 text-sm font-semibold transition hover:bg-white hover:text-[#0b1f3a]">Conhecer a HousePro <span aria-hidden>›</span></Link>
-              </div>
-              <div className="relative min-h-[240px]"><img src="/home/equipa.webp" alt="Consultora HousePro em reunião com clientes" className="absolute inset-0 size-full object-cover" loading="lazy" /></div>
-            </div>
-          </div>
-        </section>
+        <AboutHouseProBanner />
 
         {/* 8. Histórias reais (oculta enquanto não houver histórias reais) */}
         <RealStories />

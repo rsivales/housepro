@@ -12,7 +12,7 @@ import { isSuperadmin } from "@/lib/data/roles";
  * à equipa. Em modo demo (sem Supabase) devolve vazio → o cliente usa o
  * localStorage/defaults.
  */
-const SECTIONS = { banners: "hp_banners", stories: "hp_stories", vacancies: "hp_vacancies", newsimg: "hp_newsimg", homerule: "hp_homerule" } as const;
+const SECTIONS = { banners: "hp_banners", stories: "hp_stories", vacancies: "hp_vacancies", newsimg: "hp_newsimg", homerule: "hp_homerule", homepromo: "hp_homepromo" } as const;
 type Section = keyof typeof SECTIONS;
 
 export async function GET() {

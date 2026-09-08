@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Images, Clapperboard, Briefcase, Newspaper, ShieldCheck, ExternalLink, ChevronRight, Globe } from "lucide-react";
+import { Images, Clapperboard, Briefcase, Newspaper, ShieldCheck, ExternalLink, ChevronRight, Globe, PanelTop } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 
@@ -13,6 +13,7 @@ const CARDS = [
   { href: "/admin/website/historias", icon: Clapperboard, title: "Histórias reais", note: "Registo de consentimento · só publica com autorização" },
   { href: "/admin/website/vagas", icon: Briefcase, title: "Vagas (carreiras)", note: "Criar, editar, ativar/desativar oportunidades" },
   { href: "/admin/website/artigos", icon: Newspaper, title: "Imagens de artigos", note: "Definir a imagem de destaque de cada artigo do Guia" },
+  { href: "/admin/website/conhecer-housepro", icon: PanelTop, title: "Banner Conhecer a HousePro", note: "Imagem, texto e ligação do banner da homepage" },
 ];
 
 export default function AdminWebsitePage() {

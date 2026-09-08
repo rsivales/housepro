@@ -43,7 +43,7 @@ export function SiteFooter() {
               links={[
                 { label: "Comprar", href: "/imoveis?operacao=comprar" },
                 { label: "Arrendar", href: "/imoveis?operacao=arrendar" },
-                { label: "Vender", href: "/avaliacao-imovel" },
+                { label: "Vender", href: "/vender" },
                 { label: "Investir", href: "/investir" },
               ]}
             />

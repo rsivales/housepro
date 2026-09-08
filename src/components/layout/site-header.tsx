@@ -15,13 +15,14 @@ const nav = [
   { label: "Empreendimentos", href: "/empreendimentos" },
   { label: "Signature", href: "/signature" },
   { label: "Internacional", href: "/internacional" },
-  { label: "Vender", href: "/avaliacao-imovel" },
+  { label: "Vender", href: "/vender" },
   { label: "Investir", href: "/investir" },
   { label: "Crédito", href: "/credito" },
   { label: "Ferramentas", href: "/ferramentas" },
   { label: "Notícias", href: "/noticias" },
 ];
 
+// Áreas privadas alcançáveis a partir do cabeçalho.
 const conta = [
   { label: "A minha conta", href: "/cliente/favoritos", icon: User, hint: "Clientes" },
   { label: "Profissionais", href: "/entrar", icon: Briefcase, hint: "Consultores" },
@@ -36,20 +37,30 @@ export function SiteHeader() {
         <Link href="/" aria-label="HousePro — início">
           <Logo />
         </Link>
+
         <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground min-[1450px]:flex">
           {nav.map((item) => (
-            <Link key={item.label} href={item.href} className="transition-colors hover:text-foreground">
+            <Link
+              key={item.label}
+              href={item.href}
+              className="transition-colors hover:text-foreground"
+            >
               {item.label}
             </Link>
           ))}
         </nav>
+
         <div className="flex items-center gap-1.5">
           <ModeToggle />
           <Button variant="ghost" size="sm" className="hidden min-[1450px]:inline-flex" asChild>
-            <Link href="/entrar"><Briefcase className="size-4" /> Profissionais</Link>
+            <Link href="/entrar">
+              <Briefcase className="size-4" /> Profissionais
+            </Link>
           </Button>
           <Button variant="ghost" size="sm" className="hidden min-[1450px]:inline-flex" asChild>
-            <Link href="/cliente/favoritos"><User className="size-4" /> A minha conta</Link>
+            <Link href="/cliente/favoritos">
+              <User className="size-4" /> A minha conta
+            </Link>
           </Button>
           <Button variant="brand" size="sm" className="hidden min-[1450px]:inline-flex" asChild>
             <Link href="/avaliacao-imovel">Avaliação gratuita</Link>
@@ -65,7 +76,14 @@ export function SiteHeader() {
           </button>
         </div>
       </div>
-      <div className={cn("overflow-hidden border-t border-border/60 min-[1450px]:hidden", open ? "max-h-[32rem]" : "max-h-0 border-t-0")}>
+
+      {/* Mobile menu */}
+      <div
+        className={cn(
+          "overflow-hidden border-t border-border/60 min-[1450px]:hidden",
+          open ? "max-h-[32rem]" : "max-h-0 border-t-0"
+        )}
+      >
         <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
           {nav.map((item) => (
             <Link
@@ -77,7 +95,9 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
+
           <div className="my-2 border-t border-border/60" />
+
           {conta.map((item) => (
             <Link
               key={item.label}
@@ -90,8 +110,11 @@ export function SiteHeader() {
               <span className="ml-auto text-xs text-muted-foreground">{item.hint}</span>
             </Link>
           ))}
+
           <Button variant="brand" className="mt-2" asChild>
-            <Link href="/avaliacao-imovel" onClick={() => setOpen(false)}>Avaliação gratuita</Link>
+            <Link href="/avaliacao-imovel" onClick={() => setOpen(false)}>
+              Avaliação gratuita
+            </Link>
           </Button>
         </nav>
       </div>

@@ -12,7 +12,7 @@ const NAV = [
   { label: "Empreendimentos", href: "/empreendimentos" },
   { label: "Signature", href: "/signature" },
   { label: "Internacional", href: "/internacional" },
-  { label: "Vender", href: "/avaliacao-imovel" },
+  { label: "Vender", href: "/vender" },
   { label: "Investir", href: "/investir" },
   { label: "Guia HousePro", href: "/noticias" },
   { label: "Sobre nós", href: "/historias-reais" },

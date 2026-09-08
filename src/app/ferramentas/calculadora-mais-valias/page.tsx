@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Check, ArrowRight, Coins, Wrench, TrendingUp, RefreshCcw, Euro, Home as HomeIcon, FileText, BarChart3, ShieldCheck, FileCheck2, Mail } from "lucide-react";
 
 import { ClinicaHeader } from "@/components/clinica/clinica-header";
@@ -59,13 +60,15 @@ export default function CalculadoraMaisValiasPage() {
 
       <main>
         {/* HERO */}
-        <section className="relative isolate overflow-hidden" style={{ background: "linear-gradient(105deg, #0B1F3A 0%, #174A7E 100%)" }}>
+        <section className="relative isolate min-h-[430px] overflow-hidden" style={{ background: "#0B1F3A" }}>
+          <Image src="/home/banner-familia.jpg" alt="Consultora HousePro a acompanhar uma família na venda de uma casa" fill priority sizes="100vw" className="object-cover object-[68%_center]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,20,42,.98)_0%,rgba(8,31,62,.94)_38%,rgba(8,31,62,.46)_65%,rgba(8,31,62,.14)_100%)]" />
           {/* Grafismo analítico discreto */}
-          <svg className="pointer-events-none absolute inset-0 -z-0 size-full opacity-[0.12]" aria-hidden><defs><pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#fff" strokeWidth="1" /></pattern></defs><rect width="100%" height="100%" fill="url(#grid)" /></svg>
-          <div className="relative mx-auto max-w-5xl px-4 pb-10 pt-12 sm:px-6 sm:pb-14 sm:pt-16">
+          <svg className="pointer-events-none absolute inset-0 size-full opacity-[0.18]" aria-hidden><defs><pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#bcd5ef" strokeWidth="1" /></pattern></defs><rect width="100%" height="100%" fill="url(#grid)" /></svg>
+          <div className="relative mx-auto max-w-5xl px-4 pb-20 pt-12 sm:px-6 sm:pb-24 sm:pt-16">
             <div className="max-w-xl text-white">
               <span className="inline-block rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em]">Mais-valias imobiliárias</span>
-              <h1 className="mt-4 font-display text-4xl leading-[1.05] sm:text-5xl">Venda com as contas bem feitas.</h1>
+              <h1 className="mt-4 max-w-md font-display text-4xl leading-[1.04] sm:text-5xl">Venda com as contas bem feitas.</h1>
               <p className="mt-4 max-w-md text-base text-white/85 sm:text-lg">Simule a possível mais-valia da venda do seu imóvel e receba uma estimativa detalhada no seu e-mail.</p>
               <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm">
                 {["Cálculo personalizado", "Metodologia transparente", "Gratuito e confidencial"].map((t) => (
@@ -83,7 +86,7 @@ export default function CalculadoraMaisValiasPage() {
 
         {/* CALCULADORA (#simular) */}
         <section id="simular" className="scroll-mt-16">
-          <div className="mx-auto -mt-6 max-w-3xl px-4 sm:-mt-8 sm:px-6">
+          <div className="mx-auto -mt-14 max-w-3xl px-4 sm:-mt-16 sm:px-6">
             <p className="mb-3 font-display text-xl text-foreground sm:hidden">Simulador de mais-valias</p>
             <MvForm />
           </div>

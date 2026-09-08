@@ -6,19 +6,21 @@ import { ArrowLeft, Calculator, ExternalLink, Home, Coins } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ImtCalculator } from "@/components/tools/imt-calculator";
+import { CreditSimulator } from "@/components/property/credit-simulator";
+import { MaisValiasCalculator } from "@/components/tools/mais-valias-calculator";
 
 /**
- * Ferramentas do consultor — separadores de calculadoras. Começa com a
- * calculadora de IMT + Imposto de Selo; preparado para acrescentar outras.
+ * As três calculadoras operacionais ficam na área de trabalho Helix.
  */
 const TABS = [
-  { id: "imt", label: "IMT + Imposto de Selo", icon: Calculator, ready: true },
-  { id: "credito", label: "Crédito à habitação", icon: Home, ready: false },
-  { id: "maisvalias", label: "Mais-valias", icon: Coins, ready: false },
+  { id: "imt", label: "IMT + Imposto de Selo", icon: Calculator },
+  { id: "credito", label: "Crédito à habitação", icon: Home },
+  { id: "maisvalias", label: "Mais-valias", icon: Coins },
 ] as const;
 
 export default function FerramentasConsultor() {
   const [tab, setTab] = React.useState<(typeof TABS)[number]["id"]>("imt");
+  const publicHref = tab === "maisvalias" ? "/ferramentas/calculadora-mais-valias" : tab === "credito" ? "/credito" : "/ferramentas/imt";
 
   return (
     <div className="min-h-dvh bg-background">
@@ -41,7 +43,7 @@ export default function FerramentasConsultor() {
             </p>
           </div>
           <Link
-            href="/ferramentas/imt"
+            href={publicHref}
             target="_blank"
             className="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-secondary"
           >
@@ -55,19 +57,16 @@ export default function FerramentasConsultor() {
             <button
               key={t.id}
               type="button"
-              disabled={!t.ready}
-              onClick={() => t.ready && setTab(t.id)}
+              onClick={() => setTab(t.id)}
               className={cn(
                 "inline-flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
                 tab === t.id
                   ? "border-primary text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground",
-                !t.ready && "cursor-not-allowed opacity-50"
               )}
             >
               <t.icon className="size-4" />
               {t.label}
-              {!t.ready && <span className="text-xs">(em breve)</span>}
             </button>
           ))}
         </div>
@@ -81,6 +80,18 @@ export default function FerramentasConsultor() {
                 para enviar ao cliente por WhatsApp ou email.
               </p>
               <ImtCalculator />
+            </>
+          )}
+          {tab === "credito" && (
+            <div className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+              <p className="mb-6 rounded-xl border bg-secondary/40 p-4 text-sm text-muted-foreground">Simulação indicativa de prestação, útil para enquadrar a conversa com o cliente.</p>
+              <CreditSimulator />
+            </div>
+          )}
+          {tab === "maisvalias" && (
+            <>
+              <p className="mb-6 rounded-xl border bg-secondary/40 p-4 text-sm text-muted-foreground">Estimativa de trabalho. Confirme sempre o enquadramento fiscal e os comprovativos antes de aconselhar o cliente.</p>
+              <MaisValiasCalculator />
             </>
           )}
         </div>

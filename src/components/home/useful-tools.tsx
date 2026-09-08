@@ -18,7 +18,7 @@ const TOOLS = [
     icon: Calculator,
     title: "Simular prestação",
     desc: "Saiba a prestação mensal do seu crédito à habitação.",
-    href: "/ferramentas#credito",
+    href: "/credito",
   },
   {
     icon: Gauge,

@@ -9,7 +9,7 @@ import { rankedProperties } from "@/lib/data/ranking";
 
 export const metadata: Metadata = { title: "Imóveis" };
 
-type SP = { operacao?: string; local?: string };
+type SP = { operacao?: string; local?: string; tipo?: string; quartos?: string; precoMin?: string; precoMax?: string };
 
 export default async function ImoveisPage({
   searchParams,
@@ -24,6 +24,10 @@ export default async function ImoveisPage({
         ? "venda"
         : undefined;
   const local = sp.local?.trim();
+  const tipo = sp.tipo?.trim();
+  const quartos = sp.quartos?.trim();
+  const precoMin = Number(sp.precoMin ?? 0);
+  const precoMax = Number(sp.precoMax ?? 0);
 
   let list = rankedProperties(await listProperties());
   if (operacao) list = list.filter((p) => p.operation === operacao);
@@ -33,6 +37,10 @@ export default async function ImoveisPage({
       `${p.parish} ${p.municipality}`.toLowerCase().includes(q)
     );
   }
+  if (tipo) list = list.filter((p) => p.type.toLowerCase() === tipo.toLowerCase());
+  if (quartos) list = list.filter((p) => quartos === "5+" ? p.beds >= 5 : p.beds === Number(quartos));
+  if (precoMin > 0) list = list.filter((p) => p.price >= precoMin);
+  if (precoMax > 0) list = list.filter((p) => p.price <= precoMax);
 
   const heading =
     operacao === "arrendamento"
@@ -53,6 +61,10 @@ export default async function ImoveisPage({
               <MapPin className="size-3.5" /> {local}
             </span>
           )}
+          {tipo && <span className="rounded-full bg-secondary px-3 py-1 text-foreground">{tipo}</span>}
+          {quartos && <span className="rounded-full bg-secondary px-3 py-1 text-foreground">{quartos === "5+" ? "5+ quartos" : `${quartos} quartos`}</span>}
+          {precoMin > 0 && <span className="rounded-full bg-secondary px-3 py-1 text-foreground">Desde {precoMin.toLocaleString("pt-PT")} €</span>}
+          {precoMax > 0 && <span className="rounded-full bg-secondary px-3 py-1 text-foreground">Até {precoMax.toLocaleString("pt-PT")} €</span>}
           <span>
             {list.length} {list.length === 1 ? "imóvel" : "imóveis"}
           </span>

@@ -110,6 +110,9 @@ export interface Property {
   developmentStage?: "planta" | "construcao" | "pronto";
   /** Nº total de frações/lotes do empreendimento (informativo). */
   developmentUnits?: number;
+  /** Brochura pública autorizada do empreendimento. Nunca é inventada: só
+   * aparece na montra quando o URL foi preenchido no backoffice. */
+  developmentBrochureUrl?: string;
   /** Curadoria HousePro Signature — só fica visível após aprovação editorial. */
   isSignature?: boolean;
   signatureStatus?: "candidate" | "pending" | "approved" | "rejected";

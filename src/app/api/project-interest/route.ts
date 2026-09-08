@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { notifyGeneric } from "@/lib/notify";
+import { createLead } from "@/lib/db/repo";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
@@ -34,6 +35,13 @@ export async function POST(request: Request) {
   }
   if (!recipientEmail) return NextResponse.json({ error: "Não foi possível determinar o responsável." }, { status: 409 });
   const projectName = String(body?.projectName ?? "Projeto");
+  const { data: fallbackOwner } = await sb.from("profiles").select("id").eq("role_key", "superadmin").limit(1).maybeSingle();
+  const ownerId = kind === "development" && (await sb.from("properties").select("agent_id").eq("id", id).maybeSingle()).data?.agent_id || fallbackOwner?.id;
+  if (ownerId) await createLead({
+    ownerId: String(ownerId), name, contact: String(body?.phone ?? "").trim() || email, email,
+    intent: "mensagem", source: "site", subSource: kind === "development" ? "Empreendimentos — Pedido de informação" : "Internacional — Pedido de informação",
+    message: [`Projeto: ${projectName}`, body?.message ? String(body.message) : null].filter(Boolean).join("\n"),
+  });
   const text = [`Novo pedido de informações — ${projectName}`, `Cliente: ${name}`, `Email: ${email}`, body?.phone ? `Telefone: ${String(body.phone)}` : null, body?.message ? `Mensagem: ${String(body.message)}` : null, `Encaminhado para: ${recipientName}`].filter(Boolean).join("\n");
   const channels = await notifyGeneric({ subject: `Pedido de informações · ${projectName}`, text, to: [recipientEmail] });
   return NextResponse.json({ ok: true, channels });

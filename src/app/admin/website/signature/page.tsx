@@ -4,10 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 
 import { SiteHeader } from "@/components/layout/site-header";
+import { MediaUploadField } from "@/components/admin/media-upload-field";
 import {
   loadSiteContent,
   publishSection,
-  uploadSiteImage,
 } from "@/lib/data/site-content";
 
 const initial = {
@@ -32,20 +32,6 @@ export default function SignatureBannerAdmin() {
       })),
     );
   }, []);
-
-  async function upload(file?: File) {
-    if (!file) return;
-    setStatus("A preparar e enviar a imagem…");
-    try {
-      const image = await uploadSiteImage(file, "banners", ({ label }) =>
-        setStatus(label),
-      );
-      setValue((current) => ({ ...current, image }));
-      setStatus("Imagem pronta. Clique em Publicar alterações.");
-    } catch {
-      setStatus("Não foi possível enviar a imagem.");
-    }
-  }
 
   async function save() {
     setStatus("A publicar…");
@@ -95,27 +81,7 @@ export default function SignatureBannerAdmin() {
             value={value.href}
             set={(href) => setValue({ ...value, href })}
           />
-          <Field
-            label="Texto alternativo da imagem"
-            value={value.alt}
-            set={(alt) => setValue({ ...value, alt })}
-          />
-          <label className="text-sm">
-            Fotografia
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => upload(event.target.files?.[0])}
-              className="mt-1 block text-sm"
-            />
-          </label>
-          {value.image && (
-            <img
-              src={value.image}
-              alt={value.alt}
-              className="h-52 w-full rounded-xl object-cover"
-            />
-          )}
+          <MediaUploadField area="banners" label="Fotografia" help="Recomendado: 2000 × 1200 px, JPG/WebP, máximo 25 MB. O sistema otimiza automaticamente." value={value.image} alt={value.alt} onUploaded={(image) => setValue((current) => ({ ...current, image }))} onAltChange={(alt) => setValue((current) => ({ ...current, alt }))} />
           <button
             onClick={save}
             className="rounded-lg bg-primary px-5 py-3 font-semibold text-white"

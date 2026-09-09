@@ -1,4 +1,22 @@
 "use client";
-import * as React from "react";import Link from "next/link";import { SiteHeader } from "@/components/layout/site-header";import { loadSiteContent,publishSection,uploadSiteImage } from "@/lib/data/site-content";
-const initial={title:"Tratamos de tudo, do primeiro contacto à escritura.",label:"Conhecer a HousePro",href:"/historias-reais",image:"/home/conhecer-housepro.jpg"};
-export default function PromoAdmin(){const [v,setV]=React.useState(initial);const [s,setS]=React.useState("");React.useEffect(()=>{loadSiteContent(true).then(c=>setV(x=>({...x,...(c.homepromo||{})})))},[]);async function image(f?:File){if(!f)return;setS("A enviar imagem…");try{const image=await uploadSiteImage(f,"banners");setV(x=>({...x,image}));setS("Imagem pronta. Grave para publicar.")}catch{setS("Não foi possível enviar a imagem.")}}async function save(){setS("A guardar…");const r=await publishSection("homepromo",v);setS(r.ok?"Publicado com sucesso.":"Não foi possível guardar.")}return <div className="min-h-dvh bg-background"><SiteHeader/><main className="mx-auto max-w-2xl px-4 py-12"><Link href="/admin/website" className="text-sm text-primary">← Website</Link><h1 className="mt-4 font-display text-3xl">Banner “Conhecer a HousePro”</h1><p className="mt-2 text-sm text-muted-foreground">Aparece na homepage dentro da secção azul das ferramentas.</p><div className="mt-7 grid gap-4 rounded-2xl border bg-card p-5"><label className="text-sm">Texto principal<input value={v.title} onChange={e=>setV({...v,title:e.target.value})} className="mt-1 h-11 w-full rounded-lg border px-3"/></label><label className="text-sm">Texto do link<input value={v.label} onChange={e=>setV({...v,label:e.target.value})} className="mt-1 h-11 w-full rounded-lg border px-3"/></label><label className="text-sm">Destino do link<input value={v.href} onChange={e=>setV({...v,href:e.target.value})} className="mt-1 h-11 w-full rounded-lg border px-3"/></label><label className="text-sm">Imagem<input type="file" accept="image/*" onChange={e=>image(e.target.files?.[0])} className="mt-1 block text-sm"/></label>{v.image&&<img src={v.image} alt="Pré-visualização" className="h-40 w-full rounded-xl object-cover"/>}<button onClick={save} className="rounded-lg bg-primary px-5 py-3 font-semibold text-white">Publicar alterações</button>{s&&<p className="text-sm">{s}</p>}</div></main></div>}
+import * as React from "react";
+import Link from "next/link";
+import { SiteHeader } from "@/components/layout/site-header";
+import { MediaUploadField } from "@/components/admin/media-upload-field";
+import { loadSiteContent, publishSection } from "@/lib/data/site-content";
+
+const initial = { title: "Tratamos de tudo, do primeiro contacto à escritura.", label: "Conhecer a HousePro", href: "/historias-reais", image: "/home/conhecer-housepro.jpg", alt: "Consultora HousePro em reunião com clientes" };
+export default function PromoAdmin() {
+  const [value, setValue] = React.useState(initial);
+  const [status, setStatus] = React.useState("");
+  React.useEffect(() => { loadSiteContent(true).then((content) => setValue((current) => ({ ...current, ...(content.homepromo || {}) }))); }, []);
+  async function save() { setStatus("A publicar…"); const result = await publishSection("homepromo", value); setStatus(result.persisted ? "Publicado com sucesso." : `Não foi possível guardar${result.error ? `: ${result.error}` : "."}`); }
+  return <div className="min-h-dvh bg-background"><SiteHeader /><main className="mx-auto max-w-2xl px-4 py-12"><Link href="/admin/website" className="text-sm text-primary">← Website</Link><h1 className="mt-4 font-display text-3xl">Banner “Conhecer a HousePro”</h1><p className="mt-2 text-sm text-muted-foreground">Aparece na homepage dentro da secção azul das ferramentas.</p><div className="mt-7 grid gap-4 rounded-2xl border bg-card p-5">
+    <Field label="Texto principal" value={value.title} set={(title) => setValue({ ...value, title })} />
+    <Field label="Texto do link" value={value.label} set={(label) => setValue({ ...value, label })} />
+    <Field label="Destino do link" value={value.href} set={(href) => setValue({ ...value, href })} />
+    <MediaUploadField area="banners" label="Imagem" help="Recomendado: 1800 × 700 px, JPG/WebP, máximo 25 MB. Garanta espaço visual para o texto do lado esquerdo." value={value.image} alt={value.alt} onUploaded={(image) => setValue((current) => ({ ...current, image }))} onAltChange={(alt) => setValue((current) => ({ ...current, alt }))} />
+    <button onClick={save} className="min-h-12 rounded-lg bg-primary px-5 font-semibold text-white">Publicar alterações</button>{status ? <p className={`text-sm ${status.startsWith("Não") ? "text-destructive" : "text-emerald-700"}`} role="status">{status}</p> : null}
+  </div></main></div>;
+}
+function Field({ label, value, set }: { label: string; value: string; set: (value: string) => void }) { return <label className="text-sm">{label}<input value={value} onChange={(event) => set(event.target.value)} className="mt-1 h-11 w-full rounded-lg border px-3" /></label>; }

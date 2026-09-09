@@ -4,6 +4,8 @@ import { AppHeader } from "@/components/helix/app-header";
 import { HelixSidebar } from "@/components/helix/helix-sidebar";
 import { MobileBottomNavigation } from "@/components/helix/bottom-nav";
 import { agencyById } from "@/lib/data/mock";
+import { ReleaseNotice } from "@/components/helix/release-notice";
+import { isSuperadmin } from "@/lib/data/roles";
 
 /**
  * Layout da área profissional — shell Helix UNIFORME para todos os módulos:
@@ -22,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) return <>{children}</>;
 
   const { agent, demo } = session;
+  const superadmin = isSuperadmin(agent);
 
   return (
     <div className="helix min-h-dvh">
@@ -32,11 +35,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         code={agent.code != null ? `#${agent.code}` : agencyById(agent.agencyId)?.region}
         hasUnread
       />
-      <HelixSidebar />
+      <HelixSidebar superadmin={superadmin} />
       <div className="lg:pl-[76px]">
         <div className="pb-24 lg:pb-8">{children}</div>
       </div>
-      <MobileBottomNavigation />
+      <MobileBottomNavigation superadmin={superadmin} />
+      <ReleaseNotice />
       {demo && <RoleSwitcher currentId={agent.id} />}
     </div>
   );

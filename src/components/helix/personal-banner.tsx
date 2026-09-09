@@ -5,6 +5,7 @@ import { Pencil, Upload, Trash2, Quote, Target, Check, ImageIcon, ThermometerSun
 
 import { useSetting } from "@/lib/helix/settings";
 import { downscaleImage } from "@/lib/img/downscale";
+import { UploadProgress, type UploadState } from "@/components/admin/upload-progress";
 
 const KEY = "helix:banner";
 
@@ -38,6 +39,7 @@ export function PersonalMotivationBanner(props: Props) {
   const [store, setStore, ready] = useSetting<Stored>(KEY, KEY, {});
   const [editing, setEditing] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const [uploadState, setUploadState] = React.useState<UploadState>();
 
   // Primeira utilização: já leu do servidor/local e ainda não há nada guardado.
   const firstUse = ready && !store.photo && !store.preset;
@@ -47,9 +49,18 @@ export function PersonalMotivationBanner(props: Props) {
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    // Comprime no cliente para caber em profiles.settings sem bucket.
-    const photo = await downscaleImage(f, 1600, 0.82);
-    save({ ...store, photo, preset: undefined, posY: store.posY ?? 50 });
+    e.target.value = "";
+    if (!f.type.startsWith("image/")) { setUploadState({ percent: 100, label: "O ficheiro não é uma imagem válida.", tone: "error" }); return; }
+    if (f.size > 15 * 1024 * 1024) { setUploadState({ percent: 100, label: "A fotografia excede 15 MB.", tone: "error" }); return; }
+    try {
+      setUploadState({ percent: 15, label: "A ler fotografia…", tone: "progress" });
+      const photo = await downscaleImage(f, 1600, 0.82);
+      setUploadState({ percent: 75, label: "A guardar no perfil…", tone: "progress" });
+      await save({ ...store, photo, preset: undefined, posY: store.posY ?? 50 });
+      setUploadState({ percent: 100, label: "Fotografia guardada com sucesso.", tone: "success" });
+    } catch (error) {
+      setUploadState({ percent: 100, label: `Não foi possível guardar: ${error instanceof Error ? error.message : "ficheiro inválido"}.`, tone: "error" });
+    }
   }
 
   const bg = store.photo
@@ -153,6 +164,7 @@ export function PersonalMotivationBanner(props: Props) {
       </div>
 
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={onUpload} />
+      <div className="relative px-5 pb-3"><UploadProgress state={uploadState} /></div>
     </section>
   );
 }

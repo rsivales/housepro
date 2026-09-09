@@ -35,7 +35,7 @@ const QUICK = [
 ];
 
 /** Barra lateral recolhível (desktop/tablet lg+). Só aparece em ecrãs largos. */
-export function HelixSidebar() {
+export function HelixSidebar({ superadmin = false }: { superadmin?: boolean }) {
   const [expanded, setExpanded] = React.useState(false);
   const [quick, setQuick] = React.useState(false);
   const active = activeFor(usePathname() ?? "/app");
@@ -87,7 +87,7 @@ export function HelixSidebar() {
 
       {/* Navegação */}
       <nav className="mt-3 flex flex-1 flex-col gap-1 px-3">
-        {NAV.map((it) => {
+        {(superadmin ? NAV.filter((it) => it.key === "inicio" || it.key === "menu") : NAV).map((it) => {
           const Icon = it.icon;
           const on = active === it.key;
           return (

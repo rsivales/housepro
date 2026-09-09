@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { Check, ArrowRight, Coins, Wrench, TrendingUp, RefreshCcw, Euro, Home as HomeIcon, FileText, BarChart3, ShieldCheck, FileCheck2, Mail } from "lucide-react";
 
 import { ClinicaHeader } from "@/components/clinica/clinica-header";
@@ -9,6 +8,7 @@ import { MvForm } from "@/components/clinica/mv-form";
 import { MethodologyLink, ConditionsLink } from "@/components/clinica/mv-info-modals";
 import { site, postalAddressJsonLd } from "@/lib/site";
 import { FISCAL_YEAR } from "@/lib/tools/mais-valias-fiscal";
+import { ManagedSiteImage } from "@/components/brand/managed-site-image";
 
 const canonical = "/ferramentas/calculadora-mais-valias";
 
@@ -61,7 +61,7 @@ export default function CalculadoraMaisValiasPage() {
       <main>
         {/* HERO */}
         <section className="relative isolate min-h-[470px] overflow-hidden" style={{ background: "#0B1F3A" }}>
-          <Image src="/clinica/mais-valias-hero.jpg" alt="Consultor a apresentar uma estimativa de mais-valias a um casal" fill priority sizes="100vw" className="object-cover object-[68%_center]" />
+          <ManagedSiteImage assetKey="capitalGains.hero" fallback="/clinica/mais-valias-hero.jpg" fallbackAlt="Consultor a apresentar uma estimativa de mais-valias a um casal" className="absolute inset-0 size-full object-cover object-[68%_center]" loading="eager" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,20,42,1)_0%,rgba(8,31,62,.97)_38%,rgba(8,31,62,.52)_66%,rgba(8,31,62,.08)_100%)]" />
           {/* Grafismo analítico discreto */}
           <svg className="pointer-events-none absolute inset-0 size-full opacity-[0.18]" aria-hidden><defs><pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#bcd5ef" strokeWidth="1" /></pattern></defs><rect width="100%" height="100%" fill="url(#grid)" /></svg>
@@ -152,7 +152,7 @@ export default function CalculadoraMaisValiasPage() {
             ))}
             </div>
             <div className="relative min-h-60 border-t sm:border-l sm:border-t-0" style={{ borderColor: "var(--border)" }}>
-              <Image src="/clinica/mais-valias-documentos.jpg" alt="Documentos, recibos e calculadora usados numa simulação" fill sizes="(min-width: 640px) 50vw, 100vw" className="object-cover" />
+              <ManagedSiteImage assetKey="capitalGains.documents" fallback="/clinica/mais-valias-documentos.jpg" fallbackAlt="Documentos, recibos e calculadora usados numa simulação" className="absolute inset-0 size-full object-cover" />
               <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(255,255,255,.1),transparent_60%)]" />
             </div>
           </div>

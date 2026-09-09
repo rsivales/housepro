@@ -50,7 +50,9 @@ type Section =
   | "newsimg"
   | "homerule"
   | "homepromo"
-  | "signaturepromo";
+  | "signaturepromo"
+  | "brandassets"
+  | "mediaassets";
 
 /** Publica uma secção arbitrária (ex.: regra de ordenação da homepage). */
 export function publishSection(
@@ -110,7 +112,7 @@ export interface ServerContent {
   vacancies?: Vacancy[];
   newsimg?: NewsImageMap;
   homerule?: string;
-  homepromo?: { title?: string; label?: string; href?: string; image?: string };
+  homepromo?: { title?: string; label?: string; href?: string; image?: string; alt?: string };
   signaturepromo?: {
     eyebrow?: string;
     title?: string;
@@ -120,7 +122,20 @@ export interface ServerContent {
     image?: string;
     alt?: string;
   };
+  brandassets?: BrandAssets;
+  mediaassets?: MediaAssetMap;
 }
+
+export interface BrandAssets {
+  header?: string;
+  headerAlt?: string;
+  footer?: string;
+  footerAlt?: string;
+  mark?: string;
+  markAlt?: string;
+}
+
+export type MediaAssetMap = Record<string, { url?: string; alt?: string }>;
 
 let serverCache: Promise<ServerContent> | null = null;
 
@@ -186,7 +201,13 @@ export type UploadProgress = { percent: number; label: string };
 
 /** Redimensiona antes do envio: boa qualidade visual sem pedidos de vários MB. */
 async function compressImage(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
+  if (file.size > 25 * 1024 * 1024) throw new Error("file_too_large");
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error("unsupported_image");
+  }
   const maxWidth = 1920;
   const maxHeight = 1200;
   const scale = Math.min(1, maxWidth / bitmap.width, maxHeight / bitmap.height);
@@ -210,12 +231,13 @@ async function compressImage(file: File): Promise<Blob> {
 /** Comprime, envia para o Storage e só devolve depois de existir um URL público. */
 export async function uploadSiteImage(
   file: File,
-  area: "banners" | "articles" | "stories",
+  area: "banners" | "articles" | "stories" | "brand" | "landing-pages",
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("invalid_image");
   onProgress?.({ percent: 10, label: "A preparar imagem…" });
   const blob = await compressImage(file);
+  if (blob.size > 4 * 1024 * 1024) throw new Error("compressed_file_too_large");
   onProgress?.({ percent: 42, label: "A enviar imagem…" });
 
   if (!isSupabaseConfigured()) throw new Error("storage_not_configured");
@@ -241,7 +263,22 @@ export async function uploadSiteImage(
   const url = supabase.storage.from("property-media").getPublicUrl(path)
     .data.publicUrl;
   if (!url) throw new Error("public_url_failed");
+  onProgress?.({ percent: 100, label: "Upload concluído." });
   return url;
+}
+
+export function uploadErrorMessage(error: unknown): string {
+  const code = error instanceof Error ? error.message : "upload_failed";
+  if (code === "invalid_image") return "O ficheiro não é uma imagem válida.";
+  if (code === "file_too_large") return "A imagem excede 25 MB.";
+  if (code === "compressed_file_too_large") return "A imagem continua demasiado pesada após otimização (máximo 4 MB).";
+  if (code === "unsupported_image") return "Formato não suportado pelo navegador. Use JPG, PNG, WebP ou AVIF.";
+  if (code === "image_processing_failed") return "Não foi possível processar a imagem.";
+  if (code === "storage_not_configured") return "O armazenamento de ficheiros não está configurado.";
+  if (code === "public_url_failed") return "O ficheiro foi enviado, mas não foi possível obter o endereço público.";
+  if (/row-level security|policy|permission|unauthorized/i.test(code)) return "Sem permissão para gravar neste armazenamento.";
+  if (/network|fetch/i.test(code)) return "Falha de rede durante o upload. Verifique a ligação e tente novamente.";
+  return `Falha no upload: ${code}`;
 }
 
 export function newId(prefix: string): string {

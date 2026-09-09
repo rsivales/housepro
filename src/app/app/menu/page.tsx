@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import {
   Search, Users, KanbanSquare, CalendarClock, Phone, Mail, Megaphone, Share2,
   Home, Upload, Store, LayoutGrid, Building2, FileText, Scale, Presentation, BookOpen, Calculator,
-  Network, UserPlus, Coins, Wallet, PiggyBank, ShoppingBag, Trophy, GraduationCap, ShieldCheck, BarChart3, ChevronRight,
+  Network, UserPlus, Coins, Wallet, PiggyBank, ShoppingBag, Trophy, GraduationCap, ShieldCheck, BarChart3, ChevronRight, Globe2, Eye, FileClock,
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
@@ -73,6 +73,13 @@ export default async function MenuPage() {
       ],
     },
   ];
+  const displayedGroups = agent.roleKey === "superadmin" ? [{ title: "Supervisão global", items: [
+    { label: "Painel Super Admin", href: "/admin", icon: ShieldCheck },
+    { label: "Website público", href: "/admin/website", icon: Globe2 },
+    { label: "Ver menus por função", href: "/admin/funcoes", icon: Eye },
+    { label: "Mapa Website + Helix", href: "/admin/mapa-sistema", icon: Network },
+    { label: "Centro de auditoria", href: "/admin/auditoria", icon: FileClock },
+  ] }] : GROUPS;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
@@ -82,7 +89,7 @@ export default async function MenuPage() {
         </Link>
 
         <div className="mt-5 space-y-6">
-          {GROUPS.map((g) => (
+          {displayedGroups.map((g) => (
             <section key={g.title}>
               <h2 className="hx-section-title mb-2 text-sm uppercase tracking-wide" style={{ color: "var(--hx-text-2)" }}>{g.title}</h2>
               <div className="hx-card divide-y divide-[var(--hx-border)]">

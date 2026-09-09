@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { WATERMARK_POSITIONS, docStatus } from "@/lib/imovel/model";
 import { allReferrals, REFERRAL_STATUS } from "@/lib/data/referrals";
-import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp, ShieldCheck, ShieldHalf, Rss, AlertTriangle, ChevronRight } from "lucide-react";
+import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp, ShieldCheck, ShieldHalf, Rss, AlertTriangle, ChevronRight, Map, Eye } from "lucide-react";
 import { properties, agencies, agentsByAgency, propertiesByAgency, pendingApprovals } from "@/lib/data/mock";
 import { demoDeals, stagePercent } from "@/lib/data/deal";
 import { commissionLabel } from "@/lib/data/commission";
@@ -226,11 +226,15 @@ export default function AdminPage() {
           <NavCard href="/admin/permissoes" icon={ShieldHalf} title="Permissões" note="Hierarquia · quem aprova/vê" />
           <NavCard href="/admin/exportacoes" icon={Rss} title="Exportações & portais" note="Contratos e estado por imóvel" />
           <NavCard href="/admin/concelhos" icon={TrendingUp} title="Concelhos em destaque" note="Mostrar/ocultar · fotos por concelho" />
-          <NavCard href="/admin/agencias" icon={Building2} title="Agências" note="Criar, editar ficha completa (legal + apresentação), equipa" />
+          <NavCard href="/admin/agencias" icon={Building2} title="Agências" note="Criar, renomear e ver equipa" />
           <NavCard href="/admin/vinculos" icon={ShieldHalf} title="Vínculos & comissão" note="Empresa/recibos verdes · validação" />
+          <NavCard href="/admin/agencia-legal" icon={ShieldAlert} title="Dados legais da agência" note="AMI, certidões, registo — obrigatório" />
           <NavCard href="/admin/premios" icon={TrendingUp} title="Artes dos prémios" note="Troféus/renders por distinção" />
           <NavCard href="/admin/frases" icon={Type} title="Frases diárias" note="Biblioteca + campanhas e datas especiais" />
           {canManageWebsite && <NavCard href="/admin/website" icon={ImagePlus} title="Website público" note="Banners, histórias, vagas e imagens de artigos" />}
+          {canManageWebsite && <NavCard href="/admin/funcoes" icon={Eye} title="Ver menus por função" note="Pré-visualização segura de todas as áreas de trabalho" />}
+          {canManageWebsite && <NavCard href="/admin/mapa-sistema" icon={Map} title="Mapa Website + Helix" note="Rotas públicas e módulos do CRM" />}
+          {canManageWebsite && <NavCard href="/admin/auditoria" icon={ShieldAlert} title="Centro de auditoria" note="Supervisão ética e de conformidade, sem caixa comercial" />}
           {canManageWebsite && <NavCard href="/admin/seguranca" icon={KeyRound} title="Segurança da conta" note="Definir ou alterar a palavra-passe do Super Admin" />}
         </section>
 

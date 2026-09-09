@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FavoritesFab } from "@/components/cliente/favorites-fab";
 import "./globals.css";
+import { PublicMediaOverrides } from "@/components/brand/public-media-overrides";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,6 +63,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <PublicMediaOverrides />
           <FavoritesFab />
         </ThemeProvider>
       </body>

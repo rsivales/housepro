@@ -21,6 +21,8 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { ManagedSiteImage } from "@/components/brand/managed-site-image";
+import { Logo } from "@/components/brand/logo";
 
 const goals = [
   { icon: Home, label: "Habitação própria", purpose: "Habitação própria" },
@@ -104,11 +106,7 @@ export function CreditLanding() {
       <header className="sticky top-0 z-50 border-b border-[#dfe5ec] bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-[62px] max-w-[1440px] items-center px-5 lg:px-12">
           <Link href="/" className="flex items-center gap-3">
-            <img
-              src="/brand/housepro-logo.webp"
-              alt="HousePro"
-              className="h-7 w-auto"
-            />
+            <Logo className="h-7" />
             <span className="hidden border-l border-[#ccd3dc] pl-3 text-[10px] font-semibold text-[#526174] sm:block">
               Crédito Habitação
             </span>
@@ -156,10 +154,12 @@ export function CreditLanding() {
       </header>
       <main>
         <section className="relative min-h-[430px] overflow-hidden border-b bg-[#f7f8fa] lg:min-h-[500px]">
-          <img
-            src="/credito/hero.jpg"
-            alt="Especialista HousePro a estudar uma proposta de crédito"
+          <ManagedSiteImage
+            assetKey="credit.hero"
+            fallback="/credito/hero.jpg"
+            fallbackAlt="Especialista HousePro a estudar uma proposta de crédito"
             className="absolute inset-y-0 right-0 h-full w-full object-cover object-[65%_center] lg:w-[64%]"
+            loading="eager"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/10 lg:via-white/85" />
           <div className="relative mx-auto max-w-[1440px] px-6 py-12 lg:px-12 lg:py-16">
@@ -457,9 +457,10 @@ export function CreditLanding() {
         <section id="contacto" className="scroll-mt-20 border-b bg-white">
           <div className="mx-auto grid max-w-[1440px] px-6 py-10 lg:grid-cols-[1.25fr_.75fr] lg:px-12">
             <div className="relative min-h-[300px] overflow-hidden rounded-l border bg-[#f4f0e9]">
-              <img
-                src="/credito/guia-credito.jpg"
-                alt="Guia de crédito HousePro"
+              <ManagedSiteImage
+                assetKey="credit.guide"
+                fallback="/credito/guia-credito.jpg"
+                fallbackAlt="Guia de crédito HousePro"
                 className="absolute inset-y-0 left-0 h-full w-[42%] object-cover"
               />
               <div className="ml-[42%] p-7">
@@ -572,9 +573,10 @@ export function CreditLanding() {
           </div>
         </Section>
         <section className="relative overflow-hidden bg-[#082e55] text-white">
-          <img
-            src="/credito/hero.jpg"
-            alt=""
+          <ManagedSiteImage
+            assetKey="credit.hero"
+            fallback="/credito/hero.jpg"
+            fallbackAlt=""
             className="absolute inset-y-0 right-0 h-full w-1/2 object-cover opacity-35"
           />
           <div className="relative mx-auto flex max-w-[1440px] flex-col gap-5 px-6 py-9 md:flex-row md:items-center lg:px-12">
@@ -599,11 +601,7 @@ export function CreditLanding() {
       <footer className="bg-white">
         <div className="mx-auto flex max-w-[1440px] flex-col gap-5 px-6 py-7 text-[9px] text-[#586a7e] md:flex-row md:items-end md:justify-between lg:px-12">
           <div>
-            <img
-              src="/brand/housepro-logo.webp"
-              alt="HousePro"
-              className="h-6"
-            />
+            <Logo className="h-6" />
             <p className="mt-2">
               Tranquil Search Lda · AMI 18746
               <br />

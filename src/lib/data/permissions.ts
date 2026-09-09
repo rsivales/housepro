@@ -64,7 +64,7 @@ export const ROLE_CAPS: Record<RoleKey, Record<string, boolean>> = {
     approve_publications: true,
     commission_exceptions: true,
     approve_teams: true,
-    view_client_data: true,
+    view_client_data: false,
     manage_exports: true,
     manage_permissions: true,
     view_all_agencies: true,

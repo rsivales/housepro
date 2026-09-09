@@ -7,7 +7,7 @@ import { ArrowLeft, ImagePlus, RotateCcw } from "lucide-react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { UploadProgress, type UploadState } from "@/components/admin/upload-progress";
 import { getNews, newsImage, type NewsItem } from "@/lib/data/news";
-import { readNewsImages, writeNewsImages, loadSiteContent, uploadSiteImage, type NewsImageMap } from "@/lib/data/site-content";
+import { readNewsImages, writeNewsImages, loadSiteContent, uploadSiteImage, uploadErrorMessage, type NewsImageMap } from "@/lib/data/site-content";
 
 export default function ArtigosAdminPage() {
   const [articles, setArticles] = React.useState<NewsItem[]>([]);
@@ -32,8 +32,8 @@ export default function ArtigosAdminPage() {
       const result = await persist({ ...map, [id]: url });
       if (!result.persisted) throw new Error(result.error ?? "save_failed");
       setUploading((current) => ({ ...current, [id]: { percent: 100, label: "✓ Imagem carregada e publicada", tone: "success" } }));
-    } catch {
-      setUploading((current) => ({ ...current, [id]: { percent: 100, label: "Não foi possível guardar. Tenta novamente.", tone: "error" } }));
+    } catch (error) {
+      setUploading((current) => ({ ...current, [id]: { percent: 100, label: uploadErrorMessage(error), tone: "error" } }));
     }
   }
   function reset(id: string) {

@@ -7,7 +7,7 @@ import { ArrowLeft, Plus, Trash2, ImagePlus, Eye, EyeOff } from "lucide-react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { UploadProgress, type UploadState } from "@/components/admin/upload-progress";
 import { DEFAULT_BANNERS, type Banner } from "@/lib/data/banners";
-import { readBanners, writeBanners, loadSiteContent, uploadSiteImage, newId } from "@/lib/data/site-content";
+import { readBanners, writeBanners, loadSiteContent, uploadSiteImage, uploadErrorMessage, newId } from "@/lib/data/site-content";
 
 const field = "mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
@@ -48,8 +48,8 @@ export default function BannersAdminPage() {
       const result = await persist(next);
       if (!result.persisted) throw new Error(result.error ?? "save_failed");
       setUploading((current) => ({ ...current, [id]: { percent: 100, label: "✓ Banner carregado e publicado", tone: "success" } }));
-    } catch {
-      setUploading((current) => ({ ...current, [id]: { percent: 100, label: "Não foi possível guardar. Tenta novamente.", tone: "error" } }));
+    } catch (error) {
+      setUploading((current) => ({ ...current, [id]: { percent: 100, label: uploadErrorMessage(error), tone: "error" } }));
     }
   }
 

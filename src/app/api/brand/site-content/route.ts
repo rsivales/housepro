@@ -20,6 +20,8 @@ const SECTIONS = {
   homerule: "hp_homerule",
   homepromo: "hp_homepromo",
   signaturepromo: "hp_signaturepromo",
+  brandassets: "hp_brandassets",
+  mediaassets: "hp_mediaassets",
 } as const;
 type Section = keyof typeof SECTIONS;
 

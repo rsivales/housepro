@@ -9,6 +9,8 @@ import {
   ChevronRight,
   Globe,
   PanelTop,
+  Palette,
+  Image,
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
@@ -19,6 +21,8 @@ import { SiteHeader } from "@/components/layout/site-header";
  * Não é um segundo admin: vive dentro do painel de gestão existente.
  */
 const CARDS = [
+  { href: "/admin/website/marca", icon: Palette, title: "Logótipos e identidade", note: "Logótipos horizontal, completo e compacto · dimensões e alt text" },
+  { href: "/admin/website/media", icon: Image, title: "Fotografias das landing pages", note: "Heróis, banners e imagens promocionais de todas as páginas públicas" },
   {
     href: "/admin/website/banners",
     icon: Images,
@@ -69,9 +73,9 @@ export default function AdminWebsitePage() {
           Gestão do website
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Faça a gestão dos conteúdos da homepage pública. No protótipo, as
-          alterações ficam guardadas neste navegador (pré-visualização); ao
-          ligar o Supabase, passam a ser publicadas para todos os visitantes.
+          Faça a gestão dos conteúdos globais do website. As imagens são
+          otimizadas no upload e as alterações publicadas ficam disponíveis em
+          todos os dispositivos. Esta área é exclusiva do Super Admin.
         </p>
 
         <section className="mt-8 grid gap-4 sm:grid-cols-2">

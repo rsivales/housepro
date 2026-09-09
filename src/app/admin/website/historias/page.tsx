@@ -7,7 +7,7 @@ import { ArrowLeft, Plus, Trash2, ImagePlus, CheckCircle2, AlertTriangle } from 
 import { SiteHeader } from "@/components/layout/site-header";
 import { UploadProgress, type UploadState } from "@/components/admin/upload-progress";
 import { STORY_OPERATIONS, publishedStories, type Story, type StoryOperation } from "@/lib/data/stories";
-import { readStories, writeStories, loadSiteContent, uploadSiteImage, newId } from "@/lib/data/site-content";
+import { readStories, writeStories, loadSiteContent, uploadSiteImage, uploadErrorMessage, newId } from "@/lib/data/site-content";
 
 const field = "mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
@@ -59,8 +59,8 @@ export default function HistoriasAdminPage() {
       const result = await persist(next);
       if (!result.persisted) throw new Error(result.error ?? "save_failed");
       setUploading((current) => ({ ...current, [id]: { percent: 100, label: "✓ Fotografia carregada e publicada", tone: "success" } }));
-    } catch {
-      setUploading((current) => ({ ...current, [id]: { percent: 100, label: "Não foi possível guardar. Tenta novamente.", tone: "error" } }));
+    } catch (error) {
+      setUploading((current) => ({ ...current, [id]: { percent: 100, label: uploadErrorMessage(error), tone: "error" } }));
     }
   }
 

@@ -43,10 +43,20 @@ function writeJSON<T>(key: string, value: T): boolean {
 
 /* ── Persistência global (Supabase via /api/brand/site-content) ─────────── */
 
-type Section = "banners" | "stories" | "vacancies" | "newsimg" | "homerule" | "homepromo";
+type Section =
+  | "banners"
+  | "stories"
+  | "vacancies"
+  | "newsimg"
+  | "homerule"
+  | "homepromo"
+  | "signaturepromo";
 
 /** Publica uma secção arbitrária (ex.: regra de ordenação da homepage). */
-export function publishSection(section: Section, value: unknown): Promise<SaveResult> {
+export function publishSection(
+  section: Section,
+  value: unknown,
+): Promise<SaveResult> {
   return putSection(section, value);
 }
 
@@ -56,8 +66,14 @@ const saveQueues = new Map<Section, Promise<SaveResult>>();
 
 /** Publica por ordem e só confirma quando o servidor realmente gravou. */
 function putSection(section: Section, value: unknown): Promise<SaveResult> {
-  if (typeof window === "undefined") return Promise.resolve({ ok: false, persisted: false, error: "browser_only" });
-  const previous = saveQueues.get(section) ?? Promise.resolve({ ok: true, persisted: false });
+  if (typeof window === "undefined")
+    return Promise.resolve({
+      ok: false,
+      persisted: false,
+      error: "browser_only",
+    });
+  const previous =
+    saveQueues.get(section) ?? Promise.resolve({ ok: true, persisted: false });
   const next = previous
     .catch(() => ({ ok: false, persisted: false }))
     .then(async () => {
@@ -67,9 +83,16 @@ function putSection(section: Section, value: unknown): Promise<SaveResult> {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ section, value }),
         });
-        const result = (await response.json().catch(() => ({}))) as { persisted?: boolean; error?: string };
+        const result = (await response.json().catch(() => ({}))) as {
+          persisted?: boolean;
+          error?: string;
+        };
         if (!response.ok || !result.persisted) {
-          return { ok: false, persisted: false, error: result.error ?? "save_failed" };
+          return {
+            ok: false,
+            persisted: false,
+            error: result.error ?? "save_failed",
+          };
         }
         serverCache = null;
         return { ok: true, persisted: true };
@@ -88,6 +111,15 @@ export interface ServerContent {
   newsimg?: NewsImageMap;
   homerule?: string;
   homepromo?: { title?: string; label?: string; href?: string; image?: string };
+  signaturepromo?: {
+    eyebrow?: string;
+    title?: string;
+    text?: string;
+    label?: string;
+    href?: string;
+    image?: string;
+    alt?: string;
+  };
 }
 
 let serverCache: Promise<ServerContent> | null = null;
@@ -103,7 +135,9 @@ export function loadSiteContent(fresh = false): Promise<ServerContent> {
   if (!serverCache) {
     serverCache = fetch("/api/brand/site-content")
       .then((r) => (r.ok ? r.json() : { content: {} }))
-      .then((j) => (j && typeof j.content === "object" ? (j.content as ServerContent) : {}))
+      .then((j) =>
+        j && typeof j.content === "object" ? (j.content as ServerContent) : {},
+      )
       .catch(() => ({}));
   }
   return serverCache;
@@ -164,7 +198,12 @@ async function compressImage(file: File): Promise<Blob> {
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("image_processing_failed")), "image/webp", 0.84);
+    canvas.toBlob(
+      (blob) =>
+        blob ? resolve(blob) : reject(new Error("image_processing_failed")),
+      "image/webp",
+      0.84,
+    );
   });
 }
 
@@ -181,16 +220,26 @@ export async function uploadSiteImage(
 
   if (!isSupabaseConfigured()) throw new Error("storage_not_configured");
   const supabase = createClient();
-  const safeBase = file.name.replace(/\.[^.]+$/, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "imagem";
+  const safeBase =
+    file.name
+      .replace(/\.[^.]+$/, "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9-]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toLowerCase() || "imagem";
   const path = `site-content/${area}/${safeBase}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.webp`;
-  const result = await supabase.storage.from("property-media").upload(path, blob, {
-    contentType: "image/webp",
-    cacheControl: "31536000",
-    upsert: false,
-  });
+  const result = await supabase.storage
+    .from("property-media")
+    .upload(path, blob, {
+      contentType: "image/webp",
+      cacheControl: "31536000",
+      upsert: false,
+    });
   if (result.error) throw new Error(result.error.message || "upload_failed");
   onProgress?.({ percent: 82, label: "A guardar no website…" });
-  const url = supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl;
+  const url = supabase.storage.from("property-media").getPublicUrl(path)
+    .data.publicUrl;
   if (!url) throw new Error("public_url_failed");
   return url;
 }

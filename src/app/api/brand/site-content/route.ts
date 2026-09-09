@@ -12,17 +12,30 @@ import { isSuperadmin } from "@/lib/data/roles";
  * à equipa. Em modo demo (sem Supabase) devolve vazio → o cliente usa o
  * localStorage/defaults.
  */
-const SECTIONS = { banners: "hp_banners", stories: "hp_stories", vacancies: "hp_vacancies", newsimg: "hp_newsimg", homerule: "hp_homerule", homepromo: "hp_homepromo" } as const;
+const SECTIONS = {
+  banners: "hp_banners",
+  stories: "hp_stories",
+  vacancies: "hp_vacancies",
+  newsimg: "hp_newsimg",
+  homerule: "hp_homerule",
+  homepromo: "hp_homepromo",
+  signaturepromo: "hp_signaturepromo",
+} as const;
 type Section = keyof typeof SECTIONS;
 
 export async function GET() {
-  if (!isSupabaseConfigured()) return NextResponse.json({ content: {}, persisted: false });
+  if (!isSupabaseConfigured())
+    return NextResponse.json({ content: {}, persisted: false });
   try {
     const sb = await createClient();
-    const { data } = await sb.from("site_settings").select("key, value").in("key", Object.values(SECTIONS));
+    const { data } = await sb
+      .from("site_settings")
+      .select("key, value")
+      .in("key", Object.values(SECTIONS));
     const byKey = Object.fromEntries((data ?? []).map((r) => [r.key, r.value]));
     const content: Record<string, unknown> = {};
-    for (const [section, key] of Object.entries(SECTIONS)) if (byKey[key] != null) content[section] = byKey[key];
+    for (const [section, key] of Object.entries(SECTIONS))
+      if (byKey[key] != null) content[section] = byKey[key];
     return NextResponse.json({ content, persisted: true });
   } catch {
     return NextResponse.json({ content: {}, persisted: false });
@@ -30,10 +43,16 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  if (!isSupabaseConfigured()) return NextResponse.json({ ok: false, persisted: false });
+  if (!isSupabaseConfigured())
+    return NextResponse.json({ ok: false, persisted: false });
   const session = await getSession();
-  if (!session || session.demo) return NextResponse.json({ error: "Sessão inválida." }, { status: 401 });
-  if (!isSuperadmin(session.agent)) return NextResponse.json({ error: "Configuração reservada ao Super Admin." }, { status: 403 });
+  if (!session || session.demo)
+    return NextResponse.json({ error: "Sessão inválida." }, { status: 401 });
+  if (!isSuperadmin(session.agent))
+    return NextResponse.json(
+      { error: "Configuração reservada ao Super Admin." },
+      { status: 403 },
+    );
 
   let body: { section?: string; value?: unknown };
   try {
@@ -48,10 +67,26 @@ export async function PUT(request: Request) {
 
   try {
     const sb = await createClient();
-    const { error } = await sb.from("site_settings").upsert({ key: SECTIONS[section], value: body.value }, { onConflict: "key" });
-    if (error) return NextResponse.json({ ok: false, persisted: false, error: error.message }, { status: 400 });
+    const { error } = await sb
+      .from("site_settings")
+      .upsert(
+        { key: SECTIONS[section], value: body.value },
+        { onConflict: "key" },
+      );
+    if (error)
+      return NextResponse.json(
+        { ok: false, persisted: false, error: error.message },
+        { status: 400 },
+      );
     return NextResponse.json({ ok: true, persisted: true });
   } catch (error) {
-    return NextResponse.json({ ok: false, persisted: false, error: error instanceof Error ? error.message : "save_failed" }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        persisted: false,
+        error: error instanceof Error ? error.message : "save_failed",
+      },
+      { status: 500 },
+    );
   }
 }

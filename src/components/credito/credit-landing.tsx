@@ -113,7 +113,7 @@ export function CreditLanding() {
           </div>
         </div>
       </section>
-      <main className="bg-[#f8f5ef]">
+      <main className="bg-[#f5f7fa]">
         <section className="mx-auto max-w-6xl px-5 py-7 sm:px-8">
           <h2 className="font-display text-2xl text-[#0b315b]">
             Comece pelo seu objetivo.
@@ -221,7 +221,11 @@ export function CreditLanding() {
               </div>
             </dl>
             <button
-              onClick={() => setStep((current) => Math.min(4, current + 1))}
+              onClick={() =>
+                document
+                  .getElementById("contacto-credito")
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
               className="hp-btn-red mt-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg text-sm font-bold"
             >
               Continuar simulação <ArrowRight className="size-4" />
@@ -261,7 +265,7 @@ export function CreditLanding() {
                     {d as string}
                   </p>
                   <a
-                    href="#simular"
+                    href="#contacto-credito"
                     className="mt-3 inline-flex text-xs font-bold text-[#a31621]"
                   >
                     Saber mais →
@@ -271,7 +275,7 @@ export function CreditLanding() {
             ))}
           </div>
         </section>
-        <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
+        <section className="mx-auto max-w-6xl bg-[#0b1f3a] px-5 py-10 text-white sm:px-8">
           <h2 className="font-display text-3xl text-[#0b315b]">
             Prepare a decisão antes de falar com o banco.
           </h2>
@@ -285,10 +289,10 @@ export function CreditLanding() {
               <a
                 key={x}
                 href="#simular"
-                className="rounded border bg-white p-4 text-sm font-semibold text-[#0b315b]"
+                className="rounded border border-white/15 bg-white/10 p-4 text-sm font-semibold text-white"
               >
                 {x}
-                <span className="mt-2 block text-xs text-[#a31621]">
+                <span className="mt-2 block text-xs text-[#ff9ca2]">
                   Abrir ferramenta →
                 </span>
               </a>
@@ -315,7 +319,11 @@ export function CreditLanding() {
               </p>
             </div>
           </div>
-          <form className="rounded border bg-white p-6" onSubmit={requestGuide}>
+          <form
+            id="contacto-credito"
+            className="rounded border bg-white p-6"
+            onSubmit={requestGuide}
+          >
             <h2 className="font-display text-2xl text-[#0b315b]">
               Receba o guia
             </h2>

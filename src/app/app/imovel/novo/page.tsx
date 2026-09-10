@@ -32,6 +32,7 @@ import {
   blankImovel,
   docLabel,
   docStatus,
+  draftQuality,
   slugify,
   type ImovelDoc,
   type ImovelDraft,
@@ -532,6 +533,7 @@ export default function NovoImovel() {
   }
 
   const visibleKinds = DOC_KINDS.filter((k) => k.group === "base" || d.heranca);
+  const quality = draftQuality(d, fotos.length);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -556,6 +558,12 @@ export default function NovoImovel() {
           <p className="text-sm font-medium text-primary">Carregar imóvel</p>
           <h1 className="mt-1 font-display text-2xl sm:text-3xl">Novo imóvel</h1>
         </div>
+
+        <section className="rounded-2xl border bg-card p-5 shadow-sm" aria-labelledby="listing-quality-title">
+          <div className="flex items-center justify-between gap-4"><div><p id="listing-quality-title" className="font-semibold">Qualidade do anúncio</p><p className="text-xs text-muted-foreground">Anúncios completos ganham relevância, visibilidade e acesso aos destaques.</p></div><strong className="text-2xl text-primary">{quality.score}%</strong></div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={quality.score}><div className="h-full rounded-full bg-primary transition-all" style={{width:`${quality.score}%`}}/></div>
+          {quality.missing.length>0?<p className="mt-3 text-xs text-muted-foreground"><b>Para chegar aos 100%:</b> {quality.missing.slice(0,5).join(", ")}{quality.missing.length>5?"…":""}</p>:<p className="mt-3 text-xs font-medium text-emerald-700">Anúncio completo e elegível para maior visibilidade.</p>}
+        </section>
 
         {/* Fotos + marca de água */}
         <Card title="Fotografias">

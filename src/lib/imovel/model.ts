@@ -225,3 +225,14 @@ export function blankImovel(id: string): ImovelDraft {
     documentos: [],
   };
 }
+
+export function draftQuality(d: ImovelDraft, photoCount = d.fotosCount): { score: number; missing: string[] } {
+  const checks: Array<[boolean, number, string]> = [
+    [photoCount >= 1, 15, "fotografia principal"], [photoCount >= 8, 15, "pelo menos 8 fotografias"],
+    [Boolean(d.reference.trim()), 5, "referência"], [d.price > 0, 8, "preço"], [d.area > 0, 7, "área"],
+    [Boolean(d.parish.trim() && d.municipality.trim()), 10, "localização"], [Boolean(d.type && d.typology), 7, "tipo e tipologia"],
+    [d.descricaoCurta.trim().length >= 60, 6, "resumo com 60 caracteres"], [d.descricao.trim().length >= 300, 12, "descrição com 300 caracteres"],
+    [Boolean(d.energy), 5, "certificado energético"], [docStatus(d.documentos.map(doc => doc.kind), d.sellerType === "empresa").complete, 10, "documentação obrigatória"],
+  ];
+  return { score: checks.reduce((sum,[ok,weight])=>sum+(ok?weight:0),0), missing: checks.filter(([ok])=>!ok).map(([, ,label])=>label) };
+}

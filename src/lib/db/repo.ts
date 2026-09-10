@@ -16,6 +16,7 @@ import { DEFAULT_AGENCIES_CONFIG, mergeAgencies, type AgenciesConfig } from "@/l
 import type { AuditEntry } from "@/lib/data/audit";
 import { SEVERITY, type QualityEvent, type QualitySeverity, type QualityCategory } from "@/lib/data/quality";
 import type { Agency, Agent, Property } from "@/lib/data/types";
+import { DEFAULT_PROPERTY_HUB, mergePropertyHub, type PropertyHubConfig } from "@/lib/data/property-hub";
 
 /**
  * Data-access layer. Reads from Supabase when configured, otherwise falls back
@@ -429,6 +430,15 @@ export async function getConcelhosConfig(): Promise<ConcelhosConfig> {
   } catch {
     return DEFAULT_CONCELHOS_CONFIG;
   }
+}
+
+export async function getPropertyHubConfig(): Promise<PropertyHubConfig> {
+  if (!isSupabaseConfigured()) return DEFAULT_PROPERTY_HUB;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("site_settings").select("value").eq("key", "hp_propertyhub").maybeSingle();
+    return mergePropertyHub(data?.value as PropertyHubConfig | undefined);
+  } catch { return DEFAULT_PROPERTY_HUB; }
 }
 
 /** Configuração do advogado (honorários/serviços/pagamento) — site_settings. */

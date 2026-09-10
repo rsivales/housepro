@@ -21,6 +21,7 @@ import { SiteHeader } from "@/components/layout/site-header";
  * Não é um segundo admin: vive dentro do painel de gestão existente.
  */
 const CARDS = [
+  { href: "/admin/website/imoveis", icon: PanelTop, title: "Página de imóveis", note: "Pesquisa, rotação, concelhos, banner, alertas e pré-visualização" },
   { href: "/admin/website/marca", icon: Palette, title: "Logótipos e identidade", note: "Logótipos horizontal, completo e compacto · dimensões e alt text" },
   { href: "/admin/website/media", icon: Image, title: "Fotografias das landing pages", note: "Heróis, banners e imagens promocionais de todas as páginas públicas" },
   {

@@ -9,7 +9,7 @@ import { track } from "@/lib/analytics";
 
 const NAV = [
   { label: "Imóveis", href: "/imoveis" },
-  { label: "Comprar", href: "/imoveis" },
+  { label: "Comprar", href: "/imoveis?operacao=comprar" },
   { label: "Vender", href: "/vender" },
   { label: "Investir", href: "/investir" },
   { label: "Guia HousePro", href: "/noticias" },

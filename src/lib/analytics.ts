@@ -51,7 +51,14 @@ export type AnalyticsEvent =
   | "signature_private_search"
   | "signature_present_property"
   | "signature_build_start"
-  | "signature_form_complete";
+  | "signature_form_complete"
+  | "property_hub_view"
+  | "property_search"
+  | "property_municipality_click"
+  | "property_promo_click"
+  | "property_view_toggle"
+  | "property_load_more"
+  | "property_alert_created";
 
 type DataLayerWindow = Window & { dataLayer?: Record<string, unknown>[] };
 

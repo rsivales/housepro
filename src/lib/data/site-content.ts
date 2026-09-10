@@ -52,7 +52,8 @@ type Section =
   | "homepromo"
   | "signaturepromo"
   | "brandassets"
-  | "mediaassets";
+  | "mediaassets"
+  | "propertyhub";
 
 /** Publica uma secção arbitrária (ex.: regra de ordenação da homepage). */
 export function publishSection(
@@ -124,6 +125,7 @@ export interface ServerContent {
   };
   brandassets?: BrandAssets;
   mediaassets?: MediaAssetMap;
+  propertyhub?: import("@/lib/data/property-hub").PropertyHubConfig;
 }
 
 export interface BrandAssets {

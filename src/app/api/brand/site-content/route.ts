@@ -22,6 +22,7 @@ const SECTIONS = {
   signaturepromo: "hp_signaturepromo",
   brandassets: "hp_brandassets",
   mediaassets: "hp_mediaassets",
+  propertyhub: "hp_propertyhub",
 } as const;
 type Section = keyof typeof SECTIONS;
 

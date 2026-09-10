@@ -8,7 +8,7 @@ import { Logo } from "@/components/brand/logo";
 
 const NAV = [
   { label: "Imóveis", href: "/imoveis" },
-  { label: "Comprar", href: "/imoveis" },
+  { label: "Comprar", href: "/imoveis?operacao=comprar" },
   { label: "Empreendimentos", href: "/empreendimentos" },
   { label: "Signature", href: "/signature" },
   { label: "Internacional", href: "/internacional" },

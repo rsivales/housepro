@@ -58,7 +58,8 @@ export type AnalyticsEvent =
   | "property_promo_click"
   | "property_view_toggle"
   | "property_load_more"
-  | "property_alert_created";
+  | "property_alert_created"
+  | "property_personalized_search_created";
 
 type DataLayerWindow = Window & { dataLayer?: Record<string, unknown>[] };
 

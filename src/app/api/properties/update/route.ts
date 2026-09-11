@@ -8,24 +8,46 @@ import { auditFieldLabel, type AuditChange, type AuditEntry } from "@/lib/data/a
 import { isStaff } from "@/lib/data/roles";
 import { formatEuro } from "@/lib/format";
 
-/** Campos editáveis e como se mapeiam para a coluna do Supabase. */
+/** Campos editáveis e como se mapeiam para a coluna do Supabase.
+ *  Cobrem o mesmo conjunto que o carregamento (paridade edição↔carregamento). */
 const FIELDS: Record<string, string> = {
   title: "title",
-  price: "price",
+  operation: "operation",
+  type: "type",
   typology: "typology",
+  price: "price",
+  area: "area",
   beds: "beds",
   baths: "baths",
-  area: "area",
+  parish: "parish",
+  municipality: "municipality",
+  district: "district",
+  energy: "energy",
   status: "status",
   shortDescription: "short_description",
   description: "description",
+  commissionType: "commission_type",
   commissionPct: "commission_pct",
   commissionFixed: "commission_fixed",
+  sellerType: "seller_type",
+  videoUrl: "video_url",
+  tourUrl: "tour_url",
+  constructionYear: "construction_year",
+  elevator: "elevator",
+  isDevelopment: "is_development",
+  developmentName: "development_name",
+  developmentStage: "development_stage",
+  developmentUnits: "development_units",
 };
 
-const NUMERIC = new Set(["price", "beds", "baths", "area", "commissionPct", "commissionFixed"]);
+const NUMERIC = new Set([
+  "price", "beds", "baths", "area", "commissionPct", "commissionFixed",
+  "constructionYear", "developmentUnits",
+]);
+const BOOLEAN = new Set(["elevator", "isDevelopment"]);
 
 function fmt(field: string, v: unknown): string {
+  if (BOOLEAN.has(field)) return v ? "Sim" : "Não";
   if (v == null || v === "") return "—";
   if (field === "price" || field === "commissionFixed") return formatEuro(Number(v));
   return String(v);
@@ -69,6 +91,7 @@ export async function POST(request: Request) {
     if (!(field in patch)) continue;
     let value: unknown = patch[field];
     if (NUMERIC.has(field)) value = value === "" || value == null ? null : Number(value);
+    else if (BOOLEAN.has(field)) value = Boolean(value);
     const before = (current as unknown as Record<string, unknown>)[field];
     const same = String(before ?? "") === String(value ?? "");
     if (same) continue;

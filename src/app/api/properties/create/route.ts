@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { agentPrefixOf } from "@/lib/data/mock";
 import { propertyReference } from "@/lib/codes";
+import { operationOf } from "@/lib/imovel/model";
 
 /** Cria um imóvel no Supabase, com o angariador = utilizador autenticado. */
 export async function POST(request: Request) {
@@ -53,13 +54,20 @@ export async function POST(request: Request) {
     session.agent.roleKey === "admin" ||
     Boolean(session.agent.ownAMI);
 
+  // Operação coarse derivada do tipo de negócio (compat. com filtros/portais).
+  const businessType = typeof d.businessType === "string" && d.businessType ? d.businessType : (d.operation === "arrendamento" ? "arrendamento" : "venda");
+  const operation = operationOf(businessType);
+
   const row = {
     reference: ref,
     title,
-    operation: d.operation === "arrendamento" ? "arrendamento" : "venda",
+    operation,
+    business_type: businessType,
     type: String(d.type ?? "Apartamento"),
     typology: d.typology ? String(d.typology) : null,
     price: Number(d.price ?? 0),
+    price_visible: d.priceVisible === false ? false : true,
+    location_privacy: typeof d.locationPrivacy === "string" ? d.locationPrivacy : "approx",
     area: d.area != null ? Number(d.area) : null,
     beds: d.beds != null ? Number(d.beds) : null,
     baths: d.baths != null ? Number(d.baths) : null,

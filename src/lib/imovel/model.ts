@@ -101,10 +101,19 @@ export const WATERMARK_POSITIONS: WatermarkPos[] = [
 export interface ImovelDraft {
   id: string;
   reference: string;
+  /** Operação coarse (venda/arrendamento) — derivada do tipo de negócio, usada
+   *  nos filtros públicos e na exportação para portais. */
   operation: "venda" | "arrendamento";
+  /** Tipo de negócio detalhado (venda, permuta, trespasse, arrendamento ao ano,
+   *  curta duração, timesharing, cedência de posição…). */
+  businessType: string;
   type: string; // Moradia, Apartamento, Terreno, Loja, Escritório
   typology: string; // T0..T5
   price: number;
+  /** Preço visível ao público. Auto-oculto quando vendido/CPCV. */
+  priceVisible: boolean;
+  /** Privacidade da morada no mapa público. */
+  locationPrivacy: "exact" | "approx" | "locality" | "hidden";
   /** Base da comissão: percentagem ou valor fixo. */
   comissaoTipo: "percent" | "fixed";
   /** Comissão em % do preço (quando comissaoTipo = "percent"). */
@@ -158,8 +167,55 @@ export interface ImovelDraft {
   documentos: ImovelDoc[];
 }
 
-export const TIPOS = ["Apartamento", "Moradia", "Terreno", "Loja", "Escritório"];
+export const TIPOS = [
+  "Apartamento",
+  "Moradia",
+  "Penthouse",
+  "Chalet",
+  "Casa de campo",
+  "Quinta",
+  "Herdade",
+  "Terreno",
+  "Loja / comércio",
+  "Armazém",
+  "Escritório",
+  "Garagem / parqueamento",
+  "Prédio",
+  "Casa em ruínas",
+];
 export const TIPOLOGIAS = ["T0", "T1", "T2", "T3", "T4", "T5"];
+
+/** Tipos de negócio — o valor coarse (operation) alimenta os filtros públicos
+ *  e a exportação para portais. */
+export const BUSINESS_TYPES: { value: string; label: string; operation: "venda" | "arrendamento" }[] = [
+  { value: "venda", label: "Venda", operation: "venda" },
+  { value: "arrendamento", label: "Arrendamento (longa duração)", operation: "arrendamento" },
+  { value: "arrendamento_ano", label: "Arrendamento ao ano", operation: "arrendamento" },
+  { value: "arrendamento_curto", label: "Arrendamento de curta duração", operation: "arrendamento" },
+  { value: "permuta", label: "Permuta", operation: "venda" },
+  { value: "trespasse", label: "Trespasse", operation: "venda" },
+  { value: "cedencia", label: "Cedência de posição", operation: "venda" },
+  { value: "timesharing", label: "Timesharing", operation: "venda" },
+];
+
+/** Operação coarse (venda/arrendamento) a partir do tipo de negócio. */
+export function operationOf(businessType: string): "venda" | "arrendamento" {
+  return BUSINESS_TYPES.find((b) => b.value === businessType)?.operation ?? "venda";
+}
+
+/** Rótulo legível do tipo de negócio (cai para o próprio valor se desconhecido). */
+export function businessTypeLabel(businessType?: string): string {
+  if (!businessType) return "Venda";
+  return BUSINESS_TYPES.find((b) => b.value === businessType)?.label ?? businessType;
+}
+
+/** Privacidade da morada no mapa público. */
+export const LOCATION_PRIVACY: { value: "exact" | "approx" | "locality" | "hidden"; label: string }[] = [
+  { value: "exact", label: "Morada exata (com marcador)" },
+  { value: "approx", label: "Zona aproximada (recomendado)" },
+  { value: "locality", label: "Só a localidade" },
+  { value: "hidden", label: "Ocultar a localização" },
+];
 export const VISTAS = ["Sem vista", "Mar", "Rio", "Serra", "Cidade", "Jardim", "Campo"];
 export const ENERGIAS = ["A+", "A", "B", "B-", "C", "D", "E", "F"];
 
@@ -194,9 +250,12 @@ export function blankImovel(id: string): ImovelDraft {
     id,
     reference: "",
     operation: "venda",
+    businessType: "venda",
     type: "Apartamento",
     typology: "T2",
     price: 0,
+    priceVisible: true,
+    locationPrivacy: "approx",
     comissaoTipo: "percent",
     comissao: 5,
     comissaoFixo: 0,
@@ -235,9 +294,12 @@ export function draftFromProperty(p: Property): ImovelDraft {
     ...blankImovel(p.id),
     reference: p.reference,
     operation: p.operation,
+    businessType: p.businessType ?? p.operation,
     type: p.type,
     typology: p.typology ?? "",
     price: p.price,
+    priceVisible: p.priceVisible ?? true,
+    locationPrivacy: p.locationPrivacy ?? "approx",
     comissaoTipo: p.commissionType ?? "percent",
     comissao: p.commissionPct ?? 0,
     comissaoFixo: p.commissionFixed ?? 0,

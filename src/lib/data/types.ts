@@ -1,11 +1,8 @@
 export type Operation = "venda" | "arrendamento";
 
-export type PropertyType =
-  | "Apartamento"
-  | "Moradia"
-  | "Terreno"
-  | "Loja"
-  | "Escritório";
+/** Categoria do imóvel — texto livre entre um conjunto alargado (ver TIPOS em
+ *  lib/imovel/model). Mantido como alias de string para não ser frágil. */
+export type PropertyType = string;
 
 export type PropertyStatus =
   | "novo"
@@ -89,10 +86,15 @@ export interface Property {
   reference: string;
   title: string;
   operation: Operation;
+  /** Tipo de negócio detalhado (venda, permuta, trespasse, arrendamento ao ano,
+   *  curta duração, timesharing, cedência…). `operation` é a versão coarse. */
+  businessType?: string;
   type: PropertyType;
   /** Typology: T0–T5, or null for land. */
   typology: string | null;
   price: number;
+  /** Preço visível ao público (auto-oculto quando vendido/CPCV). */
+  priceVisible?: boolean;
   /** Gross private area in m². */
   area: number;
   beds: number;

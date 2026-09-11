@@ -28,6 +28,9 @@ import {
   DOC_KINDS,
   EQUIPAMENTOS,
   ENERGIAS,
+  BUSINESS_TYPES,
+  LOCATION_PRIVACY,
+  operationOf,
   TIPOS,
   TIPOLOGIAS,
   VISTAS,
@@ -813,10 +816,13 @@ export function PropertyForm({
         {/* Características */}
         <Card title="Características">
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Operação">
-              <select value={d.operation} onChange={(e) => patch({ operation: e.target.value as ImovelDraft["operation"] })} className={box}>
-                <option value="venda">Venda</option>
-                <option value="arrendamento">Arrendamento</option>
+            <Field label="Tipo de negócio">
+              <select
+                value={d.businessType}
+                onChange={(e) => patch({ businessType: e.target.value, operation: operationOf(e.target.value) })}
+                className={box}
+              >
+                {BUSINESS_TYPES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
               </select>
             </Field>
             <Field label="Tipo">
@@ -829,7 +835,20 @@ export function PropertyForm({
                 {TIPOLOGIAS.map((t) => <option key={t}>{t}</option>)}
               </select>
             </Field>
-            <Field label="Preço (€)"><Input type="number" value={d.price || ""} onChange={(e) => patch({ price: Number(e.target.value) || 0 })} /></Field>
+            <Field label="Preço (€)" hint={d.priceVisible ? "Visível ao público." : "Oculto — aparece como “Sob consulta”."}>
+              <div className="space-y-2">
+                <Input type="number" value={d.price || ""} onChange={(e) => patch({ price: Number(e.target.value) || 0 })} />
+                <label className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={d.priceVisible}
+                    onChange={(e) => patch({ priceVisible: e.target.checked })}
+                    className="size-4 accent-primary"
+                  />
+                  Mostrar preço ao público
+                </label>
+              </div>
+            </Field>
             <Field
               label="Comissão"
               hint={`Em vigor: ${commissionLabel(d.price, {
@@ -871,6 +890,15 @@ export function PropertyForm({
             </Field>
             <Field label="Concelho"><Input value={d.municipality} onChange={(e) => patch({ municipality: e.target.value })} /></Field>
             <Field label="Distrito"><Input value={d.distrito ?? ""} onChange={(e) => patch({ distrito: e.target.value })} placeholder="Ex.: Faro" /></Field>
+            <Field label="Privacidade da morada" hint="Controla o que o mapa público mostra.">
+              <select
+                value={d.locationPrivacy}
+                onChange={(e) => patch({ locationPrivacy: e.target.value as ImovelDraft["locationPrivacy"] })}
+                className={box}
+              >
+                {LOCATION_PRIVACY.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
             <Field label="Referência"><Input value={d.reference} onChange={(e) => patch({ reference: e.target.value })} placeholder="HP-1050" /></Field>
             <Field label="Vista">
               <select value={d.vista} onChange={(e) => patch({ vista: e.target.value })} className={box}>
@@ -1297,10 +1325,13 @@ export function PropertyForm({
 function draftToPatch(d: ImovelDraft): Record<string, unknown> {
   return {
     ...(d.seoTitle.trim() ? { title: d.seoTitle.trim() } : {}),
-    operation: d.operation,
+    operation: operationOf(d.businessType),
+    businessType: d.businessType,
     type: d.type,
     typology: d.typology,
     price: d.price,
+    priceVisible: d.priceVisible,
+    locationPrivacy: d.locationPrivacy,
     area: d.area,
     beds: d.beds,
     baths: d.baths,

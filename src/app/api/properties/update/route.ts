@@ -13,7 +13,10 @@ import { formatEuro } from "@/lib/format";
 const FIELDS: Record<string, string> = {
   title: "title",
   operation: "operation",
+  businessType: "business_type",
   type: "type",
+  priceVisible: "price_visible",
+  locationPrivacy: "location_privacy",
   typology: "typology",
   price: "price",
   area: "area",
@@ -44,7 +47,7 @@ const NUMERIC = new Set([
   "price", "beds", "baths", "area", "commissionPct", "commissionFixed",
   "constructionYear", "developmentUnits",
 ]);
-const BOOLEAN = new Set(["elevator", "isDevelopment"]);
+const BOOLEAN = new Set(["elevator", "isDevelopment", "priceVisible"]);
 
 function fmt(field: string, v: unknown): string {
   if (BOOLEAN.has(field)) return v ? "Sim" : "Não";

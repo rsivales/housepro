@@ -21,6 +21,7 @@ import { exclusiveEligibility } from "@/lib/data/exclusive";
 import { getSession } from "@/lib/supabase/auth";
 import { isStaff, roleLabel } from "@/lib/data/roles";
 import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
+import { businessTypeLabel } from "@/lib/imovel/model";
 import { formatArea, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
 import { site, postalAddressJsonLd } from "@/lib/site";
 
@@ -134,8 +135,11 @@ export default async function ImovelPage({
     { label: "Referência", value: property.reference },
   ];
 
-  const priceLabel = formatPrice(property);
   const unavailable = property.status === "vendido" || property.status === "reservado";
+  // Preço oculto: por opção do consultor OU automaticamente quando vendido.
+  const priceHidden = property.priceVisible === false || property.status === "vendido";
+  const priceLabel = priceHidden ? "Preço sob consulta" : formatPrice(property);
+  const businessLabel = businessTypeLabel(property.businessType ?? property.operation);
 
   // Dados estruturados: BreadcrumbList + Residence/Offer + RealEstateAgent.
   const jsonLd = {
@@ -161,8 +165,8 @@ export default async function ImovelPage({
         ...(property.image ? { image: property.image.startsWith("http") ? property.image : `${SITE_URL}${property.image}` } : {}),
         offers: {
           "@type": "Offer",
-          price: property.price,
-          priceCurrency: "EUR",
+          // Não expõe o valor nos dados estruturados quando o preço está oculto.
+          ...(priceHidden ? {} : { price: property.price, priceCurrency: "EUR" }),
           availability: unavailable ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
           url: `${SITE_URL}/imovel/${property.id}`,
         },
@@ -215,7 +219,7 @@ export default async function ImovelPage({
             municipality={property.municipality}
             price={priceLabel}
             status={property.status}
-            operation={property.operation}
+            operation={businessLabel}
             stats={heroStats}
             propertyId={property.id}
             objectPosition={property.imageFocus}

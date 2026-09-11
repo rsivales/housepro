@@ -5,8 +5,7 @@ import { headers } from "next/headers";
 import { ChevronRight, Pencil, Sparkles, Zap } from "lucide-react";
 
 import { PropertyHeader } from "@/components/property/property-header";
-import { PropertyHero, type HeroStat } from "@/components/property/property-hero";
-import { PropertyEditorialGallery } from "@/components/property/property-editorial-gallery";
+import { PropertyStage, type HeroStat } from "@/components/property/property-stage";
 import { PropertyDescription } from "@/components/property/property-description";
 import { PropertyLocation } from "@/components/property/property-location";
 import { FinancingPanel } from "@/components/property/financing-panel";
@@ -205,8 +204,12 @@ export default async function ImovelPage({
       <main className="pb-28 lg:pb-8">
         {/* Hero imersivo */}
         <div className="mx-auto max-w-6xl px-0 pt-3 sm:px-6">
-          <PropertyHero
+          <PropertyStage
             images={gallery}
+            plans={property.plans}
+            videoUrl={property.videoUrl}
+            tourUrl={property.tourUrl}
+            beforeAfter={property.beforeAfter}
             title={property.title}
             parish={property.parish}
             municipality={property.municipality}
@@ -271,14 +274,6 @@ export default async function ImovelPage({
                 <span className="text-sm font-medium text-[var(--hp-red)]">Abrir →</span>
               </Link>
             )}
-
-            <PropertyEditorialGallery
-              images={gallery}
-              plans={property.plans}
-              videoUrl={property.videoUrl}
-              tourUrl={property.tourUrl}
-              title={property.title}
-            />
 
             <PropertyDescription text={description} />
 

@@ -21,6 +21,7 @@ export default async function MenuPage() {
       title: "Comercial",
       items: [
         { label: "Leads e contactos", href: "/app/contactos", icon: Users },
+        ...(["diretor", "admin"].includes(agent.roleKey ?? "") ? [{ label: "Distribuição de leads", href: "/app/leads-dashboard", icon: BarChart3 }] : []),
         { label: "CRM e pipelines", href: "/app/meta/pipeline", icon: KanbanSquare },
         { label: "Agenda", href: "/app/agenda", icon: CalendarClock },
         { label: "X Call", href: "/app/x-call", icon: Phone },
@@ -79,6 +80,7 @@ export default async function MenuPage() {
     { label: "Ver menus por função", href: "/admin/funcoes", icon: Eye },
     { label: "Mapa Website + Helix", href: "/admin/mapa-sistema", icon: Network },
     { label: "Centro de auditoria", href: "/admin/auditoria", icon: FileClock },
+    { label: "Auditoria de leads", href: "/app/leads-dashboard", icon: BarChart3 },
   ] }] : GROUPS;
 
   return (

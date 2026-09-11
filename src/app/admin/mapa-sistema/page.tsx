@@ -8,7 +8,7 @@ const website = [
   ["Homepage", "/"], ["Imóveis", "/imoveis"], ["Empreendimentos", "/empreendimentos"], ["Signature", "/signature"], ["Internacional", "/internacional"], ["Vender", "/vender"], ["Avaliação", "/avaliacao-imovel"], ["Crédito", "/credito"], ["Mais-valias", "/ferramentas/calculadora-mais-valias"], ["Guia HousePro", "/noticias"], ["Carreiras", "/carreiras"],
 ];
 const helix = [
-  ["Início", "/app"], ["Contactos", "/app/contactos"], ["Pipeline", "/app/meta/pipeline"], ["Agenda", "/app/agenda"], ["Imóveis", "/app/desempenho"], ["Empreendimentos", "/app/empreendimentos"], ["Internacional", "/app/parcerias"], ["LegalFlow", "/app/legalflow"], ["Ferramentas", "/app/ferramentas"], ["Equipa", "/app/equipa"], ["Relatórios", "/app/observabilidade"],
+  ["Início", "/app"], ["Contactos", "/app/contactos"], ["Distribuição de leads", "/app/leads-dashboard"], ["Pipeline", "/app/meta/pipeline"], ["Agenda", "/app/agenda"], ["Imóveis", "/app/desempenho"], ["Empreendimentos", "/app/empreendimentos"], ["Internacional", "/app/parcerias"], ["LegalFlow", "/app/legalflow"], ["Ferramentas", "/app/ferramentas"], ["Equipa", "/app/equipa"], ["Relatórios", "/app/observabilidade"],
 ];
 
 export default async function SystemMapPage() {

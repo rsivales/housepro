@@ -45,8 +45,11 @@ export function PropertyLocation({
           <LocationMap
             parish={privacy === "locality" ? municipality : parish}
             municipality={municipality}
-            lat={privacy === "exact" ? lat : undefined}
-            lng={privacy === "exact" ? lng : undefined}
+            // Passamos sempre as coordenadas (quando existem) para o mapa poder
+            // centrar-se. A privacidade controla o zoom e o marcador: em modo
+            // aproximado mostramos a zona sem apontar a morada exata.
+            lat={lat}
+            lng={lng}
             approximate={privacy !== "exact"}
             onOpen={() => track("pdp_map_open")}
           />

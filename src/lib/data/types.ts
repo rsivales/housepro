@@ -185,6 +185,13 @@ export interface Property {
   documents?: string[];
   /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
   sellerType?: "particular" | "empresa";
+  /** Contrato de mediação (CMI): exclusivo vs aberto; renovável; datas. */
+  cmiExclusive?: boolean;
+  cmiRenewable?: boolean;
+  cmiStart?: string;
+  cmiMonths?: number;
+  /** Validade do certificado energético (ISO date) — alerta de expiração. */
+  energyCertExpiry?: string;
   /** Estado de aprovação de publicação. Oculto ao público até "aprovado".
    *  Imóveis de agentes com AMI próprio nascem "aprovado". */
   approval?: ApprovalStatus;

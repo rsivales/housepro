@@ -30,6 +30,8 @@ import {
   ENERGIAS,
   BUSINESS_TYPES,
   LOCATION_PRIVACY,
+  cmiExpiryISO,
+  expiryStatus,
   operationOf,
   TIPOS,
   TIPOLOGIAS,
@@ -278,7 +280,6 @@ export function PropertyForm({
   const [savedMsg, setSavedMsg] = React.useState<null | "ok" | "noop" | "err">(null);
   const [history, setHistory] = React.useState<AuditEntry[]>(audit);
   const [xml, setXml] = React.useState<string | null>(null);
-  const [docKind, setDocKind] = React.useState("caderneta");
   const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
   const [preview, setPreview] = React.useState<ImovelDoc | null>(null);
   const [driveUrl, setDriveUrl] = React.useState("");
@@ -432,22 +433,29 @@ export function PropertyForm({
     }
   }
 
-  async function onDocs(e: React.ChangeEvent<HTMLInputElement>, kind: string) {
+  // Carrega os ficheiros PRIMEIRO (sem tipo); o tipo escolhe-se a seguir, por
+  // documento, no menu de cada linha — evita carregar tudo com o mesmo tipo.
+  async function onDocs(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     const docs: ImovelDoc[] = await Promise.all(
       files.map(async (f) => ({
         name: f.name,
-        kind,
+        kind: "",
         url: await readFile(f),
         mime: f.type,
       }))
     );
     patch({ documentos: [...d.documentos, ...docs] });
-    if (kind === "planta" && files.length) patch({ planta: true });
     e.target.value = "";
   }
   function removeDoc(i: number) {
     patch({ documentos: d.documentos.filter((_, idx) => idx !== i) });
+  }
+  function setDocKindFor(i: number, kind: string) {
+    patch({
+      documentos: d.documentos.map((doc, idx) => (idx === i ? { ...doc, kind } : doc)),
+    });
+    if (kind === "planta") patch({ planta: true });
   }
   function validateDoc(i: number) {
     patch({
@@ -1033,6 +1041,53 @@ export function PropertyForm({
           </div>
         </Card>
 
+        {/* Contrato de mediação (CMI) e validades */}
+        <Card title="Contrato de mediação (CMI) e validades">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">Tipo de CMI:</span>
+            {([["exclusivo", true], ["aberto", false]] as const).map(([label, val]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() =>
+                  // CMI aberto → oculta a morada pública automaticamente.
+                  patch(val ? { cmiExclusive: true } : { cmiExclusive: false, locationPrivacy: "hidden" })
+                }
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-sm capitalize transition-colors",
+                  d.cmiExclusive === val ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+            <label className="ml-2 flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={d.cmiRenewable} onChange={(e) => patch({ cmiRenewable: e.target.checked })} className="size-4 accent-primary" />
+              Renovação automática
+            </label>
+          </div>
+          {!d.cmiExclusive && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              CMI aberto: a morada exata fica <strong>oculta</strong> no site (pode ajustar na privacidade da morada).
+            </p>
+          )}
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Field label="Início do CMI">
+              <Input type="date" value={d.cmiStart ?? ""} onChange={(e) => patch({ cmiStart: e.target.value })} />
+            </Field>
+            <Field label="Duração (meses)" hint={cmiHint(d.cmiStart, d.cmiMonths)}>
+              <Input type="number" value={d.cmiMonths ?? ""} onChange={(e) => patch({ cmiMonths: Number(e.target.value) || undefined })} placeholder="6" />
+            </Field>
+            <Field label="Validade do certificado energético" hint={certHint(d.energyCertExpiry)}>
+              <Input type="date" value={d.energyCertExpiry ?? ""} onChange={(e) => patch({ energyCertExpiry: e.target.value })} />
+            </Field>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            O sistema assinala quando o CMI ou o certificado energético estão perto de expirar (ou expirados).
+          </p>
+        </Card>
+
         {/* Documentos & planta */}
         <Card title="Documentos & planta">
           {/* Estado documental (mínimos obrigatórios) */}
@@ -1096,23 +1151,10 @@ export function PropertyForm({
             <span className="text-xs text-muted-foreground">(mostra documentos adicionais)</span>
           </label>
 
-          <p className="mt-4 text-sm text-muted-foreground">Tipo de documento</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {visibleKinds.map((k) => (
-              <button
-                key={k.value}
-                type="button"
-                onClick={() => setDocKind(k.value)}
-                className={cn(
-                  "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                  docKind === k.value ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary",
-                  k.group === "heranca" && docKind !== k.value && "border-dashed"
-                )}
-              >
-                {k.label}
-              </button>
-            ))}
-          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Carregue os ficheiros primeiro (pode ser tudo de uma vez) e <strong>escolha o tipo de
+            cada um a seguir</strong>, no menu de cada linha.
+          </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
               <Camera className="size-4" /> Tirar foto ao documento
@@ -1121,17 +1163,17 @@ export function PropertyForm({
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => onDocs(e, docKind)}
+                onChange={onDocs}
               />
             </label>
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
-              <Upload className="size-4" /> Carregar ficheiro (PDF/imagem)
+              <Upload className="size-4" /> Carregar ficheiros (PDF/imagem)
               <input
                 type="file"
                 accept="application/pdf,image/*"
                 multiple
                 className="hidden"
-                onChange={(e) => onDocs(e, docKind)}
+                onChange={onDocs}
               />
             </label>
           </div>
@@ -1139,10 +1181,23 @@ export function PropertyForm({
             <ul className="mt-4 space-y-2">
               {d.documentos.map((doc, i) => (
                 <li key={i} className="flex items-center justify-between gap-3 rounded-lg border p-2.5 text-sm">
-                  <span className="flex min-w-0 items-center gap-2">
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
                     <FileText className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{doc.name}</span>
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">{docLabel(doc.kind)}</span>
+                    <span className="min-w-0 truncate">{doc.name}</span>
+                    <select
+                      value={doc.kind}
+                      onChange={(e) => setDocKindFor(i, e.target.value)}
+                      aria-label={`Tipo do documento ${doc.name}`}
+                      className={cn(
+                        "shrink-0 rounded-md border bg-transparent px-2 py-1 text-xs outline-none focus-visible:border-ring",
+                        !doc.kind && "border-gold/60 text-gold"
+                      )}
+                    >
+                      <option value="">Escolher tipo…</option>
+                      {visibleKinds.map((k) => (
+                        <option key={k.value} value={k.value}>{k.label}</option>
+                      ))}
+                    </select>
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     {doc.url && (
@@ -1321,9 +1376,28 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     developmentName: d.developmentName ?? "",
     developmentStage: d.developmentStage ?? "",
     developmentUnits: d.developmentUnits ?? "",
+    cmiExclusive: d.cmiExclusive,
+    cmiRenewable: d.cmiRenewable,
+    cmiStart: d.cmiStart ?? "",
+    cmiMonths: d.cmiMonths ?? "",
+    energyCertExpiry: d.energyCertExpiry ?? "",
     lat: d.lat,
     lng: d.lng,
   };
+}
+
+function cmiHint(start?: string, months?: number): string | undefined {
+  const st = expiryStatus(cmiExpiryISO(start, months));
+  if (st.state === "none") return undefined;
+  if (st.state === "expired") return `⚠️ CMI ${st.label.toLowerCase()}`;
+  if (st.state === "soon") return `⚠️ CMI ${st.label.toLowerCase()}`;
+  return `CMI ${st.label.toLowerCase()}`;
+}
+
+function certHint(dateISO?: string): string | undefined {
+  const st = expiryStatus(dateISO);
+  if (st.state === "none") return undefined;
+  return (st.state === "expired" || st.state === "soon" ? "⚠️ " : "") + st.label;
 }
 
 function geoHint(

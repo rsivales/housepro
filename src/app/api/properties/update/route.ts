@@ -41,13 +41,18 @@ const FIELDS: Record<string, string> = {
   developmentName: "development_name",
   developmentStage: "development_stage",
   developmentUnits: "development_units",
+  cmiExclusive: "cmi_exclusive",
+  cmiRenewable: "cmi_renewable",
+  cmiStart: "cmi_start",
+  cmiMonths: "cmi_months",
+  energyCertExpiry: "energy_cert_expiry",
 };
 
 const NUMERIC = new Set([
   "price", "beds", "baths", "area", "commissionPct", "commissionFixed",
-  "constructionYear", "developmentUnits",
+  "constructionYear", "developmentUnits", "cmiMonths",
 ]);
-const BOOLEAN = new Set(["elevator", "isDevelopment", "priceVisible"]);
+const BOOLEAN = new Set(["elevator", "isDevelopment", "priceVisible", "cmiExclusive", "cmiRenewable"]);
 
 function fmt(field: string, v: unknown): string {
   if (BOOLEAN.has(field)) return v ? "Sim" : "Não";

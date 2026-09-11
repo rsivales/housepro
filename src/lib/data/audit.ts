@@ -54,6 +54,11 @@ export const AUDIT_FIELD_LABEL: Record<string, string> = {
   developmentName: "Nome do empreendimento",
   developmentStage: "Fase da obra",
   developmentUnits: "Nº de frações",
+  cmiExclusive: "CMI exclusivo",
+  cmiRenewable: "CMI renovável",
+  cmiStart: "Início do CMI",
+  cmiMonths: "Duração do CMI (meses)",
+  energyCertExpiry: "Validade do certificado energético",
 };
 
 export function auditFieldLabel(f: string): string {

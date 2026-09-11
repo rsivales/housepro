@@ -155,6 +155,17 @@ export interface ImovelDraft {
   planta: boolean;
   /** Imóvel proveniente de herança/partilha — exige documentação adicional. */
   heranca: boolean;
+  // Contrato de mediação (CMI) e validades — alertas de expiração.
+  /** CMI exclusivo (true) ou aberto (false). Aberto oculta a morada pública. */
+  cmiExclusive: boolean;
+  /** Renovação automática do CMI. */
+  cmiRenewable: boolean;
+  /** Início do CMI (ISO date). */
+  cmiStart?: string;
+  /** Duração do CMI em meses (para calcular a validade). */
+  cmiMonths?: number;
+  /** Validade do certificado energético (ISO date). */
+  energyCertExpiry?: string;
   distrito?: string;
   videoUrl?: string;
   tourUrl?: string;
@@ -305,8 +316,34 @@ export function blankImovel(id: string): ImovelDraft {
     fotosCount: 0,
     planta: false,
     heranca: false,
+    cmiExclusive: true,
+    cmiRenewable: false,
     documentos: [],
   };
+}
+
+/** Estado de validade de uma data (CMI, certificado energético…). */
+export function expiryStatus(dateISO?: string, now = new Date()): {
+  state: "none" | "ok" | "soon" | "expired";
+  days: number;
+  label: string;
+} {
+  if (!dateISO) return { state: "none", days: 0, label: "" };
+  const end = new Date(dateISO);
+  if (isNaN(end.getTime())) return { state: "none", days: 0, label: "" };
+  const days = Math.ceil((end.getTime() - now.getTime()) / 86_400_000);
+  if (days < 0) return { state: "expired", days, label: `Expirado há ${Math.abs(days)} dia(s)` };
+  if (days <= 30) return { state: "soon", days, label: `Expira em ${days} dia(s)` };
+  return { state: "ok", days, label: `Válido (${days} dias)` };
+}
+
+/** Validade do CMI a partir do início + duração em meses. */
+export function cmiExpiryISO(start?: string, months?: number): string | undefined {
+  if (!start || !months) return undefined;
+  const d = new Date(start);
+  if (isNaN(d.getTime())) return undefined;
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
 }
 
 /** Deriva um rascunho editável a partir de um imóvel já publicado, para o
@@ -347,6 +384,11 @@ export function draftFromProperty(p: Property): ImovelDraft {
     developmentName: p.developmentName,
     developmentStage: p.developmentStage,
     developmentUnits: p.developmentUnits,
+    cmiExclusive: p.cmiExclusive ?? true,
+    cmiRenewable: p.cmiRenewable ?? false,
+    cmiStart: p.cmiStart,
+    cmiMonths: p.cmiMonths,
+    energyCertExpiry: p.energyCertExpiry,
     fotosCount: p.gallery?.length ?? (p.image ? 1 : 0),
   };
 }

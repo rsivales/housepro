@@ -217,6 +217,28 @@ export const LOCATION_PRIVACY: { value: "exact" | "approx" | "locality" | "hidde
   { value: "hidden", label: "Ocultar a localização" },
 ];
 export const VISTAS = ["Sem vista", "Mar", "Rio", "Serra", "Cidade", "Jardim", "Campo"];
+
+/** Divisões/etiquetas por fotografia (para organizar a galeria). */
+export const DIVISIONS = [
+  "Fachada",
+  "Hall de entrada",
+  "Sala",
+  "Sala de jantar",
+  "Cozinha",
+  "Quarto",
+  "Suite",
+  "Casa de banho",
+  "Escritório",
+  "Varanda",
+  "Terraço",
+  "Jardim",
+  "Piscina",
+  "Garagem",
+  "Arrecadação",
+  "Vista",
+  "Planta",
+  "Outro",
+];
 export const ENERGIAS = ["A+", "A", "B", "B-", "C", "D", "E", "F"];
 
 export const EQUIPAMENTOS = [

@@ -50,6 +50,7 @@ import {
 import { toIdealistaXML } from "@/lib/imovel/idealista";
 import { commissionLabel } from "@/lib/data/commission";
 import type { AuditEntry } from "@/lib/data/audit";
+import { PhotoManager, type Photo } from "@/components/property/photo-manager";
 
 const box =
   "w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
@@ -60,6 +61,12 @@ function readFile(file: File): Promise<string> {
     fr.onload = () => resolve(String(fr.result));
     fr.readAsDataURL(file);
   });
+}
+
+let photoSeq = 0;
+/** Cria um item de fotografia NOVA a partir do data URL original (sem marca). */
+function newPhoto(raw: string): Photo {
+  return { id: `n${Date.now()}-${photoSeq++}`, kind: "new", raw, url: raw, division: "" };
 }
 
 /** Tamanho aproximado (bytes) de um data URL. */
@@ -241,6 +248,8 @@ export interface PropertyFormProps {
   initial?: ImovelDraft;
   /** Fotos já publicadas (URLs remotos, já com marca de água) — só em edição. */
   initialPhotos?: string[];
+  /** Divisão de cada foto publicada, alinhada por índice com initialPhotos. */
+  initialDivisions?: string[];
   /** Id do imóvel em edição (para o endpoint de atualização e o link de volta). */
   propertyId?: string;
   /** Histórico de rastreio a mostrar em edição. */
@@ -252,16 +261,17 @@ export function PropertyForm({
   mode = "create",
   initial,
   initialPhotos = [],
+  initialDivisions = [],
   propertyId,
   audit = [],
   demo = false,
 }: PropertyFormProps = {}) {
   const isEdit = mode === "edit";
   const [d, setD] = React.useState<ImovelDraft>(() => initial ?? blankImovel("novo"));
-  /** Fotos remotas já publicadas (edição): mantêm-se, podem ser removidas. */
-  const [existing, setExisting] = React.useState<string[]>(initialPhotos);
-  const [originals, setOriginals] = React.useState<string[]>([]);
-  const [fotos, setFotos] = React.useState<string[]>([]);
+  /** Lista ordenada de fotografias (remotas já publicadas + novas). A 1.ª é a capa. */
+  const [photos, setPhotos] = React.useState<Photo[]>(() =>
+    initialPhotos.map((u, i) => ({ id: `r${i}-${u.slice(-10)}`, kind: "remote" as const, url: u, division: initialDivisions[i] ?? "" }))
+  );
   const [processing, setProcessing] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const [publishing, setPublishing] = React.useState(false);
@@ -317,23 +327,31 @@ export function PropertyForm({
     return () => clearTimeout(t);
   }, [d.parish, d.municipality, geocode]);
 
-  // Reprocessa fotos quando o toggle ou o estilo global mudam.
+  // Aplica/atualiza a marca de água nas fotos NOVAS quando são adicionadas ou
+  // quando o estilo global muda. As remotas (já publicadas) ficam intactas.
+  const newIdsKey = React.useMemo(
+    () => photos.filter((p) => p.kind === "new").map((p) => p.id).join(","),
+    [photos]
+  );
   React.useEffect(() => {
+    const news = photos.filter((p) => p.kind === "new" && p.raw);
+    if (!news.length) return;
     let alive = true;
     (async () => {
       setProcessing(true);
-      const out = await Promise.all(
-        originals.map((o) => (d.watermark ? watermark(o, wm) : Promise.resolve(o)))
-      );
-      if (alive) {
-        setFotos(out);
-        setProcessing(false);
+      const map = new Map<string, string>();
+      for (const p of news) {
+        map.set(p.id, d.watermark ? await watermark(p.raw!, wm) : p.raw!);
       }
+      if (!alive) return;
+      setPhotos((prev) => prev.map((p) => (map.has(p.id) ? { ...p, url: map.get(p.id)! } : p)));
+      setProcessing(false);
     })();
     return () => {
       alive = false;
     };
-  }, [originals, d.watermark, wm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newIdsKey, d.watermark, wm]);
 
   async function onPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -347,7 +365,7 @@ export function PropertyForm({
         falhas.push(f.name);
       }
     }
-    if (urls.length) setOriginals((prev) => [...prev, ...urls]);
+    if (urls.length) setPhotos((prev) => [...prev, ...urls.map(newPhoto)]);
     if (falhas.length) {
       alert(
         "Estas fotos não puderam ser lidas neste navegador (formato não suportado, ex.: HEIC de iPhone aberto no computador):\n" +
@@ -356,9 +374,6 @@ export function PropertyForm({
       );
     }
     e.target.value = "";
-  }
-  function removePhoto(i: number) {
-    setOriginals((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   /** Importa fotos de uma pasta/ficheiro do Google Drive (ou URL directo). */
@@ -401,7 +416,7 @@ export function PropertyForm({
         setImporting({ done: i + 1, total: files.length });
       }
       if (novos.length) {
-        setOriginals((prev) => [...prev, ...novos]);
+        setPhotos((prev) => [...prev, ...novos.map(newPhoto)]);
         setDriveUrl("");
       }
       if (falhas.length) {
@@ -471,7 +486,7 @@ export function PropertyForm({
     };
     localStorage.setItem(
       "imovel:novo",
-      JSON.stringify({ ...persist, fotosCount: fotos.length })
+      JSON.stringify({ ...persist, fotosCount: photos.length })
     );
     setSaved(true);
   }
@@ -481,29 +496,35 @@ export function PropertyForm({
     setSavedMsg(null);
     try {
       const supabase = createClient();
-      // Sobe apenas as fotos NOVAS (data URLs). As já publicadas (edição)
-      // mantêm-se pelos seus URLs remotos.
-      const uploadedNew: string[] = [];
+      // Percorre as fotos PELA ORDEM definida. As remotas (URL) mantêm-se; as
+      // novas (data URL) sobem para o Storage. Guarda também a divisão de cada.
+      const gallery: string[] = [];
+      const galleryMeta: { url: string; division?: string }[] = [];
       const erros: string[] = [];
-      for (const foto of fotos.slice(0, 40)) {
-        try {
-          const blob = await (await fetch(foto)).blob();
-          const path = `props/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-          const up = await supabase.storage
-            .from("property-media")
-            .upload(path, blob, { contentType: "image/jpeg", upsert: true });
-          if (up.error) {
-            erros.push(up.error.message);
-          } else {
-            uploadedNew.push(
-              supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl
-            );
+      let newTotal = 0;
+      let newOk = 0;
+      for (const foto of photos.slice(0, 40)) {
+        let url = foto.url;
+        if (url.startsWith("data:")) {
+          newTotal++;
+          try {
+            const blob = await (await fetch(url)).blob();
+            const path = `props/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+            const up = await supabase.storage
+              .from("property-media")
+              .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+            if (up.error) { erros.push(up.error.message); continue; }
+            url = supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl;
+            newOk++;
+          } catch (e) {
+            erros.push(e instanceof Error ? e.message : String(e));
+            continue;
           }
-        } catch (e) {
-          erros.push(e instanceof Error ? e.message : String(e));
         }
+        gallery.push(url);
+        galleryMeta.push({ url, division: foto.division || undefined });
       }
-      if (fotos.length > 0 && uploadedNew.length === 0) {
+      if (newTotal > 0 && newOk === 0) {
         alert(
           "As fotos não foram guardadas no armazenamento:\n" +
             (erros[0] ?? "erro desconhecido") +
@@ -512,8 +533,6 @@ export function PropertyForm({
         setPublishing(false);
         return;
       }
-      // Galeria final: fotos já publicadas (mantidas, pela ordem) + as novas.
-      const gallery = [...existing, ...uploadedNew];
       const coverUrl = gallery[0] ?? "";
 
       const baPairs: { before: string; after: string; label?: string }[] = [];
@@ -529,6 +548,7 @@ export function PropertyForm({
         const patchBody: Record<string, unknown> = {
           ...draftToPatch(d),
           gallery,
+          galleryMeta,
           coverUrl,
           beforeAfter: baPairs,
         };
@@ -542,9 +562,8 @@ export function PropertyForm({
           setSavedMsg("noop");
         } else if (res.ok && (out.entry || out.ok)) {
           if (out.entry) setHistory((h) => [out.entry, ...h]);
-          // As fotos novas passaram a publicadas: refletir no estado.
-          setExisting(gallery);
-          setOriginals([]);
+          // As fotos novas passaram a publicadas: reconstrói a lista pela ordem.
+          setPhotos(gallery.map((u, i) => ({ id: `r${i}-${u.slice(-10)}`, kind: "remote" as const, url: u, division: galleryMeta[i]?.division ?? "" })));
           setSavedMsg("ok");
         } else {
           setSavedMsg("err");
@@ -559,6 +578,7 @@ export function PropertyForm({
             beforeAfter: baPairs,
             coverUrl,
             gallery,
+            galleryMeta,
           }),
         });
         const out = await res.json();
@@ -577,7 +597,7 @@ export function PropertyForm({
   }
 
   function exportarIdealista() {
-    const draft = { ...d, fotosCount: fotos.length };
+    const draft = { ...d, fotosCount: photos.length };
     const out = toIdealistaXML(draft);
     setXml(out);
     const blob = new Blob([out], { type: "application/xml" });
@@ -598,7 +618,7 @@ export function PropertyForm({
   }
 
   const visibleKinds = DOC_KINDS.filter((k) => k.group === "base" || d.heranca);
-  const quality = draftQuality(d, fotos.length);
+  const quality = draftQuality(d, photos.length);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -724,61 +744,11 @@ export function PropertyForm({
             </div>
           )}
 
-          {/* Fotos já publicadas (edição) — mantêm-se salvo remoção. */}
-          {existing.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">
-                Fotos publicadas ({existing.length}) — a primeira é a capa.
-              </p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {existing.map((src, i) => (
-                  <div key={src + i} className="group relative overflow-hidden rounded-lg border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" className="aspect-[4/3] w-full object-cover" />
-                    {i === 0 && (
-                      <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
-                        Capa
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setExisting((prev) => prev.filter((_, idx) => idx !== i))}
-                      className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-background/80 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                      aria-label="Remover foto publicada"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <PhotoManager value={photos} onChange={setPhotos} processing={processing} />
 
-          {fotos.length > 0 && (
-            <div className="mt-4">
-              {isEdit && (
-                <p className="mb-2 text-xs font-medium text-muted-foreground">Fotos novas a adicionar ({fotos.length})</p>
-              )}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {fotos.map((src, i) => (
-                  <div key={i} className="group relative overflow-hidden rounded-lg border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" className="aspect-[4/3] w-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(i)}
-                      className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-background/80 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                      aria-label="Remover"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           <p className="mt-3 text-xs text-muted-foreground">
-            A marca de água é aplicada automaticamente a cada foto — não precisa de a fazer manualmente.
+            A marca de água é aplicada automaticamente a cada foto. Arraste (ou use as setas) para
+            ordenar — a <strong>1.ª é a capa</strong> — e escolha a <strong>divisão</strong> de cada foto.
           </p>
         </Card>
 

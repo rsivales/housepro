@@ -99,35 +99,67 @@ export async function POST(request: Request) {
     dbPatch[col] = value;
   }
 
-  if (changes.length === 0) {
+  // Coordenadas — atualizadas em silêncio (sem linha de histórico ruidosa).
+  if ("lat" in patch && patch.lat != null) dbPatch.latitude = Number(patch.lat);
+  if ("lng" in patch && patch.lng != null) dbPatch.longitude = Number(patch.lng);
+
+  // Media (arrays) — só regista alteração quando o conteúdo muda de facto.
+  if ("gallery" in patch && Array.isArray(patch.gallery)) {
+    const next = patch.gallery as string[];
+    if (JSON.stringify(current.gallery ?? []) !== JSON.stringify(next)) {
+      dbPatch.gallery = next.length ? next : null;
+      changes.push({ field: "Fotografias", from: `${current.gallery?.length ?? 0}`, to: `${next.length}` });
+    }
+  }
+  if ("coverUrl" in patch) {
+    const cover = patch.coverUrl ? String(patch.coverUrl) : "";
+    if ((current.image ?? "") !== cover) dbPatch.cover_url = cover || null;
+  }
+  if ("beforeAfter" in patch && Array.isArray(patch.beforeAfter)) {
+    const next = patch.beforeAfter;
+    if (JSON.stringify(current.beforeAfter ?? []) !== JSON.stringify(next)) {
+      dbPatch.before_after = next.length ? next : null;
+      changes.push({ field: "Antes/depois", from: `${current.beforeAfter?.length ?? 0}`, to: `${next.length}` });
+    }
+  }
+
+  if (changes.length === 0 && Object.keys(dbPatch).length === 0) {
     return NextResponse.json({ ok: true, noop: true });
   }
 
-  const entry: AuditEntry = {
-    id: `au-${Date.now()}`,
-    propertyId: id,
-    propertyRef: current.reference,
-    actorId: a.id,
-    actorName: a.name,
-    actorRole: a.role,
-    action: "editou",
-    changes,
-    at: new Date().toISOString(),
-  };
+  // Só se regista no histórico quando há alterações "visíveis" (as coordenadas
+  // atualizam-se em silêncio).
+  const entry: AuditEntry | null = changes.length
+    ? {
+        id: `au-${Date.now()}`,
+        propertyId: id,
+        propertyRef: current.reference,
+        actorId: a.id,
+        actorName: a.name,
+        actorRole: a.role,
+        action: "editou",
+        changes,
+        at: new Date().toISOString(),
+      }
+    : null;
 
   if (isSupabaseConfigured() && !session.demo) {
     try {
       const supabase = await createClient();
-      await supabase.from("properties").update(dbPatch).eq("id", id);
-      await supabase.from("property_audit").insert({
-        property_id: id,
-        property_ref: current.reference,
-        actor_id: a.id,
-        actor_name: a.name,
-        actor_role: a.role,
-        action: "editou",
-        changes,
-      });
+      if (Object.keys(dbPatch).length) {
+        await supabase.from("properties").update(dbPatch).eq("id", id);
+      }
+      if (entry) {
+        await supabase.from("property_audit").insert({
+          property_id: id,
+          property_ref: current.reference,
+          actor_id: a.id,
+          actor_name: a.name,
+          actor_role: a.role,
+          action: "editou",
+          changes,
+        });
+      }
     } catch {
       return NextResponse.json({ error: "save_failed" }, { status: 500 });
     }

@@ -1,6 +1,8 @@
 /** Modelo rico do imóvel para carregamento pelo consultor.
  *  Superset dos campos públicos, preparado para exportação (Idealista). */
 
+import type { Property } from "@/lib/data/types";
+
 export interface ImovelDoc {
   name: string;
   kind: string; // ver DOC_KINDS
@@ -223,6 +225,45 @@ export function blankImovel(id: string): ImovelDraft {
     planta: false,
     heranca: false,
     documentos: [],
+  };
+}
+
+/** Deriva um rascunho editável a partir de um imóvel já publicado, para o
+ *  formulário partilhado poder editar com os MESMOS campos do carregamento. */
+export function draftFromProperty(p: Property): ImovelDraft {
+  return {
+    ...blankImovel(p.id),
+    reference: p.reference,
+    operation: p.operation,
+    type: p.type,
+    typology: p.typology ?? "",
+    price: p.price,
+    comissaoTipo: p.commissionType ?? "percent",
+    comissao: p.commissionPct ?? 0,
+    comissaoFixo: p.commissionFixed ?? 0,
+    sellerType: p.sellerType ?? "particular",
+    area: p.area,
+    beds: p.beds,
+    baths: p.baths,
+    parish: p.parish,
+    municipality: p.municipality,
+    lat: p.lat,
+    lng: p.lng,
+    energy: p.energy ?? "C",
+    anoConstrucao: p.constructionYear ? String(p.constructionYear) : "",
+    elevador: Boolean(p.elevator),
+    descricaoCurta: p.shortDescription ?? "",
+    descricao: p.description ?? "",
+    seoTitle: p.title ?? "",
+    distrito: p.district ?? "",
+    videoUrl: p.videoUrl ?? "",
+    tourUrl: p.tourUrl ?? "",
+    beforeAfter: p.beforeAfter ?? [],
+    isDevelopment: p.isDevelopment,
+    developmentName: p.developmentName,
+    developmentStage: p.developmentStage,
+    developmentUnits: p.developmentUnits,
+    fotosCount: p.gallery?.length ?? (p.image ? 1 : 0),
   };
 }
 

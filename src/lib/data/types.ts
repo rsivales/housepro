@@ -10,6 +10,7 @@ export type PropertyStatus =
   | "reduzido"
   | "oportunidade"
   | "reservado"
+  | "cpcv"
   | "vendido";
 
 export type EnergyRating =

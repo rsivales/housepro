@@ -22,6 +22,7 @@ import { getSession } from "@/lib/supabase/auth";
 import { isStaff, roleLabel } from "@/lib/data/roles";
 import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
 import { businessTypeLabel } from "@/lib/imovel/model";
+import { autoTagsFromStatus } from "@/lib/data/status";
 import { formatArea, formatEuro, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
 import { site, postalAddressJsonLd } from "@/lib/site";
 
@@ -141,10 +142,13 @@ export default async function ImovelPage({
   ];
 
   const unavailable = property.status === "vendido" || property.status === "reservado";
-  // Preço oculto: por opção do consultor OU automaticamente quando vendido.
-  const priceHidden = property.priceVisible === false || property.status === "vendido";
+  // Preço oculto: por opção do consultor OU automaticamente quando vendido/CPCV.
+  const priceHidden =
+    property.priceVisible === false || property.status === "vendido" || property.status === "cpcv";
   const priceLabel = priceHidden ? "Preço sob consulta" : formatPrice(property);
   const businessLabel = businessTypeLabel(property.businessType ?? property.operation);
+  // Etiquetas públicas: automáticas (do estado) + manuais, sem duplicar.
+  const publicTags = [...new Set([...autoTagsFromStatus(property.status), ...(property.tags ?? [])])];
 
   // Dados estruturados: BreadcrumbList + Residence/Offer + RealEstateAgent.
   const jsonLd = {
@@ -251,9 +255,9 @@ export default async function ImovelPage({
               <h2 className="font-display text-2xl text-[var(--hp-navy)]">{editorialTitle}</h2>
               <div className="mt-2 h-0.5 w-12 rounded bg-[var(--hp-red)]" />
               <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--hp-navy)]/90">{shortSummary}</p>
-              {property.tags && property.tags.length > 0 && (
+              {publicTags.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {property.tags.map((t) => (
+                  {publicTags.map((t) => (
                     <span key={t} className="rounded-full bg-[var(--hp-navy)]/5 px-3 py-1 text-xs font-medium text-[var(--hp-navy)]">
                       {t}
                     </span>

@@ -54,6 +54,8 @@ import {
 import { toIdealistaXML } from "@/lib/imovel/idealista";
 import { commissionLabel } from "@/lib/data/commission";
 import type { AuditEntry } from "@/lib/data/audit";
+import type { PropertyStatus } from "@/lib/data/types";
+import { STATUS_LABEL, autoTagsFromStatus } from "@/lib/data/status";
 import { PhotoManager, type Photo } from "@/components/property/photo-manager";
 
 const box =
@@ -827,6 +829,14 @@ export function PropertyForm({
                 {TIPOLOGIAS.map((t) => <option key={t}>{t}</option>)}
               </select>
             </Field>
+            <Field label="Estado / etiqueta" hint={autoTagsFromStatus(d.status as PropertyStatus).length ? "Gera etiqueta automática no site." : "Etiqueta pública do imóvel."}>
+              <select value={d.status} onChange={(e) => patch({ status: e.target.value })} className={box}>
+                <option value="">— (sem etiqueta)</option>
+                {(Object.keys(STATUS_LABEL) as PropertyStatus[]).map((s) => (
+                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                ))}
+              </select>
+            </Field>
             <Field label="Preço (€)" hint={d.priceVisible ? "Visível ao público." : "Oculto — aparece como “Sob consulta”."}>
               <div className="space-y-2">
                 <Input type="number" value={d.price || ""} onChange={(e) => patch({ price: Number(e.target.value) || 0 })} />
@@ -1473,6 +1483,7 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     price: d.price,
     priceVisible: d.priceVisible,
     locationPrivacy: d.locationPrivacy,
+    status: d.status,
     area: d.area,
     beds: d.beds,
     baths: d.baths,

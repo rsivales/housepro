@@ -112,6 +112,9 @@ export interface ImovelDraft {
   price: number;
   /** Preço visível ao público. Auto-oculto quando vendido/CPCV. */
   priceVisible: boolean;
+  /** Estado comercial (etiqueta pública): "" | novo | destaque | reduzido |
+   *  oportunidade | reservado | cpcv | vendido. Algumas geram etiqueta automática. */
+  status: string;
   /** Privacidade da morada no mapa público. */
   locationPrivacy: "exact" | "approx" | "locality" | "hidden";
   /** Base da comissão: percentagem ou valor fixo. */
@@ -332,6 +335,7 @@ export function blankImovel(id: string): ImovelDraft {
     price: 0,
     priceVisible: true,
     locationPrivacy: "approx",
+    status: "",
     comissaoTipo: "percent",
     comissao: 5,
     comissaoFixo: 0,
@@ -408,6 +412,7 @@ export function draftFromProperty(p: Property): ImovelDraft {
     price: p.price,
     priceVisible: p.priceVisible ?? true,
     locationPrivacy: p.locationPrivacy ?? "approx",
+    status: p.status ?? "",
     comissaoTipo: p.commissionType ?? "percent",
     comissao: p.commissionPct ?? 0,
     comissaoFixo: p.commissionFixed ?? 0,

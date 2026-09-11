@@ -96,6 +96,7 @@ function LeadForm({
         email: form.get("email"),
         phone: form.get("phone"),
         message: form.get("message"),
+        operationalConsent: form.get("operationalConsent") === "on",
         marketingConsent: form.get("marketing") === "on",
         pageUrl: window.location.href,
       }),
@@ -162,7 +163,12 @@ function LeadForm({
         className="min-h-11 rounded-xl border border-white/25 bg-white/10 px-3 text-sm text-white placeholder:text-white/60"
       />
       <label className="sm:col-span-2 flex items-start gap-2 text-xs leading-5 text-white/75">
-        <input required type="checkbox" className="mt-1 size-4" />
+        <input
+          required
+          name="operationalConsent"
+          type="checkbox"
+          className="mt-1 size-4"
+        />
         Autorizo o tratamento dos meus dados para resposta a este pedido, nos
         termos da política de privacidade.
       </label>
@@ -180,6 +186,116 @@ function LeadForm({
       </button>
       {state === "error" && (
         <p className="sm:col-span-2 text-sm text-red-200">{message}</p>
+      )}
+    </form>
+  );
+}
+
+function InlineLeadMagnet({ kind }: { kind: "guide" | "alert" }) {
+  const [state, setState] = React.useState<"idle" | "sending" | "ok" | "error">(
+    "idle",
+  );
+  const [message, setMessage] = React.useState("");
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setState("sending");
+    const form = new FormData(event.currentTarget);
+    const response = await fetch("/api/development-lead", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        kind,
+        name: form.get("name") || undefined,
+        email: form.get("email"),
+        operationalConsent: form.get("operationalConsent") === "on",
+        marketingConsent: form.get("marketing") === "on",
+        pageUrl: window.location.href,
+      }),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      delivered?: boolean;
+    };
+    if (!response.ok) {
+      setMessage(data.error ?? "Não foi possível guardar. Tente novamente.");
+      setState("error");
+      return;
+    }
+    setMessage(
+      kind === "guide" && data.delivered
+        ? "Guia enviado. Consulte o seu email."
+        : "Pedido guardado. Iremos avisá-lo primeiro.",
+    );
+    setState("ok");
+    event.currentTarget.reset();
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className={
+        kind === "guide"
+          ? "grid gap-2 sm:grid-cols-2"
+          : "grid gap-2 sm:grid-cols-[1fr_auto]"
+      }
+    >
+      {kind === "guide" && (
+        <input
+          required
+          name="name"
+          aria-label="Nome"
+          placeholder="Nome"
+          className="min-h-11 border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#0d3b66]"
+        />
+      )}
+      <input
+        required
+        name="email"
+        type="email"
+        aria-label="Email"
+        placeholder="O seu e-mail"
+        className="min-h-11 border border-slate-300 bg-white px-3 text-sm text-[#071d37] outline-none focus:border-[#0d3b66]"
+      />
+      <button
+        disabled={state === "sending"}
+        className={`min-h-11 bg-[#c8102e] px-6 text-sm font-semibold text-white disabled:opacity-60 ${kind === "guide" ? "sm:col-span-2" : ""}`}
+      >
+        {state === "sending"
+          ? "A enviar…"
+          : kind === "guide"
+            ? "Receber o guia"
+            : "Criar alerta"}{" "}
+        <ArrowRight className="ml-1 inline size-4" />
+      </button>
+      <label
+        className={`${kind === "guide" ? "sm:col-span-2" : "sm:col-span-2"} flex items-start gap-2 text-[11px] leading-4 ${kind === "alert" ? "text-white/75" : "text-slate-500"}`}
+      >
+        <input
+          required
+          name="operationalConsent"
+          type="checkbox"
+          className="mt-0.5 size-4 accent-[#c8102e]"
+        />
+        Autorizo o tratamento dos dados para gerir este pedido.
+      </label>
+      {kind === "guide" && (
+        <label className="sm:col-span-2 flex items-start gap-2 text-[11px] leading-4 text-slate-500">
+          <input
+            name="marketing"
+            type="checkbox"
+            className="mt-0.5 size-4 accent-[#c8102e]"
+          />{" "}
+          Quero receber novidades HousePro (opcional).
+        </label>
+      )}
+      {message && (
+        <p
+          role="status"
+          className={`sm:col-span-2 text-xs font-semibold ${state === "error" ? "text-red-600" : kind === "alert" ? "text-emerald-200" : "text-emerald-700"}`}
+        >
+          {message}
+        </p>
       )}
     </form>
   );
@@ -233,7 +349,7 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
 
   return (
     <>
-      <section className="relative isolate min-h-[430px] overflow-hidden bg-[#071d37] text-white lg:min-h-[510px]">
+      <section className="relative isolate min-h-[430px] overflow-visible bg-[#071d37] text-white lg:min-h-[510px]">
         <ManagedSiteImage
           assetKey="developments.hero"
           fallback={projects[0]?.image || "/developments/hero.webp"}
@@ -283,7 +399,7 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
               .getElementById("colecao")
               ?.scrollIntoView({ behavior: "smooth" });
           }}
-          className="absolute bottom-0 left-1/2 z-20 w-[min(100%-2rem,1180px)] -translate-x-1/2 translate-y-1/2 rounded-md border border-slate-200/80 bg-white p-3 text-[#071d37] shadow-[0_22px_55px_rgba(7,29,55,.22),0_4px_14px_rgba(7,29,55,.12)] ring-1 ring-white"
+          className="absolute bottom-0 left-1/2 z-30 w-[min(100%-2rem,1180px)] -translate-x-1/2 translate-y-1/2 rounded-md border border-slate-200 bg-white p-3 text-[#071d37] shadow-[0_30px_65px_rgba(7,29,55,.30),0_8px_22px_rgba(7,29,55,.18)] ring-1 ring-white"
         >
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             <Filter
@@ -491,7 +607,7 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
       <section className="relative isolate overflow-hidden bg-[#f4f0e9] py-16 text-[#071d37]">
         <ManagedSiteImage
           assetKey="developments.support"
-          fallback="/clinica/mais-valias-documentos.jpg"
+          fallback="/developments/support.webp"
           fallbackAlt="Consultores a analisar plantas"
           className="absolute inset-y-0 right-0 -z-10 hidden h-full w-1/2 object-cover lg:block"
         />
@@ -509,12 +625,20 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
               Plantas, orientação solar, documentação e disponibilidade
               explicadas por um consultor.
             </p>
-            <button
-              onClick={() => setForm({ kind: "information" })}
-              className="mt-7 min-h-11 rounded-sm bg-[#d81f37] px-5 text-sm font-semibold text-white"
-            >
-              Pedir apoio <ArrowRight className="ml-1 inline size-4" />
-            </button>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <button
+                onClick={() => setForm({ kind: "information" })}
+                className="min-h-11 rounded-sm bg-[#d81f37] px-5 text-sm font-semibold text-white"
+              >
+                Pedir apoio <ArrowRight className="ml-1 inline size-4" />
+              </button>
+              <button
+                onClick={() => setForm({ kind: "information" })}
+                className="min-h-11 rounded-sm border border-[#d81f37] bg-white px-5 text-sm font-semibold text-[#a31621]"
+              >
+                Obter informação <Send className="ml-1 inline size-4" />
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -522,7 +646,7 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
       <section className="relative isolate overflow-hidden py-12 text-[#071d37]">
         <ManagedSiteImage
           assetKey="developments.guide"
-          fallback="/credito/guia-credito.jpg"
+          fallback="/developments/guide.webp"
           fallbackAlt="Guia comprar em planta"
           className="absolute inset-y-0 left-0 -z-10 h-full w-[42%] object-cover"
         />
@@ -539,12 +663,21 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
               Receba um guia prático com as etapas, documentos, pagamentos e
               cuidados essenciais antes de escolher.
             </p>
-            <button
-              onClick={() => setForm({ kind: "guide" })}
-              className="mt-5 min-h-11 w-full rounded-sm bg-[#d81f37] px-4 text-sm font-semibold text-white"
-            >
-              Receber o guia <Send className="ml-1 inline size-4" />
-            </button>
+            <div className="my-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-[#526074]">
+              <span>
+                <Check className="mr-1 inline size-4 rounded-full bg-[#c8102e] p-0.5 text-white" />
+                Como avaliar um projeto
+              </span>
+              <span>
+                <Check className="mr-1 inline size-4 rounded-full bg-[#c8102e] p-0.5 text-white" />
+                O que confirmar antes do CPCV
+              </span>
+              <span>
+                <Check className="mr-1 inline size-4 rounded-full bg-[#c8102e] p-0.5 text-white" />
+                Calendário e despesas
+              </span>
+            </div>
+            <InlineLeadMagnet kind="guide" />
           </div>
         </div>
       </section>
@@ -552,7 +685,7 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
       <section className="relative isolate overflow-hidden bg-[#071d37] py-9 text-white">
         <ManagedSiteImage
           assetKey="developments.alert"
-          fallback="/properties/villa-aerial.jpg"
+          fallback="/developments/alert.webp"
           fallbackAlt="Empreendimento contemporâneo"
           className="absolute inset-y-0 right-0 -z-10 h-full w-1/3 object-cover opacity-45"
         />
@@ -567,12 +700,62 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
               avisamos primeiro.
             </h2>
           </div>
-          <button
-            onClick={() => setForm({ kind: "alert" })}
-            className="min-h-11 rounded-sm bg-[#d81f37] px-7 text-sm font-semibold"
-          >
-            Criar alerta <ArrowRight className="ml-1 inline size-4" />
-          </button>
+          <div className="w-full max-w-xl">
+            <InlineLeadMagnet kind="alert" />
+          </div>
+        </div>
+      </section>
+
+      <section id="todos" className="bg-white py-10 text-[#071d37]">
+        <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#735f42]">
+                Guias para comprar em empreendimento
+              </p>
+              <h2 className="mt-2 font-display text-4xl leading-none">
+                Informação para decisões mais seguras.
+              </h2>
+            </div>
+            <Link
+              href="/noticias"
+              className="text-sm font-semibold text-[#a31621]"
+            >
+              Ver todos os artigos <ArrowRight className="ml-1 inline size-4" />
+            </Link>
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {[
+              [
+                "Comprar em planta",
+                "O que deve saber antes de decidir.",
+                "/guias/comprar-em-planta",
+              ],
+              [
+                "Crédito habitação",
+                "Prepare a proposta e compare cenários.",
+                "/credito",
+              ],
+              [
+                "Avaliar antes de vender",
+                "Conheça o valor real do seu imóvel.",
+                "/avaliacao-imovel",
+              ],
+            ].map(([title, text, href]) => (
+              <Link
+                key={title}
+                href={href}
+                className="group border-t border-[#dbe3e9] py-5"
+              >
+                <h3 className="font-display text-2xl">{title}</h3>
+                <p className="mt-2 text-sm text-slate-600">{text}</p>
+                <span className="mt-4 inline-flex text-sm font-semibold text-[#a31621] underline underline-offset-4">
+                  Ler artigo{" "}
+                  <ArrowRight className="ml-1 size-4 transition group-hover:translate-x-1" />
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -720,9 +903,43 @@ function UnitComparison({ units }: { units: Property[] }) {
   ];
   if (!units.length)
     return (
-      <div className="mt-8 rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">
-        Escolha unidades publicadas para iniciar a comparação. Não mostramos
-        valores de exemplo.
+      <div className="mt-8 overflow-x-auto border border-[#dfe5ea] bg-white">
+        <table className="min-w-[38rem] w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-[#dfe5ea]">
+              <th className="p-3 font-medium text-slate-500">&nbsp;</th>
+              {["Unidade A", "Unidade B", "Unidade C"].map((label) => (
+                <th
+                  key={label}
+                  className="p-3 text-center font-semibold text-[#071d37]"
+                >
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {["Tipologia", "Piso", "Área", "Orientação", "Estado"].map(
+              (label) => (
+                <tr
+                  key={label}
+                  className="border-b border-[#edf1f4] last:border-0"
+                >
+                  <th className="p-3 font-medium text-slate-600">{label}</th>
+                  {[0, 1, 2].map((column) => (
+                    <td key={column} className="p-3 text-center text-slate-400">
+                      —
+                    </td>
+                  ))}
+                </tr>
+              ),
+            )}
+          </tbody>
+        </table>
+        <p className="border-t border-[#edf1f4] px-4 py-3 text-xs text-slate-500">
+          Selecione um empreendimento com unidades publicadas para comparar
+          dados reais.
+        </p>
       </div>
     );
   return (

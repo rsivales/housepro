@@ -143,14 +143,14 @@ export const PUBLIC_MEDIA = [
     key: "developments.guide",
     label: "Empreendimentos — guia",
     route: "/empreendimentos",
-    fallback: "/credito/guia-credito.jpg",
+    fallback: "/developments/guide.webp",
     alt: "Guia para comprar em planta",
   },
   {
     key: "developments.alert",
     label: "Empreendimentos — alerta",
     route: "/empreendimentos",
-    fallback: "/properties/villa-aerial.jpg",
+    fallback: "/developments/alert.webp",
     alt: "Empreendimento contemporâneo",
   },
 ] as const;

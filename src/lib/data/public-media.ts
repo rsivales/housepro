@@ -13,6 +13,11 @@ export const PUBLIC_MEDIA = [
   { key: "capitalGains.documents", label: "Mais-valias — documentos", route: "/ferramentas/calculadora-mais-valias", fallback: "/clinica/mais-valias-documentos.jpg", alt: "Documentos e calculadora usados numa simulação" },
   { key: "signature.hero", label: "Signature — hero e pesquisa privada", route: "/signature", fallback: "/signature/editorial-coast-hero.webp", alt: "Arquitetura contemporânea junto ao Atlântico" },
   { key: "signature.construction", label: "Signature — construção por medida", route: "/signature", fallback: "/signature/editorial-construction.webp", alt: "Arquitetura e construção por medida" },
+  { key: "developments.hero", label: "Empreendimentos — hero", route: "/empreendimentos", fallback: "/properties/villa-aerial.jpg", alt: "Empreendimento residencial junto ao mar" },
+  { key: "developments.map", label: "Empreendimentos — mapa", route: "/empreendimentos", fallback: "/properties/villa-aerial.jpg", alt: "Localizações de empreendimentos" },
+  { key: "developments.support", label: "Empreendimentos — acompanhamento", route: "/empreendimentos", fallback: "/clinica/mais-valias-documentos.jpg", alt: "Consultores a analisar plantas" },
+  { key: "developments.guide", label: "Empreendimentos — guia", route: "/empreendimentos", fallback: "/credito/guia-credito.jpg", alt: "Guia para comprar em planta" },
+  { key: "developments.alert", label: "Empreendimentos — alerta", route: "/empreendimentos", fallback: "/properties/villa-aerial.jpg", alt: "Empreendimento contemporâneo" },
 ] as const;
 
 export type PublicMediaKey = (typeof PUBLIC_MEDIA)[number]["key"];

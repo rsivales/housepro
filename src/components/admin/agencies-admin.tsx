@@ -11,11 +11,13 @@ import { slugify, type AgenciesConfig } from "@/lib/data/agencies";
 import { AgencyProfileEditor } from "@/components/admin/agency-profile-editor";
 import { FileText } from "lucide-react";
 
-interface TeamMember { id: string; name: string; role: string; photo: string | null; accent: string }
+interface TeamMember { id: string; name: string; role: string; photo: string | null; accent: string; gross?: number }
 interface BaseAgency {
   id: string; name: string; region: string; slug: string; code: number;
-  propertyCount: number; team: TeamMember[];
+  propertyCount: number; team: TeamMember[]; production?: number;
 }
+
+const eur = (n: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 type Row = BaseAgency & { created?: boolean; suspended?: boolean };
 
 const box = "rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40";
@@ -151,6 +153,38 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
         </div>
       )}
 
+      {/* Visão global da rede */}
+      {(() => {
+        const totalAgents = rows.reduce((s, r) => s + r.team.length, 0);
+        const totalProd = rows.reduce((s, r) => s + (r.production ?? 0), 0);
+        const maxProd = Math.max(1, ...rows.map((r) => r.production ?? 0));
+        return (
+          <div className="rounded-2xl border bg-card p-5 shadow-sm">
+            <div className="grid grid-cols-3 gap-4">
+              <Stat label="Agências ativas" value={String(rows.filter((r) => !r.suspended).length)} />
+              <Stat label="Consultores" value={String(totalAgents)} />
+              <Stat label="Produção total" value={totalProd > 0 ? eur(totalProd) : "—"} />
+            </div>
+            {totalProd > 0 ? (
+              <div className="mt-4 space-y-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Produção por agência</p>
+                {rows.filter((r) => (r.production ?? 0) > 0).sort((a, b) => (b.production ?? 0) - (a.production ?? 0)).map((r) => (
+                  <div key={r.id} className="flex items-center gap-3 text-sm">
+                    <span className="w-40 shrink-0 truncate">{r.name}</span>
+                    <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                      <span className="block h-full rounded-full bg-primary" style={{ width: `${((r.production ?? 0) / maxProd) * 100}%` }} />
+                    </span>
+                    <span className="w-24 shrink-0 text-right font-medium tabular-nums">{eur(r.production ?? 0)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-xs text-muted-foreground">Sem produção registada ainda — os valores aparecem quando os consultores tiverem faturação lançada.</p>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Lista */}
       <div className="space-y-2.5">
         {rows.map((r) => {
@@ -210,24 +244,34 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
                 <div className="border-t p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Equipa</p>
                   {r.team.length > 0 ? (
-                    <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {r.team.map((m) => (
-                        <li key={m.id} className="flex items-center gap-2.5 rounded-xl border p-2">
-                          <AgentAvatar agent={{ id: m.id, name: m.name, photo: m.photo ?? undefined, accent: m.accent } as Agent} className="size-8" />
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{m.name}</p>
-                            <p className="truncate text-xs text-muted-foreground">{m.role}</p>
-                          </div>
-                        </li>
-                      ))}
+                    <ul className="mt-2 space-y-1.5">
+                      {[...r.team].sort((a, b) => (b.gross ?? 0) - (a.gross ?? 0)).map((m) => {
+                        const maxG = Math.max(1, ...r.team.map((x) => x.gross ?? 0));
+                        return (
+                          <li key={m.id} className="flex items-center gap-2.5 rounded-xl border p-2">
+                            <AgentAvatar agent={{ id: m.id, name: m.name, photo: m.photo ?? undefined, accent: m.accent } as Agent} className="size-8 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{m.name}</p>
+                              <p className="truncate text-xs text-muted-foreground">{m.role}</p>
+                            </div>
+                            <div className="hidden w-40 sm:block">
+                              <span className="block h-1.5 overflow-hidden rounded-full bg-secondary">
+                                <span className="block h-full rounded-full bg-primary" style={{ width: `${((m.gross ?? 0) / maxG) * 100}%` }} />
+                              </span>
+                            </div>
+                            <span className="w-20 shrink-0 text-right text-sm font-medium tabular-nums">{(m.gross ?? 0) > 0 ? eur(m.gross ?? 0) : "—"}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : (
                     <p className="mt-2 text-sm text-muted-foreground">Sem consultores associados.</p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                    <span>Slug: <span className="font-mono">{r.slug}</span></span>
+                    <span>Consultores: <strong className="text-foreground">{r.team.length}</strong></span>
+                    <span>Produção da agência: <strong className="text-foreground">{(r.production ?? 0) > 0 ? eur(r.production ?? 0) : "—"}</strong></span>
+                    <span>Imóveis ativos: <strong className="text-foreground">{r.propertyCount}</strong></span>
                     <span>Código: <span className="font-mono">{String(r.code).padStart(2, "0")}</span></span>
-                    <span>Imóveis ativos: {r.propertyCount}</span>
                   </div>
                 </div>
               )}
@@ -258,6 +302,15 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-0.5 font-display text-2xl tabular-nums">{value}</p>
     </div>
   );
 }

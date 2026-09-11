@@ -4,7 +4,7 @@ import { ArrowLeft, Building2, ShieldAlert } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { agencies, agentsByAgency, agentById } from "@/lib/data/mock";
-import { listProperties, getAgenciesConfig } from "@/lib/db/repo";
+import { listProperties, getAgenciesConfig, listAgentGross } from "@/lib/db/repo";
 import { getSession } from "@/lib/supabase/auth";
 import { isBrandAdmin } from "@/lib/data/roles";
 import { AgenciesAdmin } from "@/components/admin/agencies-admin";
@@ -24,15 +24,23 @@ export default async function AdminAgenciasPage() {
     if (ag) counts.set(ag, (counts.get(ag) ?? 0) + 1);
   }
 
-  const base = agencies.map((a) => ({
-    id: a.id,
-    name: a.name,
-    region: a.region,
-    slug: a.slug,
-    code: a.code ?? 0,
-    propertyCount: counts.get(a.id) ?? 0,
-    team: agentsByAgency(a.id).map((m) => ({ id: m.id, name: m.name, role: m.role, photo: m.photo ?? null, accent: m.accent })),
-  }));
+  const gross = await listAgentGross();
+  const base = agencies.map((a) => {
+    const team = agentsByAgency(a.id).map((m) => ({
+      id: m.id, name: m.name, role: m.role, photo: m.photo ?? null, accent: m.accent,
+      gross: gross[m.id] ?? 0,
+    }));
+    return {
+      id: a.id,
+      name: a.name,
+      region: a.region,
+      slug: a.slug,
+      code: a.code ?? 0,
+      propertyCount: counts.get(a.id) ?? 0,
+      team,
+      production: team.reduce((s, m) => s + m.gross, 0),
+    };
+  });
 
   return (
     <div className="min-h-dvh bg-background">

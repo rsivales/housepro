@@ -278,6 +278,21 @@ export async function getUplineChain(
 }
 
 /** Faturação acumulada do mês/ciclo do consultor (0 em modo demo). */
+/** Produção mensal (gross) de todos os consultores, num só pedido. Vazio sem
+ *  Supabase — não se inventam valores de produção. */
+export async function listAgentGross(): Promise<Record<string, number>> {
+  if (!isSupabaseConfigured()) return {};
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("profiles").select("id, monthly_gross");
+    const map: Record<string, number> = {};
+    for (const r of data ?? []) map[String(r.id)] = Number(r.monthly_gross ?? 0);
+    return map;
+  } catch {
+    return {};
+  }
+}
+
 export async function getMonthlyGross(agentId: string): Promise<number> {
   if (!isSupabaseConfigured()) return 0;
   try {

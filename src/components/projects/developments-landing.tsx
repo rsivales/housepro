@@ -6,11 +6,11 @@ import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
-  Building2,
   Check,
   ChevronDown,
   FileText,
   MapPin,
+  Search,
   Send,
   X,
 } from "lucide-react";
@@ -236,7 +236,7 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
       <section className="relative isolate min-h-[430px] overflow-hidden bg-[#071d37] text-white lg:min-h-[510px]">
         <ManagedSiteImage
           assetKey="developments.hero"
-          fallback={projects[0]?.image || "/properties/villa-aerial.jpg"}
+          fallback={projects[0]?.image || "/developments/hero.webp"}
           fallbackAlt="Empreendimento residencial junto ao mar"
           loading="eager"
           className="absolute inset-y-0 right-0 -z-20 h-full w-full object-cover lg:w-[68%]"
@@ -283,7 +283,7 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
               .getElementById("colecao")
               ?.scrollIntoView({ behavior: "smooth" });
           }}
-          className="absolute bottom-0 left-1/2 z-10 w-[min(100%-2rem,1180px)] -translate-x-1/2 translate-y-1/2 rounded-md bg-white p-3 text-[#071d37] shadow-xl"
+          className="absolute bottom-0 left-1/2 z-20 w-[min(100%-2rem,1180px)] -translate-x-1/2 translate-y-1/2 rounded-md border border-slate-200/80 bg-white p-3 text-[#071d37] shadow-[0_22px_55px_rgba(7,29,55,.22),0_4px_14px_rgba(7,29,55,.12)] ring-1 ring-white"
         >
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             <Filter
@@ -314,8 +314,8 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
                 ["2000000", "Até 2 000 000 €"],
               ]}
             />
-            <button className="min-h-12 rounded-md bg-[#d81f37] px-4 text-sm font-semibold text-white">
-              Pesquisar <ArrowRight className="ml-1 inline size-4" />
+            <button className="min-h-12 rounded-md bg-[#c8102e] px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(200,16,46,.22)]">
+              <Search className="mr-2 inline size-4" /> Pesquisar
             </button>
           </div>
         </form>
@@ -334,12 +334,13 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
               Cada projeto, uma forma diferente de viver.
             </h2>
           </div>
-          {projects.length > 3 && (
-            <a href="#todos" className="text-sm font-semibold text-[#a31621]">
-              Ver todos os empreendimentos{" "}
-              <ArrowRight className="ml-1 inline size-4" />
-            </a>
-          )}
+          <a
+            href="#todos"
+            className="text-sm font-semibold text-[#a31621] underline-offset-8 hover:underline"
+          >
+            Ver todos os empreendimentos{" "}
+            <ArrowRight className="ml-1 inline size-4" />
+          </a>
         </div>
         {filtered.length ? (
           <div className="mt-9 grid gap-3 md:grid-cols-12">
@@ -354,22 +355,22 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
             ))}
           </div>
         ) : (
-          <EmptyProjects />
+          <EditorialProjectPlaceholders />
         )}
       </section>
 
       <section
         id="mapa"
-        className="relative isolate overflow-hidden border-y bg-[#f5f8fa] py-14 text-[#071d37]"
+        className="relative isolate overflow-hidden border-y border-[#e6edf2] bg-[#f7fafc] py-12 text-[#071d37] lg:py-16"
       >
         <ManagedSiteImage
           assetKey="developments.map"
-          fallback="/properties/villa-aerial.jpg"
+          fallback="/developments/algarve-map.webp"
           fallbackAlt="Mapa de localizações de empreendimentos"
-          className="absolute inset-y-0 right-0 -z-10 h-full w-full object-cover opacity-[.12] lg:w-[64%]"
+          className="absolute inset-y-0 right-0 -z-10 h-full w-full object-cover object-center opacity-100 lg:w-[68%]"
         />
-        <div className="mx-auto grid max-w-[1240px] gap-8 px-4 sm:px-6 lg:grid-cols-[.75fr_1.25fr] lg:items-center">
-          <div>
+        <div className="mx-auto grid min-h-[330px] max-w-[1240px] gap-8 px-4 sm:px-6 lg:grid-cols-[.72fr_1.28fr] lg:items-center">
+          <div className="relative z-10 rounded-xl bg-white/88 p-5 shadow-sm backdrop-blur-[2px] lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
             <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#735f42]">
               Empreendimentos no Algarve
             </p>
@@ -377,17 +378,37 @@ export function DevelopmentsLanding({ units }: { units: Property[] }) {
               Descubra o Algarve, projeto a projeto.
             </h2>
             <p className="mt-4 max-w-sm leading-7 text-[#465269]">
-              As localizações surgem apenas quando existem empreendimentos
-              publicados.
+              Explore os empreendimentos disponíveis nas localidades que fazem
+              sentido para a sua procura.
             </p>
+            <a
+              href="#colecao"
+              className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-sm bg-[#c8102e] px-5 text-sm font-semibold text-white"
+            >
+              Explorar no mapa <ArrowRight className="size-4" />
+            </a>
           </div>
-          <div className="min-h-64 p-6">
-            <MapPin className="size-6 text-[#a31621]" />
-            <p className="mt-40 rounded-xl border bg-white/90 p-4 text-sm text-[#637083]">
-              {locations.length
-                ? locations.join(" · ")
-                : "Ainda sem localizações de empreendimentos publicadas."}
-            </p>
+          <div className="flex min-h-64 items-end justify-center pb-1 lg:min-h-[300px]">
+            <div className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-md border border-[#dfe7ed] bg-white/94 px-4 py-3 text-xs text-[#465269] shadow-[0_8px_24px_rgba(7,29,55,.10)] backdrop-blur">
+              <MapPin className="size-4 text-[#0d3b66]" />
+              {(locations.length
+                ? locations
+                : ["Lagos", "Portimão", "Albufeira", "Loulé", "Faro", "Tavira"]
+              ).map((item) => (
+                <button
+                  key={item}
+                  onClick={() => {
+                    setLocation(locations.includes(item) ? item : "all");
+                    document
+                      .getElementById("colecao")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="min-h-8 rounded-full border border-[#e1e7ec] bg-white px-3 hover:border-[#a31621] hover:text-[#a31621]"
+                >
+                  {item.split(",")[0]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -737,16 +758,54 @@ function UnitComparison({ units }: { units: Property[] }) {
   );
 }
 
-function EmptyProjects() {
+function EditorialProjectPlaceholders() {
+  const cards = [
+    {
+      key: "developments.projectPrimary" as const,
+      image: "/developments/project-primary.webp",
+      className: "md:col-span-6 md:min-h-[470px]",
+      title: "Novos projetos no Algarve",
+    },
+    {
+      key: "developments.projectVertical" as const,
+      image: "/developments/project-vertical.webp",
+      className: "md:col-span-3 md:min-h-[470px]",
+      title: "Arquitetura com identidade",
+    },
+    {
+      key: "developments.projectSquare" as const,
+      image: "/developments/project-square.webp",
+      className: "md:col-span-3 md:min-h-[470px]",
+      title: "Uma nova forma de viver",
+    },
+  ];
   return (
-    <div className="mt-9 rounded-2xl border border-dashed bg-card px-6 py-14 text-center">
-      <Building2 className="mx-auto size-9 text-muted-foreground" />
-      <h3 className="mt-4 font-display text-3xl">Novos projetos a caminho</h3>
-      <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-        Ainda não existem empreendimentos publicados. Assim que uma unidade real
-        estiver aprovada, aparecerá aqui com a respetiva informação e materiais
-        autorizados.
-      </p>
+    <div className="mt-9 grid gap-3 md:grid-cols-12">
+      {cards.map((card) => (
+        <article
+          key={card.key}
+          className={`${card.className} relative min-h-[380px] overflow-hidden bg-[#071d37]`}
+        >
+          <ManagedSiteImage
+            assetKey={card.key}
+            fallback={card.image}
+            fallbackAlt={card.title}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#061a31] via-[#061a31]/20 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+            <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-white/70">
+              Em preparação
+            </p>
+            <h3 className="mt-2 font-display text-3xl leading-none">
+              {card.title}
+            </h3>
+            <p className="mt-3 max-w-xs text-sm text-white/75">
+              A informação comercial será publicada após validação.
+            </p>
+          </div>
+        </article>
+      ))}
     </div>
   );
 }

@@ -175,8 +175,41 @@ export interface ImovelDraft {
   developmentName?: string;
   developmentStage?: "planta" | "construcao" | "pronto";
   developmentUnits?: number;
+  /** Gama de tipologias do empreendimento (ex.: "T1 a T3"). */
+  developmentTypologies?: string;
+  /** Preço "desde" do empreendimento (para exportação/portais). */
+  developmentPriceFrom?: number;
+  /** Previsão de entrega (ex.: "2.º trimestre 2027"). */
+  developmentDelivery?: string;
+  // Encargos, proprietário, etiquetas e flags
+  /** Encargos correntes (IMI, condomínio, etc.). */
+  expenses: { label: string; value: number; period: "mensal" | "anual" }[];
+  /** Contactos do proprietário — PRIVADOS (nunca públicos). */
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  ownerNif?: string;
+  /** Etiquetas manuais (conjunto predefinido). */
+  tags: string[];
+  /** Placa "vende-se" colocada. */
+  hasPlaca: boolean;
+  /** Chaves na agência. */
+  hasKeys: boolean;
   documentos: ImovelDoc[];
 }
+
+/** Etiquetas manuais predefinidas (as automáticas — reservado/vendido/CPCV/
+ *  baixa de preço — são aplicadas pelo estado/processo, noutra fase). */
+export const MANUAL_TAGS = [
+  "Novidade",
+  "Oportunidade",
+  "Exclusivo",
+  "Luxo",
+  "Remodelado",
+  "Investimento",
+  "Vista mar",
+  "Para remodelar",
+];
 
 export const TIPOS = [
   "Apartamento",
@@ -318,6 +351,10 @@ export function blankImovel(id: string): ImovelDraft {
     heranca: false,
     cmiExclusive: true,
     cmiRenewable: false,
+    expenses: [],
+    tags: [],
+    hasPlaca: false,
+    hasKeys: false,
     documentos: [],
   };
 }
@@ -389,6 +426,17 @@ export function draftFromProperty(p: Property): ImovelDraft {
     cmiStart: p.cmiStart,
     cmiMonths: p.cmiMonths,
     energyCertExpiry: p.energyCertExpiry,
+    developmentTypologies: p.developmentTypologies,
+    developmentPriceFrom: p.developmentPriceFrom,
+    developmentDelivery: p.developmentDelivery,
+    expenses: p.expenses ?? [],
+    ownerName: p.ownerName,
+    ownerPhone: p.ownerPhone,
+    ownerEmail: p.ownerEmail,
+    ownerNif: p.ownerNif,
+    tags: p.tags ?? [],
+    hasPlaca: p.hasPlaca ?? false,
+    hasKeys: p.hasKeys ?? false,
     fotosCount: p.gallery?.length ?? (p.image ? 1 : 0),
   };
 }

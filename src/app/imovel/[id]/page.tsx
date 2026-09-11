@@ -22,7 +22,7 @@ import { getSession } from "@/lib/supabase/auth";
 import { isStaff, roleLabel } from "@/lib/data/roles";
 import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
 import { businessTypeLabel } from "@/lib/imovel/model";
-import { formatArea, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
+import { formatArea, formatEuro, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
 import { site, postalAddressJsonLd } from "@/lib/site";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
@@ -246,10 +246,30 @@ export default async function ImovelPage({
               <h2 className="font-display text-2xl text-[var(--hp-navy)]">{editorialTitle}</h2>
               <div className="mt-2 h-0.5 w-12 rounded bg-[var(--hp-red)]" />
               <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--hp-navy)]/90">{shortSummary}</p>
+              {property.tags && property.tags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {property.tags.map((t) => (
+                    <span key={t} className="rounded-full bg-[var(--hp-navy)]/5 px-3 py-1 text-xs font-medium text-[var(--hp-navy)]">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
               <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--hp-text-2)]">
                 <span className="inline-flex items-center gap-1.5"><Zap className="size-4 text-[var(--hp-red)]" /> Certificado {property.energy}</span>
                 <span aria-hidden>·</span>
                 <span>Ref. {property.reference}</span>
+                {property.expenses && property.expenses.length > 0 && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>
+                      Encargos:{" "}
+                      {property.expenses
+                        .map((ex) => `${ex.label} ${formatEuro(ex.value)}/${ex.period === "mensal" ? "mês" : "ano"}`)
+                        .join(" · ")}
+                    </span>
+                  </>
+                )}
               </p>
               <a href="#descricao" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--hp-red)] hover:underline">
                 Ler descrição completa <ChevronRight className="size-4" />

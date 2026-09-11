@@ -32,6 +32,7 @@ import {
   LOCATION_PRIVACY,
   cmiExpiryISO,
   expiryStatus,
+  MANUAL_TAGS,
   operationOf,
   TIPOS,
   TIPOLOGIAS,
@@ -624,6 +625,18 @@ export function PropertyForm({
         : [...d.equipamentos, item],
     });
   }
+  function toggleTag(tag: string) {
+    patch({ tags: d.tags.includes(tag) ? d.tags.filter((t) => t !== tag) : [...d.tags, tag] });
+  }
+  function addExpense(preset?: { label: string; period: "mensal" | "anual" }) {
+    patch({ expenses: [...d.expenses, { label: preset?.label ?? "", value: 0, period: preset?.period ?? "mensal" }] });
+  }
+  function setExpense(i: number, p: Partial<ImovelDraft["expenses"][number]>) {
+    patch({ expenses: d.expenses.map((x, idx) => (idx === i ? { ...x, ...p } : x)) });
+  }
+  function removeExpense(i: number) {
+    patch({ expenses: d.expenses.filter((_, idx) => idx !== i) });
+  }
 
   const visibleKinds = DOC_KINDS.filter((k) => k.group === "base" || d.heranca);
   const quality = draftQuality(d, photos.length);
@@ -978,6 +991,15 @@ export function PropertyForm({
                   placeholder="Ex.: 24"
                 />
               </Field>
+              <Field label="Tipologias" hint="Gama disponível.">
+                <Input value={d.developmentTypologies ?? ""} onChange={(e) => patch({ developmentTypologies: e.target.value })} placeholder="Ex.: T1 a T3" />
+              </Field>
+              <Field label="Preço desde (€)">
+                <Input type="number" value={d.developmentPriceFrom || ""} onChange={(e) => patch({ developmentPriceFrom: Number(e.target.value) || undefined })} placeholder="Ex.: 285000" />
+              </Field>
+              <Field label="Previsão de entrega">
+                <Input value={d.developmentDelivery ?? ""} onChange={(e) => patch({ developmentDelivery: e.target.value })} placeholder="Ex.: 2.º trimestre 2027" />
+              </Field>
             </div>
           )}
         </Card>
@@ -1038,6 +1060,83 @@ export function PropertyForm({
             <Button type="button" variant="outline" onClick={addPair}>
               <ImagePlus className="size-4" /> Adicionar par antes/depois
             </Button>
+          </div>
+        </Card>
+
+        {/* Etiquetas, encargos, proprietário e flags */}
+        <Card title="Etiquetas, encargos e proprietário">
+          {/* Etiquetas manuais */}
+          <p className="text-sm font-medium">Etiquetas</p>
+          <p className="mb-2 text-xs text-muted-foreground">
+            As etiquetas de estado (reservado, vendido, CPCV, baixa de preço) são automáticas e chegam a seguir.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {MANUAL_TAGS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => toggleTag(t)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                  d.tags.includes(t) ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {/* Encargos */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Encargos correntes</p>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => addExpense({ label: "IMI", period: "anual" })}>+ IMI</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => addExpense({ label: "Condomínio", period: "mensal" })}>+ Condomínio</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => addExpense()}>+ Outro</Button>
+              </div>
+            </div>
+            {d.expenses.length > 0 && (
+              <ul className="mt-3 space-y-2">
+                {d.expenses.map((ex, i) => (
+                  <li key={i} className="flex flex-wrap items-center gap-2">
+                    <Input value={ex.label} onChange={(e) => setExpense(i, { label: e.target.value })} placeholder="Ex.: IMI" className="min-w-0 flex-1" />
+                    <Input type="number" value={ex.value || ""} onChange={(e) => setExpense(i, { value: Number(e.target.value) || 0 })} placeholder="€" className="w-28" />
+                    <select value={ex.period} onChange={(e) => setExpense(i, { period: e.target.value as "mensal" | "anual" })} className={box + " w-28 shrink-0"}>
+                      <option value="mensal">/mês</option>
+                      <option value="anual">/ano</option>
+                    </select>
+                    <button type="button" onClick={() => removeExpense(i)} aria-label="Remover encargo" className="grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-secondary">
+                      <Trash2 className="size-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Proprietário (privado) */}
+          <div className="mt-6">
+            <p className="text-sm font-medium">Contactos do proprietário</p>
+            <p className="mb-2 text-xs text-muted-foreground">Privado — nunca aparece no site nem nos portais.</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Nome"><Input value={d.ownerName ?? ""} onChange={(e) => patch({ ownerName: e.target.value })} /></Field>
+              <Field label="Telefone"><Input value={d.ownerPhone ?? ""} onChange={(e) => patch({ ownerPhone: e.target.value })} /></Field>
+              <Field label="Email"><Input type="email" value={d.ownerEmail ?? ""} onChange={(e) => patch({ ownerEmail: e.target.value })} /></Field>
+              <Field label="NIF"><Input value={d.ownerNif ?? ""} onChange={(e) => patch({ ownerNif: e.target.value })} /></Field>
+            </div>
+          </div>
+
+          {/* Flags operacionais */}
+          <div className="mt-6 flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={d.hasPlaca} onChange={(e) => patch({ hasPlaca: e.target.checked })} className="size-4 accent-primary" />
+              Placa colocada
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={d.hasKeys} onChange={(e) => patch({ hasKeys: e.target.checked })} className="size-4 accent-primary" />
+              Chaves na agência
+            </label>
           </div>
         </Card>
 
@@ -1381,6 +1480,17 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     cmiStart: d.cmiStart ?? "",
     cmiMonths: d.cmiMonths ?? "",
     energyCertExpiry: d.energyCertExpiry ?? "",
+    developmentTypologies: d.developmentTypologies ?? "",
+    developmentPriceFrom: d.developmentPriceFrom ?? "",
+    developmentDelivery: d.developmentDelivery ?? "",
+    ownerName: d.ownerName ?? "",
+    ownerPhone: d.ownerPhone ?? "",
+    ownerEmail: d.ownerEmail ?? "",
+    ownerNif: d.ownerNif ?? "",
+    hasPlaca: d.hasPlaca,
+    hasKeys: d.hasKeys,
+    expenses: d.expenses,
+    tags: d.tags,
     lat: d.lat,
     lng: d.lng,
   };

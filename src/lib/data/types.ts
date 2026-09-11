@@ -112,6 +112,22 @@ export interface Property {
   developmentStage?: "planta" | "construcao" | "pronto";
   /** Nº total de frações/lotes do empreendimento (informativo). */
   developmentUnits?: number;
+  /** Empreendimento: gama de tipologias, preço "desde" e previsão de entrega. */
+  developmentTypologies?: string;
+  developmentPriceFrom?: number;
+  developmentDelivery?: string;
+  /** Encargos correntes (IMI, condomínio, etc.). */
+  expenses?: { label: string; value: number; period: "mensal" | "anual" }[];
+  /** Contactos do proprietário — PRIVADOS (nunca renderizados no público). */
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  ownerNif?: string;
+  /** Etiquetas (manuais + automáticas). */
+  tags?: string[];
+  /** Placa colocada / chaves na agência (operacional interno). */
+  hasPlaca?: boolean;
+  hasKeys?: boolean;
   /** Brochura pública autorizada do empreendimento. Nunca é inventada: só
    * aparece na montra quando o URL foi preenchido no backoffice. */
   developmentBrochureUrl?: string;

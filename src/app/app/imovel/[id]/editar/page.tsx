@@ -51,12 +51,17 @@ export default async function EditarImovelPage({ params }: { params: Promise<{ i
   const real = await listPropertyAudit(id);
   const audit = real.length ? real : demoAudit(id);
 
+  const initialPhotos = property.gallery ?? (property.image ? [property.image] : []);
+  const divByUrl = new Map((property.galleryMeta ?? []).map((m) => [m.url, m.division ?? ""]));
+  const initialDivisions = initialPhotos.map((u) => divByUrl.get(u) ?? "");
+
   return (
     <PropertyForm
       mode="edit"
       propertyId={id}
       initial={draftFromProperty(property)}
-      initialPhotos={property.gallery ?? (property.image ? [property.image] : [])}
+      initialPhotos={initialPhotos}
+      initialDivisions={initialDivisions}
       audit={audit}
       demo={session.demo}
     />

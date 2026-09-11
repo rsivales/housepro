@@ -82,6 +82,7 @@ export async function POST(request: Request) {
     status: d.status === "rascunho" ? "rascunho" : "novo",
     cover_url: d.coverUrl ? String(d.coverUrl) : null,
     gallery: Array.isArray(d.gallery) && d.gallery.length ? d.gallery : null,
+    gallery_meta: Array.isArray(d.galleryMeta) && d.galleryMeta.length ? d.galleryMeta : null,
     video_url: d.videoUrl ? String(d.videoUrl) : null,
     tour_url: d.tourUrl ? String(d.tourUrl) : null,
     before_after:

@@ -114,6 +114,9 @@ export async function POST(request: Request) {
       changes.push({ field: "Fotografias", from: `${current.gallery?.length ?? 0}`, to: `${next.length}` });
     }
   }
+  if ("galleryMeta" in patch && Array.isArray(patch.galleryMeta)) {
+    dbPatch.gallery_meta = patch.galleryMeta.length ? patch.galleryMeta : null;
+  }
   if ("coverUrl" in patch) {
     const cover = patch.coverUrl ? String(patch.coverUrl) : "";
     if ((current.image ?? "") !== cover) dbPatch.cover_url = cover || null;

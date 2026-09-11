@@ -68,6 +68,8 @@ export const AUDIT_FIELD_LABEL: Record<string, string> = {
   ownerNif: "NIF do proprietário",
   hasPlaca: "Placa colocada",
   hasKeys: "Chaves na agência",
+  listingState: "Estado",
+  offMarket: "Fora de mercado",
 };
 
 export function auditFieldLabel(f: string): string {

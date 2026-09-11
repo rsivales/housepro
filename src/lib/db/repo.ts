@@ -120,6 +120,8 @@ function mapRow(r: Row): Property {
     tags: Array.isArray(r.tags) ? (r.tags as string[]) : undefined,
     hasPlaca: r.has_placa != null ? Boolean(r.has_placa) : undefined,
     hasKeys: r.has_keys != null ? Boolean(r.has_keys) : undefined,
+    listingState: (r.listing_state as Property["listingState"]) ?? undefined,
+    offMarket: r.off_market != null ? Boolean(r.off_market) : undefined,
     approval: (r.approval as Property["approval"]) ?? undefined,
     submittedAt: (r.submitted_at as string) ?? undefined,
     agent: mapAgent((r.agent ?? r.profiles) as Row | null | undefined),
@@ -164,6 +166,8 @@ export async function listProperties(): Promise<Property[]> {
     .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
+    .eq("listing_state", "activo")
+    .eq("off_market", false)
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }
@@ -181,6 +185,8 @@ export async function listDevelopments(): Promise<Property[]> {
     .eq("is_development", true)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
+    .eq("listing_state", "activo")
+    .eq("off_market", false)
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }
@@ -210,6 +216,8 @@ export async function listPropertiesByAgency(agencyId: string): Promise<Property
     .eq("profiles.agency_id", agencyId)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
+    .eq("listing_state", "activo")
+    .eq("off_market", false)
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }
@@ -240,6 +248,8 @@ export async function listSimilarProperties(
     .neq("id", property.id)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
+    .eq("listing_state", "activo")
+    .eq("off_market", false)
     .eq("municipality", property.municipality)
     .limit(limit);
   return (data ?? []).map(mapRow);

@@ -195,8 +195,18 @@ export interface ImovelDraft {
   hasPlaca: boolean;
   /** Chaves na agência. */
   hasKeys: boolean;
+  /** Estado operacional (lado do agente): activo é o único público. */
+  listingState: "activo" | "pendente" | "inactivo";
+  /** Fora de mercado: visível a toda a agência, mas NÃO ao público/portais. */
+  offMarket: boolean;
   documentos: ImovelDoc[];
 }
+
+export const LISTING_STATES: { value: "activo" | "pendente" | "inactivo"; label: string }[] = [
+  { value: "activo", label: "Activo (público)" },
+  { value: "pendente", label: "Pendente" },
+  { value: "inactivo", label: "Inactivo" },
+];
 
 /** Etiquetas manuais predefinidas (as automáticas — reservado/vendido/CPCV/
  *  baixa de preço — são aplicadas pelo estado/processo, noutra fase). */
@@ -355,6 +365,8 @@ export function blankImovel(id: string): ImovelDraft {
     tags: [],
     hasPlaca: false,
     hasKeys: false,
+    listingState: "activo",
+    offMarket: false,
     documentos: [],
   };
 }
@@ -437,6 +449,8 @@ export function draftFromProperty(p: Property): ImovelDraft {
     tags: p.tags ?? [],
     hasPlaca: p.hasPlaca ?? false,
     hasKeys: p.hasKeys ?? false,
+    listingState: p.listingState ?? "activo",
+    offMarket: p.offMarket ?? false,
     fotosCount: p.gallery?.length ?? (p.image ? 1 : 0),
   };
 }

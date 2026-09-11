@@ -128,6 +128,10 @@ export interface Property {
   /** Placa colocada / chaves na agência (operacional interno). */
   hasPlaca?: boolean;
   hasKeys?: boolean;
+  /** Estado operacional: activo é o único público. */
+  listingState?: "activo" | "pendente" | "inactivo";
+  /** Fora de mercado: visível à agência, nunca ao público/portais. */
+  offMarket?: boolean;
   /** Brochura pública autorizada do empreendimento. Nunca é inventada: só
    * aparece na montra quando o URL foi preenchido no backoffice. */
   developmentBrochureUrl?: string;

@@ -32,6 +32,7 @@ import {
   LOCATION_PRIVACY,
   cmiExpiryISO,
   expiryStatus,
+  LISTING_STATES,
   MANUAL_TAGS,
   operationOf,
   TIPOS,
@@ -1127,6 +1128,22 @@ export function PropertyForm({
             </div>
           </div>
 
+          {/* Estado + fora de mercado */}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <Field label="Estado" hint="Só “Activo” aparece ao público e nos portais.">
+              <select value={d.listingState} onChange={(e) => patch({ listingState: e.target.value as ImovelDraft["listingState"] })} className={box}>
+                {LISTING_STATES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </Field>
+            <label className="flex items-start gap-2 pt-6 text-sm">
+              <input type="checkbox" checked={d.offMarket} onChange={(e) => patch({ offMarket: e.target.checked })} className="mt-0.5 size-4 accent-primary" />
+              <span>
+                Fora de mercado
+                <span className="block text-xs text-muted-foreground">Visível a toda a agência, mas não ao público nem aos portais.</span>
+              </span>
+            </label>
+          </div>
+
           {/* Flags operacionais */}
           <div className="mt-6 flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-sm">
@@ -1489,6 +1506,8 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     ownerNif: d.ownerNif ?? "",
     hasPlaca: d.hasPlaca,
     hasKeys: d.hasKeys,
+    listingState: d.listingState,
+    offMarket: d.offMarket,
     expenses: d.expenses,
     tags: d.tags,
     lat: d.lat,

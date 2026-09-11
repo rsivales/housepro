@@ -74,6 +74,11 @@ export default async function ImovelPage({
         isStaff(session.agent))
   );
 
+  // Visibilidade pública: fora-de-mercado ou estado não-activo só é acessível a
+  // profissionais autenticados (a agência vê; o público e os portais não).
+  const publiclyVisible = !property.offMarket && (property.listingState ?? "activo") === "activo";
+  if (!publiclyVisible && !session) notFound();
+
   const listingAgent = property.agent ?? agentById(property.agentId);
   // Atribuição: o consultor que trouxe o cliente (?ref) fica com o contacto.
   const referrer = ref && ref !== property.agentId ? agentById(ref) : undefined;

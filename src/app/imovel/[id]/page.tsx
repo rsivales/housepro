@@ -25,6 +25,7 @@ import { businessTypeLabel } from "@/lib/imovel/model";
 import { autoTagsFromStatus } from "@/lib/data/status";
 import { getAgentRequestStatus } from "@/lib/db/agent-requests";
 import { AgentRequestButton } from "@/components/property/agent-request-button";
+import { OwnerLinkButton } from "@/components/property/owner-link-button";
 import { formatArea, formatEuro, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
 import { site, postalAddressJsonLd } from "@/lib/site";
 
@@ -257,6 +258,7 @@ export default async function ImovelPage({
             >
               <Handshake className="size-4 text-[var(--hp-red)]" /> Negócios
             </Link>
+            <OwnerLinkButton propertyId={property.id} />
             {isStaff(session!.agent) && (
               <Link
                 href="/app/imovel/pedidos"

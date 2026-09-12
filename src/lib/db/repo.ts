@@ -126,6 +126,7 @@ function mapRow(r: Row): Property {
     submittedAt: (r.submitted_at as string) ?? undefined,
     agent: mapAgent((r.agent ?? r.profiles) as Row | null | undefined),
     agentId: String(r.agent_id ?? ""),
+    coAgentIds: Array.isArray(r.co_agent_ids) ? (r.co_agent_ids as string[]) : undefined,
     interest: r.interest != null ? Number(r.interest) : undefined,
     listedAt: (r.listed_at as string) ?? undefined,
     soldAt: (r.sold_at as string) ?? undefined,

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
-import { ChevronRight, Pencil, Sparkles, Zap } from "lucide-react";
+import { ChevronRight, Pencil, Sparkles, Users, Zap } from "lucide-react";
 
 import { PropertyHeader } from "@/components/property/property-header";
 import { PropertyStage, type HeroStat } from "@/components/property/property-stage";
@@ -23,6 +23,8 @@ import { isStaff, roleLabel } from "@/lib/data/roles";
 import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
 import { businessTypeLabel } from "@/lib/imovel/model";
 import { autoTagsFromStatus } from "@/lib/data/status";
+import { getAgentRequestStatus } from "@/lib/db/agent-requests";
+import { AgentRequestButton } from "@/components/property/agent-request-button";
 import { formatArea, formatEuro, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
 import { site, postalAddressJsonLd } from "@/lib/site";
 
@@ -79,6 +81,11 @@ export default async function ImovelPage({
   // profissionais autenticados (a agência vê; o público e os portais não).
   const publiclyVisible = !property.offMarket && (property.listingState ?? "activo") === "activo";
   if (!publiclyVisible && !session) notFound();
+
+  // Consultor autenticado que não é (co)angariador: estado do pedido de angariação.
+  const agentRequestStatus = session && !canEdit
+    ? await getAgentRequestStatus(property.id, session.agent.id)
+    : null;
 
   const listingAgent = property.agent ?? agentById(property.agentId);
   // Atribuição: o consultor que trouxe o cliente (?ref) fica com o contacto.
@@ -236,7 +243,7 @@ export default async function ImovelPage({
         </div>
 
         {canEdit && (
-          <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
+          <div className="mx-auto mt-4 flex max-w-6xl flex-wrap items-center gap-2 px-4 sm:px-6">
             <Link
               href={`/app/imovel/${property.id}/editar`}
               className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-black/[0.03]"
@@ -244,6 +251,21 @@ export default async function ImovelPage({
               <Pencil className="size-4 text-[var(--hp-red)]" /> Editar imóvel
               <span className="text-xs text-[var(--hp-text-2)]">· com histórico</span>
             </Link>
+            {isStaff(session!.agent) && (
+              <Link
+                href="/app/imovel/pedidos"
+                className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-black/[0.03]"
+              >
+                <Users className="size-4 text-[var(--hp-red)]" /> Pedidos de angariação
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* Consultor autenticado que não é (co)angariador: pode pedir para angariar. */}
+        {session && !canEdit && (
+          <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
+            <AgentRequestButton propertyId={property.id} initialStatus={agentRequestStatus} />
           </div>
         )}
 

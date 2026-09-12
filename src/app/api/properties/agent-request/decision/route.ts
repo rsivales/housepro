@@ -53,5 +53,21 @@ export async function POST(request: Request) {
     }
   }
 
+  // Notifica o consultor da decisão.
+  try {
+    await sb.from("notifications").insert({
+      user_id: reqRow.requester_id,
+      type: "co_angariacao",
+      title: decision === "aprovado" ? "Pedido de co-angariação aprovado" : "Pedido de co-angariação recusado",
+      body:
+        decision === "aprovado"
+          ? "Passou a co-angariador do imóvel — o contacto/lead fica partilhado."
+          : "O pedido de co-angariação foi recusado.",
+      href: `/imovel/${reqRow.property_id}`,
+    });
+  } catch {
+    /* best-effort */
+  }
+
   return NextResponse.json({ ok: true });
 }

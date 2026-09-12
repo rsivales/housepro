@@ -10,6 +10,7 @@ import { buildPayouts } from "@/lib/data/payments";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { notifyGeneric } from "@/lib/notify";
+import { syncPropertyStatusFromDeal } from "@/lib/db/property-status";
 import { formatEuro } from "@/lib/format";
 
 /**
@@ -39,10 +40,14 @@ export async function POST(request: Request) {
   const amount = Number(body.amount ?? 0);
   const commissionPct = body.commissionPct != null ? Number(body.commissionPct) : 5;
   const dealRef = body.dealRef ? String(body.dealRef) : undefined;
+  const propertyId = body.propertyId ? String(body.propertyId) : undefined;
 
   if (!producerId || amount <= 0) {
     return NextResponse.json({ error: "producer_or_amount_missing" }, { status: 400 });
   }
+
+  // Automação: negócio fechado → imóvel associado passa a "vendido".
+  if (propertyId) await syncPropertyStatusFromDeal(propertyId, "concluido");
 
   // Comissão bruta do negócio (aplica mínimos por escalão).
   const gross = effectiveCommission(amount, { commissionType: "percent", commissionPct }).amount;

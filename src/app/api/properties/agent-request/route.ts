@@ -42,5 +42,18 @@ export async function POST(request: Request) {
       { onConflict: "property_id,requester_id" }
     );
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // Notifica o angariador do imóvel de que há um pedido a aguardar aprovação.
+  try {
+    await sb.from("notifications").insert({
+      user_id: property.agentId,
+      type: "co_angariacao",
+      title: "Pedido de co-angariação",
+      body: `${session.agent.name} pediu para angariar ${property.reference}.`,
+      href: "/app/imovel/pedidos",
+    });
+  } catch {
+    /* best-effort */
+  }
   return NextResponse.json({ ok: true });
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
-import { ChevronRight, Pencil, Sparkles, Users, Zap } from "lucide-react";
+import { ChevronRight, Handshake, Pencil, Sparkles, Users, Zap } from "lucide-react";
 
 import { PropertyHeader } from "@/components/property/property-header";
 import { PropertyStage, type HeroStat } from "@/components/property/property-stage";
@@ -250,6 +250,12 @@ export default async function ImovelPage({
             >
               <Pencil className="size-4 text-[var(--hp-red)]" /> Editar imóvel
               <span className="text-xs text-[var(--hp-text-2)]">· com histórico</span>
+            </Link>
+            <Link
+              href="/app/negocios"
+              className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-black/[0.03]"
+            >
+              <Handshake className="size-4 text-[var(--hp-red)]" /> Negócios
             </Link>
             {isStaff(session!.agent) && (
               <Link

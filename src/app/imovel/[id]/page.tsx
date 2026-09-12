@@ -253,10 +253,10 @@ export default async function ImovelPage({
               <span className="text-xs text-[var(--hp-text-2)]">· com histórico</span>
             </Link>
             <Link
-              href="/app/negocios"
+              href="/app/crm"
               className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-black/[0.03]"
             >
-              <Handshake className="size-4 text-[var(--hp-red)]" /> Negócios
+              <Handshake className="size-4 text-[var(--hp-red)]" /> Negócios (CRM)
             </Link>
             <OwnerLinkButton propertyId={property.id} />
             {isStaff(session!.agent) && (

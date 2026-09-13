@@ -204,6 +204,8 @@ export interface Property {
   commissionApprovedBy?: string;
   /** Tipos de documento já carregados (para a nota de documentação). */
   documents?: string[];
+  /** Documentos carregados: ficheiro/URL, tipo e validação — nunca públicos. */
+  documentsMeta?: { name: string; kind: string; url: string; mime?: string; validated?: boolean }[];
   /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
   sellerType?: "particular" | "empresa";
   /** Contrato de mediação (CMI): exclusivo vs aberto; renovável; datas. */

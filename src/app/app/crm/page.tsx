@@ -25,6 +25,7 @@ export default async function CrmPage() {
     contact: l.contact,
     propertyId: l.propertyId,
     propertyRef: l.propertyRef,
+    propertyImage: l.propertyImage,
     pipeline: l.pipeline,
     stage: l.stage,
     source: l.source,

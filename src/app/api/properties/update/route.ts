@@ -142,6 +142,23 @@ export async function POST(request: Request) {
       changes.push({ field: "Encargos", from: `${current.expenses?.length ?? 0}`, to: `${patch.expenses.length}` });
     }
   }
+  if ("plans" in patch && Array.isArray(patch.plans)) {
+    const next = patch.plans as string[];
+    if (JSON.stringify(current.plans ?? []) !== JSON.stringify(next)) {
+      dbPatch.plans = next.length ? next : null;
+      changes.push({ field: "Plantas", from: `${current.plans?.length ?? 0}`, to: `${next.length}` });
+    }
+  }
+  if ("documentKinds" in patch && Array.isArray(patch.documentKinds)) {
+    dbPatch.document_kinds = patch.documentKinds.length ? patch.documentKinds : null;
+  }
+  if ("documentsMeta" in patch && Array.isArray(patch.documentsMeta)) {
+    const next = patch.documentsMeta;
+    if (JSON.stringify(current.documentsMeta ?? []) !== JSON.stringify(next)) {
+      dbPatch.documents_meta = next.length ? next : null;
+      changes.push({ field: "Documentos", from: `${current.documentsMeta?.length ?? 0}`, to: `${next.length}` });
+    }
+  }
   if ("tags" in patch && Array.isArray(patch.tags)) {
     const next = patch.tags as string[];
     if (JSON.stringify(current.tags ?? []) !== JSON.stringify(next)) {
@@ -185,10 +202,29 @@ export async function POST(request: Request) {
     try {
       const supabase = await createClient();
       if (Object.keys(dbPatch).length) {
-        await supabase.from("properties").update(dbPatch).eq("id", id);
+        // IMPORTANTE: confirma mesmo que a linha foi alterada (.select()).
+        // Sem isto, um bloqueio silencioso de RLS ou uma sessão expirada
+        // devolve 0 linhas afetadas SEM erro — e a app dizia "Guardado"
+        // quando nada tinha sido persistido.
+        const { data: updated, error: updErr } = await supabase
+          .from("properties")
+          .update(dbPatch)
+          .eq("id", id)
+          .select("id");
+        if (updErr) {
+          console.error("[properties/update] falha ao gravar", updErr);
+          return NextResponse.json({ error: `save_failed: ${updErr.message}` }, { status: 500 });
+        }
+        if (!updated || updated.length === 0) {
+          console.error("[properties/update] 0 linhas afetadas (RLS ou sessão inválida)", { id, actor: a.id });
+          return NextResponse.json(
+            { error: "Não foi possível gravar — a sessão pode ter expirado. Recarregue a página e volte a tentar." },
+            { status: 409 }
+          );
+        }
       }
       if (entry) {
-        await supabase.from("property_audit").insert({
+        const { error: auditErr } = await supabase.from("property_audit").insert({
           property_id: id,
           property_ref: current.reference,
           actor_id: a.id,
@@ -197,8 +233,10 @@ export async function POST(request: Request) {
           action: "editou",
           changes,
         });
+        if (auditErr) console.error("[properties/update] falha a registar histórico", auditErr);
       }
-    } catch {
+    } catch (e) {
+      console.error("[properties/update] exceção", e);
       return NextResponse.json({ error: "save_failed" }, { status: 500 });
     }
   }

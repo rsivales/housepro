@@ -138,17 +138,28 @@ export function CrmBoard({ initial }: { initial: DealListItem[] }) {
                   const status = dealStageToStatus(d.stage);
                   return (
                     <div key={d.id} className="rounded-2xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium leading-tight">{d.buyerName || "Comprador"}</p>
-                        {status && (
-                          <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                            {STATUS_LABEL[status as PropertyStatus]}
-                          </span>
-                        )}
+                      <div className="flex items-start gap-2.5">
+                        {/* Thumbnail da foto de capa — identificar o imóvel de relance. */}
+                        <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-secondary">
+                          {d.propertyImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={d.propertyImage} alt="" className="size-full object-cover" />
+                          ) : (
+                            <div className="grid size-full place-items-center text-muted-foreground"><Home className="size-4" /></div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-medium leading-tight">{d.buyerName || "Comprador"}</p>
+                            {status && (
+                              <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                {STATUS_LABEL[status as PropertyStatus]}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 truncate text-sm text-muted-foreground">{d.propertyTitle || d.propertyRef}</p>
+                        </div>
                       </div>
-                      <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <Home className="size-3.5" /> {d.propertyTitle || d.propertyRef}
-                      </p>
                       <div className="mt-2 flex items-center justify-between">
                         <span className="font-display text-base">{d.amount ? formatEuro(d.amount) : "—"}</span>
                         {d.propertyId ? (

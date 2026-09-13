@@ -62,6 +62,7 @@ export default async function EditarImovelPage({ params }: { params: Promise<{ i
       initial={draftFromProperty(property)}
       initialPhotos={initialPhotos}
       initialDivisions={initialDivisions}
+      initialPlans={property.plans ?? []}
       audit={audit}
       demo={session.demo}
     />

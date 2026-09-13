@@ -14,6 +14,7 @@ export interface LeadCard {
   contact: string;
   propertyId?: string;
   propertyRef?: string;
+  propertyImage?: string;
   pipeline?: string;
   stage?: number;
   source?: string;
@@ -61,21 +62,35 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
             <div className="mt-3 flex flex-col gap-3">
               {cards.map((l) => (
                 <div key={l.id} className="rounded-2xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-medium leading-tight">{l.name}</p>
-                    {l.source && (
-                      <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium capitalize text-muted-foreground">{l.source}</span>
+                  <div className="flex items-start gap-2.5">
+                    {l.propertyRef && (
+                      // Thumbnail da foto de capa — identificar o imóvel de relance.
+                      <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-secondary">
+                        {l.propertyImage ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={l.propertyImage} alt="" className="size-full object-cover" />
+                        ) : (
+                          <div className="grid size-full place-items-center text-muted-foreground"><Home className="size-4" /></div>
+                        )}
+                      </div>
                     )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium leading-tight">{l.name}</p>
+                        {l.source && (
+                          <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium capitalize text-muted-foreground">{l.source}</span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground">{l.contact}</p>
+                      {l.propertyRef && (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {l.propertyId ? (
+                            <Link href={`/imovel/${l.propertyId}`} className="text-primary hover:underline">{l.propertyRef}</Link>
+                          ) : l.propertyRef}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{l.contact}</p>
-                  {l.propertyRef && (
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Home className="size-3.5" />
-                      {l.propertyId ? (
-                        <Link href={`/imovel/${l.propertyId}`} className="text-primary hover:underline">{l.propertyRef}</Link>
-                      ) : l.propertyRef}
-                    </p>
-                  )}
 
                   {/* Classificar noutro pipeline */}
                   <div className="mt-2">

@@ -41,13 +41,32 @@ const FIELDS: Record<string, string> = {
   developmentName: "development_name",
   developmentStage: "development_stage",
   developmentUnits: "development_units",
+  cmiExclusive: "cmi_exclusive",
+  cmiRenewable: "cmi_renewable",
+  cmiStart: "cmi_start",
+  cmiMonths: "cmi_months",
+  energyCertExpiry: "energy_cert_expiry",
+  developmentTypologies: "development_typologies",
+  developmentPriceFrom: "development_price_from",
+  developmentDelivery: "development_delivery",
+  ownerName: "owner_name",
+  ownerPhone: "owner_phone",
+  ownerEmail: "owner_email",
+  ownerNif: "owner_nif",
+  hasPlaca: "has_placa",
+  hasKeys: "has_keys",
+  listingState: "listing_state",
+  offMarket: "off_market",
 };
 
 const NUMERIC = new Set([
   "price", "beds", "baths", "area", "commissionPct", "commissionFixed",
-  "constructionYear", "developmentUnits",
+  "constructionYear", "developmentUnits", "cmiMonths", "developmentPriceFrom",
 ]);
-const BOOLEAN = new Set(["elevator", "isDevelopment", "priceVisible"]);
+const BOOLEAN = new Set([
+  "elevator", "isDevelopment", "priceVisible", "cmiExclusive", "cmiRenewable",
+  "hasPlaca", "hasKeys", "offMarket",
+]);
 
 function fmt(field: string, v: unknown): string {
   if (BOOLEAN.has(field)) return v ? "Sim" : "Não";
@@ -116,6 +135,19 @@ export async function POST(request: Request) {
   }
   if ("galleryMeta" in patch && Array.isArray(patch.galleryMeta)) {
     dbPatch.gallery_meta = patch.galleryMeta.length ? patch.galleryMeta : null;
+  }
+  if ("expenses" in patch && Array.isArray(patch.expenses)) {
+    if (JSON.stringify(current.expenses ?? []) !== JSON.stringify(patch.expenses)) {
+      dbPatch.expenses = patch.expenses.length ? patch.expenses : null;
+      changes.push({ field: "Encargos", from: `${current.expenses?.length ?? 0}`, to: `${patch.expenses.length}` });
+    }
+  }
+  if ("tags" in patch && Array.isArray(patch.tags)) {
+    const next = patch.tags as string[];
+    if (JSON.stringify(current.tags ?? []) !== JSON.stringify(next)) {
+      dbPatch.tags = next.length ? next : null;
+      changes.push({ field: "Etiquetas", from: (current.tags ?? []).join(", ") || "—", to: next.join(", ") || "—" });
+    }
   }
   if ("coverUrl" in patch) {
     const cover = patch.coverUrl ? String(patch.coverUrl) : "";

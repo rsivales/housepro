@@ -12,6 +12,7 @@ alter table properties
   add column if not exists location_privacy text not null default 'approx';
 
 -- Preenche o tipo de negócio nos imóveis já existentes a partir da operação.
+-- operation é um enum — converte para texto ao copiar para business_type.
 update properties
-  set business_type = coalesce(business_type, operation)
+  set business_type = coalesce(business_type, operation::text)
   where business_type is null;

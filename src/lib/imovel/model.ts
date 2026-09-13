@@ -112,6 +112,9 @@ export interface ImovelDraft {
   price: number;
   /** Preço visível ao público. Auto-oculto quando vendido/CPCV. */
   priceVisible: boolean;
+  /** Estado comercial (etiqueta pública): "" | novo | destaque | reduzido |
+   *  oportunidade | reservado | cpcv | vendido. Algumas geram etiqueta automática. */
+  status: string;
   /** Privacidade da morada no mapa público. */
   locationPrivacy: "exact" | "approx" | "locality" | "hidden";
   /** Base da comissão: percentagem ou valor fixo. */
@@ -155,6 +158,17 @@ export interface ImovelDraft {
   planta: boolean;
   /** Imóvel proveniente de herança/partilha — exige documentação adicional. */
   heranca: boolean;
+  // Contrato de mediação (CMI) e validades — alertas de expiração.
+  /** CMI exclusivo (true) ou aberto (false). Aberto oculta a morada pública. */
+  cmiExclusive: boolean;
+  /** Renovação automática do CMI. */
+  cmiRenewable: boolean;
+  /** Início do CMI (ISO date). */
+  cmiStart?: string;
+  /** Duração do CMI em meses (para calcular a validade). */
+  cmiMonths?: number;
+  /** Validade do certificado energético (ISO date). */
+  energyCertExpiry?: string;
   distrito?: string;
   videoUrl?: string;
   tourUrl?: string;
@@ -164,8 +178,51 @@ export interface ImovelDraft {
   developmentName?: string;
   developmentStage?: "planta" | "construcao" | "pronto";
   developmentUnits?: number;
+  /** Gama de tipologias do empreendimento (ex.: "T1 a T3"). */
+  developmentTypologies?: string;
+  /** Preço "desde" do empreendimento (para exportação/portais). */
+  developmentPriceFrom?: number;
+  /** Previsão de entrega (ex.: "2.º trimestre 2027"). */
+  developmentDelivery?: string;
+  // Encargos, proprietário, etiquetas e flags
+  /** Encargos correntes (IMI, condomínio, etc.). */
+  expenses: { label: string; value: number; period: "mensal" | "anual" }[];
+  /** Contactos do proprietário — PRIVADOS (nunca públicos). */
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  ownerNif?: string;
+  /** Etiquetas manuais (conjunto predefinido). */
+  tags: string[];
+  /** Placa "vende-se" colocada. */
+  hasPlaca: boolean;
+  /** Chaves na agência. */
+  hasKeys: boolean;
+  /** Estado operacional (lado do agente): activo é o único público. */
+  listingState: "activo" | "pendente" | "inactivo";
+  /** Fora de mercado: visível a toda a agência, mas NÃO ao público/portais. */
+  offMarket: boolean;
   documentos: ImovelDoc[];
 }
+
+export const LISTING_STATES: { value: "activo" | "pendente" | "inactivo"; label: string }[] = [
+  { value: "activo", label: "Activo (público)" },
+  { value: "pendente", label: "Pendente" },
+  { value: "inactivo", label: "Inactivo" },
+];
+
+/** Etiquetas manuais predefinidas (as automáticas — reservado/vendido/CPCV/
+ *  baixa de preço — são aplicadas pelo estado/processo, noutra fase). */
+export const MANUAL_TAGS = [
+  "Novidade",
+  "Oportunidade",
+  "Exclusivo",
+  "Luxo",
+  "Remodelado",
+  "Investimento",
+  "Vista mar",
+  "Para remodelar",
+];
 
 export const TIPOS = [
   "Apartamento",
@@ -278,6 +335,7 @@ export function blankImovel(id: string): ImovelDraft {
     price: 0,
     priceVisible: true,
     locationPrivacy: "approx",
+    status: "",
     comissaoTipo: "percent",
     comissao: 5,
     comissaoFixo: 0,
@@ -305,8 +363,40 @@ export function blankImovel(id: string): ImovelDraft {
     fotosCount: 0,
     planta: false,
     heranca: false,
+    cmiExclusive: true,
+    cmiRenewable: false,
+    expenses: [],
+    tags: [],
+    hasPlaca: false,
+    hasKeys: false,
+    listingState: "activo",
+    offMarket: false,
     documentos: [],
   };
+}
+
+/** Estado de validade de uma data (CMI, certificado energético…). */
+export function expiryStatus(dateISO?: string, now = new Date()): {
+  state: "none" | "ok" | "soon" | "expired";
+  days: number;
+  label: string;
+} {
+  if (!dateISO) return { state: "none", days: 0, label: "" };
+  const end = new Date(dateISO);
+  if (isNaN(end.getTime())) return { state: "none", days: 0, label: "" };
+  const days = Math.ceil((end.getTime() - now.getTime()) / 86_400_000);
+  if (days < 0) return { state: "expired", days, label: `Expirado há ${Math.abs(days)} dia(s)` };
+  if (days <= 30) return { state: "soon", days, label: `Expira em ${days} dia(s)` };
+  return { state: "ok", days, label: `Válido (${days} dias)` };
+}
+
+/** Validade do CMI a partir do início + duração em meses. */
+export function cmiExpiryISO(start?: string, months?: number): string | undefined {
+  if (!start || !months) return undefined;
+  const d = new Date(start);
+  if (isNaN(d.getTime())) return undefined;
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
 }
 
 /** Deriva um rascunho editável a partir de um imóvel já publicado, para o
@@ -322,6 +412,7 @@ export function draftFromProperty(p: Property): ImovelDraft {
     price: p.price,
     priceVisible: p.priceVisible ?? true,
     locationPrivacy: p.locationPrivacy ?? "approx",
+    status: p.status ?? "",
     comissaoTipo: p.commissionType ?? "percent",
     comissao: p.commissionPct ?? 0,
     comissaoFixo: p.commissionFixed ?? 0,
@@ -347,6 +438,24 @@ export function draftFromProperty(p: Property): ImovelDraft {
     developmentName: p.developmentName,
     developmentStage: p.developmentStage,
     developmentUnits: p.developmentUnits,
+    cmiExclusive: p.cmiExclusive ?? true,
+    cmiRenewable: p.cmiRenewable ?? false,
+    cmiStart: p.cmiStart,
+    cmiMonths: p.cmiMonths,
+    energyCertExpiry: p.energyCertExpiry,
+    developmentTypologies: p.developmentTypologies,
+    developmentPriceFrom: p.developmentPriceFrom,
+    developmentDelivery: p.developmentDelivery,
+    expenses: p.expenses ?? [],
+    ownerName: p.ownerName,
+    ownerPhone: p.ownerPhone,
+    ownerEmail: p.ownerEmail,
+    ownerNif: p.ownerNif,
+    tags: p.tags ?? [],
+    hasPlaca: p.hasPlaca ?? false,
+    hasKeys: p.hasKeys ?? false,
+    listingState: p.listingState ?? "activo",
+    offMarket: p.offMarket ?? false,
     fotosCount: p.gallery?.length ?? (p.image ? 1 : 0),
   };
 }

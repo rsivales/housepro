@@ -30,6 +30,10 @@ import {
   ENERGIAS,
   BUSINESS_TYPES,
   LOCATION_PRIVACY,
+  cmiExpiryISO,
+  expiryStatus,
+  LISTING_STATES,
+  MANUAL_TAGS,
   operationOf,
   TIPOS,
   TIPOLOGIAS,
@@ -50,6 +54,8 @@ import {
 import { toIdealistaXML } from "@/lib/imovel/idealista";
 import { commissionLabel } from "@/lib/data/commission";
 import type { AuditEntry } from "@/lib/data/audit";
+import type { PropertyStatus } from "@/lib/data/types";
+import { STATUS_LABEL, autoTagsFromStatus } from "@/lib/data/status";
 import { PhotoManager, type Photo } from "@/components/property/photo-manager";
 
 const box =
@@ -278,7 +284,6 @@ export function PropertyForm({
   const [savedMsg, setSavedMsg] = React.useState<null | "ok" | "noop" | "err">(null);
   const [history, setHistory] = React.useState<AuditEntry[]>(audit);
   const [xml, setXml] = React.useState<string | null>(null);
-  const [docKind, setDocKind] = React.useState("caderneta");
   const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
   const [preview, setPreview] = React.useState<ImovelDoc | null>(null);
   const [driveUrl, setDriveUrl] = React.useState("");
@@ -432,22 +437,29 @@ export function PropertyForm({
     }
   }
 
-  async function onDocs(e: React.ChangeEvent<HTMLInputElement>, kind: string) {
+  // Carrega os ficheiros PRIMEIRO (sem tipo); o tipo escolhe-se a seguir, por
+  // documento, no menu de cada linha — evita carregar tudo com o mesmo tipo.
+  async function onDocs(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     const docs: ImovelDoc[] = await Promise.all(
       files.map(async (f) => ({
         name: f.name,
-        kind,
+        kind: "",
         url: await readFile(f),
         mime: f.type,
       }))
     );
     patch({ documentos: [...d.documentos, ...docs] });
-    if (kind === "planta" && files.length) patch({ planta: true });
     e.target.value = "";
   }
   function removeDoc(i: number) {
     patch({ documentos: d.documentos.filter((_, idx) => idx !== i) });
+  }
+  function setDocKindFor(i: number, kind: string) {
+    patch({
+      documentos: d.documentos.map((doc, idx) => (idx === i ? { ...doc, kind } : doc)),
+    });
+    if (kind === "planta") patch({ planta: true });
   }
   function validateDoc(i: number) {
     patch({
@@ -615,6 +627,18 @@ export function PropertyForm({
         ? d.equipamentos.filter((x) => x !== item)
         : [...d.equipamentos, item],
     });
+  }
+  function toggleTag(tag: string) {
+    patch({ tags: d.tags.includes(tag) ? d.tags.filter((t) => t !== tag) : [...d.tags, tag] });
+  }
+  function addExpense(preset?: { label: string; period: "mensal" | "anual" }) {
+    patch({ expenses: [...d.expenses, { label: preset?.label ?? "", value: 0, period: preset?.period ?? "mensal" }] });
+  }
+  function setExpense(i: number, p: Partial<ImovelDraft["expenses"][number]>) {
+    patch({ expenses: d.expenses.map((x, idx) => (idx === i ? { ...x, ...p } : x)) });
+  }
+  function removeExpense(i: number) {
+    patch({ expenses: d.expenses.filter((_, idx) => idx !== i) });
   }
 
   const visibleKinds = DOC_KINDS.filter((k) => k.group === "base" || d.heranca);
@@ -805,6 +829,14 @@ export function PropertyForm({
                 {TIPOLOGIAS.map((t) => <option key={t}>{t}</option>)}
               </select>
             </Field>
+            <Field label="Estado / etiqueta" hint={autoTagsFromStatus(d.status as PropertyStatus).length ? "Gera etiqueta automática no site." : "Etiqueta pública do imóvel."}>
+              <select value={d.status} onChange={(e) => patch({ status: e.target.value })} className={box}>
+                <option value="">— (sem etiqueta)</option>
+                {(Object.keys(STATUS_LABEL) as PropertyStatus[]).map((s) => (
+                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                ))}
+              </select>
+            </Field>
             <Field label="Preço (€)" hint={d.priceVisible ? "Visível ao público." : "Oculto — aparece como “Sob consulta”."}>
               <div className="space-y-2">
                 <Input type="number" value={d.price || ""} onChange={(e) => patch({ price: Number(e.target.value) || 0 })} />
@@ -970,6 +1002,15 @@ export function PropertyForm({
                   placeholder="Ex.: 24"
                 />
               </Field>
+              <Field label="Tipologias" hint="Gama disponível.">
+                <Input value={d.developmentTypologies ?? ""} onChange={(e) => patch({ developmentTypologies: e.target.value })} placeholder="Ex.: T1 a T3" />
+              </Field>
+              <Field label="Preço desde (€)">
+                <Input type="number" value={d.developmentPriceFrom || ""} onChange={(e) => patch({ developmentPriceFrom: Number(e.target.value) || undefined })} placeholder="Ex.: 285000" />
+              </Field>
+              <Field label="Previsão de entrega">
+                <Input value={d.developmentDelivery ?? ""} onChange={(e) => patch({ developmentDelivery: e.target.value })} placeholder="Ex.: 2.º trimestre 2027" />
+              </Field>
             </div>
           )}
         </Card>
@@ -1031,6 +1072,146 @@ export function PropertyForm({
               <ImagePlus className="size-4" /> Adicionar par antes/depois
             </Button>
           </div>
+        </Card>
+
+        {/* Etiquetas, encargos, proprietário e flags */}
+        <Card title="Etiquetas, encargos e proprietário">
+          {/* Etiquetas manuais */}
+          <p className="text-sm font-medium">Etiquetas</p>
+          <p className="mb-2 text-xs text-muted-foreground">
+            As etiquetas de estado (reservado, vendido, CPCV, baixa de preço) são automáticas e chegam a seguir.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {MANUAL_TAGS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => toggleTag(t)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                  d.tags.includes(t) ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {/* Encargos */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Encargos correntes</p>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => addExpense({ label: "IMI", period: "anual" })}>+ IMI</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => addExpense({ label: "Condomínio", period: "mensal" })}>+ Condomínio</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => addExpense()}>+ Outro</Button>
+              </div>
+            </div>
+            {d.expenses.length > 0 && (
+              <ul className="mt-3 space-y-2">
+                {d.expenses.map((ex, i) => (
+                  <li key={i} className="flex flex-wrap items-center gap-2">
+                    <Input value={ex.label} onChange={(e) => setExpense(i, { label: e.target.value })} placeholder="Ex.: IMI" className="min-w-0 flex-1" />
+                    <Input type="number" value={ex.value || ""} onChange={(e) => setExpense(i, { value: Number(e.target.value) || 0 })} placeholder="€" className="w-28" />
+                    <select value={ex.period} onChange={(e) => setExpense(i, { period: e.target.value as "mensal" | "anual" })} className={box + " w-28 shrink-0"}>
+                      <option value="mensal">/mês</option>
+                      <option value="anual">/ano</option>
+                    </select>
+                    <button type="button" onClick={() => removeExpense(i)} aria-label="Remover encargo" className="grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-secondary">
+                      <Trash2 className="size-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Proprietário (privado) */}
+          <div className="mt-6">
+            <p className="text-sm font-medium">Contactos do proprietário</p>
+            <p className="mb-2 text-xs text-muted-foreground">Privado — nunca aparece no site nem nos portais.</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Nome"><Input value={d.ownerName ?? ""} onChange={(e) => patch({ ownerName: e.target.value })} /></Field>
+              <Field label="Telefone"><Input value={d.ownerPhone ?? ""} onChange={(e) => patch({ ownerPhone: e.target.value })} /></Field>
+              <Field label="Email"><Input type="email" value={d.ownerEmail ?? ""} onChange={(e) => patch({ ownerEmail: e.target.value })} /></Field>
+              <Field label="NIF"><Input value={d.ownerNif ?? ""} onChange={(e) => patch({ ownerNif: e.target.value })} /></Field>
+            </div>
+          </div>
+
+          {/* Estado + fora de mercado */}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <Field label="Estado" hint="Só “Activo” aparece ao público e nos portais.">
+              <select value={d.listingState} onChange={(e) => patch({ listingState: e.target.value as ImovelDraft["listingState"] })} className={box}>
+                {LISTING_STATES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </Field>
+            <label className="flex items-start gap-2 pt-6 text-sm">
+              <input type="checkbox" checked={d.offMarket} onChange={(e) => patch({ offMarket: e.target.checked })} className="mt-0.5 size-4 accent-primary" />
+              <span>
+                Fora de mercado
+                <span className="block text-xs text-muted-foreground">Visível a toda a agência, mas não ao público nem aos portais.</span>
+              </span>
+            </label>
+          </div>
+
+          {/* Flags operacionais */}
+          <div className="mt-6 flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={d.hasPlaca} onChange={(e) => patch({ hasPlaca: e.target.checked })} className="size-4 accent-primary" />
+              Placa colocada
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={d.hasKeys} onChange={(e) => patch({ hasKeys: e.target.checked })} className="size-4 accent-primary" />
+              Chaves na agência
+            </label>
+          </div>
+        </Card>
+
+        {/* Contrato de mediação (CMI) e validades */}
+        <Card title="Contrato de mediação (CMI) e validades">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">Tipo de CMI:</span>
+            {([["exclusivo", true], ["aberto", false]] as const).map(([label, val]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() =>
+                  // CMI aberto → oculta a morada pública automaticamente.
+                  patch(val ? { cmiExclusive: true } : { cmiExclusive: false, locationPrivacy: "hidden" })
+                }
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-sm capitalize transition-colors",
+                  d.cmiExclusive === val ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+            <label className="ml-2 flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={d.cmiRenewable} onChange={(e) => patch({ cmiRenewable: e.target.checked })} className="size-4 accent-primary" />
+              Renovação automática
+            </label>
+          </div>
+          {!d.cmiExclusive && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              CMI aberto: a morada exata fica <strong>oculta</strong> no site (pode ajustar na privacidade da morada).
+            </p>
+          )}
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Field label="Início do CMI">
+              <Input type="date" value={d.cmiStart ?? ""} onChange={(e) => patch({ cmiStart: e.target.value })} />
+            </Field>
+            <Field label="Duração (meses)" hint={cmiHint(d.cmiStart, d.cmiMonths)}>
+              <Input type="number" value={d.cmiMonths ?? ""} onChange={(e) => patch({ cmiMonths: Number(e.target.value) || undefined })} placeholder="6" />
+            </Field>
+            <Field label="Validade do certificado energético" hint={certHint(d.energyCertExpiry)}>
+              <Input type="date" value={d.energyCertExpiry ?? ""} onChange={(e) => patch({ energyCertExpiry: e.target.value })} />
+            </Field>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            O sistema assinala quando o CMI ou o certificado energético estão perto de expirar (ou expirados).
+          </p>
         </Card>
 
         {/* Documentos & planta */}
@@ -1096,23 +1277,10 @@ export function PropertyForm({
             <span className="text-xs text-muted-foreground">(mostra documentos adicionais)</span>
           </label>
 
-          <p className="mt-4 text-sm text-muted-foreground">Tipo de documento</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {visibleKinds.map((k) => (
-              <button
-                key={k.value}
-                type="button"
-                onClick={() => setDocKind(k.value)}
-                className={cn(
-                  "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                  docKind === k.value ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary",
-                  k.group === "heranca" && docKind !== k.value && "border-dashed"
-                )}
-              >
-                {k.label}
-              </button>
-            ))}
-          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Carregue os ficheiros primeiro (pode ser tudo de uma vez) e <strong>escolha o tipo de
+            cada um a seguir</strong>, no menu de cada linha.
+          </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
               <Camera className="size-4" /> Tirar foto ao documento
@@ -1121,17 +1289,17 @@ export function PropertyForm({
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => onDocs(e, docKind)}
+                onChange={onDocs}
               />
             </label>
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
-              <Upload className="size-4" /> Carregar ficheiro (PDF/imagem)
+              <Upload className="size-4" /> Carregar ficheiros (PDF/imagem)
               <input
                 type="file"
                 accept="application/pdf,image/*"
                 multiple
                 className="hidden"
-                onChange={(e) => onDocs(e, docKind)}
+                onChange={onDocs}
               />
             </label>
           </div>
@@ -1139,10 +1307,23 @@ export function PropertyForm({
             <ul className="mt-4 space-y-2">
               {d.documentos.map((doc, i) => (
                 <li key={i} className="flex items-center justify-between gap-3 rounded-lg border p-2.5 text-sm">
-                  <span className="flex min-w-0 items-center gap-2">
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
                     <FileText className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{doc.name}</span>
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">{docLabel(doc.kind)}</span>
+                    <span className="min-w-0 truncate">{doc.name}</span>
+                    <select
+                      value={doc.kind}
+                      onChange={(e) => setDocKindFor(i, e.target.value)}
+                      aria-label={`Tipo do documento ${doc.name}`}
+                      className={cn(
+                        "shrink-0 rounded-md border bg-transparent px-2 py-1 text-xs outline-none focus-visible:border-ring",
+                        !doc.kind && "border-gold/60 text-gold"
+                      )}
+                    >
+                      <option value="">Escolher tipo…</option>
+                      {visibleKinds.map((k) => (
+                        <option key={k.value} value={k.value}>{k.label}</option>
+                      ))}
+                    </select>
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     {doc.url && (
@@ -1302,6 +1483,7 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     price: d.price,
     priceVisible: d.priceVisible,
     locationPrivacy: d.locationPrivacy,
+    status: d.status,
     area: d.area,
     beds: d.beds,
     baths: d.baths,
@@ -1321,9 +1503,41 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     developmentName: d.developmentName ?? "",
     developmentStage: d.developmentStage ?? "",
     developmentUnits: d.developmentUnits ?? "",
+    cmiExclusive: d.cmiExclusive,
+    cmiRenewable: d.cmiRenewable,
+    cmiStart: d.cmiStart ?? "",
+    cmiMonths: d.cmiMonths ?? "",
+    energyCertExpiry: d.energyCertExpiry ?? "",
+    developmentTypologies: d.developmentTypologies ?? "",
+    developmentPriceFrom: d.developmentPriceFrom ?? "",
+    developmentDelivery: d.developmentDelivery ?? "",
+    ownerName: d.ownerName ?? "",
+    ownerPhone: d.ownerPhone ?? "",
+    ownerEmail: d.ownerEmail ?? "",
+    ownerNif: d.ownerNif ?? "",
+    hasPlaca: d.hasPlaca,
+    hasKeys: d.hasKeys,
+    listingState: d.listingState,
+    offMarket: d.offMarket,
+    expenses: d.expenses,
+    tags: d.tags,
     lat: d.lat,
     lng: d.lng,
   };
+}
+
+function cmiHint(start?: string, months?: number): string | undefined {
+  const st = expiryStatus(cmiExpiryISO(start, months));
+  if (st.state === "none") return undefined;
+  if (st.state === "expired") return `⚠️ CMI ${st.label.toLowerCase()}`;
+  if (st.state === "soon") return `⚠️ CMI ${st.label.toLowerCase()}`;
+  return `CMI ${st.label.toLowerCase()}`;
+}
+
+function certHint(dateISO?: string): string | undefined {
+  const st = expiryStatus(dateISO);
+  if (st.state === "none") return undefined;
+  return (st.state === "expired" || st.state === "soon" ? "⚠️ " : "") + st.label;
 }
 
 function geoHint(

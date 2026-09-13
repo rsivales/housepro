@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
-import { ChevronRight, Pencil, Sparkles, Zap } from "lucide-react";
+import { ChevronRight, Handshake, Pencil, Sparkles, Users, Zap } from "lucide-react";
 
 import { PropertyHeader } from "@/components/property/property-header";
 import { PropertyStage, type HeroStat } from "@/components/property/property-stage";
@@ -22,7 +22,11 @@ import { getSession } from "@/lib/supabase/auth";
 import { isStaff, roleLabel } from "@/lib/data/roles";
 import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
 import { businessTypeLabel } from "@/lib/imovel/model";
-import { formatArea, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
+import { autoTagsFromStatus } from "@/lib/data/status";
+import { getAgentRequestStatus } from "@/lib/db/agent-requests";
+import { AgentRequestButton } from "@/components/property/agent-request-button";
+import { OwnerLinkButton } from "@/components/property/owner-link-button";
+import { formatArea, formatEuro, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
 import { site, postalAddressJsonLd } from "@/lib/site";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
@@ -73,6 +77,16 @@ export default async function ImovelPage({
         (property.coAgentIds ?? []).includes(session.agent.id) ||
         isStaff(session.agent))
   );
+
+  // Visibilidade pública: fora-de-mercado ou estado não-activo só é acessível a
+  // profissionais autenticados (a agência vê; o público e os portais não).
+  const publiclyVisible = !property.offMarket && (property.listingState ?? "activo") === "activo";
+  if (!publiclyVisible && !session) notFound();
+
+  // Consultor autenticado que não é (co)angariador: estado do pedido de angariação.
+  const agentRequestStatus = session && !canEdit
+    ? await getAgentRequestStatus(property.id, session.agent.id)
+    : null;
 
   const listingAgent = property.agent ?? agentById(property.agentId);
   // Atribuição: o consultor que trouxe o cliente (?ref) fica com o contacto.
@@ -136,10 +150,13 @@ export default async function ImovelPage({
   ];
 
   const unavailable = property.status === "vendido" || property.status === "reservado";
-  // Preço oculto: por opção do consultor OU automaticamente quando vendido.
-  const priceHidden = property.priceVisible === false || property.status === "vendido";
+  // Preço oculto: por opção do consultor OU automaticamente quando vendido/CPCV.
+  const priceHidden =
+    property.priceVisible === false || property.status === "vendido" || property.status === "cpcv";
   const priceLabel = priceHidden ? "Preço sob consulta" : formatPrice(property);
   const businessLabel = businessTypeLabel(property.businessType ?? property.operation);
+  // Etiquetas públicas: automáticas (do estado) + manuais, sem duplicar.
+  const publicTags = [...new Set([...autoTagsFromStatus(property.status), ...(property.tags ?? [])])];
 
   // Dados estruturados: BreadcrumbList + Residence/Offer + RealEstateAgent.
   const jsonLd = {
@@ -227,7 +244,7 @@ export default async function ImovelPage({
         </div>
 
         {canEdit && (
-          <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
+          <div className="mx-auto mt-4 flex max-w-6xl flex-wrap items-center gap-2 px-4 sm:px-6">
             <Link
               href={`/app/imovel/${property.id}/editar`}
               className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-black/[0.03]"
@@ -235,6 +252,28 @@ export default async function ImovelPage({
               <Pencil className="size-4 text-[var(--hp-red)]" /> Editar imóvel
               <span className="text-xs text-[var(--hp-text-2)]">· com histórico</span>
             </Link>
+            <Link
+              href="/app/crm"
+              className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-black/[0.03]"
+            >
+              <Handshake className="size-4 text-[var(--hp-red)]" /> Negócios (CRM)
+            </Link>
+            <OwnerLinkButton propertyId={property.id} />
+            {isStaff(session!.agent) && (
+              <Link
+                href="/app/imovel/pedidos"
+                className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-black/[0.03]"
+              >
+                <Users className="size-4 text-[var(--hp-red)]" /> Pedidos de angariação
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* Consultor autenticado que não é (co)angariador: pode pedir para angariar. */}
+        {session && !canEdit && (
+          <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
+            <AgentRequestButton propertyId={property.id} initialStatus={agentRequestStatus} />
           </div>
         )}
 
@@ -246,10 +285,30 @@ export default async function ImovelPage({
               <h2 className="font-display text-2xl text-[var(--hp-navy)]">{editorialTitle}</h2>
               <div className="mt-2 h-0.5 w-12 rounded bg-[var(--hp-red)]" />
               <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--hp-navy)]/90">{shortSummary}</p>
+              {publicTags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {publicTags.map((t) => (
+                    <span key={t} className="rounded-full bg-[var(--hp-navy)]/5 px-3 py-1 text-xs font-medium text-[var(--hp-navy)]">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
               <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--hp-text-2)]">
                 <span className="inline-flex items-center gap-1.5"><Zap className="size-4 text-[var(--hp-red)]" /> Certificado {property.energy}</span>
                 <span aria-hidden>·</span>
                 <span>Ref. {property.reference}</span>
+                {property.expenses && property.expenses.length > 0 && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>
+                      Encargos:{" "}
+                      {property.expenses
+                        .map((ex) => `${ex.label} ${formatEuro(ex.value)}/${ex.period === "mensal" ? "mês" : "ano"}`)
+                        .join(" · ")}
+                    </span>
+                  </>
+                )}
               </p>
               <a href="#descricao" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--hp-red)] hover:underline">
                 Ler descrição completa <ChevronRight className="size-4" />

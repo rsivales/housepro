@@ -10,6 +10,7 @@ export type PropertyStatus =
   | "reduzido"
   | "oportunidade"
   | "reservado"
+  | "cpcv"
   | "vendido";
 
 export type EnergyRating =
@@ -112,6 +113,26 @@ export interface Property {
   developmentStage?: "planta" | "construcao" | "pronto";
   /** Nº total de frações/lotes do empreendimento (informativo). */
   developmentUnits?: number;
+  /** Empreendimento: gama de tipologias, preço "desde" e previsão de entrega. */
+  developmentTypologies?: string;
+  developmentPriceFrom?: number;
+  developmentDelivery?: string;
+  /** Encargos correntes (IMI, condomínio, etc.). */
+  expenses?: { label: string; value: number; period: "mensal" | "anual" }[];
+  /** Contactos do proprietário — PRIVADOS (nunca renderizados no público). */
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  ownerNif?: string;
+  /** Etiquetas (manuais + automáticas). */
+  tags?: string[];
+  /** Placa colocada / chaves na agência (operacional interno). */
+  hasPlaca?: boolean;
+  hasKeys?: boolean;
+  /** Estado operacional: activo é o único público. */
+  listingState?: "activo" | "pendente" | "inactivo";
+  /** Fora de mercado: visível à agência, nunca ao público/portais. */
+  offMarket?: boolean;
   /** Brochura pública autorizada do empreendimento. Nunca é inventada: só
    * aparece na montra quando o URL foi preenchido no backoffice. */
   developmentBrochureUrl?: string;
@@ -185,6 +206,13 @@ export interface Property {
   documents?: string[];
   /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
   sellerType?: "particular" | "empresa";
+  /** Contrato de mediação (CMI): exclusivo vs aberto; renovável; datas. */
+  cmiExclusive?: boolean;
+  cmiRenewable?: boolean;
+  cmiStart?: string;
+  cmiMonths?: number;
+  /** Validade do certificado energético (ISO date) — alerta de expiração. */
+  energyCertExpiry?: string;
   /** Estado de aprovação de publicação. Oculto ao público até "aprovado".
    *  Imóveis de agentes com AMI próprio nascem "aprovado". */
   approval?: ApprovalStatus;

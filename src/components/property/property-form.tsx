@@ -131,6 +131,35 @@ async function uploadDataUrl(
   }
 }
 
+const EXT_BY_MIME: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/heic": "heic",
+};
+
+/** Sobe um documento (imagem OU PDF) respeitando o tipo real do ficheiro —
+ *  ao contrário de uploadDataUrl (fotos), que força sempre JPEG. */
+async function uploadDocDataUrl(
+  supabase: ReturnType<typeof createClient>,
+  dataUrl: string
+): Promise<string | null> {
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const mime = blob.type || "application/octet-stream";
+    const ext = EXT_BY_MIME[mime] ?? "bin";
+    const path = `docs/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const up = await supabase.storage
+      .from("property-media")
+      .upload(path, blob, { contentType: mime, upsert: true });
+    if (up.error) return null;
+    return supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl;
+  } catch {
+    return null;
+  }
+}
+
 /** Campo de upload de uma imagem (com pré-visualização) para o antes/depois. */
 function BAUpload({
   label,
@@ -256,6 +285,8 @@ export interface PropertyFormProps {
   initialPhotos?: string[];
   /** Divisão de cada foto publicada, alinhada por índice com initialPhotos. */
   initialDivisions?: string[];
+  /** Plantas já publicadas (URLs remotos) — só em edição. */
+  initialPlans?: string[];
   /** Id do imóvel em edição (para o endpoint de atualização e o link de volta). */
   propertyId?: string;
   /** Histórico de rastreio a mostrar em edição. */
@@ -268,6 +299,7 @@ export function PropertyForm({
   initial,
   initialPhotos = [],
   initialDivisions = [],
+  initialPlans = [],
   propertyId,
   audit = [],
   demo = false,
@@ -278,10 +310,14 @@ export function PropertyForm({
   const [photos, setPhotos] = React.useState<Photo[]>(() =>
     initialPhotos.map((u, i) => ({ id: `r${i}-${u.slice(-10)}`, kind: "remote" as const, url: u, division: initialDivisions[i] ?? "" }))
   );
+  /** Plantas do imóvel (imagens) — URLs remotos (já publicados) ou data URLs
+   *  (novos, ainda por subir). Sem marca de água. */
+  const [plans, setPlans] = React.useState<string[]>(initialPlans);
   const [processing, setProcessing] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const [publishing, setPublishing] = React.useState(false);
   const [savedMsg, setSavedMsg] = React.useState<null | "ok" | "noop" | "err">(null);
+  const [errMsg, setErrMsg] = React.useState<string | null>(null);
   const [history, setHistory] = React.useState<AuditEntry[]>(audit);
   const [xml, setXml] = React.useState<string | null>(null);
   const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
@@ -379,6 +415,28 @@ export function PropertyForm({
       );
     }
     e.target.value = "";
+  }
+
+  /** Carrega plantas (imagens) — sem marca de água, não fazem parte da galeria. */
+  async function onPlans(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    const urls: string[] = [];
+    const falhas: string[] = [];
+    for (const f of files) {
+      try {
+        urls.push(await downscale(await readFile(f), 2200));
+      } catch {
+        falhas.push(f.name);
+      }
+    }
+    if (urls.length) setPlans((prev) => [...prev, ...urls]);
+    if (falhas.length) {
+      alert("Estas plantas não puderam ser lidas neste navegador:\n" + falhas.join(", "));
+    }
+    e.target.value = "";
+  }
+  function removePlan(i: number) {
+    setPlans((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   /** Importa fotos de uma pasta/ficheiro do Google Drive (ou URL directo). */
@@ -506,6 +564,7 @@ export function PropertyForm({
   async function publicar() {
     setPublishing(true);
     setSavedMsg(null);
+    setErrMsg(null);
     try {
       const supabase = createClient();
       // Percorre as fotos PELA ORDEM definida. As remotas (URL) mantêm-se; as
@@ -556,6 +615,28 @@ export function PropertyForm({
         if (bu && au) baPairs.push({ before: bu, after: au, label: pair.label || undefined });
       }
 
+      // Plantas: remotas mantêm-se; as novas (data URLs) sobem para o Storage.
+      const planUrls: string[] = [];
+      for (const p of plans) {
+        const url = p.startsWith("data:") ? await uploadDataUrl(supabase, p) : p;
+        if (url) planUrls.push(url);
+      }
+
+      // Documentos: sobem para o Storage (respeitando PDF/imagem); os já
+      // publicados (URLs remotos) mantêm-se. Sem isto os documentos
+      // carregados nunca chegavam a persistir — desapareciam ao sair da página.
+      const finalDocs: ImovelDoc[] = [];
+      const docErros: string[] = [];
+      for (const doc of d.documentos) {
+        if (!doc.url) { finalDocs.push(doc); continue; }
+        const url = doc.url.startsWith("data:") ? await uploadDocDataUrl(supabase, doc.url) : doc.url;
+        if (!url) { docErros.push(doc.name); continue; }
+        finalDocs.push({ ...doc, url });
+      }
+      if (docErros.length) {
+        alert("Alguns documentos não foram guardados no armazenamento:\n" + docErros.join(", "));
+      }
+
       if (isEdit && propertyId) {
         const patchBody: Record<string, unknown> = {
           ...draftToPatch(d),
@@ -563,6 +644,9 @@ export function PropertyForm({
           galleryMeta,
           coverUrl,
           beforeAfter: baPairs,
+          plans: planUrls,
+          documentKinds: finalDocs.map((x) => x.kind),
+          documentsMeta: finalDocs.map((x) => ({ name: x.name, kind: x.kind, url: x.url, mime: x.mime, validated: x.validated })),
         };
         const res = await fetch("/api/properties/update", {
           method: "POST",
@@ -576,8 +660,11 @@ export function PropertyForm({
           if (out.entry) setHistory((h) => [out.entry, ...h]);
           // As fotos novas passaram a publicadas: reconstrói a lista pela ordem.
           setPhotos(gallery.map((u, i) => ({ id: `r${i}-${u.slice(-10)}`, kind: "remote" as const, url: u, division: galleryMeta[i]?.division ?? "" })));
+          setPlans(planUrls);
+          patch({ documentos: finalDocs });
           setSavedMsg("ok");
         } else {
+          setErrMsg(typeof out.error === "string" ? out.error : "Falha ao guardar.");
           setSavedMsg("err");
         }
       } else {
@@ -591,6 +678,9 @@ export function PropertyForm({
             coverUrl,
             gallery,
             galleryMeta,
+            plans: planUrls,
+            documentKinds: finalDocs.map((x) => x.kind),
+            documentsMeta: finalDocs.map((x) => ({ name: x.name, kind: x.kind, url: x.url, mime: x.mime, validated: x.validated })),
           }),
         });
         const out = await res.json();
@@ -776,19 +866,53 @@ export function PropertyForm({
           </p>
         </Card>
 
+        {/* Plantas — separadas das fotos; aparecem no separador "Plantas" da
+            página pública. Sem elas, esse separador nunca aparece. */}
+        <Card title="Plantas do imóvel">
+          <p className="text-sm text-muted-foreground">
+            Carregue a planta (ou plantas) do imóvel. Aparecem no separador próprio da página pública —
+            essencial para o comprador perceber a distribuição das divisões.
+          </p>
+          <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
+            <ImagePlus className="size-4" /> Adicionar plantas
+            <input type="file" accept="image/*" multiple onChange={onPlans} className="hidden" />
+          </label>
+          {plans.length > 0 && (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {plans.map((src, i) => (
+                <div key={i} className="group relative overflow-hidden rounded-lg border bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt={`Planta ${i + 1}`} className="aspect-[4/3] w-full object-contain p-1" />
+                  <button
+                    type="button"
+                    onClick={() => removePlan(i)}
+                    className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-background/80 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-label="Remover planta"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
         {/* Descrição & SEO */}
-        <Card title="Descrição & SEO">
+        <Card title="Título & descrição">
           <div className="space-y-4">
+            <Field label="Título" hint="O título do anúncio — aparece na página do imóvel e nas listagens.">
+              <Input value={d.seoTitle} onChange={(e) => patch({ seoTitle: e.target.value, slug: d.slug || slugify(e.target.value) })} />
+            </Field>
             <Field label="Descrição curta" hint="Uma frase-resumo (aparece nas listagens).">
               <textarea rows={2} value={d.descricaoCurta} onChange={(e) => patch({ descricaoCurta: e.target.value })} className={box} />
             </Field>
-            <Field label="Descrição completa">
-              <textarea rows={4} value={d.descricao} onChange={(e) => patch({ descricao: e.target.value })} className={box} />
+            <Field label="Descrição SEO" hint="Meta descrição — o texto que aparece nos motores de busca (Google).">
+              <textarea rows={2} value={d.seoDescription} onChange={(e) => patch({ seoDescription: e.target.value })} className={box} />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Título SEO">
-                <Input value={d.seoTitle} onChange={(e) => patch({ seoTitle: e.target.value, slug: d.slug || slugify(e.target.value) })} />
-              </Field>
+            <Field label="Descrição longa">
+              <textarea rows={5} value={d.descricao} onChange={(e) => patch({ descricao: e.target.value })} className={box} />
+            </Field>
+            <div className="grid gap-4 pt-1 sm:grid-cols-2">
               <Field label="Slug" hint="URL amigável.">
                 <div className="flex gap-2">
                   <Input value={d.slug} onChange={(e) => patch({ slug: e.target.value })} />
@@ -796,9 +920,6 @@ export function PropertyForm({
                     Gerar
                   </Button>
                 </div>
-              </Field>
-              <Field label="Meta descrição (SEO)">
-                <textarea rows={2} value={d.seoDescription} onChange={(e) => patch({ seoDescription: e.target.value })} className={box} />
               </Field>
               <Field label="Palavras-chave" hint="Separadas por vírgulas.">
                 <Input value={d.keywords} onChange={(e) => patch({ keywords: e.target.value })} placeholder="t2, porto, varanda" />
@@ -1385,7 +1506,7 @@ export function PropertyForm({
           <Button variant="outline" onClick={exportarIdealista}><FileDown className="size-4" /> Exportar Idealista (XML)</Button>
           {savedMsg === "ok" && <span className="inline-flex items-center gap-1 text-sm text-primary"><Check className="size-4" /> Guardado.</span>}
           {savedMsg === "noop" && <span className="text-sm text-muted-foreground">Sem alterações.</span>}
-          {savedMsg === "err" && <span className="text-sm text-destructive">Falha ao guardar.</span>}
+          {savedMsg === "err" && <span className="text-sm text-destructive">{errMsg ?? "Falha ao guardar."}</span>}
         </div>
 
         {/* Histórico de rastreio (edição) */}

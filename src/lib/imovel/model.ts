@@ -457,6 +457,9 @@ export function draftFromProperty(p: Property): ImovelDraft {
     listingState: p.listingState ?? "activo",
     offMarket: p.offMarket ?? false,
     fotosCount: p.gallery?.length ?? (p.image ? 1 : 0),
+    documentos: (p.documentsMeta ?? []).map((m) => ({
+      name: m.name, kind: m.kind, url: m.url, mime: m.mime, validated: m.validated,
+    })),
   };
 }
 

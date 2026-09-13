@@ -148,6 +148,20 @@ export function PropertyStage({
 
   return (
     <section className="relative">
+      {/* Cabeçalho — título, localização e preço FORA da foto (nunca sobre a
+          imagem, para não ocupar a área visual da fotografia). */}
+      <div className="mb-4 px-4 sm:px-0">
+        <h1 className="max-w-3xl font-display text-2xl font-semibold leading-tight text-[var(--hp-navy)] sm:text-4xl">
+          {title}
+        </h1>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+          <p className="flex items-center gap-1.5 text-sm text-[var(--hp-text-2)] sm:text-base">
+            <MapPin className="size-4 shrink-0 text-[var(--hp-red)]" /> {parish}, {municipality}
+          </p>
+          <p className="text-2xl font-semibold tracking-tight text-[var(--hp-navy)] sm:text-3xl">{price}</p>
+        </div>
+      </div>
+
       <div className="relative overflow-hidden rounded-b-3xl bg-[var(--hp-navy)] sm:rounded-3xl">
         {/* Palco (altura fixa) */}
         <div
@@ -155,7 +169,8 @@ export function PropertyStage({
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
-          {/* FOTOGRAFIAS */}
+          {/* FOTOGRAFIAS — tocar/clicar na foto abre em destaque (ecrã inteiro,
+              fundo preto, sem distrações; sai pelo X no canto superior direito). */}
           {mode === "photo" &&
             (cover ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -163,8 +178,9 @@ export function PropertyStage({
                 src={cover}
                 alt={title}
                 fetchPriority="high"
-                className="size-full object-cover"
+                className="size-full cursor-zoom-in object-cover"
                 style={{ objectPosition }}
+                onClick={() => { setLightbox(photoIndex); track("pdp_gallery_open"); }}
               />
             ) : (
               <div className="grid size-full place-items-center text-white/70">
@@ -338,41 +354,32 @@ export function PropertyStage({
             </>
           )}
 
-          {/* Conteúdo sobreposto (título, localização, preço, características) */}
-          {mode === "photo" && (
+          {/* Características sobrepostas (faixa compacta) — título/preço/morada
+              já não vivem aqui, ficam no cabeçalho acima da foto. */}
+          {mode === "photo" && stats.length > 0 && (
             <div className="absolute inset-x-0 bottom-0 z-10 px-4 pb-4 sm:px-6 sm:pb-6">
-              <h1 className="max-w-3xl font-display text-3xl font-semibold leading-[1.05] text-white drop-shadow-sm sm:text-5xl">
-                {title}
-              </h1>
-              <p className="mt-3 flex items-center gap-1.5 text-sm text-white/90 sm:text-base">
-                <MapPin className="size-4 shrink-0" /> {parish}, {municipality}
-              </p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{price}</p>
-
-              {stats.length > 0 && (
-                <div className="relative mt-4">
-                  <div
-                    className="flex snap-x gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                    role="list"
-                    aria-label="Características do imóvel"
-                  >
-                    {stats.map((s) => {
-                      const Icon = ICONS[s.key] ?? MapPin;
-                      return (
-                        <span
-                          key={s.key}
-                          role="listitem"
-                          title={s.label}
-                          className="flex shrink-0 snap-start items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3.5 py-2 text-xs font-medium text-white backdrop-blur-md"
-                        >
-                          <Icon className="size-4 opacity-90" /> {s.value}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-black/60 to-transparent" />
+              <div className="relative">
+                <div
+                  className="flex snap-x gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  role="list"
+                  aria-label="Características do imóvel"
+                >
+                  {stats.map((s) => {
+                    const Icon = ICONS[s.key] ?? MapPin;
+                    return (
+                      <span
+                        key={s.key}
+                        role="listitem"
+                        title={s.label}
+                        className="flex shrink-0 snap-start items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3.5 py-2 text-xs font-medium text-white backdrop-blur-md"
+                      >
+                        <Icon className="size-4 opacity-90" /> {s.value}
+                      </span>
+                    );
+                  })}
                 </div>
-              )}
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-black/60 to-transparent" />
+              </div>
             </div>
           )}
         </div>

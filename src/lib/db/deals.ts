@@ -7,6 +7,8 @@ export interface DealListItem {
   propertyId: string | null;
   propertyRef: string;
   propertyTitle: string;
+  /** Miniatura da foto de capa do imóvel — para identificar o cartão de relance. */
+  propertyImage: string | null;
   buyerName: string;
   sellerName: string;
   amount: number;
@@ -22,16 +24,22 @@ interface DealRow {
   amount: number | null;
   stage: string;
   updated_at: string | null;
-  property?: { reference?: string; title?: string } | { reference?: string; title?: string }[] | null;
+  property?:
+    | { reference?: string; title?: string; cover_url?: string }
+    | { reference?: string; title?: string; cover_url?: string }[]
+    | null;
 }
 
 function mapDeal(r: DealRow): DealListItem {
-  const p = (Array.isArray(r.property) ? r.property[0] : r.property) as { reference?: string; title?: string } | null;
+  const p = (Array.isArray(r.property) ? r.property[0] : r.property) as
+    | { reference?: string; title?: string; cover_url?: string }
+    | null;
   return {
     id: String(r.id),
     propertyId: r.property_id ? String(r.property_id) : null,
     propertyRef: p?.reference ?? "—",
     propertyTitle: p?.title ?? "",
+    propertyImage: p?.cover_url || null,
     buyerName: r.buyer_name ?? "",
     sellerName: r.seller_name ?? "",
     amount: r.amount != null ? Number(r.amount) : 0,
@@ -40,7 +48,7 @@ function mapDeal(r: DealRow): DealListItem {
   };
 }
 
-const SELECT = "id, property_id, buyer_name, seller_name, amount, stage, updated_at, property:properties!property_id(reference, title)";
+const SELECT = "id, property_id, buyer_name, seller_name, amount, stage, updated_at, property:properties!property_id(reference, title, cover_url)";
 
 /** Negócios visíveis ao consultor: aqueles em que participa; staff vê todos. */
 export async function listDeals(agentId: string, staff: boolean): Promise<DealListItem[]> {

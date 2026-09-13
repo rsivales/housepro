@@ -83,6 +83,9 @@ export async function POST(request: Request) {
     cover_url: d.coverUrl ? String(d.coverUrl) : null,
     gallery: Array.isArray(d.gallery) && d.gallery.length ? d.gallery : null,
     gallery_meta: Array.isArray(d.galleryMeta) && d.galleryMeta.length ? d.galleryMeta : null,
+    plans: Array.isArray(d.plans) && d.plans.length ? d.plans : null,
+    document_kinds: Array.isArray(d.documentKinds) && d.documentKinds.length ? d.documentKinds : null,
+    documents_meta: Array.isArray(d.documentsMeta) && d.documentsMeta.length ? d.documentsMeta : null,
     video_url: d.videoUrl ? String(d.videoUrl) : null,
     tour_url: d.tourUrl ? String(d.tourUrl) : null,
     before_after:

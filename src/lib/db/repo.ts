@@ -103,6 +103,7 @@ function mapRow(r: Row): Property {
     commissionPct: r.commission_pct != null ? Number(r.commission_pct) : undefined,
     commissionFixed: r.commission_fixed != null ? Number(r.commission_fixed) : undefined,
     documents: Array.isArray(r.document_kinds) ? (r.document_kinds as string[]) : undefined,
+    documentsMeta: Array.isArray(r.documents_meta) ? (r.documents_meta as Property["documentsMeta"]) : undefined,
     sellerType: (r.seller_type as "particular" | "empresa") ?? undefined,
     cmiExclusive: r.cmi_exclusive != null ? Boolean(r.cmi_exclusive) : undefined,
     cmiRenewable: r.cmi_renewable != null ? Boolean(r.cmi_renewable) : undefined,
@@ -830,7 +831,7 @@ export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("leads")
-    .select("*")
+    .select("*, property:properties!property_id(cover_url)")
     .eq("owner_id", agentId)
     .order("created_at", { ascending: false });
   return (data ?? []).map(mapLeadRow);
@@ -838,10 +839,14 @@ export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
 
 /** Mapeia uma linha da tabela `leads` para o modelo Lead (inclui campos Meta). */
 function mapLeadRow(r: Row): Lead {
+  const propJoin = (Array.isArray(r.property) ? r.property[0] : r.property) as
+    | { cover_url?: string }
+    | undefined;
   return {
     id: String(r.id),
     propertyId: (r.property_id as string) ?? undefined,
     propertyRef: (r.property_ref as string) ?? undefined,
+    propertyImage: propJoin?.cover_url || undefined,
     ownerId: String(r.owner_id ?? ""),
     referrerId: (r.referrer_id as string) ?? undefined,
     name: String(r.name ?? ""),

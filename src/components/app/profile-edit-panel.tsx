@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Camera, Clock, Loader2, Pencil, Send, X, XCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Camera, Check, Clock, Loader2, Pencil, Send, X, XCircle } from "lucide-react";
 
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { uploadErrorMessage, uploadSiteImage } from "@/lib/data/site-content";
@@ -15,12 +16,15 @@ export interface PendingProfileRequest {
 }
 
 /**
- * Edição do próprio perfil (nome, foto, WhatsApp) — não grava direto: envia um
- * pedido que fica pendente até o Super Admin aprovar (ver
- * /admin/aprovacoes). Enquanto houver um pedido pendente, mostra-o em vez do
- * formulário e permite cancelá-lo.
+ * Edição do próprio perfil (nome, foto, WhatsApp).
+ * - Super Admin (`instant`): grava de imediato — não há ninguém acima para
+ *   aprovar, por isso pedir aprovação a si próprio seria um ciclo sem sentido.
+ * - Todos os outros papéis: não grava direto, cria um pedido pendente até o
+ *   Super Admin aprovar (ver /admin/aprovacoes). Enquanto houver um pedido
+ *   pendente, mostra-o em vez do formulário e permite cancelá-lo.
  */
-export function ProfileEditPanel({ agent, initialPending }: { agent: Agent; initialPending: PendingProfileRequest | null }) {
+export function ProfileEditPanel({ agent, initialPending, instant = false }: { agent: Agent; initialPending: PendingProfileRequest | null; instant?: boolean }) {
+  const router = useRouter();
   const [editing, setEditing] = React.useState(false);
   const [name, setName] = React.useState(agent.name);
   const [whatsapp, setWhatsapp] = React.useState(agent.whatsapp ?? "");
@@ -29,6 +33,7 @@ export function ProfileEditPanel({ agent, initialPending }: { agent: Agent; init
   const [pending, setPending] = React.useState<PendingProfileRequest | null>(initialPending);
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
+  const [saved, setSaved] = React.useState(false);
 
   function pickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -38,7 +43,46 @@ export function ProfileEditPanel({ agent, initialPending }: { agent: Agent; init
     setPhotoPreview(URL.createObjectURL(file));
   }
 
-  async function submit() {
+  async function submitInstant() {
+    setBusy(true);
+    setErr(null);
+    try {
+      let photoUrl: string | undefined;
+      if (photoFile) photoUrl = await uploadSiteImage(photoFile, "profile");
+      const nameChanged = name.trim() && name.trim() !== agent.name;
+      const whatsappChanged = whatsapp.trim() !== (agent.whatsapp ?? "");
+      if (!nameChanged && !whatsappChanged && !photoUrl) {
+        setErr("Altera pelo menos um campo antes de guardar.");
+        return;
+      }
+      const res = await fetch("/api/admin/consultores", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: agent.id,
+          name: nameChanged ? name.trim() : undefined,
+          whatsapp: whatsappChanged ? whatsapp.trim() : undefined,
+          photoUrl,
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(`Não foi possível guardar${j.error ? `: ${j.error}` : "."}`);
+        return;
+      }
+      setEditing(false);
+      setPhotoFile(null);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 4000);
+      router.refresh();
+    } catch (e) {
+      setErr(uploadErrorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitRequest() {
     setBusy(true);
     setErr(null);
     try {
@@ -115,12 +159,19 @@ export function ProfileEditPanel({ agent, initialPending }: { agent: Agent; init
 
   if (!editing) {
     return (
-      <button
-        onClick={() => setEditing(true)}
-        className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--hx-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--hx-surface-blue)]"
-      >
-        <Pencil className="size-4" /> Editar perfil
-      </button>
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          onClick={() => setEditing(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--hx-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--hx-surface-blue)]"
+        >
+          <Pencil className="size-4" /> Editar perfil
+        </button>
+        {saved && (
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+            <Check className="size-4" /> Guardado.
+          </span>
+        )}
+      </div>
     );
   }
 
@@ -139,7 +190,7 @@ export function ProfileEditPanel({ agent, initialPending }: { agent: Agent; init
             <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={pickPhoto} />
           </label>
         </div>
-        <p className="text-xs hx-muted">Nova fotografia — só fica visível depois de aprovada.</p>
+        <p className="text-xs hx-muted">{instant ? "Nova fotografia — aplica-se assim que guardares." : "Nova fotografia — só fica visível depois de aprovada."}</p>
       </div>
 
       <label className="mt-4 block text-sm">
@@ -151,19 +202,22 @@ export function ProfileEditPanel({ agent, initialPending }: { agent: Agent; init
         <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-[3px]" />
       </label>
 
-      <p className="mt-3 text-xs hx-muted">As alterações ficam pendentes até serem aprovadas pelo Super Admin.</p>
+      <p className="mt-3 text-xs hx-muted">
+        {instant ? "Como Super Admin, gravas de imediato — sem aprovação." : "As alterações ficam pendentes até serem aprovadas pelo Super Admin."}
+      </p>
       {err && <p className="mt-2 text-sm text-destructive">{err}</p>}
 
       <div className="mt-4 flex items-center gap-2">
         <button
-          onClick={submit}
+          onClick={instant ? submitInstant : submitRequest}
           disabled={busy}
           className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Enviar para aprovação
+          {busy ? <Loader2 className="size-4 animate-spin" /> : instant ? <Check className="size-4" /> : <Send className="size-4" />}
+          {instant ? "Guardar" : "Enviar para aprovação"}
         </button>
         <button
-          onClick={() => { setEditing(false); setPhotoFile(null); setPhotoPreview(null); setName(agent.name); setWhatsapp(agent.whatsapp ?? ""); }}
+          onClick={() => { setEditing(false); setPhotoFile(null); setPhotoPreview(null); setName(agent.name); setWhatsapp(agent.whatsapp ?? ""); setErr(null); }}
           disabled={busy}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm text-muted-foreground hover:bg-secondary"
         >

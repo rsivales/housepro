@@ -55,21 +55,35 @@ export default function AdminPage() {
   }, []);
 
   const [savingWm, setSavingWm] = React.useState<"idle" | "saving" | "ok" | "err">("idle");
+  const [wmError, setWmError] = React.useState<string | null>(null);
 
-  /** Publica o estilo da marca de água para TODO o site (todos os consultores). */
+  /** Publica o estilo da marca de água para TODO o site (todos os consultores).
+   *  O servidor já devolve o motivo real da falha (permissão, base de dados,
+   *  etc.) — mostra-o em vez de um texto fixo que esconde a causa. */
   async function saveWatermarkGlobal() {
     setSavingWm("saving");
+    setWmError(null);
     try {
       const res = await fetch("/api/brand/watermark", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(wm),
       });
-      setSavingWm(res.ok ? "ok" : "err");
-    } catch {
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setSavingWm("ok");
+        setTimeout(() => setSavingWm((s) => (s === "ok" ? "idle" : s)), 4000);
+      } else {
+        setWmError(typeof j.error === "string" ? j.error : `Erro ${res.status}`);
+        setSavingWm("err");
+        console.error("[watermark] falha ao gravar", res.status, j);
+        // Erro fica visível até se tentar guardar de novo — não desaparece
+        // sozinho, para dar tempo a ler/copiar a mensagem real.
+      }
+    } catch (e) {
+      setWmError(e instanceof Error ? e.message : "Falha de rede.");
       setSavingWm("err");
     }
-    setTimeout(() => setSavingWm("idle"), 3000);
   }
 
   function choose(r: OrderingRule) {
@@ -519,7 +533,7 @@ export default function AdminPage() {
                 )}
                 {savingWm === "err" && (
                   <span className="text-sm text-destructive">
-                    Não foi possível guardar (só a administração pode).
+                    Não foi possível guardar{wmError ? `: ${wmError}` : "."}
                   </span>
                 )}
                 <span className="text-xs text-muted-foreground">

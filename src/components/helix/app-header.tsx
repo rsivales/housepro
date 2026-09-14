@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, CalendarDays, Bell, User, Building2, Hash, Eye, Settings, LogOut, Check } from "lucide-react";
+import { Search, CalendarDays, Bell, User, Building2, Hash, Eye, Calculator, LogOut, Check } from "lucide-react";
 
 import { HelixLogo } from "./helix-logo";
 import { CLIENT_MODE_KEY } from "@/lib/client-mode";
@@ -111,8 +111,10 @@ function ProfileMenu({
             <Eye className="size-4 hx-muted" /> Modo cliente
             {clientMode && <Check className="ml-auto size-4" style={{ color: "var(--hx-success)" }} />}
           </button>
+          {/* Esta ligação abre as calculadoras (IMT, crédito, mais-valias) — não é
+              uma página de definições de conta, por isso o rótulo reflete o destino. */}
           <Link href="/app/ferramentas" onClick={onClose} className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-[var(--hx-surface-blue)]">
-            <Settings className="size-4 hx-muted" /> Definições
+            <Calculator className="size-4 hx-muted" /> Ferramentas
           </Link>
           <a href="/auth/signout" className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-[var(--hx-surface-blue)]" style={{ color: "var(--hx-red)" }}>
             <LogOut className="size-4" /> Terminar sessão

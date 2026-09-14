@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2, Hash, Mail, Phone, ShieldCheck, Settings, LayoutGrid } from "lucide-react";
+import { Building2, Hash, Mail, Phone, ShieldCheck, Calculator, LayoutGrid, Users } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
-import { ROLE_LABEL } from "@/lib/data/roles";
+import { ROLE_LABEL, isStaff } from "@/lib/data/roles";
 
 export const metadata: Metadata = { title: "O meu perfil — Helix" };
 
@@ -14,6 +14,7 @@ export default async function PerfilPage() {
   if (!session) redirect("/entrar");
   const { agent, demo } = session;
   const roleLabel = (agent.roleKey && ROLE_LABEL[agent.roleKey]) || agent.role || "Consultor";
+  const canManageConsultores = isStaff(agent);
 
   const rows: { icon: React.ComponentType<{ className?: string }>; label: string; value?: string }[] = [
     { icon: ShieldCheck, label: "Papel", value: roleLabel },
@@ -57,15 +58,24 @@ export default async function PerfilPage() {
         <Link href={`/consultor/${agent.id}`} className="inline-flex items-center gap-2 rounded-full border border-[var(--hx-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--hx-surface-blue)]">
           <LayoutGrid className="size-4" /> A minha montra pública
         </Link>
+        {/* Não é uma página de definições de conta — abre as calculadoras (IMT,
+            crédito, mais-valias). Rótulo alinhado com o destino real. */}
         <Link href="/app/ferramentas" className="inline-flex items-center gap-2 rounded-full border border-[var(--hx-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--hx-surface-blue)]">
-          <Settings className="size-4" /> Definições
+          <Calculator className="size-4" /> Ferramentas
         </Link>
+        {canManageConsultores && (
+          <Link href="/admin/consultores" className="inline-flex items-center gap-2 rounded-full border border-[var(--hx-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--hx-surface-blue)]">
+            <Users className="size-4" /> Consultores &amp; papéis
+          </Link>
+        )}
       </div>
 
       <p className="mt-6 text-xs hx-muted">
         {demo
           ? "Modo demonstração — os dados do perfil vêm do perfil de exemplo."
-          : "Para alterar nome, foto, contactos ou papel, contacta a coordenação/administração da agência (gestão em /admin)."}
+          : canManageConsultores
+            ? "Para alterar nome, foto, contactos ou papel — incluindo os teus — usa Consultores & papéis acima."
+            : "Para alterar nome, foto, contactos ou papel, contacta a coordenação/administração da agência."}
       </p>
     </div>
   );

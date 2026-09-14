@@ -223,3 +223,15 @@ create policy "profile_req_update_own_pending" on profile_change_requests
   for update
   using (profile_id = auth.uid() and status = 'pendente')
   with check (profile_id = auth.uid() and status in ('pendente', 'cancelado'));
+
+-- ── migration_fix_has_role.sql ───────────────────────────────────────────
+-- CRÍTICO — has_role() dependia de user_roles (nunca populada); passa a
+-- verificar profiles.role diretamente. Corrige silenciosamente todas as
+-- políticas RLS que dependem de has_role() (site_settings, etc.).
+create or replace function has_role(r user_role) returns boolean
+  language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from profiles p
+    where p.id = auth.uid() and (p.role = r or p.role = 'admin')
+  )
+$$;

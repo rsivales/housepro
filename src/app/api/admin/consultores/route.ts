@@ -84,6 +84,7 @@ export async function PATCH(request: Request) {
   const patch: Record<string, unknown> = {};
   if (typeof b.name === "string") patch.name = b.name.trim();
   if (typeof b.whatsapp === "string") patch.whatsapp = b.whatsapp || null;
+  if (typeof b.photoUrl === "string") patch.photo_url = b.photoUrl || null;
   if (typeof b.agencyId === "string") patch.agency_id = b.agencyId || null;
   if (typeof b.roleKey === "string") { patch.role_key = b.roleKey; patch.role = toEnumRole(b.roleKey); }
   if (typeof b.active === "boolean") patch.active = b.active;

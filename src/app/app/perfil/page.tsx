@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { ProfileEditPanel, type PendingProfileRequest } from "@/components/app/profile-edit-panel";
-import { ROLE_LABEL, isStaff } from "@/lib/data/roles";
+import { ROLE_LABEL, isStaff, isSuperadmin } from "@/lib/data/roles";
 
 export const metadata: Metadata = { title: "O meu perfil — Helix" };
 
@@ -18,9 +18,12 @@ export default async function PerfilPage() {
   const { agent, demo } = session;
   const roleLabel = (agent.roleKey && ROLE_LABEL[agent.roleKey]) || agent.role || "Consultor";
   const canManageConsultores = isStaff(agent);
+  const isSelfSuperadmin = isSuperadmin(agent);
 
   let pendingRequest: PendingProfileRequest | null = null;
-  if (!demo && isSupabaseConfigured()) {
+  // Super Admin não tem ninguém acima para aprovar — grava de imediato, sem
+  // pedido pendente (ver instant no ProfileEditPanel abaixo).
+  if (!demo && !isSelfSuperadmin && isSupabaseConfigured()) {
     const supabase = await createClient();
     const { data } = await supabase
       .from("profile_change_requests")
@@ -70,7 +73,7 @@ export default async function PerfilPage() {
           ))}
         </dl>
 
-        {!demo && <ProfileEditPanel agent={agent} initialPending={pendingRequest} />}
+        {!demo && <ProfileEditPanel agent={agent} initialPending={pendingRequest} instant={isSelfSuperadmin} />}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3">
@@ -92,9 +95,11 @@ export default async function PerfilPage() {
       <p className="mt-6 text-xs hx-muted">
         {demo
           ? "Modo demonstração — os dados do perfil vêm do perfil de exemplo."
-          : canManageConsultores
-            ? "Para alterar nome, foto, papel ou dados de outros consultores usa Consultores & papéis acima. Para os teus próprios dados podes também usar Editar perfil — fica sujeito à mesma aprovação do Super Admin."
-            : "Nome, foto e WhatsApp: usa Editar perfil acima — fica pendente até o Super Admin aprovar. Para alterar o papel ou a agência, contacta a coordenação."}
+          : isSelfSuperadmin
+            ? "Como Super Admin não há ninguém acima para aprovar as tuas alterações — Editar perfil grava de imediato. Para editar outros consultores usa Consultores & papéis acima."
+            : canManageConsultores
+              ? "Para alterar nome, foto, papel ou dados de outros consultores usa Consultores & papéis acima. Para os teus próprios dados podes também usar Editar perfil — fica sujeito à aprovação do Super Admin."
+              : "Nome, foto e WhatsApp: usa Editar perfil acima — fica pendente até o Super Admin aprovar. Para alterar o papel ou a agência, contacta a coordenação."}
       </p>
     </div>
   );

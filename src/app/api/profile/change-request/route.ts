@@ -5,6 +5,17 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 /**
+ * A tabela por criar dá erros diferentes consoante o caminho: Postgres puro
+ * devolve 42P01 (undefined_table); a PostgREST (usada pelo cliente Supabase)
+ * costuma devolver PGRST205 com uma mensagem tipo "Could not find the table
+ * '...' in the schema cache" — daí verificar os dois.
+ */
+function isTableMissing(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === "42P01" || error.code === "PGRST205" || /schema cache/i.test(error.message ?? "");
+}
+
+/**
  * O próprio consultor propõe alterações ao seu perfil (nome, foto, WhatsApp).
  * Não grava direto em `profiles` — cria/atualiza um pedido pendente que a
  * coordenação/administração aprova em /admin/aprovacoes. RLS garante que só
@@ -34,8 +45,8 @@ export async function POST(request: Request) {
     .eq("profile_id", session.agent.id)
     .eq("status", "pendente")
     .maybeSingle();
-  // Tabela ainda não criada (migração pendente) — code 42P01 = undefined_table.
-  if (existingErr && existingErr.code === "42P01") {
+  // Tabela ainda não criada (migração pendente).
+  if (isTableMissing(existingErr)) {
     console.error("[profile/change-request] tabela profile_change_requests não existe — falta correr a migração", existingErr);
     return NextResponse.json({ error: "table_missing" }, { status: 500 });
   }
@@ -67,7 +78,7 @@ export async function POST(request: Request) {
       .eq("id", existing.id);
     if (error) {
       console.error("[profile/change-request] falha ao atualizar pedido", error);
-      return NextResponse.json({ error: error.code === "42P01" ? "table_missing" : error.message }, { status: 400 });
+      return NextResponse.json({ error: isTableMissing(error) ? "table_missing" : error.message }, { status: 400 });
     }
     return NextResponse.json({ ok: true, id: existing.id });
   }
@@ -79,7 +90,7 @@ export async function POST(request: Request) {
     .single();
   if (error) {
     console.error("[profile/change-request] falha ao criar pedido", error);
-    return NextResponse.json({ error: error.code === "42P01" ? "table_missing" : error.message }, { status: 400 });
+    return NextResponse.json({ error: isTableMissing(error) ? "table_missing" : error.message }, { status: 400 });
   }
   return NextResponse.json({ ok: true, id: created?.id });
 }

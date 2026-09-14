@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   if (!session || session.demo) {
     return NextResponse.json({ error: "Sessão inválida." }, { status: 401 });
   }
-  const isAdmin = session.agent.role === "admin" || session.agent.roleKey === "admin";
+  const isAdmin = session.agent.role === "admin" || session.agent.roleKey === "admin" || session.agent.roleKey === "superadmin";
   if (!isAdmin) {
     return NextResponse.json({ error: "Apenas a administração pode definir as artes." }, { status: 403 });
   }

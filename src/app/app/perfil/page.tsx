@@ -93,8 +93,8 @@ export default async function PerfilPage() {
         {demo
           ? "Modo demonstração — os dados do perfil vêm do perfil de exemplo."
           : canManageConsultores
-            ? "Para alterar nome, foto, papel ou dados de outros consultores usa Consultores & papéis acima. Para os teus próprios dados podes também usar Editar perfil — fica sujeito à mesma aprovação."
-            : "Nome, foto e WhatsApp: usa Editar perfil acima — fica pendente até a coordenação/administração aprovar. Para alterar o papel ou a agência, contacta a coordenação."}
+            ? "Para alterar nome, foto, papel ou dados de outros consultores usa Consultores & papéis acima. Para os teus próprios dados podes também usar Editar perfil — fica sujeito à mesma aprovação do Super Admin."
+            : "Nome, foto e WhatsApp: usa Editar perfil acima — fica pendente até o Super Admin aprovar. Para alterar o papel ou a agência, contacta a coordenação."}
       </p>
     </div>
   );

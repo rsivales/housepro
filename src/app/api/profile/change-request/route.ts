@@ -28,12 +28,17 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
-  const { data: existing } = await supabase
+  const { data: existing, error: existingErr } = await supabase
     .from("profile_change_requests")
     .select("id")
     .eq("profile_id", session.agent.id)
     .eq("status", "pendente")
     .maybeSingle();
+  // Tabela ainda não criada (migração pendente) — code 42P01 = undefined_table.
+  if (existingErr && existingErr.code === "42P01") {
+    console.error("[profile/change-request] tabela profile_change_requests não existe — falta correr a migração", existingErr);
+    return NextResponse.json({ error: "table_missing" }, { status: 500 });
+  }
 
   if (body.cancel) {
     if (!existing) return NextResponse.json({ ok: true });
@@ -41,7 +46,10 @@ export async function POST(request: Request) {
       .from("profile_change_requests")
       .update({ status: "cancelado" })
       .eq("id", existing.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) {
+      console.error("[profile/change-request] falha ao cancelar", error);
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json({ ok: true });
   }
 
@@ -57,7 +65,10 @@ export async function POST(request: Request) {
       .from("profile_change_requests")
       .update({ name, photo_url: photoUrl, whatsapp, status: "pendente" })
       .eq("id", existing.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) {
+      console.error("[profile/change-request] falha ao atualizar pedido", error);
+      return NextResponse.json({ error: error.code === "42P01" ? "table_missing" : error.message }, { status: 400 });
+    }
     return NextResponse.json({ ok: true, id: existing.id });
   }
 
@@ -66,6 +77,9 @@ export async function POST(request: Request) {
     .insert({ profile_id: session.agent.id, name, photo_url: photoUrl, whatsapp })
     .select("id")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("[profile/change-request] falha ao criar pedido", error);
+    return NextResponse.json({ error: error.code === "42P01" ? "table_missing" : error.message }, { status: 400 });
+  }
   return NextResponse.json({ ok: true, id: created?.id });
 }

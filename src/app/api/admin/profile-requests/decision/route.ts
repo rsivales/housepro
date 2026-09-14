@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { isStaff } from "@/lib/data/roles";
+import { isSuperadmin } from "@/lib/data/roles";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 
 /**
- * A coordenação/administração aprova ou recusa um pedido de alteração de
- * perfil. Ao aprovar, os campos propostos (só os que foram pedidos) são
- * aplicados a `profiles`. POST { id, decision: "aprovado" | "recusado", note? }
+ * O Super Admin aprova ou recusa um pedido de alteração de perfil — só ele,
+ * mesmo que quem submeteu seja broker/diretor. Ao aprovar, os campos
+ * propostos (só os que foram pedidos) são aplicados a `profiles`.
+ * POST { id, decision: "aprovado" | "recusado", note? }
  */
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session || session.demo || !isStaff(session.agent)) {
+  if (!session || session.demo || !isSuperadmin(session.agent)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   if (!hasServiceRole()) return NextResponse.json({ error: "service_role_missing" }, { status: 501 });

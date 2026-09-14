@@ -16,7 +16,7 @@ export interface PendingProfileRequest {
 
 /**
  * Edição do próprio perfil (nome, foto, WhatsApp) — não grava direto: envia um
- * pedido que fica pendente até a coordenação/administração aprovar (ver
+ * pedido que fica pendente até o Super Admin aprovar (ver
  * /admin/aprovacoes). Enquanto houver um pedido pendente, mostra-o em vez do
  * formulário e permite cancelá-lo.
  */
@@ -57,7 +57,9 @@ export function ProfileEditPanel({ agent, initialPending }: { agent: Agent; init
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setErr(j.error === "empty_request" ? "Altera pelo menos um campo antes de enviar." : "Não foi possível enviar o pedido. Tenta novamente.");
+        if (j.error === "empty_request") setErr("Altera pelo menos um campo antes de enviar.");
+        else if (j.error === "table_missing") setErr("Esta funcionalidade ainda não foi ativada na base de dados (falta aplicar a migração). Pede à administração para correr o SQL mais recente no Supabase.");
+        else setErr(`Não foi possível enviar o pedido${j.error ? `: ${j.error}` : ""}.`);
         return;
       }
       setPending({
@@ -149,7 +151,7 @@ export function ProfileEditPanel({ agent, initialPending }: { agent: Agent; init
         <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-[3px]" />
       </label>
 
-      <p className="mt-3 text-xs hx-muted">As alterações ficam pendentes até serem aprovadas pela coordenação/administração.</p>
+      <p className="mt-3 text-xs hx-muted">As alterações ficam pendentes até serem aprovadas pelo Super Admin.</p>
       {err && <p className="mt-2 text-sm text-destructive">{err}</p>}
 
       <div className="mt-4 flex items-center gap-2">

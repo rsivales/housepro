@@ -1,22 +1,23 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { isStaff } from "@/lib/data/roles";
+import { isSuperadmin } from "@/lib/data/roles";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 
 /**
  * Fila de pedidos de alteração de perfil (nome/foto/WhatsApp) pendentes de
- * aprovação — coordenação e acima. Usa service_role para ler o pedido +
- * o perfil atual (para mostrar o "antes/depois" na fila).
+ * aprovação — reservada ao Super Admin (qualquer papel, incluindo broker/
+ * diretor, pode SUBMETER um pedido; só o Super Admin decide). Usa service_role
+ * para ler o pedido + o perfil atual (para mostrar o "antes/depois" na fila).
  */
-async function requireStaff() {
+async function requireSuperadmin() {
   const session = await getSession();
-  if (!session || session.demo || !isStaff(session.agent)) return null;
+  if (!session || session.demo || !isSuperadmin(session.agent)) return null;
   return session;
 }
 
 export async function GET() {
-  const session = await requireStaff();
+  const session = await requireSuperadmin();
   if (!session) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (!hasServiceRole()) return NextResponse.json({ error: "service_role_missing" }, { status: 501 });
 

@@ -116,9 +116,13 @@ function ProfileMenu({
           <Link href="/app/ferramentas" onClick={onClose} className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-[var(--hx-surface-blue)]">
             <Calculator className="size-4 hx-muted" /> Ferramentas
           </Link>
-          <a href="/auth/signout" className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-[var(--hx-surface-blue)]" style={{ color: "var(--hx-red)" }}>
-            <LogOut className="size-4" /> Terminar sessão
-          </a>
+          {/* /auth/signout só aceita POST (mutação de cookies) — uma ligação <a>
+              normal faz sempre um GET e dava erro 405. */}
+          <form action="/auth/signout" method="post">
+            <button type="submit" className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-[var(--hx-surface-blue)]" style={{ color: "var(--hx-red)" }}>
+              <LogOut className="size-4" /> Terminar sessão
+            </button>
+          </form>
         </nav>
       </div>
     </>

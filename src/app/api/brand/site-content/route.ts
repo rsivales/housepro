@@ -21,6 +21,7 @@ const SECTIONS = {
   homepromo: "hp_homepromo",
   signaturepromo: "hp_signaturepromo",
   brandassets: "hp_brandassets",
+  signaturebrand: "hp_signaturebrand",
   mediaassets: "hp_mediaassets",
   propertyhub: "hp_propertyhub",
 } as const;

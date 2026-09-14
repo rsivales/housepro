@@ -52,6 +52,7 @@ export async function POST(request: Request) {
   const isAdminOrAmi =
     session.agent.role === "admin" ||
     session.agent.roleKey === "admin" ||
+    session.agent.roleKey === "superadmin" ||
     Boolean(session.agent.ownAMI);
 
   // Operação coarse derivada do tipo de negócio (compat. com filtros/portais).

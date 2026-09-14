@@ -185,3 +185,41 @@ alter table leads
   add column if not exists pipeline text,
   add column if not exists stage integer default 0;
 
+
+-- ── migration_documents_persist.sql ──────────────────────────────────────
+-- Documentos do imóvel (ficheiros, não só o tipo) passam a persistir.
+alter table properties add column if not exists documents_meta jsonb;
+
+-- ── migration_profile_change_requests.sql ────────────────────────────────
+-- Pedidos de alteração de perfil (nome, foto, WhatsApp) — o próprio consultor
+-- propõe, a coordenação/administração aprova. Ver ficheiro próprio para
+-- comentários completos.
+
+create table if not exists profile_change_requests (
+  id          uuid primary key default gen_random_uuid(),
+  profile_id  uuid not null references profiles(id) on delete cascade,
+  name        text,
+  photo_url   text,
+  whatsapp    text,
+  status      text not null default 'pendente',   -- pendente | aprovado | recusado | cancelado
+  note        text,
+  decided_by  uuid references profiles(id),
+  decided_at  timestamptz,
+  created_at  timestamptz not null default now()
+);
+
+alter table profile_change_requests enable row level security;
+
+drop policy if exists "profile_req_select_own" on profile_change_requests;
+create policy "profile_req_select_own" on profile_change_requests
+  for select using (profile_id = auth.uid());
+
+drop policy if exists "profile_req_insert_own" on profile_change_requests;
+create policy "profile_req_insert_own" on profile_change_requests
+  for insert with check (profile_id = auth.uid());
+
+drop policy if exists "profile_req_update_own_pending" on profile_change_requests;
+create policy "profile_req_update_own_pending" on profile_change_requests
+  for update
+  using (profile_id = auth.uid() and status = 'pendente')
+  with check (profile_id = auth.uid() and status in ('pendente', 'cancelado'));

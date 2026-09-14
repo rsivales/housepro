@@ -5,6 +5,7 @@ import { ArrowLeft, ShieldCheck, AlertTriangle, BadgeCheck } from "lucide-react"
 import { SiteHeader } from "@/components/layout/site-header";
 import { ApprovalQueue, type PendingItem } from "@/components/admin/approval-queue";
 import { NotifyMissingButton } from "@/components/admin/notify-missing-button";
+import { ProfileRequestsQueue } from "@/components/admin/profile-requests-queue";
 import { properties, pendingApprovals, agentById, agencyById } from "@/lib/data/mock";
 import { docStatus, docLabel } from "@/lib/imovel/model";
 
@@ -88,6 +89,9 @@ export default function AprovacoesPage() {
           <h2 className="mb-4 font-display text-xl">A aguardar aprovação ({items.length})</h2>
           <ApprovalQueue items={items} />
         </section>
+
+        {/* Pedidos de alteração de perfil (nome/foto/WhatsApp) — só aparece quando há pendentes */}
+        <ProfileRequestsQueue />
 
         {/* AMI próprio (auto-publicado) */}
         {amiAuto.length > 0 && (

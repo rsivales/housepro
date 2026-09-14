@@ -8,6 +8,7 @@ import { listProperties, getAgenciesConfig } from "@/lib/db/repo";
 import { getSession } from "@/lib/supabase/auth";
 import { isBrandAdmin } from "@/lib/data/roles";
 import { AgenciesAdmin } from "@/components/admin/agencies-admin";
+import { AgencyTeamsReal } from "@/components/admin/agency-teams-real";
 
 export const metadata: Metadata = { title: "Agências · Back office" };
 
@@ -47,6 +48,24 @@ export default async function AdminAgenciasPage() {
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           Cria, edita, suspende ou elimina agências da rede. As alterações são
           guardadas automaticamente. Abre uma agência para ver a equipa e os imóveis.
+        </p>
+
+        {/* Equipas reais — dados de login (profiles/agencies no Supabase). Atribui
+            papéis (incluindo "Diretor de agência" = broker) e aprova/suspende o
+            acesso de cada consultor. Distinto da lista abaixo (rede pública/marca). */}
+        <h2 className="mt-8 flex items-center gap-2 font-display text-xl">Equipas</h2>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          Quem entra de facto na HousePro, com o papel real (incluindo quem é o{" "}
+          <strong>broker/diretor</strong> de cada agência) e o acesso ativo/suspenso.
+        </p>
+        <div className="mt-4">
+          <AgencyTeamsReal />
+        </div>
+
+        <h2 className="mt-10 flex items-center gap-2 font-display text-xl">Rede pública (marca)</h2>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          Como a rede de agências aparece no site público — nome, região, estado. Não
+          atribui consultores nem papéis (usa a secção Equipas acima para isso).
         </p>
 
         {canManage ? (

@@ -52,6 +52,7 @@ type Section =
   | "homepromo"
   | "signaturepromo"
   | "brandassets"
+  | "signaturebrand"
   | "mediaassets"
   | "propertyhub";
 
@@ -124,6 +125,7 @@ export interface ServerContent {
     alt?: string;
   };
   brandassets?: BrandAssets;
+  signaturebrand?: SignatureBrand;
   mediaassets?: MediaAssetMap;
   propertyhub?: import("@/lib/data/property-hub").PropertyHubConfig;
 }
@@ -135,6 +137,15 @@ export interface BrandAssets {
   footerAlt?: string;
   mark?: string;
   markAlt?: string;
+}
+
+/**
+ * Logótipo exclusivo da coleção HousePro Signature (imóveis de luxo). Quando
+ * por definir, a página usa o wordmark "HOUSEPRO / SIGNATURE" por defeito.
+ */
+export interface SignatureBrand {
+  logo?: string;
+  logoAlt?: string;
 }
 
 export type MediaAssetMap = Record<string, { url?: string; alt?: string }>;
@@ -233,7 +244,7 @@ async function compressImage(file: File): Promise<Blob> {
 /** Comprime, envia para o Storage e só devolve depois de existir um URL público. */
 export async function uploadSiteImage(
   file: File,
-  area: "banners" | "articles" | "stories" | "brand" | "landing-pages",
+  area: "banners" | "articles" | "stories" | "brand" | "landing-pages" | "profile",
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("invalid_image");

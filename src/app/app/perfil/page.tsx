@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2, Hash, Mail, Phone, ShieldCheck, Settings, LayoutGrid } from "lucide-react";
+import { Building2, Hash, Mail, Phone, ShieldCheck, Calculator, LayoutGrid, Users } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
-import { ROLE_LABEL } from "@/lib/data/roles";
+import { ProfileEditPanel, type PendingProfileRequest } from "@/components/app/profile-edit-panel";
+import { ROLE_LABEL, isStaff } from "@/lib/data/roles";
 
 export const metadata: Metadata = { title: "O meu perfil — Helix" };
 
@@ -14,6 +17,21 @@ export default async function PerfilPage() {
   if (!session) redirect("/entrar");
   const { agent, demo } = session;
   const roleLabel = (agent.roleKey && ROLE_LABEL[agent.roleKey]) || agent.role || "Consultor";
+  const canManageConsultores = isStaff(agent);
+
+  let pendingRequest: PendingProfileRequest | null = null;
+  if (!demo && isSupabaseConfigured()) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("profile_change_requests")
+      .select("name, photo_url, whatsapp, created_at")
+      .eq("profile_id", agent.id)
+      .eq("status", "pendente")
+      .maybeSingle();
+    if (data) {
+      pendingRequest = { name: data.name, whatsapp: data.whatsapp, photoUrl: data.photo_url, createdAt: data.created_at };
+    }
+  }
 
   const rows: { icon: React.ComponentType<{ className?: string }>; label: string; value?: string }[] = [
     { icon: ShieldCheck, label: "Papel", value: roleLabel },
@@ -51,21 +69,32 @@ export default async function PerfilPage() {
             </div>
           ))}
         </dl>
+
+        {!demo && <ProfileEditPanel agent={agent} initialPending={pendingRequest} />}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3">
         <Link href={`/consultor/${agent.id}`} className="inline-flex items-center gap-2 rounded-full border border-[var(--hx-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--hx-surface-blue)]">
           <LayoutGrid className="size-4" /> A minha montra pública
         </Link>
+        {/* Não é uma página de definições de conta — abre as calculadoras (IMT,
+            crédito, mais-valias). Rótulo alinhado com o destino real. */}
         <Link href="/app/ferramentas" className="inline-flex items-center gap-2 rounded-full border border-[var(--hx-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--hx-surface-blue)]">
-          <Settings className="size-4" /> Definições
+          <Calculator className="size-4" /> Ferramentas
         </Link>
+        {canManageConsultores && (
+          <Link href="/admin/consultores" className="inline-flex items-center gap-2 rounded-full border border-[var(--hx-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--hx-surface-blue)]">
+            <Users className="size-4" /> Consultores &amp; papéis
+          </Link>
+        )}
       </div>
 
       <p className="mt-6 text-xs hx-muted">
         {demo
           ? "Modo demonstração — os dados do perfil vêm do perfil de exemplo."
-          : "Para alterar nome, foto, contactos ou papel, contacta a coordenação/administração da agência (gestão em /admin)."}
+          : canManageConsultores
+            ? "Para alterar nome, foto, papel ou dados de outros consultores usa Consultores & papéis acima. Para os teus próprios dados podes também usar Editar perfil — fica sujeito à mesma aprovação do Super Admin."
+            : "Nome, foto e WhatsApp: usa Editar perfil acima — fica pendente até o Super Admin aprovar. Para alterar o papel ou a agência, contacta a coordenação."}
       </p>
     </div>
   );

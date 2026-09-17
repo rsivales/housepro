@@ -250,3 +250,12 @@ alter table properties
   add column if not exists amenities          text[] default '{}',
   add column if not exists neighborhood_notes text,
   add column if not exists accessible         boolean default false;
+
+-- ── migration_fix_service_role_grants.sql ────────────────────────────────
+-- CRÍTICO — "permission denied for table X" via service_role: faltavam
+-- GRANTs (provavelmente perdidos num reset de esquema anterior).
+grant usage on schema public to service_role;
+grant all privileges on all tables in schema public to service_role;
+grant all privileges on all sequences in schema public to service_role;
+alter default privileges in schema public grant all on tables to service_role;
+alter default privileges in schema public grant all on sequences to service_role;

@@ -206,6 +206,9 @@ export interface Property {
   documents?: string[];
   /** Documentos carregados: ficheiro/URL, tipo e validação — nunca públicos. */
   documentsMeta?: { name: string; kind: string; url: string; mime?: string; validated?: boolean }[];
+  /** Licença de utilização averbada na certidão predial permanente — dispensa
+   *  upload em separado desse documento obrigatório. */
+  licenseEndorsed?: boolean;
   /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
   sellerType?: "particular" | "empresa";
   /** Contrato de mediação (CMI): exclusivo vs aberto; renovável; datas. */

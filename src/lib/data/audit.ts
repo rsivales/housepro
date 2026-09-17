@@ -70,6 +70,7 @@ export const AUDIT_FIELD_LABEL: Record<string, string> = {
   hasKeys: "Chaves na agência",
   listingState: "Estado",
   offMarket: "Fora de mercado",
+  licenseEndorsed: "Licença averbada na certidão",
 };
 
 export function auditFieldLabel(f: string): string {

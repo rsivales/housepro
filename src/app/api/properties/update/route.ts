@@ -57,6 +57,7 @@ const FIELDS: Record<string, string> = {
   hasKeys: "has_keys",
   listingState: "listing_state",
   offMarket: "off_market",
+  licenseEndorsed: "license_endorsed",
 };
 
 const NUMERIC = new Set([
@@ -65,7 +66,7 @@ const NUMERIC = new Set([
 ]);
 const BOOLEAN = new Set([
   "elevator", "isDevelopment", "priceVisible", "cmiExclusive", "cmiRenewable",
-  "hasPlaca", "hasKeys", "offMarket",
+  "hasPlaca", "hasKeys", "offMarket", "licenseEndorsed",
 ]);
 
 function fmt(field: string, v: unknown): string {

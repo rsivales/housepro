@@ -15,7 +15,7 @@ export default function AprovacoesPage() {
   const pend = pendingApprovals();
   const items: PendingItem[] = pend.map((p) => {
     const agent = agentById(p.agentId);
-    const st = docStatus(p.documents ?? [], p.sellerType === "empresa");
+    const st = docStatus(p.documents ?? [], p.sellerType === "empresa", p.licenseEndorsed ? ["licenca_utilizacao"] : []);
     return {
       id: p.id,
       reference: p.reference,
@@ -32,7 +32,7 @@ export default function AprovacoesPage() {
   // Notificação vermelha: imóveis (não vendidos) com documentos obrigatórios em falta.
   const docMissing = properties
     .filter((p) => p.status !== "vendido")
-    .map((p) => ({ p, st: docStatus(p.documents ?? [], p.sellerType === "empresa") }))
+    .map((p) => ({ p, st: docStatus(p.documents ?? [], p.sellerType === "empresa", p.licenseEndorsed ? ["licenca_utilizacao"] : []) }))
     .filter((x) => !x.st.complete);
 
   // Imóveis publicados sem aprovação necessária (AMI próprio) — informativo.

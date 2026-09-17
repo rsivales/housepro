@@ -417,14 +417,15 @@ export function PropertyForm({
     e.target.value = "";
   }
 
-  /** Carrega plantas (imagens) — sem marca de água, não fazem parte da galeria. */
+  /** Carrega plantas (imagens ou PDF) — sem marca de água, não fazem parte da
+   *  galeria. PDFs não passam por downscale (é uma operação só de imagem). */
   async function onPlans(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     const urls: string[] = [];
     const falhas: string[] = [];
     for (const f of files) {
       try {
-        urls.push(await downscale(await readFile(f), 2200));
+        urls.push(f.type === "application/pdf" ? await readFile(f) : await downscale(await readFile(f), 2200));
       } catch {
         falhas.push(f.name);
       }
@@ -616,9 +617,11 @@ export function PropertyForm({
       }
 
       // Plantas: remotas mantêm-se; as novas (data URLs) sobem para o Storage.
+      // uploadDocDataUrl respeita o mime real (PDF/imagem) — uploadDataUrl
+      // (fotos) força sempre .jpg, o que corrompia plantas em PDF.
       const planUrls: string[] = [];
       for (const p of plans) {
-        const url = p.startsWith("data:") ? await uploadDataUrl(supabase, p) : p;
+        const url = p.startsWith("data:") ? await uploadDocDataUrl(supabase, p) : p;
         if (url) planUrls.push(url);
       }
 
@@ -870,29 +873,44 @@ export function PropertyForm({
             página pública. Sem elas, esse separador nunca aparece. */}
         <Card title="Plantas do imóvel">
           <p className="text-sm text-muted-foreground">
-            Carregue a planta (ou plantas) do imóvel. Aparecem no separador próprio da página pública —
-            essencial para o comprador perceber a distribuição das divisões.
+            Carregue a planta (ou plantas) do imóvel — imagem ou PDF. Aparecem no separador próprio da
+            página pública — essencial para o comprador perceber a distribuição das divisões.
           </p>
           <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
             <ImagePlus className="size-4" /> Adicionar plantas
-            <input type="file" accept="image/*" multiple onChange={onPlans} className="hidden" />
+            <input type="file" accept="image/*,application/pdf" multiple onChange={onPlans} className="hidden" />
           </label>
           {plans.length > 0 && (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {plans.map((src, i) => (
-                <div key={i} className="group relative overflow-hidden rounded-lg border bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt={`Planta ${i + 1}`} className="aspect-[4/3] w-full object-contain p-1" />
-                  <button
-                    type="button"
-                    onClick={() => removePlan(i)}
-                    className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-background/80 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                    aria-label="Remover planta"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-              ))}
+              {plans.map((src, i) => {
+                const isPdf = src.startsWith("data:application/pdf") || /\.pdf(\?|$)/i.test(src);
+                return (
+                  <div key={i} className="group relative overflow-hidden rounded-lg border bg-white">
+                    {isPdf ? (
+                      <a
+                        href={src}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1.5 p-2 text-muted-foreground hover:text-foreground"
+                      >
+                        <FileText className="size-8" />
+                        <span className="text-xs">Planta {i + 1} (PDF) · abrir</span>
+                      </a>
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={src} alt={`Planta ${i + 1}`} className="aspect-[4/3] w-full object-contain p-1" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removePlan(i)}
+                      className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-background/80 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                      aria-label="Remover planta"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </Card>
@@ -1339,7 +1357,7 @@ export function PropertyForm({
         <Card title="Documentos & planta">
           {/* Estado documental (mínimos obrigatórios) */}
           {(() => {
-            const st = docStatus(d.documentos.map((x) => x.kind), d.sellerType === "empresa");
+            const st = docStatus(d.documentos.map((x) => x.kind), d.sellerType === "empresa", d.licenseEndorsed ? ["licenca_utilizacao"] : []);
             return (
               <div
                 className={cn(
@@ -1396,6 +1414,17 @@ export function PropertyForm({
             />
             Imóvel proveniente de herança / partilha
             <span className="text-xs text-muted-foreground">(mostra documentos adicionais)</span>
+          </label>
+
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={d.licenseEndorsed}
+              onChange={(e) => patch({ licenseEndorsed: e.target.checked })}
+              className="size-4 accent-primary"
+            />
+            Licença de utilização averbada na certidão permanente
+            <span className="text-xs text-muted-foreground">(dispensa upload em separado)</span>
           </label>
 
           <p className="mt-4 text-sm text-muted-foreground">
@@ -1640,6 +1669,7 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     hasKeys: d.hasKeys,
     listingState: d.listingState,
     offMarket: d.offMarket,
+    licenseEndorsed: d.licenseEndorsed,
     expenses: d.expenses,
     tags: d.tags,
     lat: d.lat,

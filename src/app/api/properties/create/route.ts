@@ -116,6 +116,7 @@ export async function POST(request: Request) {
     has_keys: Boolean(d.hasKeys),
     listing_state: ["activo", "pendente", "inactivo"].includes(String(d.listingState)) ? String(d.listingState) : "activo",
     off_market: Boolean(d.offMarket),
+    license_endorsed: Boolean(d.licenseEndorsed),
     commission_type: d.comissaoTipo === "fixed" ? "fixed" : "percent",
     commission_pct: d.comissaoTipo === "percent" ? Number(d.comissao ?? 0) : null,
     commission_fixed: d.comissaoTipo === "fixed" ? Number(d.comissaoFixo ?? 0) : null,

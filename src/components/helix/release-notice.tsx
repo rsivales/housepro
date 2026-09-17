@@ -6,12 +6,52 @@ import { LATEST_RELEASE } from "@/lib/data/releases";
 
 const STORAGE_KEY = "helix:last-seen-release";
 
+/**
+ * Antes guardava só em localStorage — como cada deployment de preview tem um
+ * domínio diferente (housepro-<hash>-...vercel.app), o localStorage nunca
+ * atravessava para o preview seguinte e a notificação "reaparecia" mesmo
+ * depois de marcada como vista. Agora guarda-se em profiles.settings (a
+ * conta, não o browser) — sobrevive a qualquer domínio/dispositivo. Mantém o
+ * localStorage como resposta imediata e reserva para modo demo/sem sessão.
+ */
 export function ReleaseNotice() {
   const [visible, setVisible] = React.useState(false);
   const [open, setOpen] = React.useState(false);
-  React.useEffect(() => { try { setVisible(localStorage.getItem(STORAGE_KEY) !== LATEST_RELEASE.id); } catch { setVisible(true); } }, []);
-  function dismiss() { try { localStorage.setItem(STORAGE_KEY, LATEST_RELEASE.id); } catch {} setVisible(false); setOpen(false); }
-  if (!visible) return null;
+  const [ready, setReady] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    // Resposta imediata a partir do cache local (evita o "flash" do aviso).
+    try { setVisible(localStorage.getItem(STORAGE_KEY) !== LATEST_RELEASE.id); } catch { setVisible(true); }
+
+    fetch("/api/me/settings")
+      .then((r) => (r.ok ? r.json() : { persisted: false }))
+      .then((j) => {
+        if (cancelled) return;
+        if (j?.persisted && j.settings) {
+          const seen = j.settings[STORAGE_KEY];
+          setVisible(seen !== LATEST_RELEASE.id);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setReady(true); });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  function dismiss() {
+    try { localStorage.setItem(STORAGE_KEY, LATEST_RELEASE.id); } catch {}
+    setVisible(false);
+    setOpen(false);
+    fetch("/api/me/settings", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ patch: { [STORAGE_KEY]: LATEST_RELEASE.id } }),
+    }).catch(() => {});
+  }
+
+  // Evita mostrar por um instante antes de confirmar o estado guardado na conta.
+  if (!ready || !visible) return null;
   return <>
     <button onClick={() => setOpen(true)} className="fixed bottom-24 right-4 z-40 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl border border-[var(--hx-border)] bg-[var(--hx-surface)] px-4 py-3 text-left shadow-xl lg:bottom-5" aria-label="Ver novidades desta versão">
       <span className="grid size-9 shrink-0 place-items-center rounded-full text-white" style={{ background: "var(--hx-red)" }}><BellRing className="size-4" /></span>

@@ -69,6 +69,15 @@ function readFile(file: File): Promise<string> {
   });
 }
 
+/** Força o mime de um data URL — alguns seletores de ficheiro (sobretudo em
+ *  câmara/galeria móvel) devolvem file.type vazio; sem isto o data URL ficava
+ *  sem mime correto (ex.: application/octet-stream), o que corrompia a
+ *  extensão no upload e o PDF ficava ilegível/em branco ao abrir. */
+function withMime(dataUrl: string, mime: string): string {
+  const comma = dataUrl.indexOf(",");
+  return comma === -1 ? dataUrl : `data:${mime};base64,${dataUrl.slice(comma + 1)}`;
+}
+
 let photoSeq = 0;
 /** Cria um item de fotografia NOVA a partir do data URL original (sem marca). */
 function newPhoto(raw: string): Photo {
@@ -425,7 +434,10 @@ export function PropertyForm({
     const falhas: string[] = [];
     for (const f of files) {
       try {
-        urls.push(f.type === "application/pdf" ? await readFile(f) : await downscale(await readFile(f), 2200));
+        // f.type nem sempre vem preenchido (alguns seletores/câmaras móveis);
+        // confirma também pela extensão do nome do ficheiro.
+        const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+        urls.push(isPdf ? withMime(await readFile(f), "application/pdf") : await downscale(await readFile(f), 2200));
       } catch {
         falhas.push(f.name);
       }
@@ -1626,6 +1638,11 @@ export function PropertyForm({
 function draftToPatch(d: ImovelDraft): Record<string, unknown> {
   return {
     ...(d.seoTitle.trim() ? { title: d.seoTitle.trim() } : {}),
+    seoDescription: d.seoDescription ?? "",
+    keywords: d.keywords ?? "",
+    // slug tem índice único na base de dados — string vazia colidiria com
+    // qualquer outro imóvel sem slug definido; null nunca colide.
+    slug: d.slug.trim() ? d.slug.trim() : null,
     operation: operationOf(d.businessType),
     businessType: d.businessType,
     type: d.type,

@@ -171,6 +171,10 @@ export interface Property {
   shortDescription?: string;
   /** Full marketing description (paragraphs). */
   description?: string;
+  /** Meta descrição SEO (separada da descrição curta pública). */
+  seoDescription?: string;
+  /** Palavras-chave SEO, separadas por vírgula. */
+  keywords?: string;
   /** Área útil (privativa) em m². */
   areaUtil?: number;
   /** Área dependente (varandas, arrecadação…) em m². */

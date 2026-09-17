@@ -91,6 +91,8 @@ function mapRow(r: Row): Property {
       : undefined,
     shortDescription: (r.short_description as string) ?? undefined,
     description: (r.description as string) ?? undefined,
+    seoDescription: (r.seo_description as string) ?? undefined,
+    keywords: (r.keywords as string) ?? undefined,
     areaUtil: r.area_util != null ? Number(r.area_util) : undefined,
     areaDependente: r.area_dependente != null ? Number(r.area_dependente) : undefined,
     landArea: r.land_area != null ? Number(r.land_area) : undefined,

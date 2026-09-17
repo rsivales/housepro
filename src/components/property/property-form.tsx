@@ -1638,6 +1638,11 @@ export function PropertyForm({
 function draftToPatch(d: ImovelDraft): Record<string, unknown> {
   return {
     ...(d.seoTitle.trim() ? { title: d.seoTitle.trim() } : {}),
+    // Descrições — em falta aqui fazia com que editar um imóvel EXISTENTE
+    // nunca gravasse a descrição curta/longa (a criação usa ...d, que as
+    // inclui sempre; só a edição passava por aqui e ficava de fora).
+    description: d.descricao ?? "",
+    shortDescription: d.descricaoCurta ?? "",
     seoDescription: d.seoDescription ?? "",
     keywords: d.keywords ?? "",
     // slug tem índice único na base de dados — string vazia colidiria com
@@ -1666,6 +1671,13 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     tourUrl: d.tourUrl ?? "",
     constructionYear: d.anoConstrucao === "" ? "" : Number(d.anoConstrucao),
     elevator: d.elevador,
+    // Tinham UI no formulário mas nenhuma ligação à gravação — ficavam
+    // sempre perdidos ao sair e voltar a entrar.
+    accessible: d.rampa,
+    garage: d.estacionamento,
+    view: d.vista,
+    neighborhoodNotes: d.comunidade ?? "",
+    amenities: d.equipamentos,
     isDevelopment: Boolean(d.isDevelopment),
     developmentName: d.developmentName ?? "",
     developmentStage: d.developmentStage ?? "",

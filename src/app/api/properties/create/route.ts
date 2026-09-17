@@ -127,6 +127,11 @@ export async function POST(request: Request) {
     description: d.descricao ? String(d.descricao) : null,
     construction_year: d.anoConstrucao ? Number(d.anoConstrucao) : null,
     elevator: Boolean(d.elevador),
+    accessible: Boolean(d.rampa),
+    garage: Boolean(d.estacionamento),
+    view_type: d.vista ? String(d.vista) : null,
+    amenities: Array.isArray(d.equipamentos) && d.equipamentos.length ? d.equipamentos : null,
+    neighborhood_notes: d.comunidade ? String(d.comunidade) : null,
   };
 
   const supabase = await createClient();

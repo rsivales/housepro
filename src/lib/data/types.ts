@@ -185,6 +185,14 @@ export interface Property {
   garage?: boolean;
   /** Tem elevador. */
   elevator?: boolean;
+  /** Acessível / com rampa. */
+  accessible?: boolean;
+  /** Vista (ex.: "Mar", "Serra", "Sem vista"). */
+  view?: string;
+  /** Equipamentos (ex.: "Ar condicionado", "Piscina"). */
+  amenities?: string[];
+  /** Notas sobre a zona/comunidade envolvente. */
+  neighborhoodNotes?: string;
   /** Ano de construção. */
   constructionYear?: number;
   /** Coordenadas para marcador preciso no mapa; opcional. */

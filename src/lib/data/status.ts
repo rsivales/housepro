@@ -11,14 +11,17 @@ export const STATUS_LABEL: Record<PropertyStatus, string> = {
   vendido: "Vendido",
 };
 
-/** Classes Tailwind para o badge (fundo + texto). */
+/** Classes Tailwind para o badge (fundo + texto). Vermelho reservado às
+ *  etiquetas mais impactantes/urgentes (oportunidade, baixa de preço); as
+ *  restantes usam cores distintas mas mais neutras, para não competirem
+ *  visualmente com o que realmente merece destaque. */
 export const STATUS_STYLE: Record<PropertyStatus, string> = {
-  novo: "bg-primary text-primary-foreground",
-  destaque: "bg-gold text-gold-foreground",
-  reduzido: "bg-destructive text-destructive-foreground",
-  oportunidade: "bg-gold text-gold-foreground",
+  novo: "bg-emerald-600 text-white",
+  destaque: "bg-indigo-600 text-white",
+  reduzido: "bg-rose-600 text-white",
+  oportunidade: "bg-destructive text-destructive-foreground",
   reservado: "bg-sky-600 text-white",
-  cpcv: "bg-amber-600 text-white",
+  cpcv: "bg-slate-600 text-white",
   vendido: "bg-foreground text-background",
 };
 

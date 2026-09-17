@@ -281,3 +281,26 @@ set code = maxcode.base + ranked.rn
 from ranked
 join maxcode on maxcode.agency_id = ranked.agency_id
 where p.id = ranked.id;
+
+-- ── migration_people_audit.sql ───────────────────────────────────────────
+-- Histórico de gestão de pessoas (papel, agência, suspender/reativar,
+-- padrinho, criação/remoção) — nada fica "provisório".
+create table if not exists people_audit (
+  id          uuid primary key default gen_random_uuid(),
+  target_id   uuid references profiles(id) on delete set null,
+  target_name text,
+  actor_id    uuid references profiles(id) on delete set null,
+  actor_name  text,
+  actor_role  text,
+  action      text not null,
+  changes     jsonb,
+  created_at  timestamptz not null default now()
+);
+create index if not exists people_audit_target_idx on people_audit (target_id, created_at desc);
+alter table people_audit enable row level security;
+drop policy if exists people_audit_read on people_audit;
+create policy people_audit_read on people_audit
+  for select using (
+    exists (select 1 from profiles pr where pr.id = auth.uid()
+      and pr.role_key in ('coordenador','diretor','admin','superadmin'))
+  );

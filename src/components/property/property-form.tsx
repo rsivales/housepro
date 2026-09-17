@@ -56,6 +56,7 @@ import { commissionLabel } from "@/lib/data/commission";
 import type { AuditEntry } from "@/lib/data/audit";
 import type { PropertyStatus } from "@/lib/data/types";
 import { STATUS_LABEL, autoTagsFromStatus } from "@/lib/data/status";
+import { DISTRITOS, concelhosDoDistrito, freguesiasDoConcelho } from "@/lib/data/portugal-geo";
 import { PhotoManager, type Photo } from "@/components/property/photo-manager";
 
 const box =
@@ -1035,14 +1036,45 @@ export function PropertyForm({
                 {ENERGIAS.map((t) => <option key={t}>{t}</option>)}
               </select>
             </Field>
-            <Field
-              label="Freguesia"
-              hint={geoHint(geo, d.lat, d.lng)}
-            >
-              <Input value={d.parish} onChange={(e) => patch({ parish: e.target.value })} />
+            <Field label="Distrito">
+              <select
+                value={d.distrito ?? ""}
+                onChange={(e) => patch({ distrito: e.target.value, municipality: "", parish: "" })}
+                className={box}
+              >
+                <option value="">Selecionar…</option>
+                {d.distrito && !DISTRITOS.includes(d.distrito) && <option value={d.distrito}>{d.distrito} (atual)</option>}
+                {DISTRITOS.map((x) => <option key={x} value={x}>{x}</option>)}
+              </select>
             </Field>
-            <Field label="Concelho"><Input value={d.municipality} onChange={(e) => patch({ municipality: e.target.value })} /></Field>
-            <Field label="Distrito"><Input value={d.distrito ?? ""} onChange={(e) => patch({ distrito: e.target.value })} placeholder="Ex.: Faro" /></Field>
+            <Field label="Concelho">
+              <select
+                value={d.municipality}
+                onChange={(e) => patch({ municipality: e.target.value, parish: "" })}
+                disabled={!d.distrito}
+                className={box}
+              >
+                <option value="">{d.distrito ? "Selecionar…" : "Escolha primeiro o distrito"}</option>
+                {d.municipality && !concelhosDoDistrito(d.distrito ?? "").includes(d.municipality) && (
+                  <option value={d.municipality}>{d.municipality} (atual)</option>
+                )}
+                {concelhosDoDistrito(d.distrito ?? "").map((x) => <option key={x} value={x}>{x}</option>)}
+              </select>
+            </Field>
+            <Field label="Freguesia" hint={geoHint(geo, d.lat, d.lng)}>
+              <select
+                value={d.parish}
+                onChange={(e) => patch({ parish: e.target.value })}
+                disabled={!d.municipality}
+                className={box}
+              >
+                <option value="">{d.municipality ? "Selecionar…" : "Escolha primeiro o concelho"}</option>
+                {d.parish && !freguesiasDoConcelho(d.distrito ?? "", d.municipality).includes(d.parish) && (
+                  <option value={d.parish}>{d.parish} (atual)</option>
+                )}
+                {freguesiasDoConcelho(d.distrito ?? "", d.municipality).map((x) => <option key={x} value={x}>{x}</option>)}
+              </select>
+            </Field>
             <Field label="Privacidade da morada" hint="Controla o que o mapa público mostra.">
               <select
                 value={d.locationPrivacy}

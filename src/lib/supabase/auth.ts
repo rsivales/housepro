@@ -25,7 +25,8 @@ export interface Session {
 function mapProfile(id: string, profile: {
   name?: string | null; role?: string | null; role_key?: string | null; own_ami?: boolean | null;
   agency?: string | null; agency_id?: string | null; whatsapp?: string | null; photo_url?: string | null; accent?: string | null;
-} | null, fallbackName: string): Agent {
+  email?: string | null; code?: number | null;
+} | null, fallbackName: string, fallbackEmail?: string): Agent {
   return {
     id,
     name: profile?.name ?? fallbackName,
@@ -35,6 +36,11 @@ function mapProfile(id: string, profile: {
     agency: profile?.agency ?? "",
     agencyId: profile?.agency_id ?? "",
     whatsapp: profile?.whatsapp ?? "",
+    // profiles.email fica vazio para contas criadas antes deste campo existir
+    // (ex.: a conta inicial via bootstrap_admin.sql) — cai para o email de
+    // login (auth.users), que existe sempre, em vez de mostrar sempre "—".
+    email: profile?.email ?? fallbackEmail ?? undefined,
+    code: profile?.code ?? undefined,
     accent: profile?.accent ?? "var(--brand)",
     photo: profile?.photo_url ?? undefined,
   };
@@ -69,7 +75,7 @@ export async function getSession(): Promise<Session | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, accent")
+    .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, accent, email, code")
     .eq("id", user.id)
     .single();
 
@@ -77,7 +83,7 @@ export async function getSession(): Promise<Session | null> {
   // área profissional (/app, /admin) não deve ficar acessível a estes users.
   if (!profile) return null;
 
-  const realAgent = mapProfile(user.id, profile, user.email ?? "Consultor");
+  const realAgent = mapProfile(user.id, profile, user.email ?? "Consultor", user.email ?? undefined);
 
   // "Ver como" em produção — só tem efeito depois de confirmar que a
   // identidade REAL é Super Admin (nunca escala privilégios, só estreita a
@@ -89,7 +95,7 @@ export async function getSession(): Promise<Session | null> {
       if (viewAsId && viewAsId !== user.id) {
         const { data: viewProfile } = await supabase
           .from("profiles")
-          .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, accent")
+          .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, accent, email, code")
           .eq("id", viewAsId)
           .maybeSingle();
         if (viewProfile) {

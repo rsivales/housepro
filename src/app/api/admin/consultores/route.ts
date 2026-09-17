@@ -35,7 +35,7 @@ export async function GET() {
 
   const admin = createAdminClient();
   const [{ data: profiles }, { data: agencies }] = await Promise.all([
-    admin.from("profiles").select("id, name, email, role, role_key, agency_id, whatsapp, active").order("name"),
+    admin.from("profiles").select("id, name, email, role, role_key, agency_id, whatsapp, active, sponsor_id, code").order("name"),
     admin.from("agencies").select("id, name, region").order("name"),
   ]);
   return NextResponse.json({ ok: true, consultores: profiles ?? [], agencies: agencies ?? [] });
@@ -63,9 +63,20 @@ export async function POST(request: Request) {
   if (error || !created?.user) {
     return NextResponse.json({ error: error?.message ?? "create_failed" }, { status: 400 });
   }
+  // Código sequencial (4 dígitos) por agência — nunca era atribuído aqui,
+  // ficava sempre "—" no perfil de qualquer consultor criado depois do
+  // arranque inicial.
+  let code: number | null = null;
+  if (agencyId) {
+    const { count } = await admin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("agency_id", agencyId);
+    code = (count ?? 0) + 1;
+  }
   const { error: pErr } = await admin.from("profiles").upsert({
     id: created.user.id, name, email, role: toEnumRole(roleKey), role_key: roleKey,
-    agency_id: agencyId, whatsapp, active: true,
+    agency_id: agencyId, whatsapp, active: true, code,
   });
   if (pErr) return NextResponse.json({ error: pErr.message }, { status: 400 });
   return NextResponse.json({ ok: true, id: created.user.id, tempPassword: pass });
@@ -83,11 +94,17 @@ export async function PATCH(request: Request) {
 
   const patch: Record<string, unknown> = {};
   if (typeof b.name === "string") patch.name = b.name.trim();
+  if (typeof b.email === "string") patch.email = b.email.trim().toLowerCase() || null;
   if (typeof b.whatsapp === "string") patch.whatsapp = b.whatsapp || null;
   if (typeof b.photoUrl === "string") patch.photo_url = b.photoUrl || null;
   if (typeof b.agencyId === "string") patch.agency_id = b.agencyId || null;
   if (typeof b.roleKey === "string") { patch.role_key = b.roleKey; patch.role = toEnumRole(b.roleKey); }
   if (typeof b.active === "boolean") patch.active = b.active;
+  if ("sponsorId" in b) {
+    const sponsorId = b.sponsorId ? String(b.sponsorId) : null;
+    if (sponsorId === id) return NextResponse.json({ error: "sponsor_cannot_be_self" }, { status: 422 });
+    patch.sponsor_id = sponsorId;
+  }
 
   const admin = createAdminClient();
   const { error } = await admin.from("profiles").update(patch).eq("id", id);

@@ -259,3 +259,25 @@ grant all privileges on all tables in schema public to service_role;
 grant all privileges on all sequences in schema public to service_role;
 alter default privileges in schema public grant all on tables to service_role;
 alter default privileges in schema public grant all on sequences to service_role;
+
+-- ── migration_backfill_agent_codes.sql (dados, idempotente) ─────────────
+-- Atribui código sequencial a consultores criados sem código (a rota de
+-- criação não o atribuía antes; já corrigido). Nunca colide com códigos
+-- existentes.
+with maxcode as (
+  select agency_id, coalesce(max(code), 0) as base
+  from profiles
+  where agency_id is not null
+  group by agency_id
+),
+ranked as (
+  select p.id, p.agency_id,
+         row_number() over (partition by p.agency_id order by p.created_at) as rn
+  from profiles p
+  where p.code is null and p.agency_id is not null
+)
+update profiles p
+set code = maxcode.base + ranked.rn
+from ranked
+join maxcode on maxcode.agency_id = ranked.agency_id
+where p.id = ranked.id;

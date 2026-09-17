@@ -27,6 +27,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
   const router = useRouter();
   const [editing, setEditing] = React.useState(false);
   const [name, setName] = React.useState(agent.name);
+  const [email, setEmail] = React.useState(agent.email ?? "");
   const [whatsapp, setWhatsapp] = React.useState(agent.whatsapp ?? "");
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = React.useState<string | null>(null);
@@ -50,8 +51,9 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
       let photoUrl: string | undefined;
       if (photoFile) photoUrl = await uploadSiteImage(photoFile, "profile");
       const nameChanged = name.trim() && name.trim() !== agent.name;
+      const emailChanged = email.trim() !== (agent.email ?? "");
       const whatsappChanged = whatsapp.trim() !== (agent.whatsapp ?? "");
-      if (!nameChanged && !whatsappChanged && !photoUrl) {
+      if (!nameChanged && !emailChanged && !whatsappChanged && !photoUrl) {
         setErr("Altera pelo menos um campo antes de guardar.");
         return;
       }
@@ -61,6 +63,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
         body: JSON.stringify({
           id: agent.id,
           name: nameChanged ? name.trim() : undefined,
+          email: emailChanged ? email.trim() : undefined,
           whatsapp: whatsappChanged ? whatsapp.trim() : undefined,
           photoUrl,
         }),
@@ -197,6 +200,12 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
         Nome
         <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-[3px]" />
       </label>
+      {instant && (
+        <label className="mt-3 block text-sm">
+          E-mail
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-[3px]" />
+        </label>
+      )}
       <label className="mt-3 block text-sm">
         Telefone / WhatsApp
         <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-[3px]" />
@@ -217,7 +226,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
           {instant ? "Guardar" : "Enviar para aprovação"}
         </button>
         <button
-          onClick={() => { setEditing(false); setPhotoFile(null); setPhotoPreview(null); setName(agent.name); setWhatsapp(agent.whatsapp ?? ""); setErr(null); }}
+          onClick={() => { setEditing(false); setPhotoFile(null); setPhotoPreview(null); setName(agent.name); setEmail(agent.email ?? ""); setWhatsapp(agent.whatsapp ?? ""); setErr(null); }}
           disabled={busy}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm text-muted-foreground hover:bg-secondary"
         >

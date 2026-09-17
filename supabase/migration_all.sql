@@ -304,3 +304,17 @@ create policy people_audit_read on people_audit
     exists (select 1 from profiles pr where pr.id = auth.uid()
       and pr.role_key in ('coordenador','diretor','admin','superadmin'))
   );
+
+-- ── migration_fix_properties_read_policy.sql ─────────────────────────────
+-- CRÍTICO — duas políticas de SELECT em properties com nomes diferentes
+-- coexistiam (RLS combina com OR); corrige para uma só, clara: só "fora de
+-- mercado" bloqueia a partilha por link direto — pendente de
+-- aprovação/documentos continua acessível a quem tem o link.
+drop policy if exists "published properties read" on properties;
+drop policy if exists "properties public read" on properties;
+create policy "properties public read" on properties for select
+  using (
+    off_market = false
+    or agent_id = auth.uid()
+    or agency_id_of(agent_id) = auth_agency()
+  );

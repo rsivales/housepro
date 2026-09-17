@@ -1,7 +1,9 @@
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import {
   availableProperties,
+  properties as allMockProperties,
   propertiesByAgent as mockByAgent,
   propertiesByAgency as mockByAgency,
   soldByAgency as mockSoldByAgency,
@@ -178,6 +180,27 @@ export async function listProperties(): Promise<Property[]> {
     .eq("approval", "aprovado")
     .eq("listing_state", "activo")
     .eq("off_market", false)
+    .order("listed_at", { ascending: false });
+  return (data ?? []).map(mapRow);
+}
+
+/**
+ * TODOS os imóveis não vendidos, independentemente de aprovação/publicação —
+ * uso exclusivo de páginas de administração (ex.: prontidão para exportação
+ * nos portais), onde a equipa precisa de ver precisamente os que ainda NÃO
+ * estão prontos. Usa service_role (a RLS pública só deixa ver os aprovados/
+ * ativos/próprios); a página que chama isto já está protegida a
+ * coordenação+ no layout de /admin.
+ */
+export async function listAllPropertiesAdmin(): Promise<Property[]> {
+  if (!isSupabaseConfigured()) return allMockProperties.filter((p) => p.status !== "vendido");
+  if (!hasServiceRole()) return listProperties();
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("properties")
+    .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
+    .neq("status", "vendido")
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }

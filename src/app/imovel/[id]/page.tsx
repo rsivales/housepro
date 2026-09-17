@@ -43,10 +43,14 @@ export async function generateMetadata({
   const description =
     p.shortDescription ??
     `${p.type}${p.typology ? " " + p.typology : ""} em ${p.parish}, ${p.municipality}. ${formatPrice(p)} · Ref. ${p.reference}. Acompanhamento HousePro do primeiro contacto à escritura.`;
+  // Pendente de aprovação/publicação: acessível por link direto (partilha
+  // privada com cliente/proprietário), mas nunca indexado nem em pesquisas.
+  const indexable = !p.offMarket && (p.listingState ?? "activo") === "activo" && p.approval === "aprovado";
   return {
     title: `${p.title} · ${p.reference}`,
     description,
     alternates: { canonical },
+    robots: indexable ? undefined : { index: false, follow: false },
     openGraph: {
       title: `${p.title} · HousePro`,
       description,
@@ -78,10 +82,14 @@ export default async function ImovelPage({
         isStaff(session.agent))
   );
 
-  // Visibilidade pública: fora-de-mercado ou estado não-activo só é acessível a
-  // profissionais autenticados (a agência vê; o público e os portais não).
-  const publiclyVisible = !property.offMarket && (property.listingState ?? "activo") === "activo";
-  if (!publiclyVisible && !session) notFound();
+  // Partilha direta (link privado): só "fora de mercado" bloqueia mesmo o
+  // acesso a quem não tem sessão — um imóvel pendente de aprovação/documentos
+  // continua a poder ser enviado a um cliente ou proprietário via link direto
+  // (não aparece em pesquisas/portais nem é indexado, mas o link funciona).
+  const shareable = !property.offMarket;
+  if (!shareable && !session) notFound();
+  // Só entra nas pesquisas/portais quando totalmente publicado.
+  const publiclyVisible = shareable && (property.listingState ?? "activo") === "activo" && property.approval === "aprovado";
 
   // Consultor autenticado que não é (co)angariador: estado do pedido de angariação.
   const agentRequestStatus = session && !canEdit
@@ -205,6 +213,12 @@ export default async function ImovelPage({
       <PdpView />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <PropertyHeader />
+
+      {!publiclyVisible && (
+        <div className="bg-amber-500/10 px-4 py-2 text-center text-xs font-medium text-amber-800 sm:text-sm">
+          Pré-visualização privada — este imóvel ainda não está publicado (pendente de aprovação e/ou documentos). Este link não aparece em pesquisas nem em portais.
+        </div>
+      )}
 
       {/* Breadcrumbs — linha única com scroll horizontal no telemóvel */}
       <nav

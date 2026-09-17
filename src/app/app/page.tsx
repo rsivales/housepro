@@ -35,6 +35,8 @@ import {
   Activity,
   Gauge,
   ArrowRight,
+  Pencil,
+  Building2,
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
@@ -56,6 +58,7 @@ import { PadrinhoAutoRedeem } from "@/components/afilhados/padrinho-auto-redeem"
 import { ContactSlaWatcher } from "@/components/consultant/contact-sla-watcher";
 import { PropertyCard } from "@/components/property/property-card";
 import { ShareProperty } from "@/components/property/share-property";
+import { OwnerLinkButton } from "@/components/property/owner-link-button";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Área profissional" };
@@ -378,6 +381,14 @@ export default async function AppPage() {
                 <div key={p.id} className="space-y-3">
                   <PropertyCard property={p} />
                   <DocNote documents={p.documents} sellerType={p.sellerType} />
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/app/imovel/${p.id}/editar`}>
+                        <Pencil className="size-4" /> Editar
+                      </Link>
+                    </Button>
+                    <OwnerLinkButton propertyId={p.id} />
+                  </div>
                   <ShareProperty
                     propertyId={p.id}
                     reference={p.reference}
@@ -387,9 +398,37 @@ export default async function AppPage() {
               ))}
             </div>
           ) : (
-            <p className="mt-4 text-muted-foreground">Ainda sem imóveis publicados.</p>
+            <p className="mt-4 text-muted-foreground">Ainda sem imóveis.</p>
           )}
         </section>
+
+        {/* Imóveis da agência — para ver o que os colegas têm em carteira, sem
+            duplicar leads nem propostas. Reaproveita agencyProps (já
+            carregado para o banner "último angariado"). */}
+        {agent.agencyId && (
+          <section className="mt-10">
+            <div className="flex items-end justify-between">
+              <h2 className="flex items-center gap-2 font-display text-xl">
+                <Building2 className="size-5 text-muted-foreground" /> Imóveis da agência
+              </h2>
+              <span className="text-sm text-muted-foreground">
+                {agencyProps.filter((p) => p.agentId !== agent.id).length}
+              </span>
+            </div>
+            {agencyProps.filter((p) => p.agentId !== agent.id).length > 0 ? (
+              <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {agencyProps
+                  .filter((p) => p.agentId !== agent.id)
+                  .slice(0, 6)
+                  .map((p) => (
+                    <PropertyCard key={p.id} property={p} />
+                  ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-muted-foreground">Sem outros imóveis publicados na agência.</p>
+            )}
+          </section>
+        )}
       </main>
     </div>
   );

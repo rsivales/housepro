@@ -9,6 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  ExternalLink,
+  FileText,
   Images,
   LayoutPanelTop,
   Maximize2,
@@ -236,17 +238,32 @@ export function PropertyStage({
             </div>
           )}
 
-          {/* PLANTAS */}
+          {/* PLANTAS — PDF não pode ser mostrado dentro de <img> (ficava em
+              branco); abre-se numa nova aba. */}
           {mode === "plans" && hasPlans && (
-            <button
-              type="button"
-              onClick={() => setPlanbox(planIndex)}
-              className="grid size-full place-items-center bg-white"
-              aria-label="Ampliar planta"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={planList[planIndex]} alt={`Planta ${planIndex + 1}`} className="max-h-full max-w-full object-contain p-3" />
-            </button>
+            /\.pdf(\?|$)/i.test(planList[planIndex]) ? (
+              <a
+                href={planList[planIndex]}
+                target="_blank"
+                rel="noreferrer"
+                className="flex size-full flex-col items-center justify-center gap-2 bg-white text-muted-foreground hover:text-foreground"
+              >
+                <FileText className="size-16" />
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  Planta {planIndex + 1} (PDF) <ExternalLink className="size-3.5" />
+                </span>
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPlanbox(planIndex)}
+                className="grid size-full place-items-center bg-white"
+                aria-label="Ampliar planta"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={planList[planIndex]} alt={`Planta ${planIndex + 1}`} className="max-h-full max-w-full object-contain p-3" />
+              </button>
+            )
           )}
 
           {/* Gradiente (só no modo fotografia, para legibilidade do texto) */}

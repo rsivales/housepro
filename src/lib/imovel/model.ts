@@ -60,11 +60,15 @@ export interface DocStatus {
   complete: boolean;
 }
 
-/** Estado documental de um imóvel a partir dos tipos já carregados. */
-export function docStatus(uploaded: string[] = [], sellerIsCompany = false): DocStatus {
+/** Estado documental de um imóvel a partir dos tipos já carregados.
+ *  `waived` marca tipos obrigatórios dispensados de upload próprio (ex.:
+ *  licença de utilização averbada na certidão permanente) — contam como
+ *  cumpridos sem entrar em `extraCount`. */
+export function docStatus(uploaded: string[] = [], sellerIsCompany = false, waived: string[] = []): DocStatus {
   const required = requiredDocKinds(sellerIsCompany);
   const set = new Set(uploaded);
-  const missing = required.filter((k) => !set.has(k));
+  const waivedSet = new Set(waived);
+  const missing = required.filter((k) => !set.has(k) && !waivedSet.has(k));
   const extraCount = uploaded.filter((k) => !required.includes(k)).length;
   return {
     missing,
@@ -158,6 +162,10 @@ export interface ImovelDraft {
   planta: boolean;
   /** Imóvel proveniente de herança/partilha — exige documentação adicional. */
   heranca: boolean;
+  /** Licença de utilização averbada na certidão predial permanente — dispensa
+   *  o upload em separado (situação muito comum). Conta como obrigatório
+   *  cumprido em docStatus() sem exigir um ficheiro próprio. */
+  licenseEndorsed: boolean;
   // Contrato de mediação (CMI) e validades — alertas de expiração.
   /** CMI exclusivo (true) ou aberto (false). Aberto oculta a morada pública. */
   cmiExclusive: boolean;
@@ -363,6 +371,7 @@ export function blankImovel(id: string): ImovelDraft {
     fotosCount: 0,
     planta: false,
     heranca: false,
+    licenseEndorsed: false,
     cmiExclusive: true,
     cmiRenewable: false,
     expenses: [],
@@ -427,9 +436,17 @@ export function draftFromProperty(p: Property): ImovelDraft {
     energy: p.energy ?? "C",
     anoConstrucao: p.constructionYear ? String(p.constructionYear) : "",
     elevador: Boolean(p.elevator),
+    rampa: Boolean(p.accessible),
+    estacionamento: Boolean(p.garage),
+    vista: p.view ?? "",
+    equipamentos: p.amenities ?? [],
+    comunidade: p.neighborhoodNotes ?? "",
     descricaoCurta: p.shortDescription ?? "",
     descricao: p.description ?? "",
     seoTitle: p.title ?? "",
+    seoDescription: p.seoDescription ?? "",
+    keywords: p.keywords ?? "",
+    slug: p.slug ?? "",
     distrito: p.district ?? "",
     videoUrl: p.videoUrl ?? "",
     tourUrl: p.tourUrl ?? "",
@@ -456,6 +473,7 @@ export function draftFromProperty(p: Property): ImovelDraft {
     hasKeys: p.hasKeys ?? false,
     listingState: p.listingState ?? "activo",
     offMarket: p.offMarket ?? false,
+    licenseEndorsed: p.licenseEndorsed ?? false,
     fotosCount: p.gallery?.length ?? (p.image ? 1 : 0),
     documentos: (p.documentsMeta ?? []).map((m) => ({
       name: m.name, kind: m.kind, url: m.url, mime: m.mime, validated: m.validated,
@@ -469,7 +487,7 @@ export function draftQuality(d: ImovelDraft, photoCount = d.fotosCount): { score
     [Boolean(d.reference.trim()), 5, "referência"], [d.price > 0, 8, "preço"], [d.area > 0, 7, "área"],
     [Boolean(d.parish.trim() && d.municipality.trim()), 10, "localização"], [Boolean(d.type && d.typology), 7, "tipo e tipologia"],
     [d.descricaoCurta.trim().length >= 60, 6, "resumo com 60 caracteres"], [d.descricao.trim().length >= 300, 12, "descrição com 300 caracteres"],
-    [Boolean(d.energy), 5, "certificado energético"], [docStatus(d.documentos.map(doc => doc.kind), d.sellerType === "empresa").complete, 10, "documentação obrigatória"],
+    [Boolean(d.energy), 5, "certificado energético"], [docStatus(d.documentos.map(doc => doc.kind), d.sellerType === "empresa", d.licenseEndorsed ? ["licenca_utilizacao"] : []).complete, 10, "documentação obrigatória"],
   ];
   return { score: checks.reduce((sum,[ok,weight])=>sum+(ok?weight:0),0), missing: checks.filter(([ok])=>!ok).map(([, ,label])=>label) };
 }

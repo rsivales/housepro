@@ -171,6 +171,10 @@ export interface Property {
   shortDescription?: string;
   /** Full marketing description (paragraphs). */
   description?: string;
+  /** Meta descrição SEO (separada da descrição curta pública). */
+  seoDescription?: string;
+  /** Palavras-chave SEO, separadas por vírgula. */
+  keywords?: string;
   /** Área útil (privativa) em m². */
   areaUtil?: number;
   /** Área dependente (varandas, arrecadação…) em m². */
@@ -181,6 +185,14 @@ export interface Property {
   garage?: boolean;
   /** Tem elevador. */
   elevator?: boolean;
+  /** Acessível / com rampa. */
+  accessible?: boolean;
+  /** Vista (ex.: "Mar", "Serra", "Sem vista"). */
+  view?: string;
+  /** Equipamentos (ex.: "Ar condicionado", "Piscina"). */
+  amenities?: string[];
+  /** Notas sobre a zona/comunidade envolvente. */
+  neighborhoodNotes?: string;
   /** Ano de construção. */
   constructionYear?: number;
   /** Coordenadas para marcador preciso no mapa; opcional. */
@@ -206,6 +218,9 @@ export interface Property {
   documents?: string[];
   /** Documentos carregados: ficheiro/URL, tipo e validação — nunca públicos. */
   documentsMeta?: { name: string; kind: string; url: string; mime?: string; validated?: boolean }[];
+  /** Licença de utilização averbada na certidão predial permanente — dispensa
+   *  upload em separado desse documento obrigatório. */
+  licenseEndorsed?: boolean;
   /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
   sellerType?: "particular" | "empresa";
   /** Contrato de mediação (CMI): exclusivo vs aberto; renovável; datas. */

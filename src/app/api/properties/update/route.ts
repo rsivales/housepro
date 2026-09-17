@@ -29,6 +29,9 @@ const FIELDS: Record<string, string> = {
   status: "status",
   shortDescription: "short_description",
   description: "description",
+  seoDescription: "seo_description",
+  keywords: "keywords",
+  slug: "slug",
   commissionType: "commission_type",
   commissionPct: "commission_pct",
   commissionFixed: "commission_fixed",
@@ -37,6 +40,10 @@ const FIELDS: Record<string, string> = {
   tourUrl: "tour_url",
   constructionYear: "construction_year",
   elevator: "elevator",
+  accessible: "accessible",
+  garage: "garage",
+  view: "view_type",
+  neighborhoodNotes: "neighborhood_notes",
   isDevelopment: "is_development",
   developmentName: "development_name",
   developmentStage: "development_stage",
@@ -57,6 +64,7 @@ const FIELDS: Record<string, string> = {
   hasKeys: "has_keys",
   listingState: "listing_state",
   offMarket: "off_market",
+  licenseEndorsed: "license_endorsed",
 };
 
 const NUMERIC = new Set([
@@ -65,7 +73,7 @@ const NUMERIC = new Set([
 ]);
 const BOOLEAN = new Set([
   "elevator", "isDevelopment", "priceVisible", "cmiExclusive", "cmiRenewable",
-  "hasPlaca", "hasKeys", "offMarket",
+  "hasPlaca", "hasKeys", "offMarket", "licenseEndorsed", "accessible", "garage",
 ]);
 
 function fmt(field: string, v: unknown): string {
@@ -164,6 +172,13 @@ export async function POST(request: Request) {
     if (JSON.stringify(current.tags ?? []) !== JSON.stringify(next)) {
       dbPatch.tags = next.length ? next : null;
       changes.push({ field: "Etiquetas", from: (current.tags ?? []).join(", ") || "—", to: next.join(", ") || "—" });
+    }
+  }
+  if ("amenities" in patch && Array.isArray(patch.amenities)) {
+    const next = patch.amenities as string[];
+    if (JSON.stringify(current.amenities ?? []) !== JSON.stringify(next)) {
+      dbPatch.amenities = next.length ? next : null;
+      changes.push({ field: "Equipamentos", from: (current.amenities ?? []).join(", ") || "—", to: next.join(", ") || "—" });
     }
   }
   if ("coverUrl" in patch) {

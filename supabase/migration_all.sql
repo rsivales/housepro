@@ -235,3 +235,18 @@ create or replace function has_role(r user_role) returns boolean
     where p.id = auth.uid() and (p.role = r or p.role = 'admin')
   )
 $$;
+
+-- ── migration_fix_plans_license.sql ──────────────────────────────────────
+-- CRÍTICO — coluna `plans` nunca existiu (a app já a enviava em cada
+-- gravação, o que rejeitava a gravação inteira). + licença averbada.
+alter table properties add column if not exists plans text[] default '{}';
+alter table properties add column if not exists license_endorsed boolean default false;
+
+-- ── migration_property_location_fields.sql ───────────────────────────────
+-- Vista, equipamentos, notas da comunidade, rampa/acessível — tinham UI no
+-- formulário mas nunca foram gravados (colunas nunca criadas).
+alter table properties
+  add column if not exists view_type          text,
+  add column if not exists amenities          text[] default '{}',
+  add column if not exists neighborhood_notes text,
+  add column if not exists accessible         boolean default false;

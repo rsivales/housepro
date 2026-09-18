@@ -10,6 +10,12 @@ import { createClient } from "@/lib/supabase/client";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+/**
+ * Define/altera a palavra-passe da sessão ativa (chama só `updateUser`, sem
+ * nada específico de super admin) — usada em /admin/seguranca e reutilizada
+ * em /entrar/nova-password (fluxo de "Esqueci a palavra-passe" para
+ * qualquer consultor).
+ */
 export function SuperadminPasswordForm({ email }: { email: string }) {
   const [password, setPassword] = React.useState("");
   const [confirmation, setConfirmation] = React.useState("");

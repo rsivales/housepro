@@ -1,18 +1,17 @@
 /**
  * Dados legais OBRIGATÓRIOS da agência de mediação (requisito legal para operar).
  * Sem estes completos, a agência fica marcada como incompleta (gate operacional).
- * Protótipo em browser; em produção persiste nas colunas de `agencies` (0016).
+ * Persiste nas colunas reais de `agencies` (ver migration_agencies_real.sql) —
+ * nunca só em localStorage/site_settings.
  */
 
-export interface AgencyPrize {
-  title: string;
-  year?: string;
-}
+import type { AgencyDocKind, AgencyPrize } from "@/lib/data/types";
+
+export type { AgencyDocKind, AgencyPrize };
 
 /**
  * Ficha completa da agência: dados legais obrigatórios + apresentação pública
- * (descrição, fotos, prémios). Guardada por agência em site_settings
- * ("agency_legal"). Um só registo por agência — editado num só sítio.
+ * (descrição, fotos, prémios). Um só registo por agência — editado num só sítio.
  */
 export interface AgencyLegal {
   amiLicense: string;   // nº de licença AMI
@@ -27,12 +26,6 @@ export interface AgencyLegal {
   photos?: string[];
   prizes?: AgencyPrize[];
 }
-
-export type AgencyDocKind =
-  | "ami_comprovativo"
-  | "certidao_permanente"
-  | "registo_comercial"
-  | "seguro_rc";
 
 export const AGENCY_DOCS: { kind: AgencyDocKind; label: string; required: boolean }[] = [
   { kind: "ami_comprovativo", label: "Comprovativo de licença AMI", required: true },

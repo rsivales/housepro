@@ -105,16 +105,19 @@ export async function POST(request: Request) {
   if (error || !created?.user) {
     return NextResponse.json({ error: error?.message ?? "create_failed" }, { status: 400 });
   }
-  // Código sequencial (4 dígitos) por agência — nunca era atribuído aqui,
-  // ficava sempre "—" no perfil de qualquer consultor criado depois do
-  // arranque inicial.
+  // Código sequencial por agência — base da referência dos imóveis
+  // (HP<agência><agente>-<seq>). Atribuído por um contador atómico e
+  // monótono (nunca reutiliza um número, mesmo que um consultor seja
+  // removido depois) — nunca por contagem de linhas, que reatribuiria o
+  // mesmo número e duplicaria referências de imóveis já criados.
   let code: number | null = null;
   if (agencyId) {
-    const { count } = await admin
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("agency_id", agencyId);
-    code = (count ?? 0) + 1;
+    const { data: seqRow, error: seqErr } = await admin.rpc("next_agent_code", { p_agency: agencyId });
+    if (seqErr) {
+      await admin.auth.admin.deleteUser(created.user.id);
+      return NextResponse.json({ error: seqErr.message }, { status: 400 });
+    }
+    code = Number(seqRow);
   }
   const { error: pErr } = await admin.from("profiles").upsert({
     id: created.user.id, name, email, role: toEnumRole(roleKey), role_key: roleKey,

@@ -121,8 +121,12 @@ export interface Property {
   id: string;
   /** Slug SEO opcional da ficha pública. */
   slug?: string;
-  /** Public listing reference, e.g. "HP-1024". */
+  /** Public listing reference, e.g. "HP1001-01" (agência 1 · agente 001 ·
+   *  1.º imóvel) — gerada sempre pelo servidor, nunca editável. */
   reference: string;
+  /** ID antigo (outra agência/plataforma), só para imóveis migrados — nunca
+   *  público, só de consulta interna no backoffice. */
+  legacyReference?: string;
   title: string;
   operation: Operation;
   /** Tipo de negócio detalhado (venda, permuta, trespasse, arrendamento ao ano,

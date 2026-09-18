@@ -380,6 +380,11 @@ export default async function AppPage() {
               {mine.map((p) => (
                 <div key={p.id} className="space-y-3">
                   <PropertyCard property={p} />
+                  {p.legacyReference && (
+                    <p className="text-xs text-muted-foreground">
+                      Antigo ID: <span className="font-mono">{p.legacyReference}</span>
+                    </p>
+                  )}
                   <DocNote documents={p.documents} sellerType={p.sellerType} />
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" asChild>

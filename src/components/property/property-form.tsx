@@ -1084,7 +1084,12 @@ export function PropertyForm({
                 {LOCATION_PRIVACY.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
-            <Field label="Referência"><Input value={d.reference} onChange={(e) => patch({ reference: e.target.value })} placeholder="HP-1050" /></Field>
+            <Field label="Referência" hint="Atribuída automaticamente ao gravar — nunca editável, para nunca duplicar.">
+              <Input value={isEdit ? d.reference : "Atribuída ao gravar"} readOnly disabled className="opacity-70" />
+            </Field>
+            <Field label="ID antigo (opcional)" hint="Para imóveis migrados de outra agência/plataforma — ex.: CM12306. Só visível no backoffice.">
+              <Input value={d.legacyReference} onChange={(e) => patch({ legacyReference: e.target.value })} placeholder="ex.: CM12306" />
+            </Field>
             <Field label="Vista">
               <select value={d.vista} onChange={(e) => patch({ vista: e.target.value })} className={box}>
                 {VISTAS.map((t) => <option key={t}>{t}</option>)}
@@ -1680,6 +1685,7 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     // slug tem índice único na base de dados — string vazia colidiria com
     // qualquer outro imóvel sem slug definido; null nunca colide.
     slug: d.slug.trim() ? d.slug.trim() : null,
+    legacyReference: d.legacyReference.trim() ? d.legacyReference.trim() : null,
     operation: operationOf(d.businessType),
     businessType: d.businessType,
     type: d.type,

@@ -79,6 +79,7 @@ function mapRow(r: Row): Property {
     id: String(r.id),
     slug: (r.slug as string) ?? undefined,
     reference: String(r.reference ?? ""),
+    legacyReference: (r.legacy_reference as string | null) ?? undefined,
     title: String(r.title ?? ""),
     operation: (r.operation as Property["operation"]) ?? "venda",
     businessType: (r.business_type as string) ?? undefined,

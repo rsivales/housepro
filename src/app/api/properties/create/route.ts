@@ -3,8 +3,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { agentPrefixOf } from "@/lib/data/mock";
-import { propertyReference } from "@/lib/codes";
+import { buildPropertyReference } from "@/lib/codes";
 import { operationOf } from "@/lib/imovel/model";
 
 /** Cria um imóvel no Supabase, com o angariador = utilizador autenticado. */
@@ -21,26 +20,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  // Referência legível: <prefixo do agente>-<sequência do agente>.
-  const prefix = agentPrefixOf(session.agent.id);
-  let seq = 1;
+  // Referência SEMPRE gerada no servidor — nunca aceite do cliente, para
+  // nunca duplicar e manter o método coerente (HP<agência><agente>-<seq>,
+  // ver buildPropertyReference). Fora do Supabase (modo demo) usa um
+  // marcador claramente temporário.
   const supabaseCfg = isSupabaseConfigured();
+  let ref = `HP-DEMO-${Date.now().toString(36).toUpperCase()}`;
   if (supabaseCfg) {
-    try {
-      const sb = await createClient();
-      const { count } = await sb
-        .from("properties")
-        .select("id", { count: "exact", head: true })
-        .eq("agent_id", session.agent.id);
-      seq = (count ?? 0) + 1;
-    } catch {
-      /* best-effort */
-    }
+    const sb = await createClient();
+    const { data: me } = await sb.from("profiles").select("agency_id, code").eq("id", session.agent.id).single();
+    const { data: ag } = me?.agency_id
+      ? await sb.from("agencies").select("code").eq("id", me.agency_id).single()
+      : { data: null };
+    const { data: seqRow, error: seqErr } = await sb.rpc("next_property_seq", { p_agent: session.agent.id });
+    if (seqErr) return NextResponse.json({ error: "reference_generation_failed" }, { status: 500 });
+    ref = buildPropertyReference(ag?.code ?? 0, me?.code ?? 0, Number(seqRow));
   }
-  const ref =
-    typeof d.reference === "string" && d.reference.trim()
-      ? d.reference.trim()
-      : propertyReference(prefix, seq);
+  const legacyReference = typeof d.legacyReference === "string" && d.legacyReference.trim() ? d.legacyReference.trim() : null;
 
   const title =
     typeof d.seoTitle === "string" && d.seoTitle.trim()
@@ -61,6 +57,7 @@ export async function POST(request: Request) {
 
   const row = {
     reference: ref,
+    legacy_reference: legacyReference,
     title,
     operation,
     business_type: businessType,

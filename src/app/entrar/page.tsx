@@ -36,7 +36,7 @@ function BirdWatermark() {
         src="/brand/housepro-logo.png"
         alt=""
         className="absolute max-w-none"
-        style={{ top: "-147px", left: "-2137px", width: "2653px", height: "auto" }}
+        style={{ top: "-20px", left: "-1950px", width: "2450px", height: "auto" }}
       />
     </div>
   );

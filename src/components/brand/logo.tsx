@@ -15,7 +15,13 @@ function ManagedLogo({ kind, fallback, fallbackAlt, className }: { kind: "header
       if (typeof src === "string" && src) setAsset({ src, alt: typeof alt === "string" && alt ? alt : fallbackAlt });
     });
   }, [kind, fallback, fallbackAlt]);
-  return <img src={asset.src} alt={asset.alt} className={cn("w-auto select-none", className)} draggable={false} />;
+  // max-w-none anula o "img { max-width: 100% }" do preflight do Tailwind:
+  // combinado com a altura fixa (h-7, etc.) e um contentor flex, essa
+  // percentagem cria uma dependência circular de tamanho que alguns
+  // motores resolvem a 0 — o logótipo ficava invisível (largura 0) em
+  // TODOS os cabeçalhos/rodapés do site. shrink-0 protege da mesma forma
+  // quando o logótipo é filho direto de um flex container.
+  return <img src={asset.src} alt={asset.alt} className={cn("w-auto max-w-none shrink-0 select-none", className)} draggable={false} />;
 }
 
 /**

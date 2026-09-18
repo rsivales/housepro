@@ -23,6 +23,23 @@ export type EnergyRating =
   | "E"
   | "F";
 
+/** Comunicado/notícia local publicado pela própria agência (conquistas, etc.). */
+export interface AgencyNewsItem {
+  id: string;
+  title: string;
+  body: string;
+  date: string;
+}
+
+/** Prémio/distinção da agência (mostrado na ficha pública). */
+export interface AgencyPrize {
+  title: string;
+  year?: string;
+}
+
+/** Documentos legais obrigatórios carregados (comprovativo AMI, etc.). */
+export type AgencyDocKind = "ami_comprovativo" | "certidao_permanente" | "registo_comercial" | "seguro_rc";
+
 export interface Agency {
   id: string;
   name: string;
@@ -31,6 +48,27 @@ export interface Agency {
   region: string;
   /** Código numérico da agência (2 dígitos) para as referências legíveis. */
   code?: number;
+  /** Oculta a agência do site público (back office continua a vê-la). */
+  suspended?: boolean;
+  /** Serviços prestados pela agência, mostrados na ficha pública. */
+  services?: string[];
+  /** O broker decide o que aparece na montra pública da agência. */
+  showActive?: boolean;
+  showSold?: boolean;
+  showReserved?: boolean;
+  /** Notícias locais / comunicados da agência (conquistas, eventos, etc.). */
+  news?: AgencyNewsItem[];
+  /** Apresentação pública (texto livre). */
+  description?: string;
+  photos?: string[];
+  prizes?: AgencyPrize[];
+  /** Dados legais obrigatórios (licença AMI, NIPC, CAE, etc.). */
+  amiLicense?: string;
+  amiExpires?: string;
+  nipc?: string;
+  cae?: string;
+  legalEmail?: string;
+  docs?: Partial<Record<AgencyDocKind, string>>;
 }
 
 /** Papel hierárquico (governa permissões e aprovações). */
@@ -83,8 +121,12 @@ export interface Property {
   id: string;
   /** Slug SEO opcional da ficha pública. */
   slug?: string;
-  /** Public listing reference, e.g. "HP-1024". */
+  /** Public listing reference, e.g. "HP1001-01" (agência 1 · agente 001 ·
+   *  1.º imóvel) — gerada sempre pelo servidor, nunca editável. */
   reference: string;
+  /** ID antigo (outra agência/plataforma), só para imóveis migrados — nunca
+   *  público, só de consulta interna no backoffice. */
+  legacyReference?: string;
   title: string;
   operation: Operation;
   /** Tipo de negócio detalhado (venda, permuta, trespasse, arrendamento ao ano,

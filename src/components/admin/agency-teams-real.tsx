@@ -20,11 +20,11 @@ const select = "h-8 rounded-md border border-input bg-transparent px-2 text-xs o
 
 /**
  * Equipas REAIS por agência (dados de `profiles`/`agencies` no Supabase — os
- * mesmos usados no login). Diferente da lista abaixo (rede pública/marca,
- * guardada em site_settings): aqui atribui-se o papel — incluindo "Diretor de
- * agência (broker)" — vê-se a estrutura de padrinhado (afilhados) e
- * aprova/suspende-se o acesso de cada consultor. Reutiliza a mesma API de
- * /admin/consultores para não duplicar lógica.
+ * mesmos usados no login e na ficha pública da agência abaixo). Aqui
+ * atribui-se o papel — incluindo "Diretor de agência (broker)" — vê-se a
+ * estrutura de padrinhado (afilhados) e aprova/suspende-se o acesso de cada
+ * consultor. Reutiliza a mesma API de /admin/consultores para não duplicar
+ * lógica.
  */
 export function AgencyTeamsReal() {
   const [list, setList] = React.useState<Consultor[] | null>(null);

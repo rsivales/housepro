@@ -1,18 +1,20 @@
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import {
   availableProperties,
+  properties as allMockProperties,
   propertiesByAgent as mockByAgent,
   propertiesByAgency as mockByAgency,
   soldByAgency as mockSoldByAgency,
   similarProperties as mockSimilar,
   propertyById as mockById,
   agencies as baseAgencies,
+  agentsByAgency as mockAgentsByAgency,
 } from "@/lib/data/mock";
 import { leadsByOwner } from "@/lib/data/leads";
 import type { Lead } from "@/lib/data/leads";
 import { DEFAULT_CONCELHOS_CONFIG, type ConcelhosConfig } from "@/lib/data/concelhos";
-import { DEFAULT_AGENCIES_CONFIG, mergeAgencies, type AgenciesConfig } from "@/lib/data/agencies";
 import type { AuditEntry } from "@/lib/data/audit";
 import { SEVERITY, type QualityEvent, type QualitySeverity, type QualityCategory } from "@/lib/data/quality";
 import type { Agency, Agent, Property } from "@/lib/data/types";
@@ -44,11 +46,40 @@ function mapAgent(a: Row | null | undefined): Agent | undefined {
   };
 }
 
+const AGENCY_COLS =
+  "id, name, slug, region, code, suspended, services, show_active, show_sold, show_reserved, news, description, photos, prizes, ami_license, ami_expires, nipc, cae, legal_email, docs";
+
+function mapAgencyRow(r: Row): Agency {
+  return {
+    id: String(r.id ?? ""),
+    name: String(r.name ?? ""),
+    slug: String(r.slug ?? ""),
+    region: String(r.region ?? ""),
+    code: (r.code as number | null) ?? undefined,
+    suspended: Boolean(r.suspended),
+    services: (r.services as string[] | null) ?? [],
+    showActive: r.show_active !== false,
+    showSold: r.show_sold !== false,
+    showReserved: r.show_reserved !== false,
+    news: (r.news as Agency["news"]) ?? [],
+    description: (r.description as string | null) ?? undefined,
+    photos: (r.photos as string[] | null) ?? [],
+    prizes: (r.prizes as Agency["prizes"]) ?? [],
+    amiLicense: (r.ami_license as string | null) ?? undefined,
+    amiExpires: (r.ami_expires as string | null) ?? undefined,
+    nipc: (r.nipc as string | null) ?? undefined,
+    cae: (r.cae as string | null) ?? undefined,
+    legalEmail: (r.legal_email as string | null) ?? undefined,
+    docs: (r.docs as Agency["docs"]) ?? {},
+  };
+}
+
 function mapRow(r: Row): Property {
   return {
     id: String(r.id),
     slug: (r.slug as string) ?? undefined,
     reference: String(r.reference ?? ""),
+    legacyReference: (r.legacy_reference as string | null) ?? undefined,
     title: String(r.title ?? ""),
     operation: (r.operation as Property["operation"]) ?? "venda",
     businessType: (r.business_type as string) ?? undefined,
@@ -178,6 +209,27 @@ export async function listProperties(): Promise<Property[]> {
     .eq("approval", "aprovado")
     .eq("listing_state", "activo")
     .eq("off_market", false)
+    .order("listed_at", { ascending: false });
+  return (data ?? []).map(mapRow);
+}
+
+/**
+ * TODOS os imóveis não vendidos, independentemente de aprovação/publicação —
+ * uso exclusivo de páginas de administração (ex.: prontidão para exportação
+ * nos portais), onde a equipa precisa de ver precisamente os que ainda NÃO
+ * estão prontos. Usa service_role (a RLS pública só deixa ver os aprovados/
+ * ativos/próprios); a página que chama isto já está protegida a
+ * coordenação+ no layout de /admin.
+ */
+export async function listAllPropertiesAdmin(): Promise<Property[]> {
+  if (!isSupabaseConfigured()) return allMockProperties.filter((p) => p.status !== "vendido");
+  if (!hasServiceRole()) return listProperties();
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("properties")
+    .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
+    .neq("status", "vendido")
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }
@@ -547,27 +599,58 @@ export async function listPropertyAudit(propertyId: string): Promise<AuditEntry[
   }
 }
 
-/** Configuração de gestão de agências (site_settings, chave "agencies"). */
-export async function getAgenciesConfig(): Promise<AgenciesConfig> {
-  if (!isSupabaseConfigured()) return DEFAULT_AGENCIES_CONFIG;
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "agencies")
-      .maybeSingle();
-    const v = data?.value as Partial<AgenciesConfig> | undefined;
-    return { overrides: v?.overrides ?? {}, created: v?.created ?? [], suspended: v?.suspended ?? [], removed: v?.removed ?? [] };
-  } catch {
-    return DEFAULT_AGENCIES_CONFIG;
-  }
+/**
+ * Agências — fonte ÚNICA de verdade: a tabela real `agencies` (a mesma que
+ * profiles.agency_id referencia). Antes existia um sistema paralelo, em
+ * site_settings, com ids DIFERENTES dos reais ("algarve" vs. o UUID
+ * verdadeiro) — por isso a página pública de uma agência nunca mostrava os
+ * imóveis/equipa reais dela. Ver migration_agencies_real.sql.
+ */
+export async function listAgenciesReal(opts: { includeHidden?: boolean } = {}): Promise<Agency[]> {
+  if (!isSupabaseConfigured()) return baseAgencies;
+  const supabase = await createClient();
+  let query = supabase.from("agencies").select(AGENCY_COLS).order("name");
+  if (!opts.includeHidden) query = query.eq("suspended", false);
+  const { data } = await query;
+  return (data ?? []).map(mapAgencyRow);
 }
 
-/** Agências da rede com as edições/criações aplicadas (para o site público). */
-export async function getMergedAgencies(): Promise<Agency[]> {
-  const config = await getAgenciesConfig();
-  return mergeAgencies(baseAgencies, config);
+/** Agência por slug (site público). */
+export async function getAgencyBySlug(slug: string): Promise<Agency | undefined> {
+  if (!isSupabaseConfigured()) return baseAgencies.find((a) => a.slug === slug);
+  const supabase = await createClient();
+  const { data } = await supabase.from("agencies").select(AGENCY_COLS).eq("slug", slug).maybeSingle();
+  return data ? mapAgencyRow(data) : undefined;
+}
+
+/** Agência por id. */
+export async function getAgencyById(id: string): Promise<Agency | undefined> {
+  if (!isSupabaseConfigured()) return baseAgencies.find((a) => a.id === id);
+  const supabase = await createClient();
+  const { data } = await supabase.from("agencies").select(AGENCY_COLS).eq("id", id).maybeSingle();
+  return data ? mapAgencyRow(data) : undefined;
+}
+
+/** Equipa ativa de uma agência (para a montra pública — broker, coordenação
+ *  e consultores em atividade; suspensos ficam de fora). */
+export async function listActiveAgentsByAgency(agencyId: string): Promise<Agent[]> {
+  if (!isSupabaseConfigured()) return mockAgentsByAgency(agencyId);
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select(AGENT_COLS)
+    .eq("agency_id", agencyId)
+    .eq("active", true)
+    .order("role_key");
+  return (data ?? []).map(mapAgent).filter((a): a is Agent => Boolean(a));
+}
+
+/** Perfil público de um consultor/agente real (para a página /consultor/[id]). */
+export async function getAgentPublicById(id: string): Promise<Agent | undefined> {
+  if (!isSupabaseConfigured()) return undefined;
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select(AGENT_COLS).eq("id", id).maybeSingle();
+  return mapAgent(data ?? undefined);
 }
 
 /** Conteúdos geríveis da homepage (banners, histórias, vagas, imagens). */
@@ -594,31 +677,6 @@ export async function getSiteContent(): Promise<{
   }
 }
 
-/** Dados legais por agência (site_settings, chave "agency_legal"). */
-export async function getAgencyLegalConfig(): Promise<Record<string, import("@/lib/data/agency-legal").AgencyLegal>> {
-  if (!isSupabaseConfigured()) return {};
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "agency_legal")
-      .maybeSingle();
-    return (data?.value as Record<string, import("@/lib/data/agency-legal").AgencyLegal>) ?? {};
-  } catch {
-    return {};
-  }
-}
-
-/** Agência por slug, já com as edições aplicadas. */
-export async function getAgencyBySlug(slug: string): Promise<Agency | undefined> {
-  return (await getMergedAgencies()).find((a) => a.slug === slug);
-}
-
-/** Agência por id, já com as edições aplicadas. */
-export async function getAgencyByIdMerged(id: string): Promise<Agency | undefined> {
-  return (await getMergedAgencies()).find((a) => a.id === id);
-}
 
 // --- Qualidade -------------------------------------------------------------
 

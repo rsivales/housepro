@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Eye, EyeOff, Loader2, Copy, Check, AlertTriangle, Pencil, X } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Loader2, Copy, Check, AlertTriangle, Pencil, X, History } from "lucide-react";
 
 import { ROLE_LABEL } from "@/lib/data/roles";
 import type { RoleKey } from "@/lib/data/types";
@@ -12,6 +12,12 @@ interface Consultor {
   sponsor_id?: string | null; code?: number | null;
 }
 interface Agency { id: string; name: string; region?: string }
+interface AuditEntry {
+  id: string; action: string; changes?: { field: string; from: string; to: string }[] | null;
+  actor_name?: string | null; actor_role?: string | null; created_at: string;
+}
+
+const ACTION_LABEL: Record<string, string> = { criou: "Criou", editou: "Editou", suspendeu: "Suspendeu", reativou: "Reativou", removeu: "Removeu" };
 
 const ASSIGNABLE: RoleKey[] = ["superadmin", "admin", "diretor", "coordenador", "agente", "agente_ami"];
 const field = "mt-1 h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-[3px]";
@@ -26,6 +32,9 @@ export function ConsultoresManager() {
   const [tempPass, setTempPass] = React.useState<{ email: string; pass: string } | null>(null);
   const [copied, setCopied] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [historyFor, setHistoryFor] = React.useState<string | null>(null);
+  const [history, setHistory] = React.useState<AuditEntry[] | null>(null);
+  const [historyLoading, setHistoryLoading] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -74,6 +83,23 @@ export function ConsultoresManager() {
       if (!res.ok) { const j = await res.json().catch(() => ({})); alert("Erro: " + (j.error ?? res.status)); return; }
       await load();
     } finally { setBusy(false); }
+  }
+
+  /** Histórico de gestão deste consultor — quem alterou o quê e quando.
+   *  Nada de "provisório": cada decisão de gestão de pessoas fica registada
+   *  permanentemente e é sempre consultável aqui. */
+  async function toggleHistory(id: string) {
+    if (historyFor === id) { setHistoryFor(null); return; }
+    setHistoryFor(id);
+    setHistory(null);
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`/api/admin/consultores?audit=${encodeURIComponent(id)}`);
+      const j = await res.json().catch(() => ({}));
+      setHistory(res.ok ? (j.entries ?? []) : []);
+    } finally {
+      setHistoryLoading(false);
+    }
   }
 
   if (loading) return <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> A carregar…</p>;
@@ -181,12 +207,40 @@ export function ConsultoresManager() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
+                  <button onClick={() => toggleHistory(c.id)} title="Histórico" className={`grid size-9 place-items-center rounded-md border hover:bg-secondary ${historyFor === c.id ? "bg-secondary" : ""}`}><History className="size-4" /></button>
                   <button onClick={() => setEditing(c.id)} title="Editar" className="grid size-9 place-items-center rounded-md border hover:bg-secondary"><Pencil className="size-4" /></button>
                   <button disabled={busy} onClick={() => patch(c.id, { active: c.active === false })} title={c.active === false ? "Reativar" : "Suspender"} className="grid size-9 place-items-center rounded-md border hover:bg-secondary">
                     {c.active === false ? <Eye className="size-4 text-emerald-600" /> : <EyeOff className="size-4" />}
                   </button>
                   <button disabled={busy} onClick={() => remove(c.id, c.name)} title="Remover" className="grid size-9 place-items-center rounded-md border text-destructive hover:bg-destructive/5"><Trash2 className="size-4" /></button>
                 </div>
+              </div>
+            )}
+            {historyFor === c.id && (
+              <div className="mt-3 border-t pt-3">
+                {historyLoading ? (
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> A carregar histórico…</p>
+                ) : !history || history.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem alterações registadas.</p>
+                ) : (
+                  <ul className="space-y-2 text-xs">
+                    {history.map((h) => (
+                      <li key={h.id} className="rounded-lg bg-secondary/40 p-2.5">
+                        <p className="font-medium">
+                          {ACTION_LABEL[h.action] ?? h.action} · {h.actor_name ?? "—"}
+                          <span className="ml-2 font-normal text-muted-foreground">{new Date(h.created_at).toLocaleString("pt-PT")}</span>
+                        </p>
+                        {h.changes && h.changes.length > 0 && (
+                          <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                            {h.changes.map((ch, i) => (
+                              <li key={i}>{ch.field}: <span className="line-through">{ch.from}</span> → <strong className="text-foreground">{ch.to}</strong></li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>

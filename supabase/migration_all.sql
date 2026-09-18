@@ -281,3 +281,130 @@ set code = maxcode.base + ranked.rn
 from ranked
 join maxcode on maxcode.agency_id = ranked.agency_id
 where p.id = ranked.id;
+
+-- ── migration_people_audit.sql ───────────────────────────────────────────
+-- Histórico de gestão de pessoas (papel, agência, suspender/reativar,
+-- padrinho, criação/remoção) — nada fica "provisório".
+create table if not exists people_audit (
+  id          uuid primary key default gen_random_uuid(),
+  target_id   uuid references profiles(id) on delete set null,
+  target_name text,
+  actor_id    uuid references profiles(id) on delete set null,
+  actor_name  text,
+  actor_role  text,
+  action      text not null,
+  changes     jsonb,
+  created_at  timestamptz not null default now()
+);
+create index if not exists people_audit_target_idx on people_audit (target_id, created_at desc);
+alter table people_audit enable row level security;
+drop policy if exists people_audit_read on people_audit;
+create policy people_audit_read on people_audit
+  for select using (
+    exists (select 1 from profiles pr where pr.id = auth.uid()
+      and pr.role_key in ('coordenador','diretor','admin','superadmin'))
+  );
+
+-- ── migration_fix_properties_read_policy.sql ─────────────────────────────
+-- CRÍTICO — duas políticas de SELECT em properties com nomes diferentes
+-- coexistiam (RLS combina com OR); corrige para uma só, clara: só "fora de
+-- mercado" bloqueia a partilha por link direto — pendente de
+-- aprovação/documentos continua acessível a quem tem o link.
+drop policy if exists "published properties read" on properties;
+drop policy if exists "properties public read" on properties;
+create policy "properties public read" on properties for select
+  using (
+    off_market = false
+    or agent_id = auth.uid()
+    or agency_id_of(agent_id) = auth_agency()
+  );
+-- ─────────────────────────────────────────────────────────────────────────
+-- Unifica a gestão de agências numa só fonte de verdade: a tabela real
+-- `agencies` (a mesma que profiles.agency_id referencia).
+--
+-- Até aqui existiam DOIS sistemas de agência em paralelo e desligados um do
+-- outro: (1) a tabela real `agencies` (ids UUID), usada para atribuir
+-- consultores/agentes; e (2) uma lista em memória + site_settings (chave
+-- "agencies", ids como "algarve") usada só para a página pública/"marca" —
+-- com ids DIFERENTES. Resultado: a página pública de uma agência nunca via
+-- os imóveis/equipa REAIS dessa agência, porque comparava o id errado.
+--
+-- Esta migração acrescenta à tabela real as colunas que faltavam para a
+-- ficha pública completa (serviços, notícias/comunicados, mostrar/ocultar
+-- vendidos/ativos/reservados, dados legais, descrição, fotos, prémios) —
+-- tudo persistido a sério, numa única linha por agência, nunca em
+-- localStorage nem só em site_settings.
+-- ─────────────────────────────────────────────────────────────────────────
+
+alter table agencies add column if not exists suspended     boolean not null default false;
+alter table agencies add column if not exists services      text[]  not null default '{}';
+alter table agencies add column if not exists show_active   boolean not null default true;
+alter table agencies add column if not exists show_sold     boolean not null default true;
+alter table agencies add column if not exists show_reserved boolean not null default true;
+alter table agencies add column if not exists news          jsonb   not null default '[]'::jsonb;
+alter table agencies add column if not exists description   text;
+alter table agencies add column if not exists photos        text[]  not null default '{}';
+alter table agencies add column if not exists prizes        jsonb   not null default '[]'::jsonb;
+alter table agencies add column if not exists ami_license   text;
+alter table agencies add column if not exists ami_expires   date;
+alter table agencies add column if not exists nipc          text;
+alter table agencies add column if not exists cae           text;
+alter table agencies add column if not exists legal_email   text;
+alter table agencies add column if not exists docs          jsonb   not null default '{}'::jsonb;
+
+-- Renomeia a agência-semente do Algarve para "HousePro Prestige Algarve"
+-- (mesma agência real, mesmos consultores/imóveis — só o nome/slug mudam).
+update agencies set name = 'HousePro Prestige Algarve', slug = 'prestige-algarve'
+  where slug = 'algarve' and name = 'HousePro Algarve';
+-- ─────────────────────────────────────────────────────────────────────────
+-- Referência de imóvel gerada automaticamente, nunca à mão e nunca
+-- duplicada: HP<agência><agente 3 díg.>-<sequência 2 díg.> — ex.: "HP1001-01"
+-- é o 1.º imóvel do agente nº 1 da agência nº 1.
+--
+-- Até aqui a referência era um campo de texto livre no formulário — o
+-- consultor escrevia-a à mão (sujeito a erro/duplicação) e o servidor só a
+-- gerava como reserva se o campo viesse vazio, contando linhas existentes
+-- (o que reatribui o mesmo número se um imóvel for apagado). Passa a ser
+-- SEMPRE gerada no servidor, com um contador monótono (nunca reutilizado,
+-- mesmo que um imóvel seja apagado) e atómico (sem condição de corrida entre
+-- duas angariações em simultâneo).
+-- ─────────────────────────────────────────────────────────────────────────
+
+-- Próximo número de agente (3 dígitos) a atribuir dentro de cada agência.
+alter table agencies add column if not exists next_agent_code int not null default 1;
+-- Arranca a seguir ao maior código de agente já atribuído nessa agência.
+update agencies a set next_agent_code = coalesce((select max(p.code) from profiles p where p.agency_id = a.id), 0) + 1;
+
+-- Próximo número de imóvel (2 dígitos) a atribuir a cada agente.
+alter table profiles add column if not exists next_property_seq int not null default 1;
+-- Arranca a seguir à contagem de imóveis já angariados por esse agente.
+update profiles p set next_property_seq = coalesce((select count(*) from properties pr where pr.agent_id = p.id), 0) + 1;
+
+-- Referência antiga, de outra agência/plataforma, para imóveis migrados —
+-- mantém o rasto à origem do processo sem quebrar a coerência da nova
+-- numeração (nunca aparece ao público).
+alter table properties add column if not exists legacy_reference text;
+
+-- Atribui e incrementa atomicamente — chamado uma vez por criação de
+-- consultor/imóvel; nunca reutiliza um número, mesmo sob concorrência.
+create or replace function next_agent_code(p_agency uuid) returns int
+  language plpgsql security definer set search_path = public as $$
+declare v int;
+begin
+  update agencies set next_agent_code = next_agent_code + 1
+    where id = p_agency
+    returning next_agent_code - 1 into v;
+  return v;
+end;
+$$;
+
+create or replace function next_property_seq(p_agent uuid) returns int
+  language plpgsql security definer set search_path = public as $$
+declare v int;
+begin
+  update profiles set next_property_seq = next_property_seq + 1
+    where id = p_agent
+    returning next_property_seq - 1 into v;
+  return v;
+end;
+$$;

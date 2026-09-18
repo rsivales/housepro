@@ -104,7 +104,11 @@ export const WATERMARK_POSITIONS: WatermarkPos[] = [
 
 export interface ImovelDraft {
   id: string;
+  /** Gerada automaticamente pelo servidor ao criar — nunca editável aqui. */
   reference: string;
+  /** ID antigo, de outra agência/plataforma, quando o imóvel foi migrado
+   *  para a HousePro — só interno, nunca aparece ao público. */
+  legacyReference: string;
   /** Operação coarse (venda/arrendamento) — derivada do tipo de negócio, usada
    *  nos filtros públicos e na exportação para portais. */
   operation: "venda" | "arrendamento";
@@ -336,6 +340,7 @@ export function blankImovel(id: string): ImovelDraft {
   return {
     id,
     reference: "",
+    legacyReference: "",
     operation: "venda",
     businessType: "venda",
     type: "Apartamento",
@@ -414,6 +419,7 @@ export function draftFromProperty(p: Property): ImovelDraft {
   return {
     ...blankImovel(p.id),
     reference: p.reference,
+    legacyReference: p.legacyReference ?? "",
     operation: p.operation,
     businessType: p.businessType ?? p.operation,
     type: p.type,
@@ -484,10 +490,10 @@ export function draftFromProperty(p: Property): ImovelDraft {
 export function draftQuality(d: ImovelDraft, photoCount = d.fotosCount): { score: number; missing: string[] } {
   const checks: Array<[boolean, number, string]> = [
     [photoCount >= 1, 15, "fotografia principal"], [photoCount >= 8, 15, "pelo menos 8 fotografias"],
-    [Boolean(d.reference.trim()), 5, "referência"], [d.price > 0, 8, "preço"], [d.area > 0, 7, "área"],
+    [d.price > 0, 8, "preço"], [d.area > 0, 7, "área"],
     [Boolean(d.parish.trim() && d.municipality.trim()), 10, "localização"], [Boolean(d.type && d.typology), 7, "tipo e tipologia"],
     [d.descricaoCurta.trim().length >= 60, 6, "resumo com 60 caracteres"], [d.descricao.trim().length >= 300, 12, "descrição com 300 caracteres"],
-    [Boolean(d.energy), 5, "certificado energético"], [docStatus(d.documentos.map(doc => doc.kind), d.sellerType === "empresa", d.licenseEndorsed ? ["licenca_utilizacao"] : []).complete, 10, "documentação obrigatória"],
+    [Boolean(d.energy), 5, "certificado energético"], [docStatus(d.documentos.map(doc => doc.kind), d.sellerType === "empresa", d.licenseEndorsed ? ["licenca_utilizacao"] : []).complete, 15, "documentação obrigatória"],
   ];
   return { score: checks.reduce((sum,[ok,weight])=>sum+(ok?weight:0),0), missing: checks.filter(([ok])=>!ok).map(([, ,label])=>label) };
 }

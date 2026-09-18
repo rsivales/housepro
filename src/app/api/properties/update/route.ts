@@ -65,6 +65,7 @@ const FIELDS: Record<string, string> = {
   listingState: "listing_state",
   offMarket: "off_market",
   licenseEndorsed: "license_endorsed",
+  legacyReference: "legacy_reference",
 };
 
 const NUMERIC = new Set([

@@ -28,27 +28,50 @@ const PORTALS: Portal[] = [
 ];
 
 type Config = Record<string, { enabled: boolean; account: string }>;
-const STORAGE = "portalConfig";
+const STORAGE = "portalConfig"; // cache local — resposta imediata + reserva se a API falhar
 
 /**
  * Portais & exportações — configuração real por portal: o consultor/agência
  * ativa o portal, guarda o ID de conta e copia o URL do FEED que o portal
  * subscreve (Idealista/Imovirtual/Casa Sapo XML, Facebook CSV). Também permite
- * descarregar/abrir o feed na hora.
+ * descarregar/abrir o feed na hora. Estado gravado no servidor (perfil do
+ * próprio consultor, via /api/me/settings) — sobrevive a qualquer
+ * dispositivo/browser; o localStorage é só cache para resposta imediata.
  */
 export function PortalExports({ agentId, count }: { agentId: string; count: number }) {
   const [cfg, setCfg] = React.useState<Config>({});
   const [origin, setOrigin] = React.useState("");
   const [copied, setCopied] = React.useState<string | null>(null);
+  const [saveErr, setSaveErr] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setOrigin(window.location.origin);
     try { setCfg(JSON.parse(localStorage.getItem(STORAGE) || "{}")); } catch {}
+
+    fetch("/api/me/settings")
+      .then((r) => (r.ok ? r.json() : { persisted: false }))
+      .then((j) => {
+        if (j?.persisted && j.settings?.portalConfig) {
+          const server = j.settings.portalConfig as Config;
+          setCfg(server);
+          try { localStorage.setItem(STORAGE, JSON.stringify(server)); } catch {}
+        }
+      })
+      .catch(() => {});
   }, []);
 
   function save(next: Config) {
     setCfg(next);
     try { localStorage.setItem(STORAGE, JSON.stringify(next)); } catch {}
+    setSaveErr(null);
+    fetch("/api/me/settings", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ patch: { portalConfig: next } }),
+    })
+      .then((r) => r.json().catch(() => ({})).then((j) => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => { if (!ok) setSaveErr(j.error ?? "Falha ao guardar."); })
+      .catch(() => setSaveErr("Falha de rede ao guardar."));
   }
   function set(key: string, patch: Partial<{ enabled: boolean; account: string }>) {
     const cur = cfg[key] ?? { enabled: false, account: "" };
@@ -64,6 +87,11 @@ export function PortalExports({ agentId, count }: { agentId: string; count: numb
 
   return (
     <div className="mt-6 space-y-3">
+      {saveErr && (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-2.5 text-sm text-destructive">
+          Não foi possível gravar no servidor: {saveErr}. A alteração ficou só neste browser por agora.
+        </p>
+      )}
       <div className="rounded-2xl border bg-secondary/40 p-4 text-sm text-muted-foreground">
         <p className="flex items-center gap-1.5 font-medium text-foreground">
           <Rss className="size-4 text-primary" /> Como publicar

@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MapPin } from "lucide-react";
+import { MapPin, Newspaper, Wrench } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { PropertyCard } from "@/components/property/property-card";
 import { TopConcelhos } from "@/components/home/top-concelhos";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
-import { agentsByAgency } from "@/lib/data/mock";
-import { listPropertiesByAgency, listSoldByAgency, getAgencyBySlug } from "@/lib/db/repo";
+import { listPropertiesByAgency, listSoldByAgency, getAgencyBySlug, listActiveAgentsByAgency } from "@/lib/db/repo";
 import { applyOrdering } from "@/lib/data/ordering";
 import { topConcelhos } from "@/lib/data/concelhos";
 
@@ -30,12 +29,18 @@ export default async function AgenciaPage({
 }) {
   const { slug } = await params;
   const agency = await getAgencyBySlug(slug);
-  if (!agency) notFound();
+  if (!agency || agency.suspended) notFound();
 
-  const team = agentsByAgency(agency.id);
-  const listings = applyOrdering(await listPropertiesByAgency(agency.id), "recentes");
+  const team = await listActiveAgentsByAgency(agency.id);
+  const allListings = applyOrdering(await listPropertiesByAgency(agency.id), "recentes");
+  // "Em reserva" tem secção própria — não duplica na grelha principal de ativos.
+  const listings = allListings.filter((p) => p.status !== "reservado");
+  const reserved = allListings.filter((p) => p.status === "reservado");
   const sold = await listSoldByAgency(agency.id);
   const concelhos = topConcelhos(listings, 3);
+  const showActive = agency.showActive !== false;
+  const showSold = agency.showSold !== false;
+  const showReserved = agency.showReserved !== false;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -49,6 +54,19 @@ export default async function AgenciaPage({
             </p>
             <h1 className="mt-1 font-display text-4xl sm:text-5xl">{agency.name}</h1>
             <p className="mt-2 text-muted-foreground">{agency.region}</p>
+            {agency.description && (
+              <p className="mt-3 max-w-2xl text-muted-foreground">{agency.description}</p>
+            )}
+
+            {agency.services && agency.services.length > 0 && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                {agency.services.map((s) => (
+                  <span key={s} className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-medium shadow-sm">
+                    <Wrench className="size-3.5 text-primary" /> {s}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {team.length > 0 && (
               <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -67,26 +85,28 @@ export default async function AgenciaPage({
           </div>
         </section>
 
-        {/* Listings (mais recentes) */}
-        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-          <div className="flex items-end justify-between gap-4">
-            <h2 className="font-display text-2xl sm:text-3xl">Imóveis mais recentes</h2>
-            <span className="text-sm text-muted-foreground">
-              {listings.length} {listings.length === 1 ? "imóvel" : "imóveis"}
-            </span>
-          </div>
-          {listings.length > 0 ? (
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {listings.map((p) => (
-                <PropertyCard key={p.id} property={p} />
-              ))}
+        {/* Listings (mais recentes) — o broker decide se esta secção aparece */}
+        {showActive && (
+          <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+            <div className="flex items-end justify-between gap-4">
+              <h2 className="font-display text-2xl sm:text-3xl">Imóveis mais recentes</h2>
+              <span className="text-sm text-muted-foreground">
+                {listings.length} {listings.length === 1 ? "imóvel" : "imóveis"}
+              </span>
             </div>
-          ) : (
-            <p className="mt-6 text-muted-foreground">
-              Esta agência ainda não tem imóveis publicados.
-            </p>
-          )}
-        </section>
+            {listings.length > 0 ? (
+              <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {listings.map((p) => (
+                  <PropertyCard key={p.id} property={p} />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-6 text-muted-foreground">
+                Esta agência ainda não tem imóveis publicados.
+              </p>
+            )}
+          </section>
+        )}
 
         {/* Concelhos mais procurados (âmbito da agência) */}
         {concelhos.length > 0 && (
@@ -98,8 +118,25 @@ export default async function AgenciaPage({
           </div>
         )}
 
+        {/* Em reserva */}
+        {showReserved && reserved.length > 0 && (
+          <section className="border-t py-14">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+              <h2 className="font-display text-2xl sm:text-3xl">Em reserva</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Negócio em curso — ainda não fechado.
+              </p>
+              <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {reserved.map((p) => (
+                  <PropertyCard key={p.id} property={p} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Últimos vendidos */}
-        {sold.length > 0 && (
+        {showSold && sold.length > 0 && (
           <section className="border-t bg-secondary/40 py-14">
             <div className="mx-auto max-w-6xl px-4 sm:px-6">
               <h2 className="font-display text-2xl sm:text-3xl">Últimos vendidos</h2>
@@ -114,6 +151,29 @@ export default async function AgenciaPage({
             </div>
           </section>
         )}
+
+        {/* Notícias locais / comunicados */}
+        {agency.news && agency.news.length > 0 && (
+          <section className="border-t py-14">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+              <h2 className="flex items-center gap-2 font-display text-2xl sm:text-3xl">
+                <Newspaper className="size-6 text-primary" /> Notícias e comunicados
+              </h2>
+              <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {agency.news.map((n) => (
+                  <article key={n.id} className="rounded-2xl border bg-card p-5 shadow-sm">
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(n.date).toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" })}
+                    </p>
+                    <h3 className="mt-1 font-display text-lg">{n.title}</h3>
+                    <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{n.body}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Aviso legal — gestão independente */}
         <section className="border-t bg-secondary/30">
           <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">

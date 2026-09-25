@@ -38,6 +38,7 @@ export function PublicHeader({ solid = false }: { solid?: boolean }) {
   const filled = solid || scrolled; // fundo branco + texto escuro
   const light = !filled; // texto claro só quando transparente sobre o banner
   return (
+    <>
     <header
       className={(solid ? "sticky" : "fixed inset-x-0") + " top-0 z-50 transition-colors duration-300"}
       style={{
@@ -84,31 +85,36 @@ export function PublicHeader({ solid = false }: { solid?: boolean }) {
           </button>
         </div>
       </div>
-
-      {/* Menu mobile */}
-      {open && (
-        <div className="fixed inset-0 z-50 bg-[var(--card)] lg:hidden">
-          <div className="flex items-center justify-between px-4 py-3">
-            <Logo />
-            <button onClick={() => setOpen(false)} aria-label="Fechar" className="grid size-11 place-items-center rounded-full">
-              <X className="size-6" />
-            </button>
-          </div>
-          <nav className="flex flex-col px-4">
-            {NAV.map((n) => (
-              <Link key={n.label} href={n.href} onClick={() => setOpen(false)} className="border-b border-[var(--border)] py-4 text-lg font-medium">
-                {n.label}
-              </Link>
-            ))}
-            <Link href="/cliente/favoritos" onClick={() => setOpen(false)} className="flex items-center gap-2 border-b border-[var(--border)] py-4 text-lg font-medium">
-              <Heart className="size-5" /> A minha conta
-            </Link>
-            <Link href="/entrar" onClick={() => setOpen(false)} className="mt-2 flex items-center gap-2 rounded-full px-4 py-3 text-lg font-semibold text-white" style={{ background: "var(--hp-navy)" }}>
-              <Briefcase className="size-5" /> Profissionais
-            </Link>
-          </nav>
-        </div>
-      )}
     </header>
+
+    {/* Fora do <header> de propósito: um <header sticky>/fixed> é
+        "positioned" e passa a servir de referência a este filho "fixed",
+        que ficava preso à altura do cabeçalho em vez de cobrir o ecrã
+        todo — o menu aparecia transparente/cortado, sobreposto ao resto
+        da página. */}
+    {open && (
+      <div className="fixed inset-0 z-50 bg-[var(--card)] lg:hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <Logo />
+          <button onClick={() => setOpen(false)} aria-label="Fechar" className="grid size-11 place-items-center rounded-full">
+            <X className="size-6" />
+          </button>
+        </div>
+        <nav className="flex flex-col px-4">
+          {NAV.map((n) => (
+            <Link key={n.label} href={n.href} onClick={() => setOpen(false)} className="border-b border-[var(--border)] py-4 text-lg font-medium">
+              {n.label}
+            </Link>
+          ))}
+          <Link href="/cliente/favoritos" onClick={() => setOpen(false)} className="flex items-center gap-2 border-b border-[var(--border)] py-4 text-lg font-medium">
+            <Heart className="size-5" /> A minha conta
+          </Link>
+          <Link href="/entrar" onClick={() => setOpen(false)} className="mt-2 flex items-center gap-2 rounded-full px-4 py-3 text-lg font-semibold text-white" style={{ background: "var(--hp-navy)" }}>
+            <Briefcase className="size-5" /> Profissionais
+          </Link>
+        </nav>
+      </div>
+    )}
+    </>
   );
 }

@@ -9,7 +9,7 @@ import type { FieldMapping } from "@/lib/data/meta";
 import { CAMPAIGN_TYPE_LABEL } from "@/lib/data/meta";
 import { FieldMapper } from "@/components/meta/field-mapper";
 
-export const metadata: Metadata = { title: "Formulários & mapeamento — Meta CRM" };
+export const metadata: Metadata = { title: "Formulários & mapeamento — Campanhas sociais" };
 
 export default async function FormulariosPage() {
   const session = await getSession();
@@ -38,7 +38,7 @@ export default async function FormulariosPage() {
           href="/app/meta"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="size-4" /> Meta CRM
+          <ArrowLeft className="size-4" /> Leads de campanhas
         </Link>
 
         <h1 className="mt-4 flex items-center gap-2 font-display text-3xl">

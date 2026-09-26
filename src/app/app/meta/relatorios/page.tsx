@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, BarChart3, Users, Briefcase, Clock, Inbox } from "lucide-react";
+import { ArrowLeft, BarChart3, Users, Briefcase, Clock, Inbox, Route } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listAllMetaLeads, listCampaigns } from "@/lib/db/repo";
 import { buildMetaReport, type SegmentReport } from "@/lib/meta/report";
 import { automationSummary } from "@/lib/meta/automations";
 import { CAMPAIGN_TYPE_LABEL } from "@/lib/data/meta";
+import { agents } from "@/lib/data/mock";
 
-export const metadata: Metadata = { title: "Relatórios — Meta CRM" };
+export const metadata: Metadata = { title: "Relatórios — Meta e TikTok" };
 
 export default async function RelatoriosPage() {
   const session = await getSession();
@@ -26,7 +27,7 @@ export default async function RelatoriosPage() {
           href="/app/meta"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="size-4" /> Meta CRM
+          <ArrowLeft className="size-4" /> Leads de campanhas
         </Link>
 
         <h1 className="mt-4 flex items-center gap-2 font-display text-3xl">
@@ -49,6 +50,71 @@ export default async function RelatoriosPage() {
             <p className="mt-2 font-display text-2xl leading-none">{sla.unassignedAging}</p>
             <p className="mt-1 text-xs text-muted-foreground">Sem responsável há &gt; 24h</p>
           </div>
+        </div>
+
+        {/* Visão operacional comum a broker e superadmin. A RLS limita o âmbito. */}
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border bg-card p-4 shadow-sm">
+            <p className="flex items-center gap-2 font-medium">
+              <BarChart3 className="size-4 text-primary" /> Leads captadas por plataforma
+            </p>
+            <div className="mt-4 space-y-3">
+              {(["meta", "tiktok"] as const).map((provider) => {
+                const count = report.byProvider[provider];
+                const total = report.byProvider.meta + report.byProvider.tiktok;
+                const width = total ? Math.round((count / total) * 100) : 0;
+                return (
+                  <div key={provider}>
+                    <div className="flex justify-between text-sm">
+                      <span>{provider === "meta" ? "Meta · Facebook / Instagram" : "TikTok"}</span>
+                      <strong>{count}</strong>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-secondary">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${width}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="rounded-2xl border bg-card p-4 shadow-sm">
+            <p className="flex items-center gap-2 font-medium">
+              <Clock className="size-4 text-primary" /> Tempo de resposta
+            </p>
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-xl bg-secondary/60 p-3">
+                <dt className="text-xs text-muted-foreground">Média até 1.º contacto</dt>
+                <dd className="mt-1 font-display text-xl">
+                  {report.avgFirstResponseMinutes == null ? "—" : `${report.avgFirstResponseMinutes} min`}
+                </dd>
+              </div>
+              <div className="rounded-xl bg-secondary/60 p-3">
+                <dt className="text-xs text-muted-foreground">Dentro do SLA de 24 h</dt>
+                <dd className="mt-1 font-display text-xl">
+                  {report.slaComplianceRate == null ? "—" : `${report.slaComplianceRate}%`}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <h2 className="mt-8 flex items-center gap-2 font-display text-xl">
+          <Route className="size-5 text-primary" /> Encaminhamento das leads
+        </h2>
+        <div className="mt-3 overflow-hidden rounded-2xl border bg-card shadow-sm">
+          {report.byDestination.map((row) => {
+            const name = row.agentId === "broker_inbox"
+              ? "Inbox do broker · por distribuir"
+              : agents.find((agent) => agent.id === row.agentId)?.name ?? `Consultor ${row.agentId.slice(0, 8)}`;
+            return (
+              <div key={row.agentId} className="flex items-center justify-between border-b px-4 py-3 text-sm last:border-0">
+                <span>{name}</span><strong>{row.count}</strong>
+              </div>
+            );
+          })}
+          {report.byDestination.length === 0 && (
+            <p className="px-4 py-6 text-center text-sm text-muted-foreground">Ainda sem encaminhamentos.</p>
+          )}
         </div>
 
         {/* Segmentos: comercial vs recrutamento */}

@@ -10,7 +10,7 @@ import { META_PIPELINES } from "@/lib/data/meta";
 import type { Lead } from "@/lib/data/leads";
 import { LeadKanban } from "@/components/meta/lead-kanban";
 
-export const metadata: Metadata = { title: "Pipeline de leads — Meta CRM" };
+export const metadata: Metadata = { title: "Pipeline de leads — Meta e TikTok" };
 
 export default async function PipelinePage() {
   const session = await getSession();
@@ -36,7 +36,7 @@ export default async function PipelinePage() {
           href="/app/meta"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="size-4" /> Meta CRM
+          <ArrowLeft className="size-4" /> Leads de campanhas
         </Link>
 
         <h1 className="mt-4 flex items-center gap-2 font-display text-3xl">

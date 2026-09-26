@@ -8,6 +8,7 @@ import type {
 } from "@/lib/data/meta";
 import { pipelineForCampaignType } from "@/lib/data/meta";
 import { scoreLead } from "@/lib/meta/scoring";
+import type { SocialProvider } from "@/lib/data/meta";
 
 /** Par bruto (chave da pergunta → valor) tal como chega do Meta. */
 export interface RawAnswer {
@@ -96,10 +97,11 @@ export function normalizeAnswers(
  * respostas normalizadas — SEM decidir o responsável (isso é o motor de
  * atribuição da Fase E). Nasce no inbox "sem responsável".
  */
-export function buildMetaLead(
+export function buildSocialLead(
   campaign: Campaign,
   form: LeadForm | undefined,
-  normalized: NormalizedLead
+  normalized: NormalizedLead,
+  provider: SocialProvider = "meta"
 ): Partial<Lead> {
   const now = new Date().toISOString();
   const base: Partial<Lead> = {
@@ -115,7 +117,8 @@ export function buildMetaLead(
   };
   return {
     ...base,
-    source: "facebook",
+    source: provider === "tiktok" ? "tiktok" : "facebook",
+    provider,
     status: "novo",
     campaignId: campaign.id,
     formId: form?.id,
@@ -129,9 +132,21 @@ export function buildMetaLead(
     stage: 0,
     qualification: "novo",
     score: scoreLead(base).score,
-    consent: { base: "consentimento", at: now, text: "Formulário Meta Lead Ads" },
+    consent: {
+      base: "consentimento",
+      at: now,
+      text: `Formulário ${provider === "tiktok" ? "TikTok" : "Meta"} Lead Ads`,
+    },
     createdAt: now,
   };
+}
+
+export function buildMetaLead(
+  campaign: Campaign,
+  form: LeadForm | undefined,
+  normalized: NormalizedLead
+): Partial<Lead> {
+  return buildSocialLead(campaign, form, normalized, "meta");
 }
 
 // ── Gerador de leads de teste (modo demo / desenvolvimento) ────────────────

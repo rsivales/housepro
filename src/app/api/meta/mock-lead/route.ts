@@ -8,7 +8,7 @@ import {
   listAssignmentRules,
   listAllMetaLeads,
   getPropertyById,
-  ingestMetaLead,
+  ingestSocialLead,
 } from "@/lib/db/repo";
 import {
   unavailableAgents,
@@ -18,7 +18,7 @@ import {
 import {
   sampleAnswersForForm,
   normalizeAnswers,
-  buildMetaLead,
+  buildSocialLead,
   type RawAnswer,
 } from "@/lib/meta/ingest";
 import { resolveAssignment } from "@/lib/meta/assignment";
@@ -78,9 +78,10 @@ export async function POST(request: Request) {
       ];
 
   const normalized = normalizeAnswers(raw, form, mapping);
-  const leadPartial = buildMetaLead(campaign, form, normalized);
-  // Chave de idempotência simulada (num evento real vem o leadgen_id do Meta).
-  leadPartial.externalId = `mock-${campaign.id}-${Date.now()}`;
+  const provider = campaign.provider ?? "meta";
+  const leadPartial = buildSocialLead(campaign, form, normalized, provider);
+  // Chave de idempotência simulada (num evento real vem o ID da plataforma).
+  leadPartial.externalId = `mock-${provider}-${campaign.id}-${Date.now()}`;
 
   // Aplicar a regra de atribuição da campanha (motor de atribuição).
   const rules = await listAssignmentRules(campaign.id);
@@ -118,7 +119,11 @@ export async function POST(request: Request) {
     leadPartial.offeredTo = assignment.offeredTo;
   }
 
-  const lead = await ingestMetaLead({ lead: leadPartial, answers: normalized.answers });
+  const lead = await ingestSocialLead({
+    lead: leadPartial,
+    answers: normalized.answers,
+    provider,
+  });
   const assignedAgent = agents.find((a) => a.id === lead.assignedAgentId);
   const assignedName = assignedAgent?.name;
 

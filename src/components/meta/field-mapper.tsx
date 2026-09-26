@@ -31,7 +31,7 @@ export function FieldMapper({
       ))}
       {forms.length === 0 && (
         <p className="rounded-2xl border border-dashed py-8 text-center text-sm text-muted-foreground">
-          Sem formulários. Os formulários chegam das campanhas Meta (Fase C).
+          Sem formulários. Os formulários chegam das campanhas Meta ou TikTok.
         </p>
       )}
     </div>

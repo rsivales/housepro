@@ -22,6 +22,7 @@
 // ─────────────────────────────────────────────────────────────
 
 export type MetaConnectionStatus = "demo" | "ligada" | "desligada" | "erro";
+export type SocialProvider = "meta" | "tiktok";
 
 export interface MetaConnection {
   id: string;
@@ -37,6 +38,17 @@ export interface MetaConnection {
    */
   tokenRef?: string;
   /** Permissões concedidas (leads_retrieval, pages_show_list, …). */
+  scopes: string[];
+  status: MetaConnectionStatus;
+  connectedAt?: string;
+}
+
+export interface TikTokConnection {
+  id: string;
+  advertiserId: string;
+  businessCenterId?: string;
+  displayName: string;
+  tokenRef?: string;
   scopes: string[];
   status: MetaConnectionStatus;
   connectedAt?: string;
@@ -102,6 +114,10 @@ export interface Campaign {
   objective?: string;
   /** Referência à campanha de anúncios no Meta (externa) — informativa. */
   metaCampaignId?: string;
+  /** Plataforma publicitária. Campanhas antigas continuam a assumir Meta. */
+  provider?: SocialProvider;
+  /** ID externo da campanha na plataforma, independente do fornecedor. */
+  externalCampaignId?: string;
   status: CampaignStatus;
   createdAt: string;
 }
@@ -185,6 +201,8 @@ export interface LeadForm {
   id: string;
   /** ID do formulário no Meta (Lead Ad form). */
   metaFormId: string;
+  provider?: SocialProvider;
+  externalFormId?: string;
   name: string;
   campaignId?: string;
   questions: LeadFormQuestion[];
@@ -423,6 +441,15 @@ export const demoMetaConnection: MetaConnection = {
   tokenRef: undefined, // sem token em demo
   scopes: ["leads_retrieval", "pages_show_list", "pages_manage_metadata"],
   status: "demo",
+};
+
+export const demoTikTokConnection: TikTokConnection = {
+  id: "tt-demo",
+  advertiserId: "",
+  displayName: "TikTok Lead Generation",
+  tokenRef: undefined,
+  scopes: [],
+  status: "desligada",
 };
 
 export const demoCampaigns: Campaign[] = [

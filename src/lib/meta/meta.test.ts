@@ -183,6 +183,12 @@ describe("relatório: recrutamento separado do comercial", () => {
     expect(rep.commercial.total).toBe(1);
     expect(rep.recruitment.total).toBe(1);
     expect(rep.commercial.qualifiedRate).toBe(100);
+    expect(rep.byProvider.meta).toBe(2);
+    expect(rep.byProvider.tiktok).toBe(0);
+    expect(rep.byDestination).toEqual(expect.arrayContaining([
+      { agentId: "carla", count: 1 },
+      { agentId: "broker_inbox", count: 1 },
+    ]));
   });
 });
 

@@ -3,8 +3,11 @@ export type LeadSource =
   | "whatsapp"
   | "facebook"
   | "instagram"
+  | "tiktok"
   | "portal"
   | "consultor";
+
+export type SocialLeadProvider = "meta" | "tiktok";
 export type LeadIntent = "mensagem" | "visita" | "custos";
 export type LeadStatus = "novo" | "contactado" | "agendado" | "perdido" | "convertido";
 
@@ -104,6 +107,8 @@ export interface Lead {
    * evitar criar a mesma lead duas vezes na receção de webhooks.
    */
   externalId?: string;
+  /** Plataforma que entregou a lead social. Mantém Meta e TikTok no mesmo CRM. */
+  provider?: SocialLeadProvider;
 
   // ── Funil público de avaliação de imóvel (todos opcionais) ─────────────
   /** Suborigem (ex.: "Avaliação de imóvel"). */

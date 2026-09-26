@@ -9,7 +9,7 @@ import { agents } from "@/lib/data/mock";
 import { CAMPAIGN_TYPE_LABEL, ASSIGN_STRATEGY_LABEL, type AssignmentRule } from "@/lib/data/meta";
 import { RuleEditor } from "@/components/meta/rule-editor";
 
-export const metadata: Metadata = { title: "Distribuição — Meta CRM" };
+export const metadata: Metadata = { title: "Distribuição — Meta e TikTok" };
 
 export default async function DistribuicaoPage() {
   const session = await getSession();
@@ -27,7 +27,7 @@ export default async function DistribuicaoPage() {
     <div className="min-h-dvh bg-background">
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <Link href="/app/meta" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
-          <ArrowLeft className="size-4" /> Meta CRM
+          <ArrowLeft className="size-4" /> Leads de campanhas
         </Link>
 
         <h1 className="mt-4 flex items-center gap-2 font-display text-3xl">

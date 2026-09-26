@@ -940,6 +940,7 @@ function mapLeadRow(r: Row): Lead {
     specialty: (r.specialty as string) ?? undefined,
     offeredTo: Array.isArray(r.offered_to) ? (r.offered_to as string[]) : undefined,
     externalId: (r.external_id as string) ?? undefined,
+    provider: (r.provider as Lead["provider"]) ?? undefined,
     consent: (r.consent as Lead["consent"]) ?? undefined,
   };
 }
@@ -948,11 +949,14 @@ function mapLeadRow(r: Row): Lead {
 
 import {
   demoMetaConnection,
+  demoTikTokConnection,
   demoCampaigns,
   demoLeadForms,
   demoAssignmentRules,
   fieldMappingForForm,
   type MetaConnection,
+  type TikTokConnection,
+  type SocialProvider,
   type Campaign,
   type LeadForm,
   type FieldMapping,
@@ -994,6 +998,33 @@ export async function getMetaConnection(): Promise<MetaConnection> {
   }
 }
 
+/** Ligação TikTok ativa (ou estado desligado quando ainda não configurada). */
+export async function getTikTokConnection(): Promise<TikTokConnection> {
+  if (!isSupabaseConfigured()) return demoTikTokConnection;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("tiktok_connections")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!data) return demoTikTokConnection;
+    return {
+      id: String(data.id),
+      advertiserId: String(data.advertiser_id ?? ""),
+      businessCenterId: (data.business_center_id as string) ?? undefined,
+      displayName: String(data.display_name ?? "TikTok Lead Generation"),
+      tokenRef: (data.token_ref as string) ?? undefined,
+      scopes: Array.isArray(data.scopes) ? (data.scopes as string[]) : [],
+      status: (data.status as TikTokConnection["status"]) ?? "desligada",
+      connectedAt: (data.connected_at as string) ?? undefined,
+    };
+  } catch {
+    return { ...demoTikTokConnection, status: "erro" };
+  }
+}
+
 /** Campanhas (todas — gestão). */
 export async function listCampaigns(): Promise<Campaign[]> {
   if (!isSupabaseConfigured()) return demoCampaigns;
@@ -1012,6 +1043,9 @@ export async function listCampaigns(): Promise<Campaign[]> {
       responsibleId: (r.responsible_id as string) ?? undefined,
       objective: (r.objective as string) ?? undefined,
       metaCampaignId: (r.meta_campaign_id as string) ?? undefined,
+      provider: (r.provider as Campaign["provider"]) ?? "meta",
+      externalCampaignId:
+        (r.external_campaign_id as string) ?? (r.meta_campaign_id as string) ?? undefined,
       status: (r.status as Campaign["status"]) ?? "rascunho",
       createdAt: String(r.created_at ?? new Date().toISOString()),
     }));
@@ -1035,6 +1069,9 @@ export async function listLeadForms(campaignId?: string): Promise<LeadForm[]> {
     return (data ?? []).map((r: Row) => ({
       id: String(r.id),
       metaFormId: String(r.meta_form_id ?? ""),
+      provider: (r.provider as LeadForm["provider"]) ?? "meta",
+      externalFormId:
+        (r.external_form_id as string) ?? (r.meta_form_id as string) ?? undefined,
       name: String(r.name ?? ""),
       campaignId: (r.campaign_id as string) ?? undefined,
       createdAt: String(r.created_at ?? new Date().toISOString()),
@@ -1053,11 +1090,152 @@ export async function listLeadForms(campaignId?: string): Promise<LeadForm[]> {
   }
 }
 
+/** Resolve a campanha e o formulário referidos por um webhook externo.
+ * Só pode ser usado server-side; a service role nunca é enviada ao browser. */
+export async function getSocialWebhookContext(input: {
+  provider: SocialProvider;
+  externalCampaignId?: string;
+  externalFormId?: string;
+}): Promise<{ campaign?: Campaign; form?: LeadForm }> {
+  if (!isSupabaseConfigured() || !hasServiceRole()) return {};
+  const supabase = createAdminClient();
+
+  let campaignRow: Row | null = null;
+  if (input.externalCampaignId) {
+    const { data } = await supabase
+      .from("campaigns")
+      .select("*")
+      .eq("provider", input.provider)
+      .eq("external_campaign_id", input.externalCampaignId)
+      .maybeSingle();
+    campaignRow = data as Row | null;
+  }
+
+  let formRow: Row | null = null;
+  if (input.externalFormId) {
+    const { data } = await supabase
+      .from("lead_forms")
+      .select("*, lead_form_questions(*)")
+      .eq("provider", input.provider)
+      .eq("external_form_id", input.externalFormId)
+      .maybeSingle();
+    formRow = data as Row | null;
+  }
+
+  if (!campaignRow && formRow?.campaign_id) {
+    const { data } = await supabase
+      .from("campaigns")
+      .select("*")
+      .eq("id", String(formRow.campaign_id))
+      .maybeSingle();
+    campaignRow = data as Row | null;
+  }
+
+  const campaign: Campaign | undefined = campaignRow
+    ? {
+        id: String(campaignRow.id),
+        name: String(campaignRow.name ?? ""),
+        type: (campaignRow.type as Campaign["type"]) ?? "OTHER",
+        ownerType: (campaignRow.owner_type as Campaign["ownerType"]) ?? "AGENCY",
+        ownerId: String(campaignRow.owner_id ?? ""),
+        responsibleId: (campaignRow.responsible_id as string) ?? undefined,
+        objective: (campaignRow.objective as string) ?? undefined,
+        metaCampaignId: (campaignRow.meta_campaign_id as string) ?? undefined,
+        provider: input.provider,
+        externalCampaignId: (campaignRow.external_campaign_id as string) ?? undefined,
+        status: (campaignRow.status as Campaign["status"]) ?? "ativa",
+        createdAt: String(campaignRow.created_at ?? new Date().toISOString()),
+      }
+    : undefined;
+
+  const form: LeadForm | undefined = formRow
+    ? {
+        id: String(formRow.id),
+        metaFormId: String(formRow.meta_form_id ?? formRow.external_form_id ?? ""),
+        provider: input.provider,
+        externalFormId: String(formRow.external_form_id ?? ""),
+        name: String(formRow.name ?? ""),
+        campaignId: (formRow.campaign_id as string) ?? undefined,
+        createdAt: String(formRow.created_at ?? new Date().toISOString()),
+        questions: Array.isArray(formRow.lead_form_questions)
+          ? (formRow.lead_form_questions as Row[]).map((q) => ({
+              key: String(q.key ?? ""),
+              label: String(q.label ?? ""),
+              type: (q.type as LeadForm["questions"][number]["type"]) ?? "text",
+              options: Array.isArray(q.options) ? (q.options as string[]) : undefined,
+            }))
+          : [],
+      }
+    : undefined;
+
+  return { campaign, form };
+}
+
+/** Regista apenas metadados operacionais do webhook (sem respostas/PII).
+ * O índice único torna reentregas idempotentes antes de criar a lead. */
+export async function registerSocialWebhookEvent(input: {
+  provider: SocialProvider;
+  eventId: string;
+  externalLeadId: string;
+  externalCampaignId?: string;
+  externalFormId?: string;
+}): Promise<"new" | "duplicate" | "unavailable"> {
+  if (!isSupabaseConfigured() || !hasServiceRole()) return "unavailable";
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("social_webhook_events").insert({
+    provider: input.provider,
+    external_event_id: input.eventId,
+    external_lead_id: input.externalLeadId,
+    external_campaign_id: input.externalCampaignId ?? null,
+    external_form_id: input.externalFormId ?? null,
+    status: "received",
+  });
+  if (!error) return "new";
+  if (error.code !== "23505") return "unavailable";
+  const { data } = await supabase
+    .from("social_webhook_events")
+    .select("status, attempt_count")
+    .eq("provider", input.provider)
+    .eq("external_event_id", input.eventId)
+    .maybeSingle();
+  if (data?.status === "processed") return "duplicate";
+  await supabase
+    .from("social_webhook_events")
+    .update({ status: "received", attempt_count: Number(data?.attempt_count ?? 1) + 1 })
+    .eq("provider", input.provider)
+    .eq("external_event_id", input.eventId);
+  return "new";
+}
+
+export async function finishSocialWebhookEvent(input: {
+  provider: SocialProvider;
+  eventId: string;
+  status: "processed" | "failed" | "ignored";
+  errorCode?: string;
+}): Promise<void> {
+  if (!isSupabaseConfigured() || !hasServiceRole()) return;
+  const supabase = createAdminClient();
+  await supabase
+    .from("social_webhook_events")
+    .update({
+      status: input.status,
+      error_code: input.errorCode ?? null,
+      processed_at: new Date().toISOString(),
+    })
+    .eq("provider", input.provider)
+    .eq("external_event_id", input.eventId);
+}
+
 /** Mapeamento pergunta→campo de um formulário. */
-export async function getFieldMapping(formId: string): Promise<FieldMapping | undefined> {
+export async function getFieldMapping(
+  formId: string,
+  options?: { trustedWebhook?: boolean }
+): Promise<FieldMapping | undefined> {
   if (!isSupabaseConfigured()) return fieldMappingForForm(formId);
   try {
-    const supabase = await createClient();
+    const supabase = options?.trustedWebhook && hasServiceRole()
+      ? createAdminClient()
+      : await createClient();
     const { data } = await supabase
       .from("field_mappings")
       .select("*")
@@ -1077,14 +1255,19 @@ export async function getFieldMapping(formId: string): Promise<FieldMapping | un
 }
 
 /** Regras de atribuição (todas, ou de uma campanha). */
-export async function listAssignmentRules(campaignId?: string): Promise<AssignmentRule[]> {
+export async function listAssignmentRules(
+  campaignId?: string,
+  options?: { trustedWebhook?: boolean }
+): Promise<AssignmentRule[]> {
   if (!isSupabaseConfigured()) {
     return campaignId
       ? demoAssignmentRules.filter((r) => r.campaignId === campaignId)
       : demoAssignmentRules;
   }
   try {
-    const supabase = await createClient();
+    const supabase = options?.trustedWebhook && hasServiceRole()
+      ? createAdminClient()
+      : await createClient();
     let q = supabase.from("assignment_rules").select("*");
     if (campaignId) q = q.eq("campaign_id", campaignId);
     const { data } = await q.order("created_at", { ascending: false });
@@ -1149,10 +1332,15 @@ export async function listUnassignedMetaLeads(): Promise<Lead[]> {
 }
 
 /** Todas as leads Meta (gestão/relatórios), opcionalmente por pipeline. */
-export async function listAllMetaLeads(pipeline?: string): Promise<Lead[]> {
+export async function listAllMetaLeads(
+  pipeline?: string,
+  options?: { trustedWebhook?: boolean }
+): Promise<Lead[]> {
   if (!isSupabaseConfigured()) return allMetaLeads(pipeline);
   try {
-    const supabase = await createClient();
+    const supabase = options?.trustedWebhook && hasServiceRole()
+      ? createAdminClient()
+      : await createClient();
     let q = supabase.from("leads").select("*").not("campaign_id", "is", null);
     if (pipeline) q = q.eq("pipeline", pipeline);
     const { data } = await q.order("created_at", { ascending: false });
@@ -1174,6 +1362,8 @@ export async function createCampaign(input: {
   responsibleName?: string;
   objective?: string;
   metaCampaignId?: string;
+  provider?: SocialProvider;
+  externalCampaignId?: string;
   status?: Campaign["status"];
   createdBy?: string;
 }): Promise<Campaign> {
@@ -1188,6 +1378,8 @@ export async function createCampaign(input: {
     responsibleName: input.responsibleName,
     objective: input.objective,
     metaCampaignId: input.metaCampaignId,
+    provider: input.provider ?? "meta",
+    externalCampaignId: input.externalCampaignId ?? input.metaCampaignId,
     status: input.status ?? "rascunho",
     createdAt: new Date().toISOString(),
   };
@@ -1204,6 +1396,8 @@ export async function createCampaign(input: {
         responsible_id: input.responsibleId ?? null,
         objective: input.objective ?? null,
         meta_campaign_id: input.metaCampaignId ?? null,
+        provider: input.provider ?? "meta",
+        external_campaign_id: input.externalCampaignId ?? input.metaCampaignId ?? null,
         status: input.status ?? "rascunho",
         created_by: input.createdBy ?? null,
       })
@@ -1338,32 +1532,35 @@ export async function addLeadActivity(input: {
   }
 }
 
-/**
- * Recebe uma lead do Meta já normalizada e persiste-a (lead + respostas +
- * atividade "created"). Em modo demo devolve o objeto construído sem persistir,
- * para o fluxo ponta-a-ponta ser demonstrável sem Supabase nem Meta reais.
- */
-export async function ingestMetaLead(input: {
+/** Persiste uma lead social normalizada. Webhooks usam o cliente de serviço
+ * exclusivamente no servidor, depois da validação da assinatura/token. */
+export async function ingestSocialLead(input: {
   lead: Partial<Lead>;
   answers: Omit<LeadAnswer, "leadId">[];
+  provider?: SocialProvider;
+  trustedWebhook?: boolean;
 }): Promise<Lead> {
   const now = new Date().toISOString();
+  const provider = input.provider ?? input.lead.provider ?? "meta";
   const lead: Lead = {
-    id: `ml-${Date.now()}`,
+    id: `${provider === "tiktok" ? "tt" : "ml"}-${Date.now()}`,
     ownerId: "",
     name: "Sem nome",
     contact: "",
     intent: "mensagem",
-    source: "facebook",
+    source: provider === "tiktok" ? "tiktok" : "facebook",
     status: "novo",
     createdAt: now,
+    provider,
     ...input.lead,
   };
 
   if (!isSupabaseConfigured()) return lead;
 
   try {
-    const supabase = await createClient();
+    const supabase = input.trustedWebhook && hasServiceRole()
+      ? createAdminClient()
+      : await createClient();
 
     // Idempotência: se já existe uma lead com o mesmo leadgen_id, devolve-a
     // (não duplica na reentrega de webhooks).
@@ -1371,6 +1568,7 @@ export async function ingestMetaLead(input: {
       const { data: dup } = await supabase
         .from("leads")
         .select("*")
+        .eq("provider", provider)
         .eq("external_id", lead.externalId)
         .maybeSingle();
       if (dup) return mapLeadRow(dup as Row);
@@ -1406,6 +1604,7 @@ export async function ingestMetaLead(input: {
         specialty: lead.specialty ?? null,
         offered_to: lead.offeredTo ?? null,
         external_id: lead.externalId ?? null,
+        provider,
         consent: lead.consent ?? null,
       })
       .select("id")
@@ -1426,12 +1625,20 @@ export async function ingestMetaLead(input: {
     await supabase.from("lead_activities").insert({
       lead_id: id,
       type: "created",
-      note: "Lead recebida via Meta Lead Ads.",
+      note: `Lead recebida via ${provider === "tiktok" ? "TikTok" : "Meta"} Lead Ads.`,
     });
     return { ...lead, id };
   } catch {
     return lead;
   }
+}
+
+/** Compatibilidade com o código existente do módulo Meta. */
+export async function ingestMetaLead(input: {
+  lead: Partial<Lead>;
+  answers: Omit<LeadAnswer, "leadId">[];
+}): Promise<Lead> {
+  return ingestSocialLead({ ...input, provider: "meta" });
 }
 
 /** Atribui (ou reatribui) uma lead ao agente responsável atual e regista. */

@@ -8,7 +8,7 @@ import { listCampaigns } from "@/lib/db/repo";
 import { agents, agencies } from "@/lib/data/mock";
 import { CampaignsManager } from "@/components/meta/campaigns-manager";
 
-export const metadata: Metadata = { title: "Campanhas — Meta CRM" };
+export const metadata: Metadata = { title: "Campanhas — Meta e TikTok" };
 
 export default async function CampanhasPage() {
   const session = await getSession();
@@ -30,7 +30,7 @@ export default async function CampanhasPage() {
           href="/app/meta"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="size-4" /> Meta CRM
+          <ArrowLeft className="size-4" /> Leads de campanhas
         </Link>
 
         <h1 className="mt-4 flex items-center gap-2 font-display text-3xl">

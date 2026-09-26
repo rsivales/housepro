@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
-import { listCampaigns, getMetaConnection, listUnassignedMetaLeads } from "@/lib/db/repo";
+import { listCampaigns, getMetaConnection, getTikTokConnection, listUnassignedMetaLeads } from "@/lib/db/repo";
 import {
   CAMPAIGN_TYPE_LABEL,
   CAMPAIGN_STATUS,
@@ -25,19 +25,21 @@ import {
 } from "@/lib/data/meta";
 import { TestLeadButton } from "@/components/meta/test-lead-button";
 
-export const metadata: Metadata = { title: "Meta CRM — campanhas e leads" };
+export const metadata: Metadata = { title: "Leads de campanhas — Meta e TikTok" };
 
 export default async function MetaPage() {
   const session = await getSession();
   if (!session) redirect("/entrar");
 
-  const [campaigns, connection, unassigned] = await Promise.all([
+  const [campaigns, connection, tiktok, unassigned] = await Promise.all([
     listCampaigns(),
     getMetaConnection(),
+    getTikTokConnection(),
     listUnassignedMetaLeads(),
   ]);
 
   const conn = META_CONNECTION_STATUS[connection.status];
+  const ttConn = META_CONNECTION_STATUS[tiktok.status];
   const comerciais = campaigns.filter((c) => isCommercialCampaign(c.type));
   const recrutamento = campaigns.filter((c) => c.type === "RECRUITMENT");
 
@@ -52,21 +54,23 @@ export default async function MetaPage() {
         </Link>
 
         <h1 className="mt-4 flex items-center gap-2 font-display text-3xl">
-          <Megaphone className="size-7 text-primary" /> Meta CRM
+          <Megaphone className="size-7 text-primary" /> Leads de campanhas
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Campanhas de Facebook e Instagram, formulários de leads e distribuição
+          Campanhas de Facebook, Instagram e TikTok, formulários de leads e distribuição
           pelos consultores. {session.demo && "Dados de exemplo (modo demonstração)."}
         </p>
 
-        {/* Ligação Meta */}
-        <div className="mt-6 rounded-2xl border bg-card p-4 shadow-sm">
+        {/* Ligações sociais — um único módulo, sem duplicar menus ou regras. */}
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border bg-card p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="grid size-10 place-items-center rounded-full bg-secondary">
                 <Share2 className="size-5 text-primary" />
               </span>
               <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Meta</p>
                 <p className="font-medium leading-tight">{connection.pageName}</p>
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   {connection.igName && (
@@ -91,6 +95,31 @@ export default async function MetaPage() {
             </p>
           )}
         </div>
+        <div className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-full bg-secondary">
+                <Share2 className="size-5 text-primary" />
+              </span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">TikTok</p>
+                <p className="font-medium leading-tight">{tiktok.displayName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {tiktok.advertiserId ? `Anunciante ${tiktok.advertiserId}` : "Conta por ligar"}
+                </p>
+              </div>
+            </div>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${ttConn.badge}`}>
+              <span className={`size-2 rounded-full ${ttConn.dot}`} /> {ttConn.label}
+            </span>
+          </div>
+          {tiktok.status !== "ligada" && (
+            <p className="mt-3 rounded-lg bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
+              A arquitetura e o webhook estão preparados. A ativação exige as credenciais TikTok e a subscrição dos formulários.
+            </p>
+          )}
+        </div>
+        </div>
 
         {/* Navegação do módulo */}
         <div className="mt-6 flex flex-wrap gap-2">
@@ -109,7 +138,7 @@ export default async function MetaPage() {
         {/* Simular receção de lead (demo) */}
         <div className="mt-4">
           <TestLeadButton
-            campaigns={campaigns.map((c) => ({ id: c.id, name: c.name }))}
+            campaigns={campaigns.map((c) => ({ id: c.id, name: c.name, provider: c.provider }))}
           />
         </div>
 
@@ -135,6 +164,9 @@ export default async function MetaPage() {
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">
+                    {c.provider === "tiktok" ? "TikTok" : "Meta"}
+                  </span>
                   <span className="rounded-full bg-secondary px-2 py-0.5 font-medium text-muted-foreground">
                     {CAMPAIGN_TYPE_LABEL[c.type]}
                   </span>

@@ -68,6 +68,8 @@ export async function POST(request: Request) {
     responsibleName: body.responsibleName,
     objective: body.objective,
     metaCampaignId: body.metaCampaignId,
+    provider: body.provider,
+    externalCampaignId: body.externalCampaignId,
     status: body.status,
     createdBy: session.demo ? undefined : session.agent.id,
   });

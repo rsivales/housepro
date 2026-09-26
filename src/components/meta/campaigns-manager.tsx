@@ -12,6 +12,7 @@ import {
   type CampaignType,
   type CampaignOwnerType,
   type AssignStrategy,
+  type SocialProvider,
 } from "@/lib/data/meta";
 
 /** Estratégias oferecidas no formulário de criação (as restantes por API). */
@@ -52,6 +53,8 @@ export function CampaignsManager({
   const [error, setError] = React.useState<string | null>(null);
 
   const [name, setName] = React.useState("");
+  const [provider, setProvider] = React.useState<SocialProvider>("meta");
+  const [externalCampaignId, setExternalCampaignId] = React.useState("");
   const [type, setType] = React.useState<CampaignType>("BUYER");
   const [ownerType, setOwnerType] = React.useState<CampaignOwnerType>("AGENCY");
   const [ownerId, setOwnerId] = React.useState(agencies[0]?.id ?? "");
@@ -93,6 +96,8 @@ export function CampaignsManager({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           name,
+          provider,
+          externalCampaignId: externalCampaignId || undefined,
           type,
           ownerType,
           ownerId,
@@ -109,6 +114,7 @@ export function CampaignsManager({
       setList((prev) => [data.campaign as Campaign, ...prev]);
       setDone(true);
       setName("");
+      setExternalCampaignId("");
       setObjective("");
       setResponsibleId("");
       setStrategy("unassigned");
@@ -145,6 +151,22 @@ export function CampaignsManager({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ex.: Compradores Algarve — Verão"
+                className="input"
+              />
+            </Field>
+
+            <Field label="Plataforma">
+              <select value={provider} onChange={(e) => setProvider(e.target.value as SocialProvider)} className="input">
+                <option value="meta">Meta · Facebook / Instagram</option>
+                <option value="tiktok">TikTok</option>
+              </select>
+            </Field>
+
+            <Field label="ID externo da campanha">
+              <input
+                value={externalCampaignId}
+                onChange={(e) => setExternalCampaignId(e.target.value)}
+                placeholder={provider === "tiktok" ? "ID no TikTok Ads Manager" : "ID no Meta Ads Manager"}
                 className="input"
               />
             </Field>
@@ -308,6 +330,9 @@ export function CampaignsManager({
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">
+                  {c.provider === "tiktok" ? "TikTok" : "Meta"}
+                </span>
                 <span className="rounded-full bg-secondary px-2 py-0.5 font-medium text-muted-foreground">
                   {CAMPAIGN_TYPE_LABEL[c.type]}
                 </span>

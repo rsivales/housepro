@@ -8,7 +8,7 @@ import { listUnassignedMetaLeads, listCampaigns } from "@/lib/db/repo";
 import { agents } from "@/lib/data/mock";
 import { LeadInbox } from "@/components/meta/lead-inbox";
 
-export const metadata: Metadata = { title: "Leads sem responsável — Meta CRM" };
+export const metadata: Metadata = { title: "Leads sem responsável — Campanhas sociais" };
 
 export default async function InboxPage() {
   const session = await getSession();
@@ -32,7 +32,7 @@ export default async function InboxPage() {
           href="/app/meta"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="size-4" /> Meta CRM
+          <ArrowLeft className="size-4" /> Leads de campanhas
         </Link>
 
         <h1 className="mt-4 flex items-center gap-2 font-display text-3xl">

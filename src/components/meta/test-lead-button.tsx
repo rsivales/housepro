@@ -9,12 +9,13 @@ import type { Lead } from "@/lib/data/leads";
 interface CampaignOpt {
   id: string;
   name: string;
+  provider?: "meta" | "tiktok";
 }
 
 /**
  * Botão de demonstração: gera uma lead de teste que percorre o MESMO pipeline
  * de ingestão das leads reais (normalização → criação → atividade). Sem
- * credenciais Meta. Mostra o resultado para se ver o fluxo ponta-a-ponta.
+ * credenciais Meta/TikTok. Mostra o resultado para se ver o fluxo ponta-a-ponta.
  */
 export function TestLeadButton({ campaigns }: { campaigns: CampaignOpt[] }) {
   const [campaignId, setCampaignId] = React.useState(campaigns[0]?.id ?? "");
@@ -53,7 +54,7 @@ export function TestLeadButton({ campaigns }: { campaigns: CampaignOpt[] }) {
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
         Gera uma lead de teste que passa pela normalização e cai no inbox “sem
-        responsável”, tal como uma lead real do Meta.
+        responsável”, tal como uma lead real de Meta ou TikTok.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <select
@@ -63,7 +64,7 @@ export function TestLeadButton({ campaigns }: { campaigns: CampaignOpt[] }) {
         >
           {campaigns.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name}
+              {c.provider === "tiktok" ? "TikTok" : "Meta"} · {c.name}
             </option>
           ))}
         </select>

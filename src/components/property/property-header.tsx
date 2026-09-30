@@ -46,25 +46,31 @@ export function PropertyHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-black/[0.06] bg-[var(--card)]/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-        <Link href="/" aria-label="HousePro — início">
-          <Logo />
-        </Link>
-
-        <div className="flex items-center gap-1">
-          <Link href="/cliente/favoritos" aria-label="Favoritos" className="grid size-10 place-items-center rounded-full text-[var(--hp-navy)] transition-colors hover:bg-black/[0.05]">
-            <Heart className="size-5" />
+    <>
+      <header className="sticky top-0 z-50 border-b border-black/[0.06] bg-[var(--card)]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+          <Link href="/" aria-label="HousePro — início">
+            <Logo />
           </Link>
-          <button type="button" onClick={share} aria-label="Partilhar" className="grid size-10 place-items-center rounded-full text-[var(--hp-navy)] transition-colors hover:bg-black/[0.05]">
-            {copied ? <Check className="size-5 text-emerald-600" /> : <Share2 className="size-5" />}
-          </button>
-          <button type="button" onClick={() => setOpen(true)} aria-label="Menu" aria-expanded={open} className="grid size-10 place-items-center rounded-full text-[var(--hp-navy)] transition-colors hover:bg-black/[0.05]">
-            <Menu className="size-5" />
-          </button>
-        </div>
-      </div>
 
+          <div className="flex items-center gap-1">
+            <Link href="/cliente/favoritos" aria-label="Favoritos" className="grid size-10 place-items-center rounded-full text-[var(--hp-navy)] transition-colors hover:bg-black/[0.05]">
+              <Heart className="size-5" />
+            </Link>
+            <button type="button" onClick={share} aria-label="Partilhar" className="grid size-10 place-items-center rounded-full text-[var(--hp-navy)] transition-colors hover:bg-black/[0.05]">
+              {copied ? <Check className="size-5 text-emerald-600" /> : <Share2 className="size-5" />}
+            </button>
+            <button type="button" onClick={() => setOpen(true)} aria-label="Menu" aria-expanded={open} className="grid size-10 place-items-center rounded-full text-[var(--hp-navy)] transition-colors hover:bg-black/[0.05]">
+              <Menu className="size-5" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Fora do <header> de propósito: um <header sticky> é "positioned" e
+          passa a servir de referência a um filho "fixed", que ficava preso à
+          altura do cabeçalho (~64px) em vez de cobrir o ecrã todo — o menu
+          via-se transparente/cortado, sobreposto às fotos. */}
       {open && (
         <div className="fixed inset-0 z-50 bg-[var(--card)]">
           <div className="flex items-center justify-between px-4 py-3 sm:px-6">
@@ -85,6 +91,6 @@ export function PropertyHeader() {
           </nav>
         </div>
       )}
-    </header>
+    </>
   );
 }

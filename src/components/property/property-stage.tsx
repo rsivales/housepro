@@ -23,6 +23,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
+import { isPdfRef, openMediaViewer } from "@/lib/media/viewer";
 import { STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
 import type { PropertyStatus } from "@/lib/data/types";
 import { FavoriteButton } from "@/components/property/favorite-button";
@@ -239,20 +240,19 @@ export function PropertyStage({
           )}
 
           {/* PLANTAS — PDF não pode ser mostrado dentro de <img> (ficava em
-              branco); abre-se numa nova aba. */}
+              branco); abre no visualizador próprio, num separador novo. */}
           {mode === "plans" && hasPlans && (
-            /\.pdf(\?|$)/i.test(planList[planIndex]) ? (
-              <a
-                href={planList[planIndex]}
-                target="_blank"
-                rel="noreferrer"
+            isPdfRef(undefined, planList[planIndex]) ? (
+              <button
+                type="button"
+                onClick={() => openMediaViewer(planList[planIndex], `Planta ${planIndex + 1}`)}
                 className="flex size-full flex-col items-center justify-center gap-2 bg-white text-muted-foreground hover:text-foreground"
               >
                 <FileText className="size-16" />
                 <span className="flex items-center gap-1.5 text-sm font-medium">
                   Planta {planIndex + 1} (PDF) <ExternalLink className="size-3.5" />
                 </span>
-              </a>
+              </button>
             ) : (
               <button
                 type="button"

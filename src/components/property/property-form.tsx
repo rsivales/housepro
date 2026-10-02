@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { isPdfRef, openMediaViewer } from "@/lib/media/viewer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -514,12 +515,19 @@ export function PropertyForm({
   async function onDocs(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     const docs: ImovelDoc[] = await Promise.all(
-      files.map(async (f) => ({
-        name: f.name,
-        kind: "",
-        url: await readFile(f),
-        mime: f.type,
-      }))
+      files.map(async (f) => {
+        // f.type nem sempre vem preenchido (câmara/galeria móvel) — sem isto o
+        // PDF ficava com mime vazio/errado e a pré-visualização ("Ver") caía
+        // sempre no <img>, mostrando em branco.
+        const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+        const raw = await readFile(f);
+        return {
+          name: f.name,
+          kind: "",
+          url: isPdf ? withMime(raw, "application/pdf") : raw,
+          mime: isPdf ? "application/pdf" : f.type,
+        };
+      })
     );
     patch({ documentos: [...d.documentos, ...docs] });
     e.target.value = "";
@@ -896,22 +904,27 @@ export function PropertyForm({
           {plans.length > 0 && (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {plans.map((src, i) => {
-                const isPdf = src.startsWith("data:application/pdf") || /\.pdf(\?|$)/i.test(src);
+                const isPdf = isPdfRef(undefined, src);
                 return (
                   <div key={i} className="group relative overflow-hidden rounded-lg border bg-white">
                     {isPdf ? (
-                      <a
-                        href={src}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => openMediaViewer(src, `Planta ${i + 1}`)}
                         className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1.5 p-2 text-muted-foreground hover:text-foreground"
                       >
                         <FileText className="size-8" />
-                        <span className="text-xs">Planta {i + 1} (PDF) · abrir</span>
-                      </a>
+                        <span className="text-xs">Planta {i + 1} (PDF) · pré-visualizar</span>
+                      </button>
                     ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={src} alt={`Planta ${i + 1}`} className="aspect-[4/3] w-full object-contain p-1" />
+                      <button
+                        type="button"
+                        onClick={() => openMediaViewer(src, `Planta ${i + 1}`)}
+                        className="block aspect-[4/3] w-full"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={src} alt={`Planta ${i + 1}`} className="size-full object-contain p-1" />
+                      </button>
                     )}
                     <button
                       type="button"
@@ -1651,7 +1664,7 @@ export function PropertyForm({
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-auto bg-secondary/40 p-4">
-              {preview.mime === "application/pdf" ? (
+              {isPdfRef(preview.name, preview.url, preview.mime) ? (
                 <object data={preview.url} type="application/pdf" className="h-[70dvh] w-full rounded-lg">
                   <a href={preview.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
                     Abrir PDF

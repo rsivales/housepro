@@ -21,8 +21,8 @@ export interface CrmBoardOption { id: string; name: string }
 
 const NEW_DEAL_FORM = {
   reference: "", buyerName: "", buyerContactId: "", sellerName: "", amount: "",
-  commissionType: "percent" as "percent" | "fixed", commissionPct: "5", commissionFixed: "",
   coBroker: false, coBrokerAgencyId: "",
+  coBrokerSplitType: "percent" as "percent" | "fixed", coBrokerSplitPct: "50", coBrokerSplitFixed: "",
 };
 
 /** Kanban de negócios REAIS (persistidos). Ao mover um cartão de fase, o estado
@@ -63,11 +63,11 @@ export function CrmBoard({
           buyerContactId: form.buyerContactId || undefined,
           sellerName: form.sellerName,
           amount: form.amount ? Number(form.amount) : undefined,
-          commissionType: form.commissionType,
-          commissionPct: form.commissionType === "percent" && form.commissionPct ? Number(form.commissionPct) : undefined,
-          commissionFixed: form.commissionType === "fixed" && form.commissionFixed ? Number(form.commissionFixed) : undefined,
           coBroker: form.coBroker,
           coBrokerAgencyId: form.coBroker ? form.coBrokerAgencyId || undefined : undefined,
+          coBrokerSplitType: form.coBrokerSplitType,
+          coBrokerSplitPct: form.coBroker && form.coBrokerSplitType === "percent" && form.coBrokerSplitPct ? Number(form.coBrokerSplitPct) : undefined,
+          coBrokerSplitFixed: form.coBroker && form.coBrokerSplitType === "fixed" && form.coBrokerSplitFixed ? Number(form.coBrokerSplitFixed) : undefined,
         }),
       });
       const out = await res.json();
@@ -126,26 +126,16 @@ export function CrmBoard({
       {/* Novo negócio */}
       {showNew && (
         <form onSubmit={create} className="mt-4 rounded-2xl border bg-card p-4 shadow-sm">
-          <div className="grid gap-2 sm:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-3">
             <Input value={form.reference} onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))} placeholder="Referência (ex.: HP-1049)" />
             <Input value={form.sellerName} onChange={(e) => setForm((f) => ({ ...f, sellerName: e.target.value }))} placeholder="Vendedor" />
             <Input type="number" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="Valor (€)" />
-            <select
-              value={form.commissionType}
-              onChange={(e) => setForm((f) => ({ ...f, commissionType: e.target.value as "percent" | "fixed" }))}
-              className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
-            >
-              <option value="percent">Comissão em %</option>
-              <option value="fixed">Comissão fixa (€)</option>
-            </select>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            A comissão vem do imóvel — só precisas de indicar abaixo se há partilha com outra agência.
+          </p>
 
           <div className="mt-2 grid gap-2 sm:grid-cols-4">
-            {form.commissionType === "percent" ? (
-              <Input type="number" step="0.1" value={form.commissionPct} onChange={(e) => setForm((f) => ({ ...f, commissionPct: e.target.value }))} placeholder="Comissão estimada (%)" />
-            ) : (
-              <Input type="number" step="50" value={form.commissionFixed} onChange={(e) => setForm((f) => ({ ...f, commissionFixed: e.target.value }))} placeholder="Comissão estimada (€)" />
-            )}
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -156,14 +146,29 @@ export function CrmBoard({
               Partilha com outra agência
             </label>
             {form.coBroker && (
-              <select
-                value={form.coBrokerAgencyId}
-                onChange={(e) => setForm((f) => ({ ...f, coBrokerAgencyId: e.target.value }))}
-                className="h-9 rounded-md border border-input bg-transparent px-2 text-sm sm:col-span-2"
-              >
-                <option value="">Selecionar agência…</option>
-                {agencies.map((ag) => <option key={ag.id} value={ag.id}>{ag.name}</option>)}
-              </select>
+              <>
+                <select
+                  value={form.coBrokerAgencyId}
+                  onChange={(e) => setForm((f) => ({ ...f, coBrokerAgencyId: e.target.value }))}
+                  className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+                >
+                  <option value="">Selecionar agência…</option>
+                  {agencies.map((ag) => <option key={ag.id} value={ag.id}>{ag.name}</option>)}
+                </select>
+                <select
+                  value={form.coBrokerSplitType}
+                  onChange={(e) => setForm((f) => ({ ...f, coBrokerSplitType: e.target.value as "percent" | "fixed" }))}
+                  className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+                >
+                  <option value="percent">Partilha em %</option>
+                  <option value="fixed">Partilha fixa (€)</option>
+                </select>
+                {form.coBrokerSplitType === "percent" ? (
+                  <Input type="number" step="1" value={form.coBrokerSplitPct} onChange={(e) => setForm((f) => ({ ...f, coBrokerSplitPct: e.target.value }))} placeholder="% para a outra agência" />
+                ) : (
+                  <Input type="number" step="50" value={form.coBrokerSplitFixed} onChange={(e) => setForm((f) => ({ ...f, coBrokerSplitFixed: e.target.value }))} placeholder="€ para a outra agência" />
+                )}
+              </>
             )}
           </div>
 

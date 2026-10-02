@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatEuro } from "@/lib/format";
 import { DEAL_STEPS } from "@/lib/data/deal";
-import type { DealDetail, CommissionType } from "@/lib/db/deals";
+import type { DealDetail, CommissionType as SplitType } from "@/lib/db/deals";
 
 export interface DealOption { id: string; name: string }
 
@@ -31,11 +31,11 @@ export function DealDetailView({
   const [buyerName, setBuyerName] = React.useState(deal.buyerName);
   const [sellerName, setSellerName] = React.useState(deal.sellerName);
   const [amount, setAmount] = React.useState(String(deal.amount || ""));
-  const [commissionType, setCommissionType] = React.useState<CommissionType>(deal.commissionType);
-  const [commissionPct, setCommissionPct] = React.useState(deal.commissionPct != null ? String(deal.commissionPct) : "5");
-  const [commissionFixed, setCommissionFixed] = React.useState(deal.commissionFixed != null ? String(deal.commissionFixed) : "");
   const [coBroker, setCoBroker] = React.useState(deal.coBroker);
   const [coBrokerAgencyId, setCoBrokerAgencyId] = React.useState(deal.coBrokerAgencyId ?? "");
+  const [splitType, setSplitType] = React.useState<SplitType>(deal.coBrokerSplitType);
+  const [splitPct, setSplitPct] = React.useState(deal.coBrokerSplitPct != null ? String(deal.coBrokerSplitPct) : "50");
+  const [splitFixed, setSplitFixed] = React.useState(deal.coBrokerSplitFixed != null ? String(deal.coBrokerSplitFixed) : "");
 
   const stepIdx = DEAL_STEPS.findIndex((s) => s.stage === deal.stage);
 
@@ -52,11 +52,11 @@ export function DealDetailView({
           buyerContactId: buyerContactId || null,
           sellerName,
           amount: amount ? Number(amount) : undefined,
-          commissionType,
-          commissionPct: commissionType === "percent" && commissionPct ? Number(commissionPct) : null,
-          commissionFixed: commissionType === "fixed" && commissionFixed ? Number(commissionFixed) : null,
           coBroker,
           coBrokerAgencyId: coBroker ? coBrokerAgencyId || null : null,
+          coBrokerSplitType: splitType,
+          coBrokerSplitPct: coBroker && splitType === "percent" && splitPct ? Number(splitPct) : null,
+          coBrokerSplitFixed: coBroker && splitType === "fixed" && splitFixed ? Number(splitFixed) : null,
         }),
       });
       if (!res.ok) {
@@ -71,12 +71,16 @@ export function DealDetailView({
     }
   }
 
-  const estimate =
-    commissionType === "fixed"
-      ? (commissionFixed ? Number(commissionFixed) : null)
-      : amount && commissionPct
-        ? Math.round(Number(amount) * (Number(commissionPct) / 100) * 100) / 100
-        : null;
+  // A comissão em si vem sempre do imóvel (deal.commissionEstimate); aqui só
+  // se recalcula a fatia da partilha, em função do que se está a editar.
+  const splitAmount =
+    deal.commissionEstimate == null
+      ? null
+      : splitType === "fixed"
+        ? (splitFixed ? Number(splitFixed) : null)
+        : splitPct
+          ? Math.round(deal.commissionEstimate * (Number(splitPct) / 100) * 100) / 100
+          : null;
 
   return (
     <div className="hx-card mt-6 p-5">
@@ -136,13 +140,17 @@ export function DealDetailView({
             label="Comissão estimada"
             value={
               deal.commissionEstimate != null
-                ? `${formatEuro(deal.commissionEstimate)}${deal.commissionType === "percent" && deal.commissionPct ? ` (${deal.commissionPct}%)` : ""}`
-                : "—"
+                ? `${formatEuro(deal.commissionEstimate)}${deal.commissionType === "percent" && deal.commissionPct ? ` (${deal.commissionPct}% do imóvel)` : ""}`
+                : "— (sem comissão definida no imóvel)"
             }
           />
           <Row
             label="Partilha com outra agência"
-            value={deal.coBroker ? (deal.coBrokerAgencyName || "Sim") : "Não"}
+            value={
+              deal.coBroker
+                ? `${deal.coBrokerAgencyName || "Sim"}${deal.coBrokerSplitAmount != null ? ` — ${formatEuro(deal.coBrokerSplitAmount)}${deal.coBrokerSplitType === "percent" && deal.coBrokerSplitPct ? ` (${deal.coBrokerSplitPct}%)` : ""}` : ""}`
+                : "Não"
+            }
           />
         </dl>
       ) : (
@@ -173,24 +181,13 @@ export function DealDetailView({
             <Input value={sellerName} onChange={(e) => setSellerName(e.target.value)} placeholder="Vendedor" />
             <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Valor (€)" />
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <select
-              value={commissionType}
-              onChange={(e) => setCommissionType(e.target.value as CommissionType)}
-              className="h-10 rounded-md border border-input bg-transparent px-3 text-sm"
-            >
-              <option value="percent">Comissão em %</option>
-              <option value="fixed">Comissão fixa (€)</option>
-            </select>
-            {commissionType === "percent" ? (
-              <Input type="number" step="0.1" value={commissionPct} onChange={(e) => setCommissionPct(e.target.value)} placeholder="Comissão (%)" />
-            ) : (
-              <Input type="number" step="50" value={commissionFixed} onChange={(e) => setCommissionFixed(e.target.value)} placeholder="Comissão (€)" />
-            )}
-          </div>
-          {estimate != null && (
-            <p className="text-xs text-muted-foreground">Estimativa: <strong className="text-foreground">{formatEuro(estimate)}</strong></p>
-          )}
+          <p className="text-xs text-muted-foreground">
+            Comissão (do imóvel):{" "}
+            <strong className="text-foreground">
+              {deal.commissionEstimate != null ? formatEuro(deal.commissionEstimate) : "não definida"}
+            </strong>
+            {" "}— só se edita na ficha do imóvel.
+          </p>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -201,14 +198,34 @@ export function DealDetailView({
             Partilha com outra agência
           </label>
           {coBroker && (
-            <select
-              value={coBrokerAgencyId}
-              onChange={(e) => setCoBrokerAgencyId(e.target.value)}
-              className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-            >
-              <option value="">Selecionar agência…</option>
-              {agencies.map((ag) => <option key={ag.id} value={ag.id}>{ag.name}</option>)}
-            </select>
+            <>
+              <select
+                value={coBrokerAgencyId}
+                onChange={(e) => setCoBrokerAgencyId(e.target.value)}
+                className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+              >
+                <option value="">Selecionar agência…</option>
+                {agencies.map((ag) => <option key={ag.id} value={ag.id}>{ag.name}</option>)}
+              </select>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <select
+                  value={splitType}
+                  onChange={(e) => setSplitType(e.target.value as SplitType)}
+                  className="h-10 rounded-md border border-input bg-transparent px-3 text-sm"
+                >
+                  <option value="percent">Partilha em %</option>
+                  <option value="fixed">Partilha fixa (€)</option>
+                </select>
+                {splitType === "percent" ? (
+                  <Input type="number" step="1" value={splitPct} onChange={(e) => setSplitPct(e.target.value)} placeholder="% para a outra agência" />
+                ) : (
+                  <Input type="number" step="50" value={splitFixed} onChange={(e) => setSplitFixed(e.target.value)} placeholder="€ para a outra agência" />
+                )}
+              </div>
+              {splitAmount != null && (
+                <p className="text-xs text-muted-foreground">Fica com a outra agência: <strong className="text-foreground">{formatEuro(splitAmount)}</strong></p>
+              )}
+            </>
           )}
 
           {err && <p className="text-sm text-destructive">{err}</p>}

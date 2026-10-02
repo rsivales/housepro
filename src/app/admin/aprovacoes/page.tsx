@@ -6,23 +6,28 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { ApprovalQueue, type PendingItem } from "@/components/admin/approval-queue";
 import { NotifyMissingButton } from "@/components/admin/notify-missing-button";
 import { ProfileRequestsQueue } from "@/components/admin/profile-requests-queue";
-import { properties, pendingApprovals, agentById, agencyById } from "@/lib/data/mock";
+import { listAllPropertiesAdmin, getAgencyById } from "@/lib/db/repo";
 import { docStatus, docLabel } from "@/lib/imovel/model";
 
 export const metadata: Metadata = { title: "Aprovações · Back office" };
 
-export default function AprovacoesPage() {
-  const pend = pendingApprovals();
+export default async function AprovacoesPage() {
+  const allProperties = await listAllPropertiesAdmin();
+
+  const pend = allProperties.filter((p) => p.approval === "pendente");
+  const agencyIds = [...new Set(pend.map((p) => p.agent?.agencyId).filter((id): id is string => Boolean(id)))];
+  const agencies = await Promise.all(agencyIds.map((id) => getAgencyById(id)));
+  const agencyNameById = new Map(agencyIds.map((id, i) => [id, agencies[i]?.name]));
+
   const items: PendingItem[] = pend.map((p) => {
-    const agent = agentById(p.agentId);
     const st = docStatus(p.documents ?? [], p.sellerType === "empresa", p.licenseEndorsed ? ["licenca_utilizacao"] : []);
     return {
       id: p.id,
       reference: p.reference,
       title: p.title,
       location: `${p.parish}, ${p.municipality}`,
-      agentName: agent.name,
-      agencyName: agencyById(agent.agencyId)?.name ?? agent.agency,
+      agentName: p.agent?.name ?? "—",
+      agencyName: (p.agent?.agencyId && agencyNameById.get(p.agent.agencyId)) || p.agent?.agency || "—",
       submittedAt: p.submittedAt,
       missingCount: st.missingCount,
       missingLabels: st.missing.map(docLabel),
@@ -30,13 +35,13 @@ export default function AprovacoesPage() {
   });
 
   // Notificação vermelha: imóveis (não vendidos) com documentos obrigatórios em falta.
-  const docMissing = properties
+  const docMissing = allProperties
     .filter((p) => p.status !== "vendido")
     .map((p) => ({ p, st: docStatus(p.documents ?? [], p.sellerType === "empresa", p.licenseEndorsed ? ["licenca_utilizacao"] : []) }))
     .filter((x) => !x.st.complete);
 
   // Imóveis publicados sem aprovação necessária (AMI próprio) — informativo.
-  const amiAuto = properties.filter((p) => agentById(p.agentId).ownAMI && p.status !== "vendido");
+  const amiAuto = allProperties.filter((p) => p.agent?.ownAMI && p.status !== "vendido");
 
   return (
     <div className="min-h-dvh bg-background">
@@ -103,17 +108,14 @@ export default function AprovacoesPage() {
               Isentos de aprovação — responsabilidade e documentação do próprio agente.
             </p>
             <ul className="mt-3 space-y-2">
-              {amiAuto.map((p) => {
-                const agent = agentById(p.agentId);
-                return (
-                  <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-sm">
-                    <span>
-                      <span className="font-medium">{p.reference}</span> · {p.title}
-                    </span>
-                    <span className="text-muted-foreground">{agent.name} · AMI próprio</span>
-                  </li>
-                );
-              })}
+              {amiAuto.map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-sm">
+                  <span>
+                    <span className="font-medium">{p.reference}</span> · {p.title}
+                  </span>
+                  <span className="text-muted-foreground">{p.agent?.name ?? "—"} · AMI próprio</span>
+                </li>
+              ))}
             </ul>
           </section>
         )}

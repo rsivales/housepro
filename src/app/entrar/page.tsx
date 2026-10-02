@@ -23,21 +23,18 @@ const FEATURES = [
   { icon: Home, title: "Mais oportunidades", sub: "mais histórias" },
 ];
 
-/** Watermark decorativo — recorta só a andorinha do logótipo oficial
- *  (public/brand/housepro-logo.png), sem inventar um novo símbolo. */
+/** Watermark decorativo — recorte da andorinha do logótipo oficial, já
+ *  pré-gerado (public/brand/watermark-bird.webp) em vez de carregar o
+ *  logótipo completo a 2450px e recortar/dessaturar em runtime (pesado em
+ *  ligações móveis, podia causar engasgos visuais ao carregar). */
 function BirdWatermark() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute -right-24 -top-16 h-[560px] w-[560px] overflow-hidden opacity-[0.06] grayscale"
+      className="pointer-events-none absolute -right-24 -top-16 h-[560px] w-[392px] overflow-hidden opacity-[0.06]"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- recorte por pixel exato (object-fit não serve para isto) */}
-      <img
-        src="/brand/housepro-logo.png"
-        alt=""
-        className="absolute max-w-none"
-        style={{ top: "-20px", left: "-1950px", width: "2450px", height: "auto" }}
-      />
+      {/* eslint-disable-next-line @next/next/no-img-element -- decorativo, fora do fluxo de conteúdo */}
+      <img src="/brand/watermark-bird.webp" alt="" className="size-full object-contain" />
     </div>
   );
 }

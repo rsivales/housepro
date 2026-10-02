@@ -20,6 +20,8 @@ const FIELDS: Record<string, string> = {
   typology: "typology",
   price: "price",
   area: "area",
+  areaUtil: "area_util",
+  landArea: "land_area",
   beds: "beds",
   baths: "baths",
   parish: "parish",
@@ -69,7 +71,7 @@ const FIELDS: Record<string, string> = {
 };
 
 const NUMERIC = new Set([
-  "price", "beds", "baths", "area", "commissionPct", "commissionFixed",
+  "price", "beds", "baths", "area", "areaUtil", "landArea", "commissionPct", "commissionFixed",
   "constructionYear", "developmentUnits", "cmiMonths", "developmentPriceFrom",
 ]);
 const BOOLEAN = new Set([

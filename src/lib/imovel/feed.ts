@@ -42,6 +42,8 @@ function propertyXML(p: Property): string {
       <title><![CDATA[${p.title}]]></title>
       <price currency="EUR">${p.price}</price>
       <surfaceArea unit="m2">${p.area}</surfaceArea>
+      ${p.areaUtil ? `<usableArea unit="m2">${p.areaUtil}</usableArea>` : ""}
+      ${p.landArea ? `<plotArea unit="m2">${p.landArea}</plotArea>` : ""}
       <rooms>${p.beds}</rooms>
       <bathrooms>${p.baths}</bathrooms>
       <typology>${esc(p.typology ?? "")}</typology>

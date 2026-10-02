@@ -67,6 +67,8 @@ export async function POST(request: Request) {
     price_visible: d.priceVisible === false ? false : true,
     location_privacy: typeof d.locationPrivacy === "string" ? d.locationPrivacy : "approx",
     area: d.area != null ? Number(d.area) : null,
+    area_util: d.areaUtil != null && d.areaUtil !== "" ? Number(d.areaUtil) : null,
+    land_area: d.landArea != null && d.landArea !== "" ? Number(d.landArea) : null,
     beds: d.beds != null ? Number(d.beds) : null,
     baths: d.baths != null ? Number(d.baths) : null,
     parish: d.parish ? String(d.parish) : null,

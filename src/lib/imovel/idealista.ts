@@ -50,7 +50,11 @@ export function toIdealistaXML(d: ImovelDraft): string {
         : ""
     }
     <price currency="EUR">${d.price}</price>
-    <surfaceArea unit="m2">${d.area}</surfaceArea>
+    <surfaceArea unit="m2">${d.area}</surfaceArea>${
+      d.areaUtil ? `\n    <usefulArea unit="m2">${d.areaUtil}</usefulArea>` : ""
+    }${
+      d.landArea ? `\n    <plotArea unit="m2">${d.landArea}</plotArea>` : ""
+    }
     <rooms>${d.beds}</rooms>
     <bathrooms>${d.baths}</bathrooms>
     <typology>${esc(d.typology)}</typology>

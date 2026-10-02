@@ -1040,7 +1040,9 @@ export function PropertyForm({
                 )}
               </div>
             </Field>
-            <Field label="Área (m²)"><Input type="number" value={d.area || ""} onChange={(e) => patch({ area: Number(e.target.value) || 0 })} /></Field>
+            <Field label="Área bruta (m²)"><Input type="number" value={d.area || ""} onChange={(e) => patch({ area: Number(e.target.value) || 0 })} /></Field>
+            <Field label="Área útil (m²)"><Input type="number" value={d.areaUtil || ""} onChange={(e) => patch({ areaUtil: Number(e.target.value) || undefined })} /></Field>
+            <Field label="Área de lote (m²)"><Input type="number" value={d.landArea || ""} onChange={(e) => patch({ landArea: Number(e.target.value) || undefined })} /></Field>
             <Field label="Ano de construção"><Input type="number" value={d.anoConstrucao} onChange={(e) => patch({ anoConstrucao: e.target.value })} placeholder="2005" /></Field>
             <Field label="Quartos"><Input type="number" value={d.beds || ""} onChange={(e) => patch({ beds: Number(e.target.value) || 0 })} /></Field>
             <Field label="Casas de banho"><Input type="number" value={d.baths || ""} onChange={(e) => patch({ baths: Number(e.target.value) || 0 })} /></Field>
@@ -1708,6 +1710,8 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     locationPrivacy: d.locationPrivacy,
     status: d.status,
     area: d.area,
+    areaUtil: d.areaUtil ?? "",
+    landArea: d.landArea ?? "",
     beds: d.beds,
     baths: d.baths,
     parish: d.parish,

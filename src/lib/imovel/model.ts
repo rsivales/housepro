@@ -133,7 +133,12 @@ export interface ImovelDraft {
   comissaoFixo: number;
   /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
   sellerType: "particular" | "empresa";
+  /** Área bruta (privativa) em m². */
   area: number;
+  /** Área útil em m². */
+  areaUtil?: number;
+  /** Área de terreno / lote em m² (moradias, terrenos). */
+  landArea?: number;
   beds: number;
   baths: number;
   parish: string;
@@ -354,6 +359,8 @@ export function blankImovel(id: string): ImovelDraft {
     comissaoFixo: 0,
     sellerType: "particular",
     area: 0,
+    areaUtil: undefined,
+    landArea: undefined,
     beds: 2,
     baths: 1,
     parish: "",
@@ -433,6 +440,8 @@ export function draftFromProperty(p: Property): ImovelDraft {
     comissaoFixo: p.commissionFixed ?? 0,
     sellerType: p.sellerType ?? "particular",
     area: p.area,
+    areaUtil: p.areaUtil,
+    landArea: p.landArea,
     beds: p.beds,
     baths: p.baths,
     parish: p.parish,

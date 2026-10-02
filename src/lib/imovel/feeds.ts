@@ -42,7 +42,11 @@ function propertyXML(p: Property): string {
     <propertyType>${type}</propertyType>
     <newDevelopment>${p.isDevelopment ? "true" : "false"}</newDevelopment>
     <price currency="EUR">${p.price}</price>
-    <surfaceArea unit="m2">${p.area}</surfaceArea>
+    <surfaceArea unit="m2">${p.area}</surfaceArea>${
+      p.areaUtil ? `\n    <usefulArea unit="m2">${p.areaUtil}</usefulArea>` : ""
+    }${
+      p.landArea ? `\n    <plotArea unit="m2">${p.landArea}</plotArea>` : ""
+    }
     <rooms>${p.beds}</rooms>
     <bathrooms>${p.baths}</bathrooms>
     <typology>${esc(p.typology ?? "")}</typology>

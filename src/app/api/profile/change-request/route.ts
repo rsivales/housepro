@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   }
   if (!isSupabaseConfigured()) return NextResponse.json({ ok: true, demo: true });
 
-  let body: { name?: string; photoUrl?: string; whatsapp?: string; cancel?: boolean };
+  let body: { name?: string; photoUrl?: string; whatsapp?: string; publicTitle?: string; cancel?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -67,14 +67,15 @@ export async function POST(request: Request) {
   const name = body.name?.trim() || null;
   const photoUrl = body.photoUrl?.trim() || null;
   const whatsapp = body.whatsapp?.trim() || null;
-  if (!name && !photoUrl && !whatsapp) {
+  const publicTitle = body.publicTitle?.trim() || null;
+  if (!name && !photoUrl && !whatsapp && !publicTitle) {
     return NextResponse.json({ error: "empty_request" }, { status: 422 });
   }
 
   if (existing) {
     const { error } = await supabase
       .from("profile_change_requests")
-      .update({ name, photo_url: photoUrl, whatsapp, status: "pendente" })
+      .update({ name, photo_url: photoUrl, whatsapp, public_title: publicTitle, status: "pendente" })
       .eq("id", existing.id);
     if (error) {
       console.error("[profile/change-request] falha ao atualizar pedido", error);
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
 
   const { data: created, error } = await supabase
     .from("profile_change_requests")
-    .insert({ profile_id: session.agent.id, name, photo_url: photoUrl, whatsapp })
+    .insert({ profile_id: session.agent.id, name, photo_url: photoUrl, whatsapp, public_title: publicTitle })
     .select("id")
     .single();
   if (error) {

@@ -10,9 +10,11 @@ interface ProfileRequest {
   currentEmail: string;
   currentPhoto: string | null;
   currentWhatsapp: string | null;
+  currentPublicTitle: string | null;
   proposedName: string | null;
   proposedPhoto: string | null;
   proposedWhatsapp: string | null;
+  proposedPublicTitle: string | null;
   createdAt: string;
 }
 
@@ -96,6 +98,12 @@ export function ProfileRequestsQueue() {
                 <div className="flex flex-wrap gap-1.5">
                   <dt className="text-muted-foreground">WhatsApp:</dt>
                   <dd><span className="text-muted-foreground line-through">{r.currentWhatsapp || "—"}</span> → <strong>{r.proposedWhatsapp}</strong></dd>
+                </div>
+              )}
+              {r.proposedPublicTitle && (
+                <div className="flex flex-wrap gap-1.5">
+                  <dt className="text-muted-foreground">Alias público:</dt>
+                  <dd><span className="text-muted-foreground line-through">{r.currentPublicTitle || "—"}</span> → <strong>{r.proposedPublicTitle}</strong></dd>
                 </div>
               )}
               {r.proposedPhoto && (

@@ -146,7 +146,7 @@ export async function PATCH(request: Request) {
   const admin = createAdminClient();
   const { data: before } = await admin
     .from("profiles")
-    .select("name, email, whatsapp, agency_id, role_key, active, sponsor_id")
+    .select("name, email, whatsapp, agency_id, role_key, active, sponsor_id, public_title")
     .eq("id", id)
     .maybeSingle();
 
@@ -154,6 +154,7 @@ export async function PATCH(request: Request) {
   if (typeof b.name === "string") patch.name = b.name.trim();
   if (typeof b.email === "string") patch.email = b.email.trim().toLowerCase() || null;
   if (typeof b.whatsapp === "string") patch.whatsapp = b.whatsapp || null;
+  if (typeof b.publicTitle === "string") patch.public_title = b.publicTitle.trim() || null;
   if (typeof b.photoUrl === "string") patch.photo_url = b.photoUrl || null;
   if (typeof b.agencyId === "string") patch.agency_id = b.agencyId || null;
   if (typeof b.roleKey === "string") { patch.role_key = b.roleKey; patch.role = toEnumRole(b.roleKey); }
@@ -180,6 +181,7 @@ export async function PATCH(request: Request) {
   if ("name" in patch && patch.name !== before?.name) changes.push({ field: "Nome", from: before?.name ?? "—", to: String(patch.name) });
   if ("email" in patch && patch.email !== before?.email) changes.push({ field: "E-mail", from: before?.email ?? "—", to: String(patch.email ?? "—") });
   if ("whatsapp" in patch && patch.whatsapp !== before?.whatsapp) changes.push({ field: "WhatsApp", from: before?.whatsapp ?? "—", to: String(patch.whatsapp ?? "—") });
+  if ("public_title" in patch && patch.public_title !== before?.public_title) changes.push({ field: "Alias público", from: before?.public_title ?? "—", to: String(patch.public_title ?? "—") });
   if ("agency_id" in patch && patch.agency_id !== before?.agency_id) changes.push({ field: "Agência", from: before?.agency_id ?? "—", to: String(patch.agency_id ?? "—") });
   if ("role_key" in patch && patch.role_key !== before?.role_key) changes.push({ field: "Papel", from: roleLabel(before?.role_key), to: roleLabel(String(patch.role_key)) });
   if ("sponsor_id" in patch && patch.sponsor_id !== before?.sponsor_id) changes.push({ field: "Padrinho", from: before?.sponsor_id ?? "—", to: String(patch.sponsor_id ?? "—") });

@@ -1,19 +1,21 @@
-import { availableProperties } from "@/lib/data/mock";
+import { listProperties } from "@/lib/db/repo";
 import { propertiesToFeedXML } from "@/lib/imovel/feed";
 
 /**
  * Feed XML dos imóveis disponíveis, compatível com Idealista / Imovirtual.
  * O portal consome este endpoint periodicamente (ex.: GET diário) e publica.
- * Em produção lê do Supabase; aqui, dos dados de exemplo.
+ * Lê sempre do Supabase quando configurado (produção); só cai nos dados de
+ * exemplo em desenvolvimento local sem base de dados ligada.
  *
  * GET /api/idealista-feed        → todos os imóveis disponíveis
  * GET /api/idealista-feed?ref=X  → apenas a referência X (útil para testar)
  */
-export function GET(request: Request) {
+export async function GET(request: Request) {
   const ref = new URL(request.url).searchParams.get("ref");
+  const properties = await listProperties();
   const list = ref
-    ? availableProperties.filter((p) => p.reference === ref)
-    : availableProperties;
+    ? properties.filter((p) => p.reference === ref)
+    : properties;
 
   const xml = propertiesToFeedXML(list);
 

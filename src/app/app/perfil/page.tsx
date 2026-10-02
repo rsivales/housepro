@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2, Hash, Mail, Phone, ShieldCheck, Calculator, LayoutGrid, Users } from "lucide-react";
+import { Building2, Hash, Mail, Phone, ShieldCheck, Eye, Calculator, LayoutGrid, Users } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { ProfileEditPanel, type PendingProfileRequest } from "@/components/app/profile-edit-panel";
-import { ROLE_LABEL, isStaff, isSuperadmin } from "@/lib/data/roles";
+import { ROLE_LABEL, isStaff, isSuperadmin, publicRoleLabel } from "@/lib/data/roles";
 
 export const metadata: Metadata = { title: "O meu perfil — Helix" };
 
@@ -27,17 +27,18 @@ export default async function PerfilPage() {
     const supabase = await createClient();
     const { data } = await supabase
       .from("profile_change_requests")
-      .select("name, photo_url, whatsapp, created_at")
+      .select("name, photo_url, whatsapp, public_title, created_at")
       .eq("profile_id", agent.id)
       .eq("status", "pendente")
       .maybeSingle();
     if (data) {
-      pendingRequest = { name: data.name, whatsapp: data.whatsapp, photoUrl: data.photo_url, createdAt: data.created_at };
+      pendingRequest = { name: data.name, whatsapp: data.whatsapp, photoUrl: data.photo_url, publicTitle: data.public_title, createdAt: data.created_at };
     }
   }
 
   const rows: { icon: React.ComponentType<{ className?: string }>; label: string; value?: string }[] = [
-    { icon: ShieldCheck, label: "Papel", value: roleLabel },
+    { icon: ShieldCheck, label: "Papel (interno)", value: roleLabel },
+    { icon: Eye, label: "Alias público (site)", value: agent.publicTitle || `${publicRoleLabel(agent)} (automático)` },
     { icon: Building2, label: "Agência", value: agent.agency || "—" },
     { icon: Hash, label: "Código", value: agent.code ? String(agent.code) : "—" },
     { icon: Mail, label: "E-mail", value: agent.email || "—" },

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { assignLead } from "@/lib/db/repo";
-import { agents } from "@/lib/data/mock";
+import { assignLead, getAgentPublicById } from "@/lib/db/repo";
 import { notifyLeadAssigned } from "@/lib/meta/notify";
 import type { Lead } from "@/lib/data/leads";
 
@@ -51,7 +50,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const agent = agents.find((a) => a.id === body.agentId);
+  const agent = await getAgentPublicById(body.agentId);
   const agentName = agent?.name;
 
   const ok = await assignLead({

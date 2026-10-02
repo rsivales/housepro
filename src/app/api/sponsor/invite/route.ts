@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { getAgencyById } from "@/lib/db/repo";
 import { notifyGeneric } from "@/lib/notify";
-import { agentPrefixOf } from "@/lib/data/mock";
 import { demoAfilhados } from "@/lib/data/afilhados";
-import { affiliateCode } from "@/lib/codes";
+import { affiliateCode, agentPrefix, COUNTRY } from "@/lib/codes";
 
 /**
  * Gera um convite de padrinhado com CÓDIGO LEGÍVEL: prefixo do padrinho
@@ -32,7 +32,8 @@ export async function POST(request: Request) {
   // convites já emitidos (append-only), por isso NUNCA se reutiliza um número —
   // se um afilhado sair, o seguinte recebe o número seguinte, não o vago.
   let position = 1;
-  const prefix = agentPrefixOf(session.agent.id);
+  const agency = await getAgencyById(session.agent.agencyId);
+  const prefix = agentPrefix(COUNTRY.PT, agency?.code ?? 0, session.agent.code ?? 0);
 
   if (isSupabaseConfigured() && !session.demo) {
     try {

@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
-import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications, getAgencyById } from "@/lib/db/repo";
+import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications, getAgencyById, getAgentPublicById } from "@/lib/db/repo";
 import { demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
 import { quoteTextOfDay } from "@/lib/data/quotes";
 import { getQuotesConfig } from "@/lib/db/repo";
@@ -99,7 +99,13 @@ export default async function AppPage() {
   const activities = demoActivities();
   const agencyProps = agent.agencyId ? await listPropertiesByAgency(agent.agencyId) : [];
   const lastAngariado = agencyProps[0];
-  const lastAngariadoAgent = lastAngariado ? agentById(lastAngariado.agentId) : undefined;
+  // Último imóvel angariado na agência: usa o agente já vindo do join real
+  // (property.agent); nunca os dados de exemplo (agentById do mock sempre
+  // devolvia o primeiro consultor de demonstração quando o id real não
+  // existia nesses dados).
+  const lastAngariadoAgent = lastAngariado
+    ? (lastAngariado.agent ?? (await getAgentPublicById(lastAngariado.agentId)))
+    : undefined;
   // Código real do consultor (agência + agente, ex.: "HP1101") — nunca o
   // prefixo de exemplo (agentPrefixOf usa dados de demonstração e devolvia
   // sempre "1000000" para quem não existisse nesses dados).
@@ -111,7 +117,7 @@ export default async function AppPage() {
       {/* Top bar */}
       <header className="border-b bg-card">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-3">
+          <Link href="/app/perfil" className="flex items-center gap-3 rounded-lg -m-1.5 p-1.5 hover:bg-secondary">
             <AgentAvatar agent={agent} className="size-9" />
             <div>
               <p className="text-sm font-medium leading-none">{agent.name}</p>
@@ -124,7 +130,7 @@ export default async function AppPage() {
                 </p>
               )}
             </div>
-          </div>
+          </Link>
           <div className="flex items-center gap-2">
             <ClientModeToggle />
             <form action="/auth/signout" method="post">

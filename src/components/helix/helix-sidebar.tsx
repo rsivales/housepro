@@ -12,7 +12,7 @@ import {
 function activeFor(path: string): string {
   if (path === "/app") return "inicio";
   if (path.startsWith("/app/contactos")) return "leads";
-  if (path.startsWith("/app/meta/pipeline") || path.startsWith("/app/crm")) return "pipeline";
+  if (path.startsWith("/app/crm") || path.startsWith("/app/meta/pipeline")) return "pipeline";
   if (path.startsWith("/app/agenda")) return "agenda";
   if (path.startsWith("/app/menu")) return "menu";
   return "";
@@ -21,7 +21,7 @@ function activeFor(path: string): string {
 const NAV = [
   { key: "inicio", label: "Início", href: "/app", icon: Home },
   { key: "leads", label: "Leads", href: "/app/contactos", icon: Users },
-  { key: "pipeline", label: "Pipeline", href: "/app/meta/pipeline", icon: KanbanSquare },
+  { key: "pipeline", label: "Pipeline", href: "/app/crm", icon: KanbanSquare },
   { key: "agenda", label: "Agenda", href: "/app/agenda", icon: CalendarClock },
   { key: "menu", label: "Menu", href: "/app/menu", icon: MenuIcon },
 ] as const;

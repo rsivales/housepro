@@ -109,13 +109,13 @@ export function CreditSimulator({ initialPrice = 300000 }: { initialPrice?: numb
         </dl>
       </div>
 
-      <div className="flex flex-col gap-3 lg:col-span-2">
-        <Button variant="brand" size="lg" className="w-full" asChild>
+      <div className="flex flex-col gap-3 sm:flex-row lg:col-span-2">
+        <Button variant="brand" size="lg" className="w-full sm:flex-1" asChild>
           <Link href="/credito">
             Refinar Simulação <ArrowRight className="size-4" />
           </Link>
         </Button>
-        <Button variant="default" size="lg" className="w-full" asChild>
+        <Button variant="default" size="lg" className="w-full sm:flex-1" asChild>
           <Link href="/credito#contacto">
             Falar com um consultor <ArrowRight className="size-4" />
           </Link>

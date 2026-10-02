@@ -1,5 +1,4 @@
-import { reassignLeadOwner, insertNotifications } from "@/lib/db/repo";
-import { agentById } from "@/lib/data/mock";
+import { reassignLeadOwner, insertNotifications, getAgentPublicById } from "@/lib/db/repo";
 import { signKeep } from "@/lib/data/contact-sla";
 import { notifyGeneric } from "@/lib/notify";
 
@@ -29,7 +28,7 @@ export async function GET(request: Request) {
     return page("Ligação inválida", "Este pedido não é válido ou expirou. Se precisar de ajuda, responda ao email que recebeu.");
   }
 
-  const agent = agentById(agentId);
+  const agent = await getAgentPublicById(agentId);
   await reassignLeadOwner(leadId, agentId); // devolve ao consultor original
   await insertNotifications([{
     userId: agentId, type: "qualidade",

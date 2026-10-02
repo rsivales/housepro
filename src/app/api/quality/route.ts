@@ -4,8 +4,7 @@ import { getSession } from "@/lib/supabase/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { SEVERITY, ABANDONO_RESIDUAL_PCT, type QualitySeverity } from "@/lib/data/quality";
-import { insertNotifications } from "@/lib/db/repo";
-import { agentById } from "@/lib/data/mock";
+import { insertNotifications, getAgentPublicById } from "@/lib/db/repo";
 import { notifyGeneric } from "@/lib/notify";
 
 /**
@@ -230,7 +229,7 @@ export async function POST(request: Request) {
     const agentId = String(body.agentId ?? "").trim();
     const toAgentId = String(body.toAgentId ?? "").trim();
     if (!agentId || !toAgentId) return NextResponse.json({ error: "faltam_dados" }, { status: 400 });
-    const toName = agentById(toAgentId)?.name ?? "colega";
+    const toName = (await getAgentPublicById(toAgentId))?.name ?? "colega";
 
     if (supabase) {
       try {

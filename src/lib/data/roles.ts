@@ -53,6 +53,21 @@ export function roleLabel(role?: RoleKey): string {
   return role ? ROLE_LABEL[role] : "Consultor";
 }
 
+/**
+ * Papel a mostrar ao PÚBLICO (site, fichas de imóvel, montra do consultor) —
+ * nunca "Administração"/"Super Admin"/"Coordenação". Usa o alias escolhido
+ * pelo próprio (publicTitle) quando definido; senão cai num rótulo genérico
+ * para papéis não-comerciais, ou no papel comercial normal para os restantes.
+ */
+export function publicRoleLabel(agent: Pick<Agent, "roleKey" | "role" | "publicTitle">): string {
+  if (agent.publicTitle?.trim()) return agent.publicTitle.trim();
+  const isAdminish =
+    agent.roleKey === "admin" || agent.roleKey === "superadmin" || agent.roleKey === "coordenador" ||
+    /admin|coorden/i.test(agent.role ?? "");
+  if (isAdminish) return "Consultor HousePro";
+  return agent.roleKey ? ROLE_LABEL[agent.roleKey] : agent.role || "Consultor";
+}
+
 export function isSuperadmin(agent?: Pick<Agent, "roleKey" | "role">): boolean {
   return agent?.roleKey === "superadmin" || agent?.role === "superadmin";
 }

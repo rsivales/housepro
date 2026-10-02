@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { propertyById, agentById } from "@/lib/data/mock";
-import { createLead } from "@/lib/db/repo";
+import { getPropertyById, getAgentPublicById, createLead } from "@/lib/db/repo";
 import { notifyLead } from "@/lib/notify";
 import { agentEmail } from "@/lib/format";
 
@@ -25,11 +24,11 @@ export async function POST(request: Request) {
   const clientEmail = body.clientEmail ? String(body.clientEmail) : "";
   const objetivo = body.objetivo ? String(body.objetivo) : "";
 
-  const property = propertyId ? propertyById(propertyId) : undefined;
+  const property = propertyId ? await getPropertyById(propertyId) : undefined;
   const listingAgent = property?.agentId;
   const referrerId = ref && ref !== listingAgent ? ref : undefined;
   const ownerId = referrerId ?? listingAgent ?? ref ?? "";
-  const owner = ownerId ? agentById(ownerId) : undefined;
+  const owner = ownerId ? await getAgentPublicById(ownerId) : undefined;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
   const propertyUrl = propertyId

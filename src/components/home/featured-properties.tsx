@@ -25,7 +25,7 @@ function isRealPhoto(src: string) {
 function FeaturedCard({ property }: { property: Property }) {
   const href = `/imovel/${property.id}`;
   return (
-    <article className="grid h-full grid-cols-[1.05fr_1fr] overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <article className="grid h-full min-h-56 grid-cols-[1.05fr_1fr] overflow-hidden rounded-2xl border bg-card shadow-sm sm:min-h-64">
       <Link href={href} aria-label={property.title} className="relative block">
         <SafeImage
           src={isRealPhoto(property.image) ? property.image : PROPERTY_FALLBACK}

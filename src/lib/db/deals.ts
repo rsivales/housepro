@@ -20,10 +20,17 @@ export interface DealListItem {
   commissionType: CommissionType;
   commissionPct: number | null;
   commissionFixed: number | null;
-  /** Estimativa calculada a partir do valor do negócio + comissão. */
+  /** Estimativa calculada a partir do valor do negócio + comissão — herdada
+   *  do imóvel na criação, nunca pedida de novo ao consultor. */
   commissionEstimate: number | null;
   coBroker: boolean;
   coBrokerAgencyId: string | null;
+  /** Fatia da comissão que fica com a outra agência, quando há partilha. */
+  coBrokerSplitType: CommissionType;
+  coBrokerSplitPct: number | null;
+  coBrokerSplitFixed: number | null;
+  /** Valor calculado da partilha (a partir de commissionEstimate). */
+  coBrokerSplitAmount: number | null;
   updatedAt: string;
 }
 
@@ -50,6 +57,9 @@ interface DealRow {
   commission_fixed: number | null;
   co_broker: boolean | null;
   co_broker_agency_id: string | null;
+  co_broker_split_type: string | null;
+  co_broker_split_pct: number | null;
+  co_broker_split_fixed: number | null;
   updated_at: string | null;
   created_at?: string | null;
   agency_id?: string;
@@ -105,6 +115,17 @@ function mapDeal(r: DealRow): DealListItem {
     commissionEstimate: commissionEstimateOf(amount, commissionType, commissionPct, commissionFixed),
     coBroker: Boolean(r.co_broker),
     coBrokerAgencyId: r.co_broker_agency_id ? String(r.co_broker_agency_id) : null,
+    coBrokerSplitType: r.co_broker_split_type === "fixed" ? "fixed" : "percent",
+    coBrokerSplitPct: r.co_broker_split_pct != null ? Number(r.co_broker_split_pct) : null,
+    coBrokerSplitFixed: r.co_broker_split_fixed != null ? Number(r.co_broker_split_fixed) : null,
+    coBrokerSplitAmount: Boolean(r.co_broker)
+      ? commissionEstimateOf(
+          commissionEstimateOf(amount, commissionType, commissionPct, commissionFixed) ?? 0,
+          r.co_broker_split_type === "fixed" ? "fixed" : "percent",
+          r.co_broker_split_pct != null ? Number(r.co_broker_split_pct) : null,
+          r.co_broker_split_fixed != null ? Number(r.co_broker_split_fixed) : null
+        )
+      : null,
     updatedAt: String(r.updated_at ?? ""),
   };
 }
@@ -129,11 +150,13 @@ function mapDealDetail(r: DealRow): DealDetail {
   };
 }
 
-const SELECT =
-  "id, property_id, buyer_name, buyer_contact_id, seller_name, amount, stage, commission_type, commission_pct, commission_fixed, co_broker, co_broker_agency_id, updated_at, property:properties!property_id(reference, title, cover_url)";
+const DEAL_COLS =
+  "id, property_id, buyer_name, buyer_contact_id, seller_name, amount, stage, commission_type, commission_pct, commission_fixed, co_broker, co_broker_agency_id, co_broker_split_type, co_broker_split_pct, co_broker_split_fixed, updated_at";
+
+const SELECT = `${DEAL_COLS}, property:properties!property_id(reference, title, cover_url)`;
 
 const SELECT_DETAIL =
-  "id, property_id, buyer_name, buyer_contact_id, seller_name, amount, stage, commission_type, commission_pct, commission_fixed, co_broker, co_broker_agency_id, updated_at, created_at, agency_id, angariador_id, consultor_comprador_id, coordenador_id, " +
+  `${DEAL_COLS}, created_at, agency_id, angariador_id, consultor_comprador_id, coordenador_id, ` +
   "property:properties!property_id(reference, title, cover_url), buyer_contact:contacts!buyer_contact_id(id, name, phone, email), co_broker_agency:agencies!co_broker_agency_id(name)";
 
 /** Negócios visíveis ao consultor: aqueles em que participa; staff vê todos. */
@@ -183,6 +206,9 @@ export async function createDeal(input: {
   commissionFixed?: number;
   coBroker?: boolean;
   coBrokerAgencyId?: string;
+  coBrokerSplitType?: CommissionType;
+  coBrokerSplitPct?: number;
+  coBrokerSplitFixed?: number;
 }): Promise<{ id: string } | { error: string }> {
   if (!hasServiceRole()) return { error: "not_configured" };
   const sb = createAdminClient();
@@ -201,6 +227,9 @@ export async function createDeal(input: {
       commission_fixed: input.commissionFixed != null ? input.commissionFixed : null,
       co_broker: Boolean(input.coBroker),
       co_broker_agency_id: input.coBroker ? (input.coBrokerAgencyId || null) : null,
+      co_broker_split_type: input.coBrokerSplitType ?? "percent",
+      co_broker_split_pct: input.coBrokerSplitPct != null ? input.coBrokerSplitPct : null,
+      co_broker_split_fixed: input.coBrokerSplitFixed != null ? input.coBrokerSplitFixed : null,
       stage: "proposta_enviada",
     })
     .select("id")
@@ -235,11 +264,11 @@ export async function updateDeal(
     buyerContactId?: string | null;
     sellerName?: string;
     amount?: number;
-    commissionType?: CommissionType;
-    commissionPct?: number | null;
-    commissionFixed?: number | null;
     coBroker?: boolean;
     coBrokerAgencyId?: string | null;
+    coBrokerSplitType?: CommissionType;
+    coBrokerSplitPct?: number | null;
+    coBrokerSplitFixed?: number | null;
   }
 ): Promise<{ ok: true } | { error: string }> {
   if (!hasServiceRole()) return { error: "not_configured" };
@@ -249,13 +278,13 @@ export async function updateDeal(
   if ("buyerContactId" in patch) dbPatch.buyer_contact_id = patch.buyerContactId || null;
   if ("sellerName" in patch) dbPatch.seller_name = patch.sellerName || null;
   if ("amount" in patch) dbPatch.amount = patch.amount != null ? patch.amount : null;
-  if ("commissionType" in patch) dbPatch.commission_type = patch.commissionType ?? "percent";
-  if ("commissionPct" in patch) dbPatch.commission_pct = patch.commissionPct;
-  if ("commissionFixed" in patch) dbPatch.commission_fixed = patch.commissionFixed;
   if ("coBroker" in patch) {
     dbPatch.co_broker = Boolean(patch.coBroker);
     dbPatch.co_broker_agency_id = patch.coBroker ? (patch.coBrokerAgencyId || null) : null;
   }
+  if ("coBrokerSplitType" in patch) dbPatch.co_broker_split_type = patch.coBrokerSplitType ?? "percent";
+  if ("coBrokerSplitPct" in patch) dbPatch.co_broker_split_pct = patch.coBrokerSplitPct;
+  if ("coBrokerSplitFixed" in patch) dbPatch.co_broker_split_fixed = patch.coBrokerSplitFixed;
   const { error } = await sb.from("deals").update(dbPatch).eq("id", dealId);
   if (error) return { error: error.message };
   return { ok: true };

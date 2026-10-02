@@ -16,9 +16,9 @@ export async function POST(request: Request) {
 
   let body: {
     dealId?: string; buyerName?: string; buyerContactId?: string | null;
-    sellerName?: string; amount?: number; commissionType?: "percent" | "fixed";
-    commissionPct?: number | null; commissionFixed?: number | null;
+    sellerName?: string; amount?: number;
     coBroker?: boolean; coBrokerAgencyId?: string | null;
+    coBrokerSplitType?: "percent" | "fixed"; coBrokerSplitPct?: number | null; coBrokerSplitFixed?: number | null;
   };
   try {
     body = await request.json();
@@ -48,13 +48,13 @@ export async function POST(request: Request) {
   if ("buyerContactId" in body) patch.buyerContactId = body.buyerContactId;
   if ("sellerName" in body) patch.sellerName = body.sellerName;
   if ("amount" in body && body.amount != null) patch.amount = Number(body.amount);
-  if ("commissionType" in body) patch.commissionType = body.commissionType === "fixed" ? "fixed" : "percent";
-  if ("commissionPct" in body) patch.commissionPct = body.commissionPct != null ? Number(body.commissionPct) : null;
-  if ("commissionFixed" in body) patch.commissionFixed = body.commissionFixed != null ? Number(body.commissionFixed) : null;
   if ("coBroker" in body) {
     patch.coBroker = Boolean(body.coBroker);
     patch.coBrokerAgencyId = body.coBrokerAgencyId ?? null;
   }
+  if ("coBrokerSplitType" in body) patch.coBrokerSplitType = body.coBrokerSplitType === "fixed" ? "fixed" : "percent";
+  if ("coBrokerSplitPct" in body) patch.coBrokerSplitPct = body.coBrokerSplitPct != null ? Number(body.coBrokerSplitPct) : null;
+  if ("coBrokerSplitFixed" in body) patch.coBrokerSplitFixed = body.coBrokerSplitFixed != null ? Number(body.coBrokerSplitFixed) : null;
 
   const res = await updateDeal(dealId, patch);
   if ("error" in res) return NextResponse.json(res, { status: 400 });

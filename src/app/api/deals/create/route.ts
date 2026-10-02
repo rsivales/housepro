@@ -16,8 +16,8 @@ export async function POST(request: Request) {
 
   let body: {
     propertyId?: string; reference?: string; buyerName?: string; buyerContactId?: string;
-    sellerName?: string; amount?: number; commissionType?: "percent" | "fixed";
-    commissionPct?: number; commissionFixed?: number; coBroker?: boolean; coBrokerAgencyId?: string;
+    sellerName?: string; amount?: number; coBroker?: boolean; coBrokerAgencyId?: string;
+    coBrokerSplitType?: "percent" | "fixed"; coBrokerSplitPct?: number; coBrokerSplitFixed?: number;
   };
   try {
     body = await request.json();
@@ -55,11 +55,15 @@ export async function POST(request: Request) {
     buyerContactId: body.buyerContactId ? String(body.buyerContactId) : undefined,
     sellerName: body.sellerName ? String(body.sellerName) : undefined,
     amount: body.amount != null ? Number(body.amount) : undefined,
-    commissionType: body.commissionType === "fixed" ? "fixed" : "percent",
-    commissionPct: body.commissionPct != null ? Number(body.commissionPct) : undefined,
-    commissionFixed: body.commissionFixed != null ? Number(body.commissionFixed) : undefined,
+    // Comissão herdada do imóvel — nunca pedida de novo ao consultor.
+    commissionType: property.commissionType ?? "percent",
+    commissionPct: property.commissionPct,
+    commissionFixed: property.commissionFixed,
     coBroker: Boolean(body.coBroker),
     coBrokerAgencyId: body.coBrokerAgencyId ? String(body.coBrokerAgencyId) : undefined,
+    coBrokerSplitType: body.coBrokerSplitType === "fixed" ? "fixed" : "percent",
+    coBrokerSplitPct: body.coBrokerSplitPct != null ? Number(body.coBrokerSplitPct) : undefined,
+    coBrokerSplitFixed: body.coBrokerSplitFixed != null ? Number(body.coBrokerSplitFixed) : undefined,
   });
   if ("error" in res) return NextResponse.json(res, { status: 400 });
   return NextResponse.json({ ok: true, id: res.id });

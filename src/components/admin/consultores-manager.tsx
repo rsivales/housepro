@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Eye, EyeOff, Loader2, Copy, Check, AlertTriangle, Pencil, X, History } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Loader2, Copy, Check, AlertTriangle, Pencil, X, History, KeyRound } from "lucide-react";
 
 import { ROLE_LABEL } from "@/lib/data/roles";
 import type { RoleKey } from "@/lib/data/types";
@@ -17,7 +17,7 @@ interface AuditEntry {
   actor_name?: string | null; actor_role?: string | null; created_at: string;
 }
 
-const ACTION_LABEL: Record<string, string> = { criou: "Criou", editou: "Editou", suspendeu: "Suspendeu", reativou: "Reativou", removeu: "Removeu" };
+const ACTION_LABEL: Record<string, string> = { criou: "Criou", editou: "Editou", suspendeu: "Suspendeu", reativou: "Reativou", removeu: "Removeu", repos_password: "Repôs a password" };
 
 const ASSIGNABLE: RoleKey[] = ["superadmin", "admin", "diretor", "coordenador", "agente", "agente_ami"];
 const field = "mt-1 h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-[3px]";
@@ -75,6 +75,16 @@ export function ConsultoresManager() {
       setEditing(null); await load();
     } finally { setBusy(false); }
   }
+  async function resetPassword(id: string, name: string) {
+    if (!confirm(`Repor a password de ${name}? A password antiga deixa de funcionar — tens de enviar a nova.`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/consultores", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, resetPassword: true }) });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { alert("Erro: " + (j.error ?? res.status)); return; }
+      setTempPass({ email: j.email ?? "", pass: j.tempPassword });
+    } finally { setBusy(false); }
+  }
   async function remove(id: string, name: string) {
     if (!confirm(`Remover ${name}? Esta ação apaga o utilizador e o perfil.`)) return;
     setBusy(true);
@@ -117,7 +127,7 @@ export function ConsultoresManager() {
     <div className="mt-6">
       {tempPass && (
         <div className="mb-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-4 text-sm">
-          <p className="font-medium text-emerald-700">Consultor criado ✓</p>
+          <p className="font-medium text-emerald-700">Password pronta ✓</p>
           <p className="mt-1 text-muted-foreground">Partilha estes dados com <strong>{tempPass.email}</strong> (deve alterar a password ao entrar):</p>
           <div className="mt-2 flex items-center gap-2">
             <code className="rounded bg-background px-2 py-1">{tempPass.pass}</code>
@@ -209,6 +219,7 @@ export function ConsultoresManager() {
                 <div className="flex items-center gap-1">
                   <button onClick={() => toggleHistory(c.id)} title="Histórico" className={`grid size-9 place-items-center rounded-md border hover:bg-secondary ${historyFor === c.id ? "bg-secondary" : ""}`}><History className="size-4" /></button>
                   <button onClick={() => setEditing(c.id)} title="Editar" className="grid size-9 place-items-center rounded-md border hover:bg-secondary"><Pencil className="size-4" /></button>
+                  <button disabled={busy} onClick={() => resetPassword(c.id, c.name)} title="Repor password (gera uma nova, sem depender de email)" className="grid size-9 place-items-center rounded-md border hover:bg-secondary"><KeyRound className="size-4" /></button>
                   <button disabled={busy} onClick={() => patch(c.id, { active: c.active === false })} title={c.active === false ? "Reativar" : "Suspender"} className="grid size-9 place-items-center rounded-md border hover:bg-secondary">
                     {c.active === false ? <Eye className="size-4 text-emerald-600" /> : <EyeOff className="size-4" />}
                   </button>

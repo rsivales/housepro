@@ -144,6 +144,22 @@ export async function PATCH(request: Request) {
   if (!id) return NextResponse.json({ error: "missing_id" }, { status: 422 });
 
   const admin = createAdminClient();
+
+  // Repor password — gera uma nova password temporária e devolve-a (o
+  // consultor não precisa de email/link; o Super Admin partilha-a à mão,
+  // o mesmo fluxo já usado na criação). Não depende do email de
+  // recuperação do Supabase (que exige SMTP próprio configurado).
+  if (b.resetPassword === true) {
+    const { data: target } = await admin.from("profiles").select("name, email").eq("id", id).maybeSingle();
+    const pass = tempPassword();
+    const { error: pwErr } = await admin.auth.admin.updateUserById(id, { password: pass });
+    if (pwErr) return NextResponse.json({ error: pwErr.message }, { status: 400 });
+    await logPeopleAudit(admin, {
+      targetId: id, targetName: target?.name ?? "—", actor: session.agent, action: "repos_password",
+    });
+    return NextResponse.json({ ok: true, email: target?.email, tempPassword: pass });
+  }
+
   const { data: before } = await admin
     .from("profiles")
     .select("name, email, whatsapp, agency_id, role_key, active, sponsor_id, public_title")

@@ -41,6 +41,12 @@ export function buildPropertyReference(agencyCode: number, agentCode: number, se
   return `HP${Math.max(0, agencyCode)}${String(Math.max(0, agentCode)).padStart(3, "0")}-${String(Math.max(0, seq)).padStart(2, "0")}`;
 }
 
+/** Prefixo "HP<agência><agente 3 díg.>" (sem sequência) — o código do
+ *  próprio consultor, mostrado no seu perfil/dashboard (ex.: "HP1101"). */
+export function consultantCode(agencyCode: number, agentCode: number): string {
+  return `HP${Math.max(0, agencyCode)}${String(Math.max(0, agentCode)).padStart(3, "0")}`;
+}
+
 export interface ParsedHPReference {
   agency: number;
   agent: number;

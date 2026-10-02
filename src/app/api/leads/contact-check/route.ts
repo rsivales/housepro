@@ -3,9 +3,8 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/supabase/auth";
 import {
   listLeadsByAgent, insertQualityReparo, resolveContactReparo,
-  reassignLeadOwner, insertNotifications,
+  reassignLeadOwner, insertNotifications, listActiveAgentsByAgency,
 } from "@/lib/db/repo";
-import { agentsByAgency } from "@/lib/data/mock";
 import {
   contactSlaState, pickReassignTarget, agentWarningMessage, clientReassignMessage, signKeep,
 } from "@/lib/data/contact-sla";
@@ -42,7 +41,7 @@ export async function POST(request: Request) {
 
   const agent = session.agent;
   const leads = await listLeadsByAgent(agent.id);
-  const colleagues = agentsByAgency(agent.agencyId).filter((a) => a.id !== agent.id);
+  const colleagues = (await listActiveAgentsByAgency(agent.agencyId)).filter((a) => a.id !== agent.id);
 
   const now = new Date();
   const outcomes: { leadId: string; name: string; outcome: string; toName?: string }[] = [];

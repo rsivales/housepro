@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { propertyById, agentById } from "@/lib/data/mock";
-import { createLead } from "@/lib/db/repo";
+import { getPropertyById, getAgentPublicById, createLead } from "@/lib/db/repo";
 import { notifyLead } from "@/lib/notify";
 import { agentEmail } from "@/lib/format";
 
@@ -39,13 +38,13 @@ export async function POST(request: Request) {
   }
 
   // Resolve o angariador do imóvel e aplica a atribuição por referência.
-  const property = propertyId ? propertyById(propertyId) : undefined;
+  const property = propertyId ? await getPropertyById(propertyId) : undefined;
   const listingAgent = property?.agentId;
   const referrerId = ref && ref !== listingAgent ? ref : undefined;
   const ownerId = referrerId ?? listingAgent ?? ref ?? "";
 
   // Valida que o owner existe (evita atribuir a um id inválido).
-  const owner = ownerId ? agentById(ownerId) : undefined;
+  const owner = ownerId ? await getAgentPublicById(ownerId) : undefined;
 
   // Metadados de funil (origem/campanha) — sem dados pessoais nos analytics.
   const utm =

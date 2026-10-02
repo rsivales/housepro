@@ -17,15 +17,33 @@ import type { PropertyStatus } from "@/lib/data/types";
 const ORDER = DEAL_STEPS.map((s) => s.stage);
 const ACCENT = ["bg-slate-400", "bg-sky-400", "bg-violet-400", "bg-amber-400", "bg-orange-400", "bg-emerald-500"];
 
+export interface CrmBoardOption { id: string; name: string }
+
+const NEW_DEAL_FORM = {
+  reference: "", buyerName: "", buyerContactId: "", sellerName: "", amount: "",
+  commissionType: "percent" as "percent" | "fixed", commissionPct: "5", commissionFixed: "",
+  coBroker: false, coBrokerAgencyId: "",
+};
+
 /** Kanban de negócios REAIS (persistidos). Ao mover um cartão de fase, o estado
  *  do imóvel muda automaticamente (reserva→reservado, cpcv→cpcv, escritura/
- *  concluído→vendido). Substitui o antigo kanban de exemplo. */
-export function CrmBoard({ initial }: { initial: DealListItem[] }) {
+ *  concluído→vendido). Cada cartão abre o detalhe do negócio. */
+export function CrmBoard({
+  initial,
+  buyerContacts = [],
+  agencies = [],
+}: {
+  initial: DealListItem[];
+  /** Contactos do consultor com type="comprador" — para ligar ao negócio em vez de texto livre. */
+  buyerContacts?: CrmBoardOption[];
+  /** Outras agências (para "partilha com outra agência"). */
+  agencies?: CrmBoardOption[];
+}) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<string | null>(null);
   const [showNew, setShowNew] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
-  const [form, setForm] = React.useState({ reference: "", buyerName: "", sellerName: "", amount: "" });
+  const [form, setForm] = React.useState(NEW_DEAL_FORM);
   const [err, setErr] = React.useState<string | null>(null);
 
   const total = initial.reduce((s, d) => s + d.amount, 0);
@@ -42,13 +60,19 @@ export function CrmBoard({ initial }: { initial: DealListItem[] }) {
         body: JSON.stringify({
           reference: form.reference.trim(),
           buyerName: form.buyerName,
+          buyerContactId: form.buyerContactId || undefined,
           sellerName: form.sellerName,
           amount: form.amount ? Number(form.amount) : undefined,
+          commissionType: form.commissionType,
+          commissionPct: form.commissionType === "percent" && form.commissionPct ? Number(form.commissionPct) : undefined,
+          commissionFixed: form.commissionType === "fixed" && form.commissionFixed ? Number(form.commissionFixed) : undefined,
+          coBroker: form.coBroker,
+          coBrokerAgencyId: form.coBroker ? form.coBrokerAgencyId || undefined : undefined,
         }),
       });
       const out = await res.json();
       if (res.ok) {
-        setForm({ reference: "", buyerName: "", sellerName: "", amount: "" });
+        setForm(NEW_DEAL_FORM);
         setShowNew(false);
         router.refresh();
       } else {
@@ -104,10 +128,69 @@ export function CrmBoard({ initial }: { initial: DealListItem[] }) {
         <form onSubmit={create} className="mt-4 rounded-2xl border bg-card p-4 shadow-sm">
           <div className="grid gap-2 sm:grid-cols-4">
             <Input value={form.reference} onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))} placeholder="Referência (ex.: HP-1049)" />
-            <Input value={form.buyerName} onChange={(e) => setForm((f) => ({ ...f, buyerName: e.target.value }))} placeholder="Comprador" />
             <Input value={form.sellerName} onChange={(e) => setForm((f) => ({ ...f, sellerName: e.target.value }))} placeholder="Vendedor" />
             <Input type="number" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="Valor (€)" />
+            <select
+              value={form.commissionType}
+              onChange={(e) => setForm((f) => ({ ...f, commissionType: e.target.value as "percent" | "fixed" }))}
+              className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+            >
+              <option value="percent">Comissão em %</option>
+              <option value="fixed">Comissão fixa (€)</option>
+            </select>
           </div>
+
+          <div className="mt-2 grid gap-2 sm:grid-cols-4">
+            {form.commissionType === "percent" ? (
+              <Input type="number" step="0.1" value={form.commissionPct} onChange={(e) => setForm((f) => ({ ...f, commissionPct: e.target.value }))} placeholder="Comissão estimada (%)" />
+            ) : (
+              <Input type="number" step="50" value={form.commissionFixed} onChange={(e) => setForm((f) => ({ ...f, commissionFixed: e.target.value }))} placeholder="Comissão estimada (€)" />
+            )}
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.coBroker}
+                onChange={(e) => setForm((f) => ({ ...f, coBroker: e.target.checked, coBrokerAgencyId: e.target.checked ? f.coBrokerAgencyId : "" }))}
+                className="size-4 accent-primary"
+              />
+              Partilha com outra agência
+            </label>
+            {form.coBroker && (
+              <select
+                value={form.coBrokerAgencyId}
+                onChange={(e) => setForm((f) => ({ ...f, coBrokerAgencyId: e.target.value }))}
+                className="h-9 rounded-md border border-input bg-transparent px-2 text-sm sm:col-span-2"
+              >
+                <option value="">Selecionar agência…</option>
+                {agencies.map((ag) => <option key={ag.id} value={ag.id}>{ag.name}</option>)}
+              </select>
+            )}
+          </div>
+
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {buyerContacts.length > 0 ? (
+              <select
+                value={form.buyerContactId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  const c = buyerContacts.find((x) => x.id === id);
+                  setForm((f) => ({ ...f, buyerContactId: id, buyerName: c ? c.name : f.buyerName }));
+                }}
+                className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+              >
+                <option value="">Comprador: escolher dos meus contactos…</option>
+                {buyerContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            ) : (
+              <span />
+            )}
+            <Input
+              value={form.buyerName}
+              onChange={(e) => setForm((f) => ({ ...f, buyerName: e.target.value, buyerContactId: "" }))}
+              placeholder={buyerContacts.length > 0 ? "…ou nome do comprador (sem contacto ligado)" : "Comprador"}
+            />
+          </div>
+
           <div className="mt-3 flex items-center gap-3">
             <Button type="submit" disabled={creating || !form.reference.trim()}>
               {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Criar
@@ -138,28 +221,30 @@ export function CrmBoard({ initial }: { initial: DealListItem[] }) {
                   const status = dealStageToStatus(d.stage);
                   return (
                     <div key={d.id} className="rounded-2xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
-                      <div className="flex items-start gap-2.5">
-                        {/* Thumbnail da foto de capa — identificar o imóvel de relance. */}
-                        <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-secondary">
-                          {d.propertyImage ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={d.propertyImage} alt="" className="size-full object-cover" />
-                          ) : (
-                            <div className="grid size-full place-items-center text-muted-foreground"><Home className="size-4" /></div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="font-medium leading-tight">{d.buyerName || "Comprador"}</p>
-                            {status && (
-                              <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                                {STATUS_LABEL[status as PropertyStatus]}
-                              </span>
+                      <Link href={`/app/crm/${d.id}`} className="block">
+                        <div className="flex items-start gap-2.5">
+                          {/* Thumbnail da foto de capa — identificar o imóvel de relance. */}
+                          <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-secondary">
+                            {d.propertyImage ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={d.propertyImage} alt="" className="size-full object-cover" />
+                            ) : (
+                              <div className="grid size-full place-items-center text-muted-foreground"><Home className="size-4" /></div>
                             )}
                           </div>
-                          <p className="mt-0.5 truncate text-sm text-muted-foreground">{d.propertyTitle || d.propertyRef}</p>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium leading-tight">{d.buyerName || "Comprador"}</p>
+                              {status && (
+                                <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                  {STATUS_LABEL[status as PropertyStatus]}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 truncate text-sm text-muted-foreground">{d.propertyTitle || d.propertyRef}</p>
+                          </div>
                         </div>
-                      </div>
+                      </Link>
                       <div className="mt-2 flex items-center justify-between">
                         <span className="font-display text-base">{d.amount ? formatEuro(d.amount) : "—"}</span>
                         {d.propertyId ? (
@@ -168,6 +253,12 @@ export function CrmBoard({ initial }: { initial: DealListItem[] }) {
                           <span className="text-[11px] text-muted-foreground">Ref. {d.propertyRef}</span>
                         )}
                       </div>
+                      {(d.commissionEstimate != null || d.coBroker) && (
+                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          {d.commissionEstimate != null && <span>Comissão est.: {formatEuro(d.commissionEstimate)}</span>}
+                          {d.coBroker && <span className="rounded-full bg-gold/15 px-2 py-0.5 font-medium text-gold-foreground">Partilha</span>}
+                        </div>
+                      )}
                       <div className="mt-3 flex items-center justify-end gap-1 border-t pt-2">
                         {busy === d.id && <Loader2 className="mr-auto size-3.5 animate-spin text-muted-foreground" />}
                         <button onClick={() => move(d.id, -1, i)} disabled={i === 0 || busy === d.id} aria-label="Recuar fase" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30">

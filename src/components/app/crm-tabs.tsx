@@ -4,7 +4,7 @@ import * as React from "react";
 import { Filter } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { CrmBoard } from "@/components/app/crm-board";
+import { CrmBoard, type CrmBoardOption } from "@/components/app/crm-board";
 import { LeadsBoard, type LeadCard } from "@/components/app/leads-board";
 import { LEAD_PIPELINES, leadPipeline } from "@/lib/data/lead-pipelines";
 import type { DealListItem } from "@/lib/db/deals";
@@ -12,7 +12,17 @@ import type { DealListItem } from "@/lib/db/deals";
 /** CRM com pipelines SEPARADOS: Negócios (transação) e Leads (compradores /
  *  proprietários). As leads que entram classificam-se no seu próprio pipeline,
  *  sem se misturarem com os negócios. */
-export function CrmTabs({ deals, leads }: { deals: DealListItem[]; leads: LeadCard[] }) {
+export function CrmTabs({
+  deals,
+  leads,
+  buyerContacts = [],
+  agencies = [],
+}: {
+  deals: DealListItem[];
+  leads: LeadCard[];
+  buyerContacts?: CrmBoardOption[];
+  agencies?: CrmBoardOption[];
+}) {
   const [tab, setTab] = React.useState<string>("negocios");
 
   const tabs = [
@@ -41,7 +51,7 @@ export function CrmTabs({ deals, leads }: { deals: DealListItem[]; leads: LeadCa
 
       <div className="mt-6">
         {tab === "negocios" ? (
-          <CrmBoard initial={deals} />
+          <CrmBoard initial={deals} buyerContacts={buyerContacts} agencies={agencies} />
         ) : (
           <div>
             <p className="text-sm font-medium text-primary">Área do consultor</p>

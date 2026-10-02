@@ -20,18 +20,19 @@ function isRealPhoto(src: string) {
 /**
  * "SELEÇÃO HOUSEPRO" — imóveis em destaque com dados reais. Carrossel
  * horizontal com scroll-snap (sem autoplay): 1.º cartão a ~88% da largura,
- * parte do 2.º visível. Imagem à esquerda, informação à direita.
+ * parte do 2.º visível. Foto em destaque no topo (como nos cartões de
+ * /imoveis) — a informação fica compacta por baixo, sem competir com ela.
  */
 function FeaturedCard({ property }: { property: Property }) {
   const href = `/imovel/${property.id}`;
   return (
-    <article className="grid h-full min-h-56 grid-cols-[1.05fr_1fr] overflow-hidden rounded-2xl border bg-card shadow-sm sm:min-h-64">
-      <Link href={href} aria-label={property.title} className="relative block">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <Link href={href} aria-label={property.title} className="relative block aspect-[16/10] overflow-hidden">
         <SafeImage
           src={isRealPhoto(property.image) ? property.image : PROPERTY_FALLBACK}
           fallback={PROPERTY_FALLBACK}
           alt={`${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}`}
-          className="absolute inset-0 size-full object-cover"
+          className="size-full object-cover"
         />
         {property.status && (
           <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold text-white" style={{ background: "var(--hp-navy)" }}>
@@ -43,22 +44,24 @@ function FeaturedCard({ property }: { property: Property }) {
         </div>
       </Link>
 
-      <div className="flex flex-col justify-center gap-2 p-4 sm:p-5">
-        <p className="font-display text-xl leading-none sm:text-2xl">{formatPrice(property)}</p>
-        <h3 className="line-clamp-2 font-display text-base leading-snug sm:text-lg">
+      <div className="flex flex-1 flex-col gap-1.5 p-4 sm:p-5">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="font-display text-xl leading-none sm:text-2xl">{formatPrice(property)}</p>
+          <span className="shrink-0 text-[0.7rem] text-muted-foreground">Ref. {property.reference}</span>
+        </div>
+        <h3 className="line-clamp-1 font-display text-base leading-snug sm:text-lg">
           <Link href={href} className="transition-colors hover:text-[var(--hp-navy)]">{property.title}</Link>
         </h3>
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground sm:text-sm">
           <MapPin className="size-4 shrink-0" />
           <span className="truncate">{property.parish}, {property.municipality}</span>
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2.5 text-xs text-muted-foreground sm:text-sm">
+        <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2.5 text-xs text-muted-foreground sm:text-sm">
           {property.typology && <span className="font-medium text-foreground">{property.typology}</span>}
           <span className="flex items-center gap-1"><BedDouble className="size-4" /> {property.beds}</span>
           <span className="flex items-center gap-1"><Bath className="size-4" /> {property.baths}</span>
           <span className="flex items-center gap-1"><Maximize2 className="size-4" /> {formatArea(property.area)}</span>
         </div>
-        <span className="text-[0.7rem] text-muted-foreground">Ref. {property.reference}</span>
       </div>
     </article>
   );

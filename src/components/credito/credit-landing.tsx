@@ -551,23 +551,41 @@ export function CreditLanding() {
           <h3 className="mt-8 font-display text-2xl">Antes de avançar</h3>
           <div className="mt-4 grid gap-2 md:grid-cols-2">
             {[
-              "Quanto posso financiar?",
-              "E se comprar através de uma empresa?",
-              "Que documentos vou precisar?",
-              "Mudei-me recentemente para Portugal. Posso pedir financiamento?",
-              "Taxa fixa, variável ou mista?",
-              "O que acontece depois da simulação?",
-              "Posso pedir crédito para uma segunda habitação?",
-            ].map((q) => (
+              {
+                q: "Quanto posso financiar?",
+                a: "Depende do rendimento, dos encargos atuais e da taxa de esforço admitida pelo banco (normalmente até 35-40%). O simulador acima dá-lhe uma primeira estimativa; a análise definitiva é feita pela instituição de crédito.",
+              },
+              {
+                q: "E se comprar através de uma empresa?",
+                a: "É possível, mas as condições (taxas, prazos e entrada exigida) diferem do crédito habitação particular. Um especialista explica as alternativas disponíveis para compra em nome de empresa ou investimento.",
+              },
+              {
+                q: "Que documentos vou precisar?",
+                a: "Em geral: documento de identificação, comprovativo de morada, últimos recibos de vencimento ou declaração de IRS, extratos bancários e, se aplicável, declarações de outros créditos em curso. A lista final varia por banco.",
+              },
+              {
+                q: "Mudei-me recentemente para Portugal. Posso pedir financiamento?",
+                a: "Sim. Não residentes e novos residentes podem candidatar-se a crédito habitação em Portugal, embora alguns bancos peçam entradas maiores ou documentação adicional (NIF, histórico de rendimento no estrangeiro, etc.).",
+              },
+              {
+                q: "Taxa fixa, variável ou mista?",
+                a: "A taxa fixa mantém a prestação constante durante o prazo acordado; a variável acompanha o Euribor (menos previsível, mas pode ser mais baixa); a mista combina um período fixo inicial com um período variável depois. A melhor opção depende do seu perfil de risco.",
+              },
+              {
+                q: "O que acontece depois da simulação?",
+                a: "Um especialista HousePro entra em contacto para validar o seu perfil, comparar propostas de diferentes bancos e acompanhá-lo na entrega de documentos até à aprovação e escritura.",
+              },
+              {
+                q: "Posso pedir crédito para uma segunda habitação?",
+                a: "Sim, embora as condições sejam tipicamente menos favoráveis do que para habitação própria permanente (entrada mais elevada, taxas ligeiramente superiores). Podemos ajudar a comparar as propostas disponíveis.",
+              },
+            ].map(({ q, a }) => (
               <details
                 key={q}
                 className="border-b bg-[#fafbfc] px-4 py-3 text-xs"
               >
                 <summary>{q}</summary>
-                <p className="mt-3 text-[#607086]">
-                  Um especialista analisa o perfil, explica as opções e
-                  acompanha a proposta.
-                </p>
+                <p className="mt-3 text-[#607086]">{a}</p>
               </details>
             ))}
           </div>

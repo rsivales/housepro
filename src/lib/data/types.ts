@@ -104,6 +104,10 @@ export interface Agent {
   agencyId: string;
   /** Código numérico do agente (4 dígitos) para as referências legíveis. */
   code?: number;
+  /** Alias/cargo escolhido pelo próprio para aparecer ao público (ex.:
+   *  "Consultor imobiliário") em vez do papel interno (ex.: "Administração"),
+   *  que nunca deve ser exposto fora da equipa. */
+  publicTitle?: string;
   /** Full international phone for wa.me click-to-chat, digits only. */
   whatsapp: string;
   /** Email do consultor (para cópia de comunicações ao agente). */

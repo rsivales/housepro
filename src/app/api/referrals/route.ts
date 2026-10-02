@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { agentById, agencyById, propertyById } from "@/lib/data/mock";
+import { getAgentPublicById, getAgencyById, getPropertyById } from "@/lib/db/repo";
 import {
   MIN_CLIENTE_PCT,
   MIN_CONSULTOR_PCT,
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   }
 
   const propertyId = body.propertyId ? String(body.propertyId) : undefined;
-  const property = propertyId ? propertyById(propertyId) : undefined;
+  const property = propertyId ? await getPropertyById(propertyId) : undefined;
 
   let toId: string | undefined;
   let toName: string | undefined;
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
   if (type === "consultor") {
     fromId = String(body.fromId ?? "");
-    fromName = fromId ? agentById(fromId).name : "Consultor";
+    fromName = fromId ? (await getAgentPublicById(fromId))?.name ?? "Consultor" : "Consultor";
     if (body.international) {
       // Destino internacional: não é um agente do sistema; guarda-se o nome.
       toId = undefined;
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     } else {
       // Destino: consultor indicado ou o angariador do imóvel.
       toId = body.toId ? String(body.toId) : property?.agentId;
-      toName = toId ? agentById(toId).name : undefined;
+      toName = toId ? (await getAgentPublicById(toId))?.name : undefined;
     }
     if (!fromId || (!toId && !body.international)) {
       return NextResponse.json({ error: "missing_parties" }, { status: 400 });
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     fromName = `Cliente: ${String(body.fromName ?? clientName)}`;
     const municipality = String(body.municipality ?? property?.municipality ?? "");
     agencyId = String(body.agencyId ?? agencyForMunicipality(municipality));
-    agencyName = agencyById(agencyId)?.name;
+    agencyName = (await getAgencyById(agencyId))?.name;
   }
 
   const referral: Referral = {

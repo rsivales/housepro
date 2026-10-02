@@ -105,7 +105,7 @@ export function MobileBottomNavigation({ superadmin = false }: { superadmin?: bo
             </button>
           </div>
 
-          {superadmin ? <TabLink href="/admin/mapa-sistema" icon={KanbanSquare} label="Mapa" active={false} /> : <TabLink href="/app/meta/pipeline" icon={KanbanSquare} label="Pipeline" active={active === "pipeline"} />}
+          {superadmin ? <TabLink href="/admin/mapa-sistema" icon={KanbanSquare} label="Mapa" active={false} /> : <TabLink href="/app/crm" icon={KanbanSquare} label="Pipeline" active={active === "pipeline"} />}
           <TabLink href="/app/menu" icon={Menu} label="Menu" active={active === "menu"} />
         </div>
       </nav>

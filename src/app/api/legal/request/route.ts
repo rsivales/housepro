@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { insertNotifications } from "@/lib/db/repo";
+import { insertNotifications, getLawyerAgent } from "@/lib/db/repo";
 import { notifyGeneric } from "@/lib/notify";
-import { agents } from "@/lib/data/mock";
 import { DOC_TYPE_LABEL, type LegalDocType } from "@/lib/data/legalflow";
 
 /**
@@ -23,7 +22,7 @@ export async function POST(request: Request) {
   }
   if (!body.type) return NextResponse.json({ error: "Falta o tipo de documento." }, { status: 400 });
 
-  const lawyer = agents.find((a) => a.roleKey === "advogado");
+  const lawyer = await getLawyerAgent();
   const typeLabel = DOC_TYPE_LABEL[body.type] ?? "Documento";
 
   // Email ao advogado (best-effort).

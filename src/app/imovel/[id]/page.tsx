@@ -19,8 +19,8 @@ import { PdpView } from "@/components/property/pdp-view";
 import { agentById } from "@/lib/data/mock";
 import { exclusiveEligibility } from "@/lib/data/exclusive";
 import { getSession } from "@/lib/supabase/auth";
-import { isStaff, roleLabel } from "@/lib/data/roles";
-import { getPropertyById, listSimilarProperties } from "@/lib/db/repo";
+import { isStaff, publicRoleLabel } from "@/lib/data/roles";
+import { getPropertyById, getAgentPublicById, listSimilarProperties } from "@/lib/db/repo";
 import { businessTypeLabel } from "@/lib/imovel/model";
 import { autoTagsFromStatus } from "@/lib/data/status";
 import { getAgentRequestStatus } from "@/lib/db/agent-requests";
@@ -98,14 +98,11 @@ export default async function ImovelPage({
 
   const listingAgent = property.agent ?? agentById(property.agentId);
   // Atribuição: o consultor que trouxe o cliente (?ref) fica com o contacto.
-  const referrer = ref && ref !== property.agentId ? agentById(ref) : undefined;
+  const referrer = ref && ref !== property.agentId ? await getAgentPublicById(ref) : undefined;
   const contact = referrer ?? listingAgent;
-  // Papel público (nunca expor "admin" ao público).
-  const publicRole = contact.roleKey
-    ? roleLabel(contact.roleKey)
-    : /admin/i.test(contact.role)
-      ? "Consultor HousePro"
-      : contact.role;
+  // Papel público (nunca expor "admin"/"coordenação" ao público; usa o alias
+  // do próprio consultor quando definido — ver publicRoleLabel).
+  const publicRole = publicRoleLabel(contact);
 
   const hdrs = await headers();
   const host = hdrs.get("host") ?? "www.housepro.pt";
@@ -153,6 +150,7 @@ export default async function ImovelPage({
     { label: "Casas de banho", value: String(property.baths) },
     { label: "Área bruta", value: formatArea(property.area) },
     ...(property.areaUtil ? [{ label: "Área útil", value: formatArea(property.areaUtil) }] : []),
+    ...(property.landArea ? [{ label: "Área de terreno / lote", value: formatArea(property.landArea) }] : []),
     { label: "Certificado energético", value: property.energy },
     { label: "Referência", value: property.reference },
   ];

@@ -14,7 +14,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sessão inválida — faça login." }, { status: 401 });
   }
 
-  let body: { propertyId?: string; reference?: string; buyerName?: string; sellerName?: string; amount?: number };
+  let body: {
+    propertyId?: string; reference?: string; buyerName?: string; buyerContactId?: string;
+    sellerName?: string; amount?: number; commissionType?: "percent" | "fixed";
+    commissionPct?: number; commissionFixed?: number; coBroker?: boolean; coBrokerAgencyId?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -48,8 +52,14 @@ export async function POST(request: Request) {
     agencyId,
     angariadorId: property.agentId,
     buyerName: body.buyerName ? String(body.buyerName) : undefined,
+    buyerContactId: body.buyerContactId ? String(body.buyerContactId) : undefined,
     sellerName: body.sellerName ? String(body.sellerName) : undefined,
     amount: body.amount != null ? Number(body.amount) : undefined,
+    commissionType: body.commissionType === "fixed" ? "fixed" : "percent",
+    commissionPct: body.commissionPct != null ? Number(body.commissionPct) : undefined,
+    commissionFixed: body.commissionFixed != null ? Number(body.commissionFixed) : undefined,
+    coBroker: Boolean(body.coBroker),
+    coBrokerAgencyId: body.coBrokerAgencyId ? String(body.coBrokerAgencyId) : undefined,
   });
   if ("error" in res) return NextResponse.json(res, { status: 400 });
   return NextResponse.json({ ok: true, id: res.id });

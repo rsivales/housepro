@@ -11,6 +11,7 @@ import {
   propertyById as mockById,
   agencies as baseAgencies,
   agentsByAgency as mockAgentsByAgency,
+  agents as mockAgents,
 } from "@/lib/data/mock";
 import { leadsByOwner } from "@/lib/data/leads";
 import type { Lead } from "@/lib/data/leads";
@@ -29,7 +30,7 @@ import { DEFAULT_PROPERTY_HUB, mergePropertyHub, type PropertyHubConfig } from "
 type Row = Record<string, unknown>;
 
 const AGENT_COLS =
-  "id, name, role, role_key, agency, agency_id, whatsapp, photo_url, accent";
+  "id, name, role, role_key, own_ami, agency, agency_id, code, whatsapp, email, photo_url, accent, public_title";
 
 function mapAgent(a: Row | null | undefined): Agent | undefined {
   if (!a) return undefined;
@@ -38,9 +39,13 @@ function mapAgent(a: Row | null | undefined): Agent | undefined {
     name: String(a.name ?? ""),
     role: String(a.role ?? "agente"),
     roleKey: (a.role_key as Agent["roleKey"]) ?? undefined,
+    ownAMI: (a.own_ami as boolean | null) ?? undefined,
     agency: String(a.agency ?? ""),
     agencyId: String(a.agency_id ?? ""),
+    code: (a.code as number | null) ?? undefined,
     whatsapp: String(a.whatsapp ?? ""),
+    email: (a.email as string | null) ?? undefined,
+    publicTitle: (a.public_title as string | null) ?? undefined,
     accent: String(a.accent ?? "var(--brand)"),
     photo: (a.photo_url as string) ?? undefined,
   };
@@ -645,11 +650,28 @@ export async function listActiveAgentsByAgency(agencyId: string): Promise<Agent[
   return (data ?? []).map(mapAgent).filter((a): a is Agent => Boolean(a));
 }
 
-/** Perfil público de um consultor/agente real (para a página /consultor/[id]). */
+/** Perfil público de um consultor/agente real (para a página /consultor/[id]
+ *  e para atribuição/notificação de leads — NUNCA usar os dados de exemplo
+ *  de @/lib/data/mock diretamente num caminho de produção). */
 export async function getAgentPublicById(id: string): Promise<Agent | undefined> {
-  if (!isSupabaseConfigured()) return undefined;
+  if (!isSupabaseConfigured()) return mockAgents.find((a) => a.id === id);
   const supabase = await createClient();
   const { data } = await supabase.from("profiles").select(AGENT_COLS).eq("id", id).maybeSingle();
+  return mapAgent(data ?? undefined);
+}
+
+/** O advogado da equipa (papel não-comercial único) — usado pelo LegalFlow
+ *  para saber a quem notificar um novo pedido jurídico. */
+export async function getLawyerAgent(): Promise<Agent | undefined> {
+  if (!isSupabaseConfigured()) return mockAgents.find((a) => a.roleKey === "advogado");
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select(AGENT_COLS)
+    .eq("role_key", "advogado")
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
   return mapAgent(data ?? undefined);
 }
 

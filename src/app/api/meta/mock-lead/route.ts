@@ -8,6 +8,7 @@ import {
   listAssignmentRules,
   listAllMetaLeads,
   getPropertyById,
+  getAgentPublicById,
   ingestMetaLead,
 } from "@/lib/db/repo";
 import {
@@ -23,7 +24,6 @@ import {
 } from "@/lib/meta/ingest";
 import { resolveAssignment } from "@/lib/meta/assignment";
 import { propertiesForCampaign } from "@/lib/data/meta";
-import { agents } from "@/lib/data/mock";
 import { notifyLeadAssigned } from "@/lib/meta/notify";
 
 /**
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
   }
 
   const lead = await ingestMetaLead({ lead: leadPartial, answers: normalized.answers });
-  const assignedAgent = agents.find((a) => a.id === lead.assignedAgentId);
+  const assignedAgent = lead.assignedAgentId ? await getAgentPublicById(lead.assignedAgentId) : undefined;
   const assignedName = assignedAgent?.name;
 
   // Comunicação ao consultor quando a lead nasce já atribuída (best-effort).

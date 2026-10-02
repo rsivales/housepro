@@ -25,7 +25,7 @@ export interface Session {
 function mapProfile(id: string, profile: {
   name?: string | null; role?: string | null; role_key?: string | null; own_ami?: boolean | null;
   agency?: string | null; agency_id?: string | null; whatsapp?: string | null; photo_url?: string | null; accent?: string | null;
-  email?: string | null; code?: number | null;
+  email?: string | null; code?: number | null; public_title?: string | null;
 } | null, fallbackName: string, fallbackEmail?: string): Agent {
   return {
     id,
@@ -41,6 +41,7 @@ function mapProfile(id: string, profile: {
     // login (auth.users), que existe sempre, em vez de mostrar sempre "—".
     email: profile?.email ?? fallbackEmail ?? undefined,
     code: profile?.code ?? undefined,
+    publicTitle: profile?.public_title ?? undefined,
     accent: profile?.accent ?? "var(--brand)",
     photo: profile?.photo_url ?? undefined,
   };
@@ -75,7 +76,7 @@ export async function getSession(): Promise<Session | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, accent, email, code")
+    .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, accent, email, code, public_title")
     .eq("id", user.id)
     .single();
 
@@ -95,7 +96,7 @@ export async function getSession(): Promise<Session | null> {
       if (viewAsId && viewAsId !== user.id) {
         const { data: viewProfile } = await supabase
           .from("profiles")
-          .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, accent, email, code")
+          .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, accent, email, code, public_title")
           .eq("id", viewAsId)
           .maybeSingle();
         if (viewProfile) {

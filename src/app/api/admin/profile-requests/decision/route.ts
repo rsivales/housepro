@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: reqRow, error: reqErr } = await admin
     .from("profile_change_requests")
-    .select("id, profile_id, name, photo_url, whatsapp, status")
+    .select("id, profile_id, name, photo_url, whatsapp, public_title, status")
     .eq("id", id)
     .single();
   if (reqErr || !reqRow) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
     if (reqRow.name) patch.name = reqRow.name;
     if (reqRow.photo_url) patch.photo_url = reqRow.photo_url;
     if (reqRow.whatsapp) patch.whatsapp = reqRow.whatsapp;
+    if (reqRow.public_title) patch.public_title = reqRow.public_title;
     if (Object.keys(patch).length > 0) {
       const { error: updErr } = await admin.from("profiles").update(patch).eq("id", reqRow.profile_id);
       if (updErr) return NextResponse.json({ error: updErr.message }, { status: 400 });

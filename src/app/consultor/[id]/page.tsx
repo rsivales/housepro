@@ -12,6 +12,7 @@ import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { Button } from "@/components/ui/button";
 import { agents } from "@/lib/data/mock";
+import { publicRoleLabel } from "@/lib/data/roles";
 import { listProperties, listPropertiesByAgent, getPrizeArt, getAgencyById, getAgentPublicById, getMonthlyGross } from "@/lib/db/repo";
 
 export async function generateMetadata({
@@ -81,7 +82,7 @@ export default async function ConsultorPage({
             <div className="flex-1">
               <h1 className="font-display text-3xl sm:text-4xl">{agent.name}</h1>
               <p className="mt-1 text-muted-foreground">
-                {agent.role} ·{" "}
+                {publicRoleLabel(agent)} ·{" "}
                 <Link
                   href={`/agencia/${agencySlug}`}
                   className="hover:text-foreground"

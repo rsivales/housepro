@@ -6,12 +6,14 @@ import { Camera, Check, Clock, Loader2, Pencil, Send, X, XCircle } from "lucide-
 
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { uploadErrorMessage, uploadSiteImage } from "@/lib/data/site-content";
+import { publicRoleLabel } from "@/lib/data/roles";
 import type { Agent } from "@/lib/data/types";
 
 export interface PendingProfileRequest {
   name: string | null;
   photoUrl: string | null;
   whatsapp: string | null;
+  publicTitle: string | null;
   createdAt: string;
 }
 
@@ -29,6 +31,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
   const [name, setName] = React.useState(agent.name);
   const [email, setEmail] = React.useState(agent.email ?? "");
   const [whatsapp, setWhatsapp] = React.useState(agent.whatsapp ?? "");
+  const [publicTitle, setPublicTitle] = React.useState(agent.publicTitle ?? "");
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState<PendingProfileRequest | null>(initialPending);
@@ -53,7 +56,8 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
       const nameChanged = name.trim() && name.trim() !== agent.name;
       const emailChanged = email.trim() !== (agent.email ?? "");
       const whatsappChanged = whatsapp.trim() !== (agent.whatsapp ?? "");
-      if (!nameChanged && !emailChanged && !whatsappChanged && !photoUrl) {
+      const publicTitleChanged = publicTitle.trim() !== (agent.publicTitle ?? "");
+      if (!nameChanged && !emailChanged && !whatsappChanged && !publicTitleChanged && !photoUrl) {
         setErr("Altera pelo menos um campo antes de guardar.");
         return;
       }
@@ -65,6 +69,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
           name: nameChanged ? name.trim() : undefined,
           email: emailChanged ? email.trim() : undefined,
           whatsapp: whatsappChanged ? whatsapp.trim() : undefined,
+          publicTitle: publicTitleChanged ? publicTitle.trim() : undefined,
           photoUrl,
         }),
       });
@@ -93,12 +98,14 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
       if (photoFile) photoUrl = await uploadSiteImage(photoFile, "profile");
       const nameChanged = name.trim() && name.trim() !== agent.name;
       const whatsappChanged = whatsapp.trim() !== (agent.whatsapp ?? "");
+      const publicTitleChanged = publicTitle.trim() !== (agent.publicTitle ?? "");
       const res = await fetch("/api/profile/change-request", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           name: nameChanged ? name.trim() : undefined,
           whatsapp: whatsappChanged ? whatsapp.trim() : undefined,
+          publicTitle: publicTitleChanged ? publicTitle.trim() : undefined,
           photoUrl,
         }),
       });
@@ -112,6 +119,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
       setPending({
         name: nameChanged ? name.trim() : null,
         whatsapp: whatsappChanged ? whatsapp.trim() : null,
+        publicTitle: publicTitleChanged ? publicTitle.trim() : null,
         photoUrl: photoUrl ?? null,
         createdAt: new Date().toISOString(),
       });
@@ -147,6 +155,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
         <ul className="mt-2 space-y-1 hx-muted">
           {pending.name && <li>Nome proposto: <strong className="text-foreground">{pending.name}</strong></li>}
           {pending.whatsapp && <li>WhatsApp proposto: <strong className="text-foreground">{pending.whatsapp}</strong></li>}
+          {pending.publicTitle && <li>Alias público proposto: <strong className="text-foreground">{pending.publicTitle}</strong></li>}
           {pending.photoUrl && <li>Nova fotografia enviada — aguarda aprovação.</li>}
         </ul>
         <button
@@ -210,6 +219,19 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
         Telefone / WhatsApp
         <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-[3px]" />
       </label>
+      <label className="mt-3 block text-sm">
+        Alias público (cargo mostrado no site)
+        <input
+          value={publicTitle}
+          onChange={(e) => setPublicTitle(e.target.value)}
+          placeholder="ex.: Consultor imobiliário"
+          className="mt-1 h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-[3px]"
+        />
+        <span className="mt-1 block text-xs hx-muted">
+          Aparece nas fichas de imóvel e na tua montra pública, em vez do teu papel interno
+          ({publicRoleLabel({ ...agent, publicTitle: undefined })}). Deixa em branco para usar o rótulo automático.
+        </span>
+      </label>
 
       <p className="mt-3 text-xs hx-muted">
         {instant ? "Como Super Admin, gravas de imediato — sem aprovação." : "As alterações ficam pendentes até serem aprovadas pelo Super Admin."}
@@ -226,7 +248,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
           {instant ? "Guardar" : "Enviar para aprovação"}
         </button>
         <button
-          onClick={() => { setEditing(false); setPhotoFile(null); setPhotoPreview(null); setName(agent.name); setEmail(agent.email ?? ""); setWhatsapp(agent.whatsapp ?? ""); setErr(null); }}
+          onClick={() => { setEditing(false); setPhotoFile(null); setPhotoPreview(null); setName(agent.name); setEmail(agent.email ?? ""); setWhatsapp(agent.whatsapp ?? ""); setPublicTitle(agent.publicTitle ?? ""); setErr(null); }}
           disabled={busy}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm text-muted-foreground hover:bg-secondary"
         >

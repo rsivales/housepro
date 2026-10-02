@@ -153,6 +153,7 @@ export default async function ImovelPage({
     { label: "Casas de banho", value: String(property.baths) },
     { label: "Área bruta", value: formatArea(property.area) },
     ...(property.areaUtil ? [{ label: "Área útil", value: formatArea(property.areaUtil) }] : []),
+    ...(property.landArea ? [{ label: "Área de terreno / lote", value: formatArea(property.landArea) }] : []),
     { label: "Certificado energético", value: property.energy },
     { label: "Referência", value: property.reference },
   ];

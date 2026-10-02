@@ -20,7 +20,7 @@ export const STATUS_STYLE: Record<PropertyStatus, string> = {
   destaque: "bg-indigo-600 text-white",
   reduzido: "bg-rose-600 text-white",
   oportunidade: "bg-destructive text-destructive-foreground",
-  reservado: "bg-sky-600 text-white",
+  reservado: "bg-red-600 text-white",
   cpcv: "bg-slate-600 text-white",
   vendido: "bg-foreground text-background",
 };

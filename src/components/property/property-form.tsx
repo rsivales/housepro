@@ -1027,7 +1027,13 @@ export function PropertyForm({
                 )}
               </div>
             </Field>
-            <Field label="Área (m²)"><Input type="number" value={d.area || ""} onChange={(e) => patch({ area: Number(e.target.value) || 0 })} /></Field>
+            <Field label="Área bruta (m²)"><Input type="number" value={d.area || ""} onChange={(e) => patch({ area: Number(e.target.value) || 0 })} /></Field>
+            <Field label="Área útil (m²)" hint="Área privativa. Aparece no imóvel e é exportada para os portais quando preenchida.">
+              <Input type="number" value={d.areaUtil || ""} onChange={(e) => patch({ areaUtil: Number(e.target.value) || undefined })} />
+            </Field>
+            <Field label="Área de terreno / lote (m²)" hint="Moradias e terrenos. Aparece no imóvel e é exportada para os portais quando preenchida.">
+              <Input type="number" value={d.landArea || ""} onChange={(e) => patch({ landArea: Number(e.target.value) || undefined })} />
+            </Field>
             <Field label="Ano de construção"><Input type="number" value={d.anoConstrucao} onChange={(e) => patch({ anoConstrucao: e.target.value })} placeholder="2005" /></Field>
             <Field label="Quartos"><Input type="number" value={d.beds || ""} onChange={(e) => patch({ beds: Number(e.target.value) || 0 })} /></Field>
             <Field label="Casas de banho"><Input type="number" value={d.baths || ""} onChange={(e) => patch({ baths: Number(e.target.value) || 0 })} /></Field>
@@ -1695,6 +1701,8 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     locationPrivacy: d.locationPrivacy,
     status: d.status,
     area: d.area,
+    areaUtil: d.areaUtil ?? null,
+    landArea: d.landArea ?? null,
     beds: d.beds,
     baths: d.baths,
     parish: d.parish,

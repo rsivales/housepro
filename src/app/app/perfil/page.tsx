@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { ProfileEditPanel, type PendingProfileRequest } from "@/components/app/profile-edit-panel";
+import { PasswordChangePanel } from "@/components/app/password-change-panel";
 import { ROLE_LABEL, isStaff, isSuperadmin, publicRoleLabel } from "@/lib/data/roles";
 
 export const metadata: Metadata = { title: "O meu perfil — Helix" };
@@ -75,6 +76,7 @@ export default async function PerfilPage() {
         </dl>
 
         {!demo && <ProfileEditPanel agent={agent} initialPending={pendingRequest} instant={isSelfSuperadmin} />}
+        {!demo && <PasswordChangePanel />}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3">

@@ -7,6 +7,8 @@ import {
   CalendarClock, ListChecks, Users, Filter, Gauge, Megaphone, Coins, Wallet, Target, GraduationCap, CloudSun, Home, Star,
 } from "lucide-react";
 
+import { useSetting } from "@/lib/helix/settings";
+
 const KEY = "helix:widgets";
 
 interface WidgetDef {
@@ -36,20 +38,10 @@ const CATALOG: WidgetDef[] = [
 const byKey = (k: string) => CATALOG.find((w) => w.key === k);
 
 export function CustomWidgetArea() {
-  const [keys, setKeys] = React.useState<string[]>([]);
+  const [keys, persist] = useSetting<string[]>(KEY, KEY, []);
   const [picking, setPicking] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
 
-  React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setKeys(JSON.parse(raw));
-    } catch {}
-  }, []);
-  function persist(next: string[]) {
-    setKeys(next);
-    try { localStorage.setItem(KEY, JSON.stringify(next)); } catch {}
-  }
   const add = (k: string) => { if (!keys.includes(k)) persist([...keys, k]); setPicking(false); };
   const remove = (k: string) => persist(keys.filter((x) => x !== k));
   const move = (i: number, d: -1 | 1) => {

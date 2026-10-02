@@ -19,30 +19,30 @@ export function ValuationFooter() {
     { label: "Contactos", href: `mailto:${site.email.general}` },
   ];
   return (
-    <footer className="border-t" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <footer className="border-t border-white/10 bg-[#071d37] text-white">
+      <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <Logo />
-            <p className="mt-2 text-sm text-muted-foreground">{site.legalName} · AMI {site.amiLicense}</p>
-            <p className="text-sm text-muted-foreground">{fullAddress}</p>
-            <p className="text-sm text-muted-foreground">{site.email.general}</p>
+            <p className="mt-2 text-sm text-white/75">{site.legalName} · AMI {site.amiLicense}</p>
+            <p className="text-sm text-white/65">{fullAddress}</p>
+            <p className="text-sm text-white/65">{site.email.general}</p>
           </div>
           <div className="flex items-center gap-2">
             {SOCIAL.map((s) => (
-              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} className="grid size-9 place-items-center rounded-full border text-muted-foreground transition-colors hover:text-foreground" style={{ borderColor: "var(--border)" }}>
+              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} className="grid size-10 place-items-center rounded-full border border-white/30 text-white transition-colors hover:bg-white/10">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden><path d={s.path} /></svg>
               </a>
             ))}
           </div>
         </div>
-        <div className="mt-6 flex flex-col gap-2 border-t pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--border)" }}>
+        <div className="mt-6 flex flex-col gap-2 border-t border-white/15 pt-5 text-xs text-white/65 sm:flex-row sm:items-center sm:justify-between">
           <ul className="flex flex-wrap gap-x-4 gap-y-1">
             {legal.map((l) => {
               const external = /^https?:|^mailto:/i.test(l.href);
               return (
                 <li key={l.label}>
-                  <Link href={l.href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="hover:text-foreground">{l.label}</Link>
+                  <Link href={l.href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="hover:text-white">{l.label}</Link>
                 </li>
               );
             })}

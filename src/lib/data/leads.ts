@@ -29,6 +29,8 @@ export interface Lead {
   id: string;
   propertyId?: string;
   propertyRef?: string;
+  /** Miniatura da foto de capa do imóvel — para identificar de relance. */
+  propertyImage?: string;
   /**
    * ORIGEM/dono comercial da lead (referrer, angariador, ou dono da campanha
    * que a captou). Mantém-se para retrocompatibilidade e histórico.

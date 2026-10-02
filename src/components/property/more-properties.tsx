@@ -9,6 +9,7 @@ import {
   type OrderingRule,
 } from "@/lib/data/ordering";
 import { siteConfig, HOME_RULE_KEY } from "@/lib/config";
+import { loadSiteContent } from "@/lib/data/site-content";
 import { PropertyCard } from "@/components/property/property-card";
 
 /**
@@ -20,8 +21,10 @@ export function MoreProperties({ properties }: { properties: Property[] }) {
   const [rule, setRule] = React.useState<OrderingRule>(siteConfig.homeMoreRule);
 
   React.useEffect(() => {
-    const stored = localStorage.getItem(HOME_RULE_KEY) as OrderingRule | null;
-    if (stored && stored in ORDERING_LABELS) setRule(stored);
+    loadSiteContent().then((c) => {
+      const stored = (c.homerule as OrderingRule) ?? (localStorage.getItem(HOME_RULE_KEY) as OrderingRule | null);
+      if (stored && stored in ORDERING_LABELS) setRule(stored);
+    });
   }, []);
 
   const ordered = applyOrdering(properties, rule);

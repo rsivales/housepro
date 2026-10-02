@@ -141,6 +141,7 @@ export function CostWizard({
   return (
     <>
       <Button
+        variant="destructive"
         className="w-full"
         onClick={() => {
           reset();

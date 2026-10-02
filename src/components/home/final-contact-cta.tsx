@@ -20,7 +20,7 @@ export function FinalContactCTA() {
           </p>
         </div>
         <Link
-          href="/vender#contacto"
+          href="/avaliacao-imovel#comecar"
           className="hp-btn-red inline-flex min-h-[48px] shrink-0 items-center gap-2 rounded-full px-7 text-sm font-semibold shadow-lg"
         >
           Falar com um consultor <ArrowRight className="size-4" />

@@ -10,8 +10,10 @@ import { RealStories } from "@/components/home/real-stories";
 import { RecruitmentCTA } from "@/components/home/recruitment-cta";
 import { TrustBadges } from "@/components/home/trust-badges";
 import { FinalContactCTA } from "@/components/home/final-contact-cta";
+import { AboutHouseProBanner } from "@/components/home/about-housepro-banner";
 import { PublicFooter } from "@/components/home/public-footer";
 import { HeroSearch } from "@/components/home/hero-search";
+import { SignaturePromoBanner } from "@/components/home/signature-promo-banner";
 import { activeBanners, DEFAULT_BANNERS } from "@/lib/data/banners";
 import { listProperties } from "@/lib/db/repo";
 import { topFeatured } from "@/lib/data/ranking";
@@ -55,7 +57,10 @@ export default async function Home() {
 
   return (
     <div id="top" className="hp min-h-dvh bg-background">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+      />
 
       {/* 1. Cabeçalho */}
       <PublicHeader />
@@ -79,6 +84,8 @@ export default async function Home() {
           <FeaturedProperties properties={destaques} />
         </div>
 
+        <SignaturePromoBanner />
+
         {/* 6. Informação que ajuda a decidir (Guia HousePro) */}
         <div className="mt-16 sm:mt-24">
           <HouseProGuide articles={news} />
@@ -88,6 +95,8 @@ export default async function Home() {
         <div className="mt-16 sm:mt-24">
           <UsefulTools />
         </div>
+
+        <AboutHouseProBanner />
 
         {/* 8. Histórias reais (oculta enquanto não houver histórias reais) */}
         <RealStories />

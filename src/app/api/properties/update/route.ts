@@ -8,24 +8,77 @@ import { auditFieldLabel, type AuditChange, type AuditEntry } from "@/lib/data/a
 import { isStaff } from "@/lib/data/roles";
 import { formatEuro } from "@/lib/format";
 
-/** Campos editáveis e como se mapeiam para a coluna do Supabase. */
+/** Campos editáveis e como se mapeiam para a coluna do Supabase.
+ *  Cobrem o mesmo conjunto que o carregamento (paridade edição↔carregamento). */
 const FIELDS: Record<string, string> = {
   title: "title",
-  price: "price",
+  operation: "operation",
+  businessType: "business_type",
+  type: "type",
+  priceVisible: "price_visible",
+  locationPrivacy: "location_privacy",
   typology: "typology",
+  price: "price",
+  area: "area",
   beds: "beds",
   baths: "baths",
-  area: "area",
+  parish: "parish",
+  municipality: "municipality",
+  district: "district",
+  energy: "energy",
   status: "status",
   shortDescription: "short_description",
   description: "description",
+  seoDescription: "seo_description",
+  keywords: "keywords",
+  slug: "slug",
+  commissionType: "commission_type",
   commissionPct: "commission_pct",
   commissionFixed: "commission_fixed",
+  sellerType: "seller_type",
+  videoUrl: "video_url",
+  tourUrl: "tour_url",
+  constructionYear: "construction_year",
+  elevator: "elevator",
+  accessible: "accessible",
+  garage: "garage",
+  view: "view_type",
+  neighborhoodNotes: "neighborhood_notes",
+  isDevelopment: "is_development",
+  developmentName: "development_name",
+  developmentStage: "development_stage",
+  developmentUnits: "development_units",
+  cmiExclusive: "cmi_exclusive",
+  cmiRenewable: "cmi_renewable",
+  cmiStart: "cmi_start",
+  cmiMonths: "cmi_months",
+  energyCertExpiry: "energy_cert_expiry",
+  developmentTypologies: "development_typologies",
+  developmentPriceFrom: "development_price_from",
+  developmentDelivery: "development_delivery",
+  ownerName: "owner_name",
+  ownerPhone: "owner_phone",
+  ownerEmail: "owner_email",
+  ownerNif: "owner_nif",
+  hasPlaca: "has_placa",
+  hasKeys: "has_keys",
+  listingState: "listing_state",
+  offMarket: "off_market",
+  licenseEndorsed: "license_endorsed",
+  legacyReference: "legacy_reference",
 };
 
-const NUMERIC = new Set(["price", "beds", "baths", "area", "commissionPct", "commissionFixed"]);
+const NUMERIC = new Set([
+  "price", "beds", "baths", "area", "commissionPct", "commissionFixed",
+  "constructionYear", "developmentUnits", "cmiMonths", "developmentPriceFrom",
+]);
+const BOOLEAN = new Set([
+  "elevator", "isDevelopment", "priceVisible", "cmiExclusive", "cmiRenewable",
+  "hasPlaca", "hasKeys", "offMarket", "licenseEndorsed", "accessible", "garage",
+]);
 
 function fmt(field: string, v: unknown): string {
+  if (BOOLEAN.has(field)) return v ? "Sim" : "Não";
   if (v == null || v === "") return "—";
   if (field === "price" || field === "commissionFixed") return formatEuro(Number(v));
   return String(v);
@@ -69,6 +122,7 @@ export async function POST(request: Request) {
     if (!(field in patch)) continue;
     let value: unknown = patch[field];
     if (NUMERIC.has(field)) value = value === "" || value == null ? null : Number(value);
+    else if (BOOLEAN.has(field)) value = Boolean(value);
     const before = (current as unknown as Record<string, unknown>)[field];
     const same = String(before ?? "") === String(value ?? "");
     if (same) continue;
@@ -76,36 +130,129 @@ export async function POST(request: Request) {
     dbPatch[col] = value;
   }
 
-  if (changes.length === 0) {
+  // Coordenadas — atualizadas em silêncio (sem linha de histórico ruidosa).
+  if ("lat" in patch && patch.lat != null) dbPatch.latitude = Number(patch.lat);
+  if ("lng" in patch && patch.lng != null) dbPatch.longitude = Number(patch.lng);
+
+  // Media (arrays) — só regista alteração quando o conteúdo muda de facto.
+  if ("gallery" in patch && Array.isArray(patch.gallery)) {
+    const next = patch.gallery as string[];
+    if (JSON.stringify(current.gallery ?? []) !== JSON.stringify(next)) {
+      dbPatch.gallery = next.length ? next : null;
+      changes.push({ field: "Fotografias", from: `${current.gallery?.length ?? 0}`, to: `${next.length}` });
+    }
+  }
+  if ("galleryMeta" in patch && Array.isArray(patch.galleryMeta)) {
+    dbPatch.gallery_meta = patch.galleryMeta.length ? patch.galleryMeta : null;
+  }
+  if ("expenses" in patch && Array.isArray(patch.expenses)) {
+    if (JSON.stringify(current.expenses ?? []) !== JSON.stringify(patch.expenses)) {
+      dbPatch.expenses = patch.expenses.length ? patch.expenses : null;
+      changes.push({ field: "Encargos", from: `${current.expenses?.length ?? 0}`, to: `${patch.expenses.length}` });
+    }
+  }
+  if ("plans" in patch && Array.isArray(patch.plans)) {
+    const next = patch.plans as string[];
+    if (JSON.stringify(current.plans ?? []) !== JSON.stringify(next)) {
+      dbPatch.plans = next.length ? next : null;
+      changes.push({ field: "Plantas", from: `${current.plans?.length ?? 0}`, to: `${next.length}` });
+    }
+  }
+  if ("documentKinds" in patch && Array.isArray(patch.documentKinds)) {
+    dbPatch.document_kinds = patch.documentKinds.length ? patch.documentKinds : null;
+  }
+  if ("documentsMeta" in patch && Array.isArray(patch.documentsMeta)) {
+    const next = patch.documentsMeta;
+    if (JSON.stringify(current.documentsMeta ?? []) !== JSON.stringify(next)) {
+      dbPatch.documents_meta = next.length ? next : null;
+      changes.push({ field: "Documentos", from: `${current.documentsMeta?.length ?? 0}`, to: `${next.length}` });
+    }
+  }
+  if ("tags" in patch && Array.isArray(patch.tags)) {
+    const next = patch.tags as string[];
+    if (JSON.stringify(current.tags ?? []) !== JSON.stringify(next)) {
+      dbPatch.tags = next.length ? next : null;
+      changes.push({ field: "Etiquetas", from: (current.tags ?? []).join(", ") || "—", to: next.join(", ") || "—" });
+    }
+  }
+  if ("amenities" in patch && Array.isArray(patch.amenities)) {
+    const next = patch.amenities as string[];
+    if (JSON.stringify(current.amenities ?? []) !== JSON.stringify(next)) {
+      dbPatch.amenities = next.length ? next : null;
+      changes.push({ field: "Equipamentos", from: (current.amenities ?? []).join(", ") || "—", to: next.join(", ") || "—" });
+    }
+  }
+  if ("coverUrl" in patch) {
+    const cover = patch.coverUrl ? String(patch.coverUrl) : "";
+    if ((current.image ?? "") !== cover) dbPatch.cover_url = cover || null;
+  }
+  if ("beforeAfter" in patch && Array.isArray(patch.beforeAfter)) {
+    const next = patch.beforeAfter;
+    if (JSON.stringify(current.beforeAfter ?? []) !== JSON.stringify(next)) {
+      dbPatch.before_after = next.length ? next : null;
+      changes.push({ field: "Antes/depois", from: `${current.beforeAfter?.length ?? 0}`, to: `${next.length}` });
+    }
+  }
+
+  if (changes.length === 0 && Object.keys(dbPatch).length === 0) {
     return NextResponse.json({ ok: true, noop: true });
   }
 
-  const entry: AuditEntry = {
-    id: `au-${Date.now()}`,
-    propertyId: id,
-    propertyRef: current.reference,
-    actorId: a.id,
-    actorName: a.name,
-    actorRole: a.role,
-    action: "editou",
-    changes,
-    at: new Date().toISOString(),
-  };
+  // Só se regista no histórico quando há alterações "visíveis" (as coordenadas
+  // atualizam-se em silêncio).
+  const entry: AuditEntry | null = changes.length
+    ? {
+        id: `au-${Date.now()}`,
+        propertyId: id,
+        propertyRef: current.reference,
+        actorId: a.id,
+        actorName: a.name,
+        actorRole: a.role,
+        action: "editou",
+        changes,
+        at: new Date().toISOString(),
+      }
+    : null;
 
   if (isSupabaseConfigured() && !session.demo) {
     try {
       const supabase = await createClient();
-      await supabase.from("properties").update(dbPatch).eq("id", id);
-      await supabase.from("property_audit").insert({
-        property_id: id,
-        property_ref: current.reference,
-        actor_id: a.id,
-        actor_name: a.name,
-        actor_role: a.role,
-        action: "editou",
-        changes,
-      });
-    } catch {
+      if (Object.keys(dbPatch).length) {
+        // IMPORTANTE: confirma mesmo que a linha foi alterada (.select()).
+        // Sem isto, um bloqueio silencioso de RLS ou uma sessão expirada
+        // devolve 0 linhas afetadas SEM erro — e a app dizia "Guardado"
+        // quando nada tinha sido persistido.
+        const { data: updated, error: updErr } = await supabase
+          .from("properties")
+          .update(dbPatch)
+          .eq("id", id)
+          .select("id");
+        if (updErr) {
+          console.error("[properties/update] falha ao gravar", updErr);
+          return NextResponse.json({ error: `save_failed: ${updErr.message}` }, { status: 500 });
+        }
+        if (!updated || updated.length === 0) {
+          console.error("[properties/update] 0 linhas afetadas (RLS ou sessão inválida)", { id, actor: a.id });
+          return NextResponse.json(
+            { error: "Não foi possível gravar — a sessão pode ter expirado. Recarregue a página e volte a tentar." },
+            { status: 409 }
+          );
+        }
+      }
+      if (entry) {
+        const { error: auditErr } = await supabase.from("property_audit").insert({
+          property_id: id,
+          property_ref: current.reference,
+          actor_id: a.id,
+          actor_name: a.name,
+          actor_role: a.role,
+          action: "editou",
+          changes,
+        });
+        if (auditErr) console.error("[properties/update] falha a registar histórico", auditErr);
+      }
+    } catch (e) {
+      console.error("[properties/update] exceção", e);
       return NextResponse.json({ error: "save_failed" }, { status: 500 });
     }
   }

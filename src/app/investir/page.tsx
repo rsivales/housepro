@@ -77,7 +77,7 @@ export default function InvestirPage() {
               perfil? Fale com um consultor especializado.
             </p>
             <Button variant="brand" size="lg" asChild>
-              <Link href="/vender#contacto">Falar com um consultor</Link>
+              <Link href="/avaliacao-imovel#comecar">Falar com um consultor</Link>
             </Button>
           </div>
         </section>

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Eye, EyeOff, Loader2, Copy, Check, AlertTriangle, Pencil, X } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Loader2, Copy, Check, AlertTriangle, Pencil, X, History } from "lucide-react";
 
 import { ROLE_LABEL } from "@/lib/data/roles";
 import type { RoleKey } from "@/lib/data/types";
@@ -9,8 +9,15 @@ import type { RoleKey } from "@/lib/data/types";
 interface Consultor {
   id: string; name: string; email?: string | null; role?: string; role_key?: string;
   agency_id?: string | null; whatsapp?: string | null; active?: boolean;
+  sponsor_id?: string | null; code?: number | null;
 }
 interface Agency { id: string; name: string; region?: string }
+interface AuditEntry {
+  id: string; action: string; changes?: { field: string; from: string; to: string }[] | null;
+  actor_name?: string | null; actor_role?: string | null; created_at: string;
+}
+
+const ACTION_LABEL: Record<string, string> = { criou: "Criou", editou: "Editou", suspendeu: "Suspendeu", reativou: "Reativou", removeu: "Removeu" };
 
 const ASSIGNABLE: RoleKey[] = ["superadmin", "admin", "diretor", "coordenador", "agente", "agente_ami"];
 const field = "mt-1 h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-[3px]";
@@ -25,6 +32,9 @@ export function ConsultoresManager() {
   const [tempPass, setTempPass] = React.useState<{ email: string; pass: string } | null>(null);
   const [copied, setCopied] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [historyFor, setHistoryFor] = React.useState<string | null>(null);
+  const [history, setHistory] = React.useState<AuditEntry[] | null>(null);
+  const [historyLoading, setHistoryLoading] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -73,6 +83,23 @@ export function ConsultoresManager() {
       if (!res.ok) { const j = await res.json().catch(() => ({})); alert("Erro: " + (j.error ?? res.status)); return; }
       await load();
     } finally { setBusy(false); }
+  }
+
+  /** Histórico de gestão deste consultor — quem alterou o quê e quando.
+   *  Nada de "provisório": cada decisão de gestão de pessoas fica registada
+   *  permanentemente e é sempre consultável aqui. */
+  async function toggleHistory(id: string) {
+    if (historyFor === id) { setHistoryFor(null); return; }
+    setHistoryFor(id);
+    setHistory(null);
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`/api/admin/consultores?audit=${encodeURIComponent(id)}`);
+      const j = await res.json().catch(() => ({}));
+      setHistory(res.ok ? (j.entries ?? []) : []);
+    } finally {
+      setHistoryLoading(false);
+    }
   }
 
   if (loading) return <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> A carregar…</p>;
@@ -135,6 +162,7 @@ export function ConsultoresManager() {
             {editing === c.id ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block"><span className="text-xs font-medium">Nome</span><input id={`n-${c.id}`} defaultValue={c.name} className={field} /></label>
+                <label className="block"><span className="text-xs font-medium">E-mail</span><input id={`e-${c.id}`} type="email" defaultValue={c.email ?? ""} className={field} /></label>
                 <label className="block"><span className="text-xs font-medium">Papel</span>
                   <select id={`r-${c.id}`} defaultValue={c.role_key ?? "agente"} className={field}>{ASSIGNABLE.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select>
                 </label>
@@ -142,12 +170,20 @@ export function ConsultoresManager() {
                   <select id={`a-${c.id}`} defaultValue={c.agency_id ?? ""} className={field}><option value="">— sem agência —</option>{agencies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
                 </label>
                 <label className="block"><span className="text-xs font-medium">WhatsApp</span><input id={`w-${c.id}`} defaultValue={c.whatsapp ?? ""} className={field} /></label>
+                <label className="block"><span className="text-xs font-medium">Padrinho (rede de afilhados)</span>
+                  <select id={`s-${c.id}`} defaultValue={c.sponsor_id ?? ""} className={field}>
+                    <option value="">— sem padrinho —</option>
+                    {list.filter((p) => p.id !== c.id).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </label>
                 <div className="flex gap-2 sm:col-span-2">
                   <button disabled={busy} onClick={() => patch(c.id, {
                     name: (document.getElementById(`n-${c.id}`) as HTMLInputElement).value,
+                    email: (document.getElementById(`e-${c.id}`) as HTMLInputElement).value,
                     roleKey: (document.getElementById(`r-${c.id}`) as HTMLSelectElement).value,
                     agencyId: (document.getElementById(`a-${c.id}`) as HTMLSelectElement).value,
                     whatsapp: (document.getElementById(`w-${c.id}`) as HTMLInputElement).value,
+                    sponsorId: (document.getElementById(`s-${c.id}`) as HTMLSelectElement).value,
                   })} className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-60"><Check className="size-4" /> Guardar</button>
                   <button onClick={() => setEditing(null)} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm"><X className="size-4" /> Cancelar</button>
                 </div>
@@ -158,17 +194,53 @@ export function ConsultoresManager() {
                   <p className="flex items-center gap-2 font-medium">
                     {c.name}
                     <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">{ROLE_LABEL[(c.role_key as RoleKey)] ?? c.role ?? "agente"}</span>
+                    {c.code != null && <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-mono">#{c.code}</span>}
                     {c.active === false && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Suspenso</span>}
                   </p>
-                  <p className="text-xs text-muted-foreground">{c.email ?? "—"} · {agencyName(c.agency_id)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.email ?? "—"} · {agencyName(c.agency_id)}
+                    {c.sponsor_id && <> · Padrinho: {list.find((p) => p.id === c.sponsor_id)?.name ?? "—"}</>}
+                    {(() => {
+                      const godchildren = list.filter((p) => p.sponsor_id === c.id).length;
+                      return godchildren > 0 ? <> · {godchildren} afilhado{godchildren > 1 ? "s" : ""}</> : null;
+                    })()}
+                  </p>
                 </div>
                 <div className="flex items-center gap-1">
+                  <button onClick={() => toggleHistory(c.id)} title="Histórico" className={`grid size-9 place-items-center rounded-md border hover:bg-secondary ${historyFor === c.id ? "bg-secondary" : ""}`}><History className="size-4" /></button>
                   <button onClick={() => setEditing(c.id)} title="Editar" className="grid size-9 place-items-center rounded-md border hover:bg-secondary"><Pencil className="size-4" /></button>
                   <button disabled={busy} onClick={() => patch(c.id, { active: c.active === false })} title={c.active === false ? "Reativar" : "Suspender"} className="grid size-9 place-items-center rounded-md border hover:bg-secondary">
                     {c.active === false ? <Eye className="size-4 text-emerald-600" /> : <EyeOff className="size-4" />}
                   </button>
                   <button disabled={busy} onClick={() => remove(c.id, c.name)} title="Remover" className="grid size-9 place-items-center rounded-md border text-destructive hover:bg-destructive/5"><Trash2 className="size-4" /></button>
                 </div>
+              </div>
+            )}
+            {historyFor === c.id && (
+              <div className="mt-3 border-t pt-3">
+                {historyLoading ? (
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> A carregar histórico…</p>
+                ) : !history || history.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem alterações registadas.</p>
+                ) : (
+                  <ul className="space-y-2 text-xs">
+                    {history.map((h) => (
+                      <li key={h.id} className="rounded-lg bg-secondary/40 p-2.5">
+                        <p className="font-medium">
+                          {ACTION_LABEL[h.action] ?? h.action} · {h.actor_name ?? "—"}
+                          <span className="ml-2 font-normal text-muted-foreground">{new Date(h.created_at).toLocaleString("pt-PT")}</span>
+                        </p>
+                        {h.changes && h.changes.length > 0 && (
+                          <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                            {h.changes.map((ch, i) => (
+                              <li key={i}>{ch.field}: <span className="line-through">{ch.from}</span> → <strong className="text-foreground">{ch.to}</strong></li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>

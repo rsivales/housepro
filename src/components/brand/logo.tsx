@@ -1,6 +1,28 @@
+"use client";
+
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { loadSiteContent } from "@/lib/data/site-content";
+
+function ManagedLogo({ kind, fallback, fallbackAlt, className }: { kind: "header" | "footer" | "mark"; fallback: string; fallbackAlt: string; className?: string }) {
+  const [asset, setAsset] = React.useState({ src: fallback, alt: fallbackAlt });
+  React.useEffect(() => {
+    loadSiteContent().then((content) => {
+      const config = content.brandassets;
+      const src = config?.[kind];
+      const alt = config?.[`${kind}Alt` as keyof typeof config];
+      if (typeof src === "string" && src) setAsset({ src, alt: typeof alt === "string" && alt ? alt : fallbackAlt });
+    });
+  }, [kind, fallback, fallbackAlt]);
+  // max-w-none anula o "img { max-width: 100% }" do preflight do Tailwind:
+  // combinado com a altura fixa (h-7, etc.) e um contentor flex, essa
+  // percentagem cria uma dependência circular de tamanho que alguns
+  // motores resolvem a 0 — o logótipo ficava invisível (largura 0) em
+  // TODOS os cabeçalhos/rodapés do site. shrink-0 protege da mesma forma
+  // quando o logótipo é filho direto de um flex container.
+  return <img src={asset.src} alt={asset.alt} className={cn("w-auto max-w-none shrink-0 select-none", className)} draggable={false} />;
+}
 
 /**
  * Logótipo oficial HousePro (ficheiro da marca, fundo transparente).
@@ -9,31 +31,15 @@ import { cn } from "@/lib/utils";
  * Servido em WebP (transparente), funciona sobre fundo claro ou Deep Navy.
  */
 export function Logo({ className }: { className?: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/brand/housepro-logo.webp"
-      alt="HousePro"
-      className={cn("h-7 w-auto select-none", className)}
-      draggable={false}
-    />
-  );
+  return <ManagedLogo kind="header" fallback="/brand/housepro-logo.webp" fallbackAlt="HousePro" className={cn("h-7", className)} />;
 }
 
 /** Lockup completo com slogan (rodapés / contextos com mais espaço). */
 export function LogoFull({ className }: { className?: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/brand/housepro-logo-full.webp"
-      alt="HousePro — Paixão pelo que fazemos"
-      className={cn("h-12 w-auto select-none", className)}
-      draggable={false}
-    />
-  );
+  return <ManagedLogo kind="footer" fallback="/brand/housepro-logo-full.webp" fallbackAlt="HousePro — Paixão pelo que fazemos" className={cn("h-12", className)} />;
 }
 
-/** Compatibilidade: usado internamente; devolve o lockup horizontal. */
+/** Símbolo compacto para espaços reduzidos, com fallback seguro para a marca horizontal. */
 export function LogoMark({ className }: { className?: string }) {
-  return <Logo className={className} />;
+  return <ManagedLogo kind="mark" fallback="/brand/housepro-logo.webp" fallbackAlt="HousePro" className={cn("h-7", className)} />;
 }

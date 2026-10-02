@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { PortalIntegration } from "@/lib/data/exports";
 
-const STORAGE = "portalContracts";
+const STORAGE = "portalContracts"; // cache local — resposta imediata + reserva se a API falhar
 
 type State = Record<string, { active: boolean; contract: boolean; lastExport?: string }>;
 type Verify = { loading: boolean; ok?: boolean; count?: number; error?: string };
@@ -25,7 +25,9 @@ function fmt(dt?: string) {
 /**
  * Gestão funcional dos contratos de exportação com portais. Permite estabelecer
  * contrato, ativar/desativar a exportação, gerir e VERIFICAR o feed (conta os
- * imóveis publicados). O estado é guardado localmente (protótipo).
+ * imóveis publicados). Estado gravado no servidor (site_settings) — sobrevive
+ * a qualquer dispositivo/browser; o localStorage é só cache para resposta
+ * imediata.
  */
 export function PortalContracts({ initial }: { initial: PortalIntegration[] }) {
   const [state, setState] = React.useState<State>({});
@@ -33,19 +35,41 @@ export function PortalContracts({ initial }: { initial: PortalIntegration[] }) {
   const [verify, setVerify] = React.useState<Record<string, Verify>>({});
   const [copied, setCopied] = React.useState<string | null>(null);
   const [origin, setOrigin] = React.useState("");
+  const [saveErr, setSaveErr] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setOrigin(window.location.origin);
     const base: State = Object.fromEntries(initial.map((p) => [p.id, { active: p.active, contract: p.contract, lastExport: p.lastExport }]));
+    // Cache local primeiro (instantâneo), depois o servidor (fonte de verdade) sobrepõe-se.
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE) || "{}");
-      setState({ ...base, ...saved });
+      const cached = JSON.parse(localStorage.getItem(STORAGE) || "{}");
+      setState({ ...base, ...cached });
     } catch { setState(base); }
+
+    fetch("/api/admin/portal-contracts")
+      .then((r) => (r.ok ? r.json() : { persisted: false }))
+      .then((j) => {
+        if (j?.persisted) {
+          const merged = { ...base, ...j.state };
+          setState(merged);
+          try { localStorage.setItem(STORAGE, JSON.stringify(merged)); } catch {}
+        }
+      })
+      .catch(() => {});
   }, [initial]);
 
   function save(next: State) {
     setState(next);
     try { localStorage.setItem(STORAGE, JSON.stringify(next)); } catch {}
+    setSaveErr(null);
+    fetch("/api/admin/portal-contracts", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(next),
+    })
+      .then((r) => r.json().catch(() => ({})).then((j) => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => { if (!ok) setSaveErr(j.error ?? "Falha ao guardar."); })
+      .catch(() => setSaveErr("Falha de rede ao guardar."));
   }
   function patch(id: string, p: Partial<{ active: boolean; contract: boolean; lastExport?: string }>) {
     save({ ...state, [id]: { ...(state[id] ?? { active: false, contract: false }), ...p } });
@@ -72,7 +96,13 @@ export function PortalContracts({ initial }: { initial: PortalIntegration[] }) {
   }
 
   return (
-    <section className="mt-6 grid gap-4 sm:grid-cols-2">
+    <>
+      {saveErr && (
+        <p className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-2.5 text-sm text-destructive">
+          Não foi possível gravar no servidor: {saveErr}. A alteração ficou só neste browser por agora.
+        </p>
+      )}
+      <section className="mt-6 grid gap-4 sm:grid-cols-2">
       {initial.map((portal) => {
         const s = state[portal.id] ?? { active: portal.active, contract: portal.contract, lastExport: portal.lastExport };
         const { url, kind } = feedFor(portal.id);
@@ -157,6 +187,7 @@ export function PortalContracts({ initial }: { initial: PortalIntegration[] }) {
           </div>
         );
       })}
-    </section>
+      </section>
+    </>
   );
 }

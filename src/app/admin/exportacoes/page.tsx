@@ -5,12 +5,12 @@ import { ArrowLeft, Rss, Check, X, AlertTriangle } from "lucide-react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { PortalContracts } from "@/components/admin/portal-contracts";
 import { portalIntegrations, exportReadiness } from "@/lib/data/exports";
-import { properties } from "@/lib/data/mock";
+import { listAllPropertiesAdmin } from "@/lib/db/repo";
 
 export const metadata: Metadata = { title: "Exportações · Back office" };
 
-export default function ExportacoesPage() {
-  const catalog = properties.filter((p) => p.status !== "vendido");
+export default async function ExportacoesPage() {
+  const catalog = await listAllPropertiesAdmin();
   const feedable = catalog.map((p) => ({ p, r: exportReadiness(p) }));
 
   return (

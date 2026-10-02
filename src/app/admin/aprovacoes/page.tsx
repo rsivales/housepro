@@ -5,6 +5,7 @@ import { ArrowLeft, ShieldCheck, AlertTriangle, BadgeCheck } from "lucide-react"
 import { SiteHeader } from "@/components/layout/site-header";
 import { ApprovalQueue, type PendingItem } from "@/components/admin/approval-queue";
 import { NotifyMissingButton } from "@/components/admin/notify-missing-button";
+import { ProfileRequestsQueue } from "@/components/admin/profile-requests-queue";
 import { properties, pendingApprovals, agentById, agencyById } from "@/lib/data/mock";
 import { docStatus, docLabel } from "@/lib/imovel/model";
 
@@ -14,7 +15,7 @@ export default function AprovacoesPage() {
   const pend = pendingApprovals();
   const items: PendingItem[] = pend.map((p) => {
     const agent = agentById(p.agentId);
-    const st = docStatus(p.documents ?? [], p.sellerType === "empresa");
+    const st = docStatus(p.documents ?? [], p.sellerType === "empresa", p.licenseEndorsed ? ["licenca_utilizacao"] : []);
     return {
       id: p.id,
       reference: p.reference,
@@ -31,7 +32,7 @@ export default function AprovacoesPage() {
   // Notificação vermelha: imóveis (não vendidos) com documentos obrigatórios em falta.
   const docMissing = properties
     .filter((p) => p.status !== "vendido")
-    .map((p) => ({ p, st: docStatus(p.documents ?? [], p.sellerType === "empresa") }))
+    .map((p) => ({ p, st: docStatus(p.documents ?? [], p.sellerType === "empresa", p.licenseEndorsed ? ["licenca_utilizacao"] : []) }))
     .filter((x) => !x.st.complete);
 
   // Imóveis publicados sem aprovação necessária (AMI próprio) — informativo.
@@ -88,6 +89,9 @@ export default function AprovacoesPage() {
           <h2 className="mb-4 font-display text-xl">A aguardar aprovação ({items.length})</h2>
           <ApprovalQueue items={items} />
         </section>
+
+        {/* Pedidos de alteração de perfil (nome/foto/WhatsApp) — só aparece quando há pendentes */}
+        <ProfileRequestsQueue />
 
         {/* AMI próprio (auto-publicado) */}
         {amiAuto.length > 0 && (

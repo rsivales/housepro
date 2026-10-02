@@ -11,6 +11,15 @@ import type { Agent, RoleKey } from "@/lib/data/types";
 
 export const VIEW_AS_COOKIE = "hp_view_as";
 
+/**
+ * "Ver como" em PRODUÇÃO (dados reais) — distinto de VIEW_AS_COOKIE, que só
+ * funciona em modo demo (sem Supabase). Só tem efeito quando a identidade
+ * REAL autenticada (auth.uid()) é Super Admin — getSession() confirma isso
+ * antes de aplicar; nunca escala privilégios, só estreita a vista para
+ * inspecionar/navegar como outro papel real.
+ */
+export const PROD_VIEW_AS_COOKIE = "hp_super_view_as";
+
 export const ROLE_LABEL: Record<RoleKey, string> = {
   superadmin: "Super Admin",
   admin: "Administração",
@@ -52,4 +61,10 @@ export function isSuperadmin(agent?: Pick<Agent, "roleKey" | "role">): boolean {
 export function isStaff(agent?: Pick<Agent, "roleKey" | "role">): boolean {
   const r = agent?.roleKey;
   return r === "superadmin" || r === "admin" || r === "diretor" || r === "coordenador" || agent?.role === "admin";
+}
+
+/** Gestão de marca/rede (agências): direção e acima. Coordenação não gere a rede. */
+export function isBrandAdmin(agent?: Pick<Agent, "roleKey" | "role">): boolean {
+  const r = agent?.roleKey;
+  return r === "superadmin" || r === "admin" || r === "diretor" || agent?.role === "admin";
 }

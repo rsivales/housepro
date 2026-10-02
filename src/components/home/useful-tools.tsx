@@ -10,13 +10,15 @@ const TOOLS = [
     icon: Coins,
     title: "Calcular mais-valias",
     desc: "Estime o imposto sobre a venda do seu imóvel.",
-    href: "/ferramentas/calculadora-mais-valias#simular",
+    // Na homepage, abrir primeiro a landing completa da Clínica de Finanças.
+    // O CTA dentro dessa página conduz depois à âncora do simulador.
+    href: "/ferramentas/calculadora-mais-valias",
   },
   {
     icon: Calculator,
     title: "Simular prestação",
     desc: "Saiba a prestação mensal do seu crédito à habitação.",
-    href: "/ferramentas#credito",
+    href: "/credito",
   },
   {
     icon: Gauge,

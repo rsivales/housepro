@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { isSuperadmin } from "@/lib/data/roles";
 import { defaultWatermark, type WatermarkConfig } from "@/lib/config";
 
 /**
@@ -42,7 +43,11 @@ export async function POST(request: Request) {
   if (!session || session.demo) {
     return NextResponse.json({ error: "Sessão inválida — faça login." }, { status: 401 });
   }
-  const isAdmin = session.agent.role === "admin" || session.agent.roleKey === "admin";
+  // Antes só reconhecia role === "admin" — deixava de fora quem tinha
+  // role_key "superadmin" mas por alguma razão a coluna `role` (enum antigo,
+  // 3 valores) não tivesse sido também atualizada para "admin". O Super Admin
+  // é sempre a autoridade máxima: usa o helper partilhado, não repete a lógica.
+  const isAdmin = isSuperadmin(session.agent) || session.agent.role === "admin" || session.agent.roleKey === "admin";
   if (!isAdmin) {
     return NextResponse.json(
       { error: "Apenas a administração pode definir a marca de água global." },

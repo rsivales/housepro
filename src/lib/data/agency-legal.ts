@@ -1,9 +1,18 @@
 /**
  * Dados legais OBRIGATÓRIOS da agência de mediação (requisito legal para operar).
  * Sem estes completos, a agência fica marcada como incompleta (gate operacional).
- * Protótipo em browser; em produção persiste nas colunas de `agencies` (0016).
+ * Persiste nas colunas reais de `agencies` (ver migration_agencies_real.sql) —
+ * nunca só em localStorage/site_settings.
  */
 
+import type { AgencyDocKind, AgencyPrize } from "@/lib/data/types";
+
+export type { AgencyDocKind, AgencyPrize };
+
+/**
+ * Ficha completa da agência: dados legais obrigatórios + apresentação pública
+ * (descrição, fotos, prémios). Um só registo por agência — editado num só sítio.
+ */
 export interface AgencyLegal {
   amiLicense: string;   // nº de licença AMI
   amiExpires: string;   // validade (ISO date)
@@ -12,13 +21,11 @@ export interface AgencyLegal {
   legalEmail: string;   // email da direção/legal
   /** Comprovativos carregados por tipo (url/dataURL). */
   docs: Partial<Record<AgencyDocKind, string>>;
+  /** Apresentação pública (opcional). */
+  description?: string;
+  photos?: string[];
+  prizes?: AgencyPrize[];
 }
-
-export type AgencyDocKind =
-  | "ami_comprovativo"
-  | "certidao_permanente"
-  | "registo_comercial"
-  | "seguro_rc";
 
 export const AGENCY_DOCS: { kind: AgencyDocKind; label: string; required: boolean }[] = [
   { kind: "ami_comprovativo", label: "Comprovativo de licença AMI", required: true },
@@ -30,7 +37,7 @@ export const AGENCY_DOCS: { kind: AgencyDocKind; label: string; required: boolea
 export const REQUIRED_FIELDS: (keyof AgencyLegal)[] = ["amiLicense", "amiExpires", "nipc", "cae", "legalEmail"];
 
 export function blankLegal(): AgencyLegal {
-  return { amiLicense: "", amiExpires: "", nipc: "", cae: "", legalEmail: "", docs: {} };
+  return { amiLicense: "", amiExpires: "", nipc: "", cae: "", legalEmail: "", docs: {}, description: "", photos: [], prizes: [] };
 }
 
 export interface LegalStatus {

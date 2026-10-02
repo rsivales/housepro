@@ -95,7 +95,8 @@ export function MvForm() {
   ];
 
   return (
-    <form onSubmit={submit} className="rounded-2xl border bg-[var(--card)] p-5 shadow-sm sm:p-6" style={bs} noValidate>
+    <form onSubmit={submit} className="rounded-2xl border bg-[var(--card)] p-5 shadow-[0_18px_48px_rgba(11,31,58,.18)] sm:p-7" style={bs} noValidate>
+      <h2 className="font-display text-xl text-[var(--hp-navy)] sm:text-2xl">Simulador de mais-valias</h2>
       <ol className="flex flex-wrap items-center gap-x-2 gap-y-2" aria-label="Progresso">
         {STEPS.map((label, i) => (
           <li key={label} className="flex items-center gap-2">
@@ -251,12 +252,12 @@ export function MvForm() {
         )}
       </div>
 
-      <div className="mt-6 flex items-center justify-between gap-3">
-        {step > 0 ? <button type="button" onClick={back} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border px-5 text-sm font-semibold" style={bs}><ArrowLeft className="size-4" /> Voltar</button> : <span />}
+      <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+        {step > 0 && <button type="button" onClick={back} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border px-5 text-sm font-semibold sm:w-auto" style={bs}><ArrowLeft className="size-4" /> Voltar</button>}
         {step < 3 ? (
-          <button type="button" onClick={next} className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-6 text-sm font-semibold text-white" style={{ background: "var(--hp-navy)" }}>Continuar <ArrowRight className="size-4" /></button>
+          <button type="button" onClick={next} className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold text-white" style={{ background: "var(--hp-navy)" }}>Continuar <ArrowRight className="size-4" /></button>
         ) : (
-          <button type="submit" disabled={status === "loading"} className="hp-btn-red inline-flex min-h-[44px] items-center gap-2 rounded-full px-6 text-sm font-semibold disabled:opacity-70">
+          <button type="submit" disabled={status === "loading"} className="hp-btn-red inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold disabled:opacity-70">
             {status === "loading" ? <><Loader2 className="size-4 animate-spin" /> A enviar…</> : <>Calcular e enviar por e-mail <Mail className="size-4" /></>}
           </button>
         )}

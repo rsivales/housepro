@@ -33,7 +33,7 @@ const QUICK = [
  * leque. O "+" roda para "×" quando aberto. Animação fluida (tipo dock), com
  * recolha subtil; desativada quando "reduzir movimento" está ativo (via CSS).
  */
-export function MobileBottomNavigation() {
+export function MobileBottomNavigation({ superadmin = false }: { superadmin?: boolean }) {
   const [open, setOpen] = React.useState(false);
   const active = tabFor(usePathname() ?? "/app");
 
@@ -90,7 +90,7 @@ export function MobileBottomNavigation() {
         {/* Barra */}
         <div className="mx-auto flex max-w-6xl items-end justify-around border-t border-[var(--hx-border)] bg-[var(--hx-surface)] px-2 pt-1.5 pb-2 shadow-[0_-6px_20px_-12px_rgba(11,31,58,0.25)]">
           <TabLink href="/app" icon={Home} label="Início" active={active === "inicio"} />
-          <TabLink href="/app/contactos" icon={Users} label="Leads" active={active === "leads"} />
+          {superadmin ? <TabLink href="/admin" icon={Users} label="Supervisão" active={false} /> : <TabLink href="/app/contactos" icon={Users} label="Leads" active={active === "leads"} />}
 
           {/* FAB central */}
           <div className="relative -mt-7 w-16 shrink-0">
@@ -105,7 +105,7 @@ export function MobileBottomNavigation() {
             </button>
           </div>
 
-          <TabLink href="/app/meta/pipeline" icon={KanbanSquare} label="Pipeline" active={active === "pipeline"} />
+          {superadmin ? <TabLink href="/admin/mapa-sistema" icon={KanbanSquare} label="Mapa" active={false} /> : <TabLink href="/app/meta/pipeline" icon={KanbanSquare} label="Pipeline" active={active === "pipeline"} />}
           <TabLink href="/app/menu" icon={Menu} label="Menu" active={active === "menu"} />
         </div>
       </nav>

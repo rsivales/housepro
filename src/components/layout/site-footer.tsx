@@ -51,7 +51,7 @@ export function SiteFooter() {
               title="HousePro"
               links={[
                 { label: "Crédito habitação", href: "/credito" },
-                { label: "Avaliação", href: "/vender" },
+                { label: "Avaliação", href: "/avaliacao-imovel" },
                 { label: "Área de cliente", href: "/cliente" },
                 { label: "Indicar um amigo", href: "/indicar" },
                 { label: "Notícias", href: "/noticias" },

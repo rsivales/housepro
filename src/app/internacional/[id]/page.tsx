@@ -6,6 +6,7 @@ import { ArrowLeft, Building2, Check, Globe2, Handshake, Info, MapPin } from "lu
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { internationalById, internationalProjects } from "@/lib/data/international";
+import { InterestForm } from "@/components/projects/interest-form";
 
 const eur = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -81,9 +82,7 @@ export default async function ProjetoInternacional({ params }: { params: Promise
           <p className="mt-1 text-sm opacity-90">
             Um consultor HousePro acompanha-o em todo o processo internacional — da reserva à escritura.
           </p>
-          <Link href="/contacto" className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2.5 text-sm font-medium hover:bg-white/25">
-            Falar com um consultor
-          </Link>
+          <InterestForm kind="international" projectId={p.id} projectName={p.title} />
         </div>
       </main>
       <SiteFooter />

@@ -21,8 +21,8 @@ export function ValuationHeader() {
   const [open, setOpen] = React.useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-[var(--card)]/95 backdrop-blur" style={{ borderColor: "var(--border)" }}>
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <header className="sticky top-0 z-40 border-b border-[#e5eaf0] bg-white/95 backdrop-blur">
+      <div className="mx-auto flex min-h-[72px] max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
         <Link href="/" aria-label="HousePro — início">
           <Logo />
         </Link>
@@ -31,10 +31,10 @@ export function ValuationHeader() {
           <a
             href="#comecar"
             onClick={() => track("valuation_contact_click")}
-            className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold sm:inline-flex"
+            className="hidden items-center gap-2 rounded-full px-3 py-2 text-base font-semibold sm:inline-flex"
             style={{ color: "var(--hp-navy)" }}
           >
-            <Phone className="size-4" /> Contacte-nos
+            <Phone className="size-5 fill-[#0b1f3a]" /> Contacte-nos
           </a>
           <a
             href="#comecar"

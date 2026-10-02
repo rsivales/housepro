@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 
 import { VideoTestimonial } from "@/components/home/video-testimonial";
 import { publishedStories, type Story } from "@/lib/data/stories";
-import { readStories } from "@/lib/data/site-content";
+import { readStories, loadSiteContent } from "@/lib/data/site-content";
 
 /**
  * "Histórias reais". Secção OCULTA enquanto não existirem histórias reais
@@ -18,7 +18,7 @@ export function RealStories() {
   const [stories, setStories] = React.useState<Story[]>([]);
 
   React.useEffect(() => {
-    setStories(publishedStories(readStories()));
+    loadSiteContent().then((c) => setStories(publishedStories(c.stories ?? readStories())));
   }, []);
 
   if (stories.length === 0) return null;

@@ -32,6 +32,20 @@ export const CREDIT_STEPS: { stage: CreditStage; label: string }[] = [
   { stage: "escritura_marcada", label: "Escritura marcada" },
 ];
 
+/** Estado público do imóvel correspondente à fase do negócio. Ao iniciar o
+ *  processo no Helix, o imóvel muda de estado automaticamente:
+ *   reserva → reservado · cpcv → cpcv · escritura/concluído → vendido.
+ *  Devolve null quando a fase não deve mexer no estado público. */
+export function dealStageToStatus(stage: DealStage): "reservado" | "cpcv" | "vendido" | null {
+  switch (stage) {
+    case "reserva": return "reservado";
+    case "cpcv": return "cpcv";
+    case "escritura":
+    case "concluido": return "vendido";
+    default: return null; // proposta_*/cancelado não alteram o estado público
+  }
+}
+
 export function stagePercent(stage: DealStage): number {
   return (
     {

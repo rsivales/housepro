@@ -1,6 +1,8 @@
 /** Modelo rico do imóvel para carregamento pelo consultor.
  *  Superset dos campos públicos, preparado para exportação (Idealista). */
 
+import type { Property } from "@/lib/data/types";
+
 export interface ImovelDoc {
   name: string;
   kind: string; // ver DOC_KINDS
@@ -58,11 +60,15 @@ export interface DocStatus {
   complete: boolean;
 }
 
-/** Estado documental de um imóvel a partir dos tipos já carregados. */
-export function docStatus(uploaded: string[] = [], sellerIsCompany = false): DocStatus {
+/** Estado documental de um imóvel a partir dos tipos já carregados.
+ *  `waived` marca tipos obrigatórios dispensados de upload próprio (ex.:
+ *  licença de utilização averbada na certidão permanente) — contam como
+ *  cumpridos sem entrar em `extraCount`. */
+export function docStatus(uploaded: string[] = [], sellerIsCompany = false, waived: string[] = []): DocStatus {
   const required = requiredDocKinds(sellerIsCompany);
   const set = new Set(uploaded);
-  const missing = required.filter((k) => !set.has(k));
+  const waivedSet = new Set(waived);
+  const missing = required.filter((k) => !set.has(k) && !waivedSet.has(k));
   const extraCount = uploaded.filter((k) => !required.includes(k)).length;
   return {
     missing,
@@ -98,11 +104,27 @@ export const WATERMARK_POSITIONS: WatermarkPos[] = [
 
 export interface ImovelDraft {
   id: string;
+  /** Gerada automaticamente pelo servidor ao criar — nunca editável aqui. */
   reference: string;
+  /** ID antigo, de outra agência/plataforma, quando o imóvel foi migrado
+   *  para a HousePro — só interno, nunca aparece ao público. */
+  legacyReference: string;
+  /** Operação coarse (venda/arrendamento) — derivada do tipo de negócio, usada
+   *  nos filtros públicos e na exportação para portais. */
   operation: "venda" | "arrendamento";
+  /** Tipo de negócio detalhado (venda, permuta, trespasse, arrendamento ao ano,
+   *  curta duração, timesharing, cedência de posição…). */
+  businessType: string;
   type: string; // Moradia, Apartamento, Terreno, Loja, Escritório
   typology: string; // T0..T5
   price: number;
+  /** Preço visível ao público. Auto-oculto quando vendido/CPCV. */
+  priceVisible: boolean;
+  /** Estado comercial (etiqueta pública): "" | novo | destaque | reduzido |
+   *  oportunidade | reservado | cpcv | vendido. Algumas geram etiqueta automática. */
+  status: string;
+  /** Privacidade da morada no mapa público. */
+  locationPrivacy: "exact" | "approx" | "locality" | "hidden";
   /** Base da comissão: percentagem ou valor fixo. */
   comissaoTipo: "percent" | "fixed";
   /** Comissão em % do preço (quando comissaoTipo = "percent"). */
@@ -144,6 +166,21 @@ export interface ImovelDraft {
   planta: boolean;
   /** Imóvel proveniente de herança/partilha — exige documentação adicional. */
   heranca: boolean;
+  /** Licença de utilização averbada na certidão predial permanente — dispensa
+   *  o upload em separado (situação muito comum). Conta como obrigatório
+   *  cumprido em docStatus() sem exigir um ficheiro próprio. */
+  licenseEndorsed: boolean;
+  // Contrato de mediação (CMI) e validades — alertas de expiração.
+  /** CMI exclusivo (true) ou aberto (false). Aberto oculta a morada pública. */
+  cmiExclusive: boolean;
+  /** Renovação automática do CMI. */
+  cmiRenewable: boolean;
+  /** Início do CMI (ISO date). */
+  cmiStart?: string;
+  /** Duração do CMI em meses (para calcular a validade). */
+  cmiMonths?: number;
+  /** Validade do certificado energético (ISO date). */
+  energyCertExpiry?: string;
   distrito?: string;
   videoUrl?: string;
   tourUrl?: string;
@@ -153,12 +190,124 @@ export interface ImovelDraft {
   developmentName?: string;
   developmentStage?: "planta" | "construcao" | "pronto";
   developmentUnits?: number;
+  /** Gama de tipologias do empreendimento (ex.: "T1 a T3"). */
+  developmentTypologies?: string;
+  /** Preço "desde" do empreendimento (para exportação/portais). */
+  developmentPriceFrom?: number;
+  /** Previsão de entrega (ex.: "2.º trimestre 2027"). */
+  developmentDelivery?: string;
+  // Encargos, proprietário, etiquetas e flags
+  /** Encargos correntes (IMI, condomínio, etc.). */
+  expenses: { label: string; value: number; period: "mensal" | "anual" }[];
+  /** Contactos do proprietário — PRIVADOS (nunca públicos). */
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  ownerNif?: string;
+  /** Etiquetas manuais (conjunto predefinido). */
+  tags: string[];
+  /** Placa "vende-se" colocada. */
+  hasPlaca: boolean;
+  /** Chaves na agência. */
+  hasKeys: boolean;
+  /** Estado operacional (lado do agente): activo é o único público. */
+  listingState: "activo" | "pendente" | "inactivo";
+  /** Fora de mercado: visível a toda a agência, mas NÃO ao público/portais. */
+  offMarket: boolean;
   documentos: ImovelDoc[];
 }
 
-export const TIPOS = ["Apartamento", "Moradia", "Terreno", "Loja", "Escritório"];
+export const LISTING_STATES: { value: "activo" | "pendente" | "inactivo"; label: string }[] = [
+  { value: "activo", label: "Activo (público)" },
+  { value: "pendente", label: "Pendente" },
+  { value: "inactivo", label: "Inactivo" },
+];
+
+/** Etiquetas manuais predefinidas (as automáticas — reservado/vendido/CPCV/
+ *  baixa de preço — são aplicadas pelo estado/processo, noutra fase). */
+export const MANUAL_TAGS = [
+  "Novidade",
+  "Oportunidade",
+  "Exclusivo",
+  "Luxo",
+  "Remodelado",
+  "Investimento",
+  "Vista mar",
+  "Para remodelar",
+];
+
+export const TIPOS = [
+  "Apartamento",
+  "Moradia",
+  "Penthouse",
+  "Chalet",
+  "Casa de campo",
+  "Quinta",
+  "Herdade",
+  "Terreno",
+  "Loja / comércio",
+  "Armazém",
+  "Escritório",
+  "Garagem / parqueamento",
+  "Prédio",
+  "Casa em ruínas",
+];
 export const TIPOLOGIAS = ["T0", "T1", "T2", "T3", "T4", "T5"];
+
+/** Tipos de negócio — o valor coarse (operation) alimenta os filtros públicos
+ *  e a exportação para portais. */
+export const BUSINESS_TYPES: { value: string; label: string; operation: "venda" | "arrendamento" }[] = [
+  { value: "venda", label: "Venda", operation: "venda" },
+  { value: "arrendamento", label: "Arrendamento (longa duração)", operation: "arrendamento" },
+  { value: "arrendamento_ano", label: "Arrendamento ao ano", operation: "arrendamento" },
+  { value: "arrendamento_curto", label: "Arrendamento de curta duração", operation: "arrendamento" },
+  { value: "permuta", label: "Permuta", operation: "venda" },
+  { value: "trespasse", label: "Trespasse", operation: "venda" },
+  { value: "cedencia", label: "Cedência de posição", operation: "venda" },
+  { value: "timesharing", label: "Timesharing", operation: "venda" },
+];
+
+/** Operação coarse (venda/arrendamento) a partir do tipo de negócio. */
+export function operationOf(businessType: string): "venda" | "arrendamento" {
+  return BUSINESS_TYPES.find((b) => b.value === businessType)?.operation ?? "venda";
+}
+
+/** Rótulo legível do tipo de negócio (cai para o próprio valor se desconhecido). */
+export function businessTypeLabel(businessType?: string): string {
+  if (!businessType) return "Venda";
+  return BUSINESS_TYPES.find((b) => b.value === businessType)?.label ?? businessType;
+}
+
+/** Privacidade da morada no mapa público. */
+export const LOCATION_PRIVACY: { value: "exact" | "approx" | "locality" | "hidden"; label: string }[] = [
+  { value: "exact", label: "Morada exata (com marcador)" },
+  { value: "approx", label: "Zona aproximada (recomendado)" },
+  { value: "locality", label: "Só a localidade" },
+  { value: "hidden", label: "Ocultar a localização" },
+];
 export const VISTAS = ["Sem vista", "Mar", "Rio", "Serra", "Cidade", "Jardim", "Campo"];
+
+/** Divisões/etiquetas por fotografia (para organizar a galeria). */
+export const DIVISIONS = [
+  "Fachada",
+  "Hall de entrada",
+  "Sala",
+  "Sala de jantar",
+  "Cozinha",
+  "Quarto",
+  "Suite",
+  "Casa de banho",
+  "Escritório",
+  "Varanda",
+  "Terraço",
+  "Jardim",
+  "Piscina",
+  "Garagem",
+  "Arrecadação",
+  "Vista",
+  "Planta",
+  "Outro",
+];
 export const ENERGIAS = ["A+", "A", "B", "B-", "C", "D", "E", "F"];
 
 export const EQUIPAMENTOS = [
@@ -191,10 +340,15 @@ export function blankImovel(id: string): ImovelDraft {
   return {
     id,
     reference: "",
+    legacyReference: "",
     operation: "venda",
+    businessType: "venda",
     type: "Apartamento",
     typology: "T2",
     price: 0,
+    priceVisible: true,
+    locationPrivacy: "approx",
+    status: "",
     comissaoTipo: "percent",
     comissao: 5,
     comissaoFixo: 0,
@@ -222,6 +376,124 @@ export function blankImovel(id: string): ImovelDraft {
     fotosCount: 0,
     planta: false,
     heranca: false,
+    licenseEndorsed: false,
+    cmiExclusive: true,
+    cmiRenewable: false,
+    expenses: [],
+    tags: [],
+    hasPlaca: false,
+    hasKeys: false,
+    listingState: "activo",
+    offMarket: false,
     documentos: [],
   };
+}
+
+/** Estado de validade de uma data (CMI, certificado energético…). */
+export function expiryStatus(dateISO?: string, now = new Date()): {
+  state: "none" | "ok" | "soon" | "expired";
+  days: number;
+  label: string;
+} {
+  if (!dateISO) return { state: "none", days: 0, label: "" };
+  const end = new Date(dateISO);
+  if (isNaN(end.getTime())) return { state: "none", days: 0, label: "" };
+  const days = Math.ceil((end.getTime() - now.getTime()) / 86_400_000);
+  if (days < 0) return { state: "expired", days, label: `Expirado há ${Math.abs(days)} dia(s)` };
+  if (days <= 30) return { state: "soon", days, label: `Expira em ${days} dia(s)` };
+  return { state: "ok", days, label: `Válido (${days} dias)` };
+}
+
+/** Validade do CMI a partir do início + duração em meses. */
+export function cmiExpiryISO(start?: string, months?: number): string | undefined {
+  if (!start || !months) return undefined;
+  const d = new Date(start);
+  if (isNaN(d.getTime())) return undefined;
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Deriva um rascunho editável a partir de um imóvel já publicado, para o
+ *  formulário partilhado poder editar com os MESMOS campos do carregamento. */
+export function draftFromProperty(p: Property): ImovelDraft {
+  return {
+    ...blankImovel(p.id),
+    reference: p.reference,
+    legacyReference: p.legacyReference ?? "",
+    operation: p.operation,
+    businessType: p.businessType ?? p.operation,
+    type: p.type,
+    typology: p.typology ?? "",
+    price: p.price,
+    priceVisible: p.priceVisible ?? true,
+    locationPrivacy: p.locationPrivacy ?? "approx",
+    status: p.status ?? "",
+    comissaoTipo: p.commissionType ?? "percent",
+    comissao: p.commissionPct ?? 0,
+    comissaoFixo: p.commissionFixed ?? 0,
+    sellerType: p.sellerType ?? "particular",
+    area: p.area,
+    beds: p.beds,
+    baths: p.baths,
+    parish: p.parish,
+    municipality: p.municipality,
+    lat: p.lat,
+    lng: p.lng,
+    energy: p.energy ?? "C",
+    anoConstrucao: p.constructionYear ? String(p.constructionYear) : "",
+    elevador: Boolean(p.elevator),
+    rampa: Boolean(p.accessible),
+    estacionamento: Boolean(p.garage),
+    vista: p.view ?? "",
+    equipamentos: p.amenities ?? [],
+    comunidade: p.neighborhoodNotes ?? "",
+    descricaoCurta: p.shortDescription ?? "",
+    descricao: p.description ?? "",
+    seoTitle: p.title ?? "",
+    seoDescription: p.seoDescription ?? "",
+    keywords: p.keywords ?? "",
+    slug: p.slug ?? "",
+    distrito: p.district ?? "",
+    videoUrl: p.videoUrl ?? "",
+    tourUrl: p.tourUrl ?? "",
+    beforeAfter: p.beforeAfter ?? [],
+    isDevelopment: p.isDevelopment,
+    developmentName: p.developmentName,
+    developmentStage: p.developmentStage,
+    developmentUnits: p.developmentUnits,
+    cmiExclusive: p.cmiExclusive ?? true,
+    cmiRenewable: p.cmiRenewable ?? false,
+    cmiStart: p.cmiStart,
+    cmiMonths: p.cmiMonths,
+    energyCertExpiry: p.energyCertExpiry,
+    developmentTypologies: p.developmentTypologies,
+    developmentPriceFrom: p.developmentPriceFrom,
+    developmentDelivery: p.developmentDelivery,
+    expenses: p.expenses ?? [],
+    ownerName: p.ownerName,
+    ownerPhone: p.ownerPhone,
+    ownerEmail: p.ownerEmail,
+    ownerNif: p.ownerNif,
+    tags: p.tags ?? [],
+    hasPlaca: p.hasPlaca ?? false,
+    hasKeys: p.hasKeys ?? false,
+    listingState: p.listingState ?? "activo",
+    offMarket: p.offMarket ?? false,
+    licenseEndorsed: p.licenseEndorsed ?? false,
+    fotosCount: p.gallery?.length ?? (p.image ? 1 : 0),
+    documentos: (p.documentsMeta ?? []).map((m) => ({
+      name: m.name, kind: m.kind, url: m.url, mime: m.mime, validated: m.validated,
+    })),
+  };
+}
+
+export function draftQuality(d: ImovelDraft, photoCount = d.fotosCount): { score: number; missing: string[] } {
+  const checks: Array<[boolean, number, string]> = [
+    [photoCount >= 1, 15, "fotografia principal"], [photoCount >= 8, 15, "pelo menos 8 fotografias"],
+    [d.price > 0, 8, "preço"], [d.area > 0, 7, "área"],
+    [Boolean(d.parish.trim() && d.municipality.trim()), 10, "localização"], [Boolean(d.type && d.typology), 7, "tipo e tipologia"],
+    [d.descricaoCurta.trim().length >= 60, 6, "resumo com 60 caracteres"], [d.descricao.trim().length >= 300, 12, "descrição com 300 caracteres"],
+    [Boolean(d.energy), 5, "certificado energético"], [docStatus(d.documentos.map(doc => doc.kind), d.sellerType === "empresa", d.licenseEndorsed ? ["licenca_utilizacao"] : []).complete, 15, "documentação obrigatória"],
+  ];
+  return { score: checks.reduce((sum,[ok,weight])=>sum+(ok?weight:0),0), missing: checks.filter(([ok])=>!ok).map(([, ,label])=>label) };
 }

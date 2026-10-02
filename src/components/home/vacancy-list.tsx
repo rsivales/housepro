@@ -4,7 +4,7 @@ import * as React from "react";
 import { ArrowRight, MapPin, Briefcase } from "lucide-react";
 
 import { VACANCIES, type Vacancy } from "@/lib/data/careers";
-import { readVacancies } from "@/lib/data/site-content";
+import { readVacancies, loadSiteContent } from "@/lib/data/site-content";
 
 /**
  * Lista de vagas abertas (carreiras). Hidrata a partir do admin (localStorage);
@@ -14,7 +14,7 @@ export function VacancyList() {
   const [vacancies, setVacancies] = React.useState<Vacancy[]>(VACANCIES);
 
   React.useEffect(() => {
-    setVacancies(readVacancies());
+    loadSiteContent().then((c) => setVacancies(c.vacancies ?? readVacancies()));
   }, []);
 
   const open = vacancies.filter((v) => v.active);

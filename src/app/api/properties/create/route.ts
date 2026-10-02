@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { agentPrefixOf } from "@/lib/data/mock";
-import { propertyReference } from "@/lib/codes";
+import { buildPropertyReference } from "@/lib/codes";
+import { operationOf } from "@/lib/imovel/model";
 
 /** Cria um imóvel no Supabase, com o angariador = utilizador autenticado. */
 export async function POST(request: Request) {
@@ -20,26 +20,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  // Referência legível: <prefixo do agente>-<sequência do agente>.
-  const prefix = agentPrefixOf(session.agent.id);
-  let seq = 1;
+  // Referência SEMPRE gerada no servidor — nunca aceite do cliente, para
+  // nunca duplicar e manter o método coerente (HP<agência><agente>-<seq>,
+  // ver buildPropertyReference). Fora do Supabase (modo demo) usa um
+  // marcador claramente temporário.
   const supabaseCfg = isSupabaseConfigured();
+  let ref = `HP-DEMO-${Date.now().toString(36).toUpperCase()}`;
   if (supabaseCfg) {
-    try {
-      const sb = await createClient();
-      const { count } = await sb
-        .from("properties")
-        .select("id", { count: "exact", head: true })
-        .eq("agent_id", session.agent.id);
-      seq = (count ?? 0) + 1;
-    } catch {
-      /* best-effort */
-    }
+    const sb = await createClient();
+    const { data: me } = await sb.from("profiles").select("agency_id, code").eq("id", session.agent.id).single();
+    const { data: ag } = me?.agency_id
+      ? await sb.from("agencies").select("code").eq("id", me.agency_id).single()
+      : { data: null };
+    const { data: seqRow, error: seqErr } = await sb.rpc("next_property_seq", { p_agent: session.agent.id });
+    if (seqErr) return NextResponse.json({ error: "reference_generation_failed" }, { status: 500 });
+    ref = buildPropertyReference(ag?.code ?? 0, me?.code ?? 0, Number(seqRow));
   }
-  const ref =
-    typeof d.reference === "string" && d.reference.trim()
-      ? d.reference.trim()
-      : propertyReference(prefix, seq);
+  const legacyReference = typeof d.legacyReference === "string" && d.legacyReference.trim() ? d.legacyReference.trim() : null;
 
   const title =
     typeof d.seoTitle === "string" && d.seoTitle.trim()
@@ -51,15 +48,24 @@ export async function POST(request: Request) {
   const isAdminOrAmi =
     session.agent.role === "admin" ||
     session.agent.roleKey === "admin" ||
+    session.agent.roleKey === "superadmin" ||
     Boolean(session.agent.ownAMI);
+
+  // Operação coarse derivada do tipo de negócio (compat. com filtros/portais).
+  const businessType = typeof d.businessType === "string" && d.businessType ? d.businessType : (d.operation === "arrendamento" ? "arrendamento" : "venda");
+  const operation = operationOf(businessType);
 
   const row = {
     reference: ref,
+    legacy_reference: legacyReference,
     title,
-    operation: d.operation === "arrendamento" ? "arrendamento" : "venda",
+    operation,
+    business_type: businessType,
     type: String(d.type ?? "Apartamento"),
     typology: d.typology ? String(d.typology) : null,
     price: Number(d.price ?? 0),
+    price_visible: d.priceVisible === false ? false : true,
+    location_privacy: typeof d.locationPrivacy === "string" ? d.locationPrivacy : "approx",
     area: d.area != null ? Number(d.area) : null,
     beds: d.beds != null ? Number(d.beds) : null,
     baths: d.baths != null ? Number(d.baths) : null,
@@ -71,9 +77,13 @@ export async function POST(request: Request) {
     development_stage: d.developmentStage ? String(d.developmentStage) : null,
     development_units: d.developmentUnits != null ? Number(d.developmentUnits) : null,
     energy: d.energy ? String(d.energy) : "C",
-    status: d.status === "rascunho" ? "rascunho" : "novo",
+    status: typeof d.status === "string" && d.status ? String(d.status) : "novo",
     cover_url: d.coverUrl ? String(d.coverUrl) : null,
     gallery: Array.isArray(d.gallery) && d.gallery.length ? d.gallery : null,
+    gallery_meta: Array.isArray(d.galleryMeta) && d.galleryMeta.length ? d.galleryMeta : null,
+    plans: Array.isArray(d.plans) && d.plans.length ? d.plans : null,
+    document_kinds: Array.isArray(d.documentKinds) && d.documentKinds.length ? d.documentKinds : null,
+    documents_meta: Array.isArray(d.documentsMeta) && d.documentsMeta.length ? d.documentsMeta : null,
     video_url: d.videoUrl ? String(d.videoUrl) : null,
     tour_url: d.tourUrl ? String(d.tourUrl) : null,
     before_after:
@@ -85,13 +95,40 @@ export async function POST(request: Request) {
     latitude: d.lat != null ? Number(d.lat) : null,
     longitude: d.lng != null ? Number(d.lng) : null,
     seller_type: d.sellerType === "empresa" ? "empresa" : "particular",
+    cmi_exclusive: d.cmiExclusive === false ? false : true,
+    cmi_renewable: Boolean(d.cmiRenewable),
+    cmi_start: d.cmiStart ? String(d.cmiStart) : null,
+    cmi_months: d.cmiMonths != null ? Number(d.cmiMonths) : null,
+    energy_cert_expiry: d.energyCertExpiry ? String(d.energyCertExpiry) : null,
+    development_typologies: d.developmentTypologies ? String(d.developmentTypologies) : null,
+    development_price_from: d.developmentPriceFrom != null ? Number(d.developmentPriceFrom) : null,
+    development_delivery: d.developmentDelivery ? String(d.developmentDelivery) : null,
+    expenses: Array.isArray(d.expenses) && d.expenses.length ? d.expenses : null,
+    owner_name: d.ownerName ? String(d.ownerName) : null,
+    owner_phone: d.ownerPhone ? String(d.ownerPhone) : null,
+    owner_email: d.ownerEmail ? String(d.ownerEmail) : null,
+    owner_nif: d.ownerNif ? String(d.ownerNif) : null,
+    tags: Array.isArray(d.tags) && d.tags.length ? d.tags : null,
+    has_placa: Boolean(d.hasPlaca),
+    has_keys: Boolean(d.hasKeys),
+    listing_state: ["activo", "pendente", "inactivo"].includes(String(d.listingState)) ? String(d.listingState) : "activo",
+    off_market: Boolean(d.offMarket),
+    license_endorsed: Boolean(d.licenseEndorsed),
     commission_type: d.comissaoTipo === "fixed" ? "fixed" : "percent",
     commission_pct: d.comissaoTipo === "percent" ? Number(d.comissao ?? 0) : null,
     commission_fixed: d.comissaoTipo === "fixed" ? Number(d.comissaoFixo ?? 0) : null,
     short_description: d.descricaoCurta ? String(d.descricaoCurta) : null,
+    seo_description: d.seoDescription ? String(d.seoDescription) : null,
+    keywords: d.keywords ? String(d.keywords) : null,
+    slug: d.slug ? String(d.slug) : null,
     description: d.descricao ? String(d.descricao) : null,
     construction_year: d.anoConstrucao ? Number(d.anoConstrucao) : null,
     elevator: Boolean(d.elevador),
+    accessible: Boolean(d.rampa),
+    garage: Boolean(d.estacionamento),
+    view_type: d.vista ? String(d.vista) : null,
+    amenities: Array.isArray(d.equipamentos) && d.equipamentos.length ? d.equipamentos : null,
+    neighborhood_notes: d.comunidade ? String(d.comunidade) : null,
   };
 
   const supabase = await createClient();

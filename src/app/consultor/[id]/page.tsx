@@ -11,8 +11,8 @@ import { PrizeShowcase } from "@/components/premios/prize-showcase";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { Button } from "@/components/ui/button";
-import { agents, agentById } from "@/lib/data/mock";
-import { listProperties, listPropertiesByAgent, getPrizeArt, getAgencyByIdMerged } from "@/lib/db/repo";
+import { agents } from "@/lib/data/mock";
+import { listProperties, listPropertiesByAgent, getPrizeArt, getAgencyById, getAgentPublicById, getMonthlyGross } from "@/lib/db/repo";
 
 export async function generateMetadata({
   params,
@@ -20,7 +20,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const a = agents.find((x) => x.id === id);
+  const a = (await getAgentPublicById(id)) ?? agents.find((x) => x.id === id);
   return { title: a ? `${a.name} · Consultor` : "Consultor" };
 }
 
@@ -30,7 +30,8 @@ export default async function ConsultorPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const agent = agents.find((x) => x.id === id);
+  const real = await getAgentPublicById(id);
+  const agent = real ?? agents.find((x) => x.id === id);
   if (!agent) {
     return (
       <div className="min-h-dvh bg-background">
@@ -58,8 +59,16 @@ export default async function ConsultorPage({
     .filter((p) => p.agentId !== agent.id)
     .slice(0, 3);
   const prizeArt = await getPrizeArt();
-  // Nome da agência já com as edições da administração aplicadas.
-  const agencyName = (await getAgencyByIdMerged(agent.agencyId))?.name ?? agent.agency;
+  const agencyOf = await getAgencyById(agent.agencyId);
+  const agencyName = agencyOf?.name ?? agent.agency;
+  // O link da montra usa o slug público, não o id — antes usava o id
+  // diretamente, o que nunca batia certo com a rota /agencia/[slug] para
+  // agências reais (só "funcionava" por coincidência nos dados de exemplo,
+  // onde id e slug eram sempre iguais).
+  const agencySlug = agencyOf?.slug ?? agent.agencyId;
+  // Só mostra faturação estimada para consultores REAIS (nunca inventada) —
+  // vem do valor efetivamente registado no perfil, nunca de um cálculo fictício.
+  const monthlyGross = real ? await getMonthlyGross(agent.id) : null;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -74,7 +83,7 @@ export default async function ConsultorPage({
               <p className="mt-1 text-muted-foreground">
                 {agent.role} ·{" "}
                 <Link
-                  href={`/agencia/${agentById(agent.id).agencyId}`}
+                  href={`/agencia/${agencySlug}`}
                   className="hover:text-foreground"
                 >
                   {agencyName}
@@ -97,11 +106,12 @@ export default async function ConsultorPage({
           </div>
         </section>
 
-        {/* Conquistas — prova social pública */}
+        {/* Conquistas — prova social pública. Para consultores reais, nunca
+            inventa números: usa a faturação registada e a angariação real. */}
         <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6">
           <PrizeShowcase
-            faturacao={40000 + (agent.id.split("").reduce((s, c) => s + c.charCodeAt(0), 0) % 8) * 20000}
-            angariacao={Math.max(mine.length, 5)}
+            faturacao={real ? (monthlyGross ?? 0) : 40000 + (agent.id.split("").reduce((s, c) => s + c.charCodeAt(0), 0) % 8) * 20000}
+            angariacao={real ? mine.length : Math.max(mine.length, 5)}
             art={prizeArt}
           />
         </section>

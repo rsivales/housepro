@@ -1,95 +1,122 @@
 "use client";
 
 import * as React from "react";
-import { Building2, Check, ChevronDown, Home, MapPin, Pencil, Plus, Save, Users, X } from "lucide-react";
+import { Building2, Check, ChevronDown, FileText, Home, Loader2, MapPin, Pause, Pencil, Play, Plus, Trash2, Users, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
-import type { Agent } from "@/lib/data/types";
-import { slugify, type AgenciesConfig } from "@/lib/data/agencies";
+import type { Agent, Agency } from "@/lib/data/types";
+import { AgencyProfileEditor } from "@/components/admin/agency-profile-editor";
 
 interface TeamMember { id: string; name: string; role: string; photo: string | null; accent: string }
-interface BaseAgency {
-  id: string; name: string; region: string; slug: string; code: number;
-  propertyCount: number; team: TeamMember[];
-}
-type Row = BaseAgency & { created?: boolean };
+type Row = Agency & { propertyCount: number; team: TeamMember[] };
 
 const box = "rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40";
 
-/** Gestão de agências: criar, renomear/editar região e abrir o detalhe (equipa + imóveis). */
-export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: AgenciesConfig }) {
-  const [overrides, setOverrides] = React.useState<AgenciesConfig["overrides"]>(initial.overrides ?? {});
-  const [created, setCreated] = React.useState<AgenciesConfig["created"]>(initial.created ?? []);
+/**
+ * Gestão de agências — tabela real `agencies` (nunca localStorage/site_settings
+ * como única cópia). `isNetworkAdmin` controla quem pode abrir/renomear/
+ * suspender/eliminar agências (rede) vs. quem só edita a ficha pública da
+ * própria agência (broker/diretor) — o servidor aplica a mesma regra.
+ */
+export function AgenciesAdmin({ base, isNetworkAdmin }: { base: Row[]; isNetworkAdmin: boolean }) {
+  const [rows, setRows] = React.useState<Row[]>(base);
   const [editing, setEditing] = React.useState<string | null>(null);
   const [openId, setOpenId] = React.useState<string | null>(null);
+  const [fichaId, setFichaId] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState<{ name: string; region: string }>({ name: "", region: "" });
   const [creating, setCreating] = React.useState(false);
   const [newAg, setNewAg] = React.useState({ name: "", region: "" });
-  const [saving, setSaving] = React.useState(false);
-  const [saved, setSaved] = React.useState<null | "ok" | "demo" | "err">(null);
+  const [status, setStatus] = React.useState<null | "saving" | "ok" | "err">(null);
+  const [errMsg, setErrMsg] = React.useState<string | null>(null);
 
-  // Linhas a mostrar = base (com overrides) + criadas.
-  const rows: Row[] = [
-    ...base.map((a) => ({
-      ...a,
-      name: overrides[a.id]?.name ?? a.name,
-      region: overrides[a.id]?.region ?? a.region,
-    })),
-    ...created.map((c) => ({ id: c.id, name: c.name, region: c.region, slug: c.slug, code: c.code, propertyCount: 0, team: [] as TeamMember[], created: true })),
-  ];
+  function flash(ok: boolean, msg?: string) {
+    setStatus(ok ? "ok" : "err");
+    setErrMsg(ok ? null : (msg ?? "Falha ao guardar."));
+    setTimeout(() => setStatus((s) => (s === "saving" ? s : null)), 2500);
+  }
+
+  async function patchAgency(id: string, patch: Record<string, unknown>, applyLocal: (r: Row) => Row) {
+    setRows((rs) => rs.map((r) => (r.id === id ? applyLocal(r) : r)));
+    setStatus("saving");
+    try {
+      const res = await fetch("/api/admin/agencies", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, ...patch }),
+      });
+      const j = await res.json().catch(() => ({}));
+      flash(res.ok, j.error);
+    } catch {
+      flash(false, "Falha de rede.");
+    }
+  }
 
   function startEdit(r: Row) {
     setEditing(r.id);
     setDraft({ name: r.name, region: r.region });
   }
   function applyEdit(r: Row) {
-    if (r.created) {
-      setCreated((prev) => prev.map((c) => (c.id === r.id ? { ...c, name: draft.name.trim() || c.name, region: draft.region.trim() || c.region } : c)));
-    } else {
-      setOverrides((prev) => ({ ...prev, [r.id]: { name: draft.name.trim() || r.name, region: draft.region.trim() || r.region } }));
-    }
+    const name = draft.name.trim();
+    const region = draft.region.trim();
+    if (!name && !region) { setEditing(null); return; }
+    void patchAgency(r.id, { ...(name && { name }), ...(region && { region }) }, (row) => ({ ...row, name: name || row.name, region: region || row.region }));
     setEditing(null);
   }
-  function addAgency() {
+  async function addAgency() {
     const name = newAg.name.trim();
     if (!name) return;
-    const slug = slugify(name);
-    const used = new Set(rows.map((r) => r.code));
-    let code = 1;
-    while (used.has(code)) code += 1;
-    const id = `ag-${slug}-${Date.now().toString(36).slice(-4)}`;
-    setCreated((prev) => [...prev, { id, name, slug, region: newAg.region.trim() || "—", code }]);
-    setNewAg({ name: "", region: "" });
-    setCreating(false);
-  }
-
-  async function save() {
-    setSaving(true);
-    setSaved(null);
-    const config: AgenciesConfig = { overrides, created };
+    setStatus("saving");
     try {
-      const res = await fetch("/api/brand/agencies", {
+      const res = await fetch("/api/admin/agencies", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ config }),
+        body: JSON.stringify({ name, region: newAg.region.trim() }),
       });
-      if (res.ok) setSaved("ok");
-      else if (res.status === 401) setSaved("demo");
-      else setSaved("err");
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { flash(false, j.error); return; }
+      setRows((rs) => [...rs, { id: j.id, name, region: newAg.region.trim() || "—", slug: "", code: undefined, propertyCount: 0, team: [] }]);
+      flash(true);
+      setNewAg({ name: "", region: "" });
+      setCreating(false);
     } catch {
-      setSaved("err");
-    } finally {
-      setSaving(false);
-      try { localStorage.setItem("agenciesConfig", JSON.stringify(config)); } catch {}
+      flash(false, "Falha de rede.");
+    }
+  }
+  function toggleSuspend(r: Row) {
+    void patchAgency(r.id, { suspended: !r.suspended }, (row) => ({ ...row, suspended: !row.suspended }));
+  }
+  async function remove(r: Row) {
+    if (!confirm(`Eliminar a agência "${r.name}"? Esta ação é definitiva.`)) return;
+    setStatus("saving");
+    try {
+      const res = await fetch(`/api/admin/agencies?id=${encodeURIComponent(r.id)}`, { method: "DELETE" });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { flash(false, j.error); return; }
+      setRows((rs) => rs.filter((row) => row.id !== r.id));
+      flash(true);
+    } catch {
+      flash(false, "Falha de rede.");
     }
   }
 
   return (
     <div className="mt-6 space-y-4">
-      {/* Criar */}
-      {creating ? (
+      <div className="flex items-center justify-between">
+        {isNetworkAdmin && (
+          creating ? <span /> : (
+            <Button variant="outline" onClick={() => setCreating(true)}><Plus className="size-4" /> Nova agência</Button>
+          )
+        )}
+        <span className="text-sm" aria-live="polite">
+          {status === "saving" && <span className="inline-flex items-center gap-1 text-muted-foreground"><Loader2 className="size-4 animate-spin" /> A guardar…</span>}
+          {status === "ok" && <span className="inline-flex items-center gap-1 text-primary"><Check className="size-4" /> Guardado</span>}
+          {status === "err" && <span className="text-destructive">{errMsg ?? "Falha ao guardar"}</span>}
+        </span>
+      </div>
+
+      {isNetworkAdmin && creating && (
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
           <p className="text-sm font-medium">Nova agência</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -101,17 +128,14 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
             <Button size="sm" variant="ghost" onClick={() => setCreating(false)}>Cancelar</Button>
           </div>
         </div>
-      ) : (
-        <Button variant="outline" onClick={() => setCreating(true)}><Plus className="size-4" /> Nova agência</Button>
       )}
 
-      {/* Lista */}
       <div className="space-y-2.5">
         {rows.map((r) => {
           const isEditing = editing === r.id;
           const isOpen = openId === r.id;
           return (
-            <div key={r.id} className="rounded-2xl border bg-card shadow-sm">
+            <div key={r.id} className={cn("rounded-2xl border bg-card shadow-sm", r.suspended && "opacity-70")}>
               <div className="flex items-center gap-3 p-4">
                 <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
                   <Building2 className="size-5" />
@@ -123,15 +147,15 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
                   </div>
                 ) : (
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 font-medium">
+                    <p className="flex flex-wrap items-center gap-2 font-medium">
                       {r.name}
-                      {r.created && <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">nova</span>}
+                      {r.suspended && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">suspensa</span>}
                     </p>
-                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1"><MapPin className="size-3" /> {r.region}</span>
                       <span className="inline-flex items-center gap-1"><Users className="size-3" /> {r.team.length}</span>
                       <span className="inline-flex items-center gap-1"><Home className="size-3" /> {r.propertyCount}</span>
-                      <span className="font-mono">cod. {String(r.code).padStart(2, "0")}</span>
+                      {r.code != null && <span className="font-mono">cod. {String(r.code).padStart(2, "0")}</span>}
                     </p>
                   </div>
                 )}
@@ -143,8 +167,21 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
                     </>
                   ) : (
                     <>
-                      <Button size="sm" variant="outline" onClick={() => startEdit(r)}><Pencil className="size-3.5" /> Editar</Button>
-                      <button onClick={() => setOpenId(isOpen ? null : r.id)} className="rounded-lg border p-2 text-muted-foreground hover:bg-secondary">
+                      {isNetworkAdmin && (
+                        <Button size="sm" variant="outline" onClick={() => startEdit(r)}><Pencil className="size-3.5" /> Nome</Button>
+                      )}
+                      <Button size="sm" variant={fichaId === r.id ? "default" : "outline"} onClick={() => setFichaId(fichaId === r.id ? null : r.id)}><FileText className="size-3.5" /> Ficha</Button>
+                      {isNetworkAdmin && (
+                        <>
+                          <button onClick={() => toggleSuspend(r)} title={r.suspended ? "Reativar" : "Suspender"} className="grid size-9 place-items-center rounded-lg border text-muted-foreground hover:bg-secondary">
+                            {r.suspended ? <Play className="size-4 text-emerald-600" /> : <Pause className="size-4" />}
+                          </button>
+                          <button onClick={() => remove(r)} title="Eliminar" className="grid size-9 place-items-center rounded-lg border text-destructive hover:bg-destructive/5">
+                            <Trash2 className="size-4" />
+                          </button>
+                        </>
+                      )}
+                      <button onClick={() => setOpenId(isOpen ? null : r.id)} aria-label="Detalhe" className="grid size-9 place-items-center rounded-lg border text-muted-foreground hover:bg-secondary">
                         <ChevronDown className={cn("size-4 transition-transform", isOpen && "rotate-180")} />
                       </button>
                     </>
@@ -152,7 +189,6 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
                 </div>
               </div>
 
-              {/* Detalhe: equipa + info */}
               {isOpen && !isEditing && (
                 <div className="border-t p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Equipa</p>
@@ -173,22 +209,20 @@ export function AgenciesAdmin({ base, initial }: { base: BaseAgency[]; initial: 
                   )}
                   <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
                     <span>Slug: <span className="font-mono">{r.slug}</span></span>
-                    <span>Código: <span className="font-mono">{String(r.code).padStart(2, "0")}</span></span>
+                    {r.code != null && <span>Código: <span className="font-mono">{String(r.code).padStart(2, "0")}</span></span>}
                     <span>Imóveis ativos: {r.propertyCount}</span>
                   </div>
+                </div>
+              )}
+
+              {fichaId === r.id && !isEditing && (
+                <div className="border-t bg-secondary/20">
+                  <AgencyProfileEditor agency={r} onSaved={(next) => setRows((rs) => rs.map((row) => (row.id === r.id ? { ...row, ...next } : row)))} />
                 </div>
               )}
             </div>
           );
         })}
-      </div>
-
-      {/* Guardar */}
-      <div className="flex items-center gap-3 pt-2">
-        <Button onClick={save} disabled={saving}><Save className="size-4" /> {saving ? "A guardar…" : "Guardar alterações"}</Button>
-        {saved === "ok" && <span className="inline-flex items-center gap-1 text-sm text-primary"><Check className="size-4" /> Guardado.</span>}
-        {saved === "demo" && <span className="text-sm text-muted-foreground">Guardado localmente (modo demo — sem Supabase).</span>}
-        {saved === "err" && <span className="text-sm text-destructive">Falha ao guardar.</span>}
       </div>
     </div>
   );

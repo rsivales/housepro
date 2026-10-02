@@ -413,3 +413,5 @@
   text-transform: uppercase; color: var(--hp-blue);
 }
 .hp :focus-visible { outline: 2px solid var(--hp-blue); outline-offset: 2px; border-radius: 6px; }
+.eyebrow { font-size:.72rem; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#397ca8; }
+.section-title { margin-top:.25rem; font-family:var(--font-geist-sans),ui-sans-serif,system-ui,sans-serif; font-size:1.875rem; line-height:2.25rem; font-weight:800; letter-spacing:-.025em; }

@@ -103,21 +103,17 @@ export function FeaturedProperties({ properties }: { properties: Property[] }) {
       <div
         ref={scrollerRef}
         onScroll={onScroll}
-        className="mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-2 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-2 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-auto lg:grid lg:max-w-6xl lg:grid-cols-2 lg:gap-6 lg:overflow-visible lg:pb-0"
       >
-        {properties.map((p, i) => (
-          <div
-            key={p.id}
-            className="w-[88%] shrink-0 snap-start sm:w-[62%] lg:w-[46%]"
-            style={i === properties.length - 1 ? { marginRight: "max(0px, calc((100vw - 72rem) / 2))" } : undefined}
-          >
+        {properties.map((p) => (
+          <div key={p.id} className="w-[88%] shrink-0 snap-start sm:w-[62%] lg:w-auto lg:shrink">
             <FeaturedCard property={p} />
           </div>
         ))}
       </div>
 
       <div className="mx-auto mt-4 flex max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <div className="flex items-center gap-2" role="tablist" aria-label="Escolher imóvel">
+        <div className="flex items-center gap-2 lg:hidden" role="tablist" aria-label="Escolher imóvel">
           {properties.map((p, i) => (
             <button
               key={p.id}

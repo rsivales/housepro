@@ -105,6 +105,6 @@ export function topConcelhos(
       count: g.count,
       demand: g.demand,
       image: pickImage(g.name, g.best, overrides),
-      href: `/imoveis?local=${encodeURIComponent(g.name)}`,
+      href: `/imoveis?concelho=${encodeURIComponent(g.name)}`,
     }));
 }

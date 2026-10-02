@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Search, Home, Pause, Play } from "lucide-react";
 
 import { activeBanners, type Banner } from "@/lib/data/banners";
-import { readBanners } from "@/lib/data/site-content";
+import { readBanners, loadSiteContent } from "@/lib/data/site-content";
 
 const ROTATE_MS = 7000;
 
@@ -22,10 +22,12 @@ export function DynamicHero({ banners }: { banners: Banner[] }) {
   const hoverRef = React.useRef(false);
   const banner = list[index] ?? list[0];
 
-  // Banners geridos no admin (localStorage) têm prioridade sobre os defaults.
+  // Banners publicados no admin (Supabase, com fallback localStorage/defaults).
   React.useEffect(() => {
-    const active = activeBanners(readBanners());
-    if (active.length > 0) setList(active);
+    loadSiteContent().then((c) => {
+      const active = activeBanners(c.banners ?? readBanners());
+      if (active.length > 0) setList(active);
+    });
   }, []);
 
   // Sessão estável: memoriza o banner escolhido para não recomeçar do zero.

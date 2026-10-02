@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, CalendarDays, Bell, User, Building2, Hash, Eye, Settings, LogOut, Check } from "lucide-react";
+import { Search, CalendarDays, Bell, User, Building2, Hash, Eye, Calculator, LogOut, Check } from "lucide-react";
 
 import { HelixLogo } from "./helix-logo";
 import { CLIENT_MODE_KEY } from "@/lib/client-mode";
@@ -24,6 +24,7 @@ export function AppHeader({ name, photo, agency, code, hasUnread }: Props) {
   const first = name.split(" ")[0] ?? name;
 
   return (
+    <>
     <header className="sticky top-0 z-30 border-b border-[var(--hx-border)] bg-[var(--hx-surface)]/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
         <Link href="/app" aria-label="Início Helix">
@@ -65,6 +66,12 @@ export function AppHeader({ name, photo, agency, code, hasUnread }: Props) {
         </div>
       </div>
     </header>
+
+    {/* Fora do <header> de propósito: um <header sticky> passa a servir de
+        referência a um filho "fixed", que ficava preso à altura do
+        cabeçalho — clicar fora do menu mas fora do cabeçalho não o fechava. */}
+    {menu && <button className="fixed inset-0 z-40 cursor-default" aria-hidden onClick={() => setMenu(false)} tabIndex={-1} />}
+    </>
   );
 }
 
@@ -96,7 +103,6 @@ function ProfileMenu({
 
   return (
     <>
-      <button className="fixed inset-0 z-40 cursor-default" aria-hidden onClick={onClose} tabIndex={-1} />
       <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-[var(--hx-border)] bg-[var(--hx-surface)] shadow-xl">
         <div className="border-b border-[var(--hx-border)] p-3">
           <p className="font-semibold">{name}</p>
@@ -111,12 +117,18 @@ function ProfileMenu({
             <Eye className="size-4 hx-muted" /> Modo cliente
             {clientMode && <Check className="ml-auto size-4" style={{ color: "var(--hx-success)" }} />}
           </button>
+          {/* Esta ligação abre as calculadoras (IMT, crédito, mais-valias) — não é
+              uma página de definições de conta, por isso o rótulo reflete o destino. */}
           <Link href="/app/ferramentas" onClick={onClose} className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-[var(--hx-surface-blue)]">
-            <Settings className="size-4 hx-muted" /> Definições
+            <Calculator className="size-4 hx-muted" /> Ferramentas
           </Link>
-          <a href="/auth/signout" className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-[var(--hx-surface-blue)]" style={{ color: "var(--hx-red)" }}>
-            <LogOut className="size-4" /> Terminar sessão
-          </a>
+          {/* /auth/signout só aceita POST (mutação de cookies) — uma ligação <a>
+              normal faz sempre um GET e dava erro 405. */}
+          <form action="/auth/signout" method="post">
+            <button type="submit" className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-[var(--hx-surface-blue)]" style={{ color: "var(--hx-red)" }}>
+              <LogOut className="size-4" /> Terminar sessão
+            </button>
+          </form>
         </nav>
       </div>
     </>

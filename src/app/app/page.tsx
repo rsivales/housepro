@@ -35,10 +35,12 @@ import {
   Activity,
   Gauge,
   ArrowRight,
+  Pencil,
+  Building2,
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
-import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications } from "@/lib/db/repo";
+import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications, getAgencyById } from "@/lib/db/repo";
 import { demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
 import { quoteTextOfDay } from "@/lib/data/quotes";
 import { getQuotesConfig } from "@/lib/db/repo";
@@ -49,13 +51,15 @@ import { referralsIncoming } from "@/lib/data/referrals";
 import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
 import { DocNote } from "@/components/consultant/doc-note";
 import { PropertyRef } from "@/components/property/property-ref";
-import { agentById, agentPrefixOf } from "@/lib/data/mock";
+import { agentById } from "@/lib/data/mock";
+import { consultantCode } from "@/lib/codes";
 import { formatPhone } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { PadrinhoAutoRedeem } from "@/components/afilhados/padrinho-auto-redeem";
 import { ContactSlaWatcher } from "@/components/consultant/contact-sla-watcher";
 import { PropertyCard } from "@/components/property/property-card";
 import { ShareProperty } from "@/components/property/share-property";
+import { OwnerLinkButton } from "@/components/property/owner-link-button";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Área profissional" };
@@ -96,6 +100,11 @@ export default async function AppPage() {
   const agencyProps = agent.agencyId ? await listPropertiesByAgency(agent.agencyId) : [];
   const lastAngariado = agencyProps[0];
   const lastAngariadoAgent = lastAngariado ? agentById(lastAngariado.agentId) : undefined;
+  // Código real do consultor (agência + agente, ex.: "HP1101") — nunca o
+  // prefixo de exemplo (agentPrefixOf usa dados de demonstração e devolvia
+  // sempre "1000000" para quem não existisse nesses dados).
+  const myAgency = agent.agencyId ? await getAgencyById(agent.agencyId) : undefined;
+  const myCode = myAgency?.code != null && agent.code != null ? consultantCode(myAgency.code, agent.code) : null;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -109,9 +118,11 @@ export default async function AppPage() {
               <p className="text-xs text-muted-foreground">
                 {agent.role} · {agent.agency || "HousePro"}
               </p>
-              <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-                Código {agentPrefixOf(agent.id)}
-              </p>
+              {myCode && (
+                <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                  Código {myCode}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -377,7 +388,20 @@ export default async function AppPage() {
               {mine.map((p) => (
                 <div key={p.id} className="space-y-3">
                   <PropertyCard property={p} />
+                  {p.legacyReference && (
+                    <p className="text-xs text-muted-foreground">
+                      Antigo ID: <span className="font-mono">{p.legacyReference}</span>
+                    </p>
+                  )}
                   <DocNote documents={p.documents} sellerType={p.sellerType} />
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/app/imovel/${p.id}/editar`}>
+                        <Pencil className="size-4" /> Editar
+                      </Link>
+                    </Button>
+                    <OwnerLinkButton propertyId={p.id} />
+                  </div>
                   <ShareProperty
                     propertyId={p.id}
                     reference={p.reference}
@@ -387,9 +411,37 @@ export default async function AppPage() {
               ))}
             </div>
           ) : (
-            <p className="mt-4 text-muted-foreground">Ainda sem imóveis publicados.</p>
+            <p className="mt-4 text-muted-foreground">Ainda sem imóveis.</p>
           )}
         </section>
+
+        {/* Imóveis da agência — para ver o que os colegas têm em carteira, sem
+            duplicar leads nem propostas. Reaproveita agencyProps (já
+            carregado para o banner "último angariado"). */}
+        {agent.agencyId && (
+          <section className="mt-10">
+            <div className="flex items-end justify-between">
+              <h2 className="flex items-center gap-2 font-display text-xl">
+                <Building2 className="size-5 text-muted-foreground" /> Imóveis da agência
+              </h2>
+              <span className="text-sm text-muted-foreground">
+                {agencyProps.filter((p) => p.agentId !== agent.id).length}
+              </span>
+            </div>
+            {agencyProps.filter((p) => p.agentId !== agent.id).length > 0 ? (
+              <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {agencyProps
+                  .filter((p) => p.agentId !== agent.id)
+                  .slice(0, 6)
+                  .map((p) => (
+                    <PropertyCard key={p.id} property={p} />
+                  ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-muted-foreground">Sem outros imóveis publicados na agência.</p>
+            )}
+          </section>
+        )}
       </main>
     </div>
   );

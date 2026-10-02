@@ -1,21 +1,24 @@
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import {
   availableProperties,
+  properties as allMockProperties,
   propertiesByAgent as mockByAgent,
   propertiesByAgency as mockByAgency,
   soldByAgency as mockSoldByAgency,
   similarProperties as mockSimilar,
   propertyById as mockById,
   agencies as baseAgencies,
+  agentsByAgency as mockAgentsByAgency,
 } from "@/lib/data/mock";
 import { leadsByOwner } from "@/lib/data/leads";
 import type { Lead } from "@/lib/data/leads";
 import { DEFAULT_CONCELHOS_CONFIG, type ConcelhosConfig } from "@/lib/data/concelhos";
-import { DEFAULT_AGENCIES_CONFIG, mergeAgencies, type AgenciesConfig } from "@/lib/data/agencies";
 import type { AuditEntry } from "@/lib/data/audit";
 import { SEVERITY, type QualityEvent, type QualitySeverity, type QualityCategory } from "@/lib/data/quality";
 import type { Agency, Agent, Property } from "@/lib/data/types";
+import { DEFAULT_PROPERTY_HUB, mergePropertyHub, type PropertyHubConfig } from "@/lib/data/property-hub";
 
 /**
  * Data-access layer. Reads from Supabase when configured, otherwise falls back
@@ -43,15 +46,48 @@ function mapAgent(a: Row | null | undefined): Agent | undefined {
   };
 }
 
+const AGENCY_COLS =
+  "id, name, slug, region, code, suspended, services, show_active, show_sold, show_reserved, news, description, photos, prizes, ami_license, ami_expires, nipc, cae, legal_email, docs";
+
+function mapAgencyRow(r: Row): Agency {
+  return {
+    id: String(r.id ?? ""),
+    name: String(r.name ?? ""),
+    slug: String(r.slug ?? ""),
+    region: String(r.region ?? ""),
+    code: (r.code as number | null) ?? undefined,
+    suspended: Boolean(r.suspended),
+    services: (r.services as string[] | null) ?? [],
+    showActive: r.show_active !== false,
+    showSold: r.show_sold !== false,
+    showReserved: r.show_reserved !== false,
+    news: (r.news as Agency["news"]) ?? [],
+    description: (r.description as string | null) ?? undefined,
+    photos: (r.photos as string[] | null) ?? [],
+    prizes: (r.prizes as Agency["prizes"]) ?? [],
+    amiLicense: (r.ami_license as string | null) ?? undefined,
+    amiExpires: (r.ami_expires as string | null) ?? undefined,
+    nipc: (r.nipc as string | null) ?? undefined,
+    cae: (r.cae as string | null) ?? undefined,
+    legalEmail: (r.legal_email as string | null) ?? undefined,
+    docs: (r.docs as Agency["docs"]) ?? {},
+  };
+}
+
 function mapRow(r: Row): Property {
   return {
     id: String(r.id),
+    slug: (r.slug as string) ?? undefined,
     reference: String(r.reference ?? ""),
+    legacyReference: (r.legacy_reference as string | null) ?? undefined,
     title: String(r.title ?? ""),
     operation: (r.operation as Property["operation"]) ?? "venda",
+    businessType: (r.business_type as string) ?? undefined,
     type: (r.type as Property["type"]) ?? "Apartamento",
     typology: (r.typology as string | null) ?? null,
     price: Number(r.price ?? 0),
+    priceVisible: r.price_visible != null ? Boolean(r.price_visible) : undefined,
+    locationPrivacy: (r.location_privacy as Property["locationPrivacy"]) ?? undefined,
     area: Number(r.area ?? 0),
     beds: Number(r.beds ?? 0),
     baths: Number(r.baths ?? 0),
@@ -62,10 +98,23 @@ function mapRow(r: Row): Property {
     developmentName: (r.development_name as string) ?? undefined,
     developmentStage: (r.development_stage as Property["developmentStage"]) ?? undefined,
     developmentUnits: r.development_units != null ? Number(r.development_units) : undefined,
+    developmentBrochureUrl: (r.development_brochure_url as string) ?? undefined,
+    isSignature: r.is_signature != null ? Boolean(r.is_signature) : undefined,
+    signatureStatus: r.signature_status as Property["signatureStatus"],
+    signatureOrder: r.signature_order != null ? Number(r.signature_order) : undefined,
+    signatureHeroUrl: r.signature_hero_url as string | undefined,
+    signatureEditorialTitle: r.signature_editorial_title as string | undefined,
+    signatureEditorialIntro: r.signature_editorial_intro as string | undefined,
+    signatureAttributes: Array.isArray(r.signature_attributes) ? r.signature_attributes as string[] : undefined,
+    signatureCollection: r.signature_collection as string | undefined,
+    signatureVisibility: r.signature_visibility as Property["signatureVisibility"],
+    signaturePriceVisible: r.signature_price_visible != null ? Boolean(r.signature_price_visible) : undefined,
+    signatureFeatured: r.signature_featured != null ? Boolean(r.signature_featured) : undefined,
     energy: (r.energy as Property["energy"]) ?? "C",
     status: (r.status as Property["status"]) ?? null,
     image: String(r.cover_url ?? ""),
     gallery: Array.isArray(r.gallery) && r.gallery.length ? (r.gallery as string[]) : undefined,
+    galleryMeta: Array.isArray(r.gallery_meta) && r.gallery_meta.length ? (r.gallery_meta as Property["galleryMeta"]) : undefined,
     videoUrl: (r.video_url as string) ?? undefined,
     tourUrl: (r.tour_url as string) ?? undefined,
     beforeAfter: Array.isArray(r.before_after)
@@ -73,11 +122,17 @@ function mapRow(r: Row): Property {
       : undefined,
     shortDescription: (r.short_description as string) ?? undefined,
     description: (r.description as string) ?? undefined,
+    seoDescription: (r.seo_description as string) ?? undefined,
+    keywords: (r.keywords as string) ?? undefined,
     areaUtil: r.area_util != null ? Number(r.area_util) : undefined,
     areaDependente: r.area_dependente != null ? Number(r.area_dependente) : undefined,
     landArea: r.land_area != null ? Number(r.land_area) : undefined,
     garage: r.garage != null ? Boolean(r.garage) : undefined,
     elevator: r.elevator != null ? Boolean(r.elevator) : undefined,
+    accessible: r.accessible != null ? Boolean(r.accessible) : undefined,
+    view: (r.view_type as string) ?? undefined,
+    amenities: Array.isArray(r.amenities) ? (r.amenities as string[]) : undefined,
+    neighborhoodNotes: (r.neighborhood_notes as string) ?? undefined,
     constructionYear: r.construction_year != null ? Number(r.construction_year) : undefined,
     lat: r.latitude != null ? Number(r.latitude) : undefined,
     lng: r.longitude != null ? Number(r.longitude) : undefined,
@@ -85,11 +140,33 @@ function mapRow(r: Row): Property {
     commissionPct: r.commission_pct != null ? Number(r.commission_pct) : undefined,
     commissionFixed: r.commission_fixed != null ? Number(r.commission_fixed) : undefined,
     documents: Array.isArray(r.document_kinds) ? (r.document_kinds as string[]) : undefined,
+    documentsMeta: Array.isArray(r.documents_meta) ? (r.documents_meta as Property["documentsMeta"]) : undefined,
+    plans: Array.isArray(r.plans) ? (r.plans as string[]) : undefined,
     sellerType: (r.seller_type as "particular" | "empresa") ?? undefined,
+    cmiExclusive: r.cmi_exclusive != null ? Boolean(r.cmi_exclusive) : undefined,
+    cmiRenewable: r.cmi_renewable != null ? Boolean(r.cmi_renewable) : undefined,
+    cmiStart: (r.cmi_start as string) ?? undefined,
+    cmiMonths: r.cmi_months != null ? Number(r.cmi_months) : undefined,
+    energyCertExpiry: (r.energy_cert_expiry as string) ?? undefined,
+    developmentTypologies: (r.development_typologies as string) ?? undefined,
+    developmentPriceFrom: r.development_price_from != null ? Number(r.development_price_from) : undefined,
+    developmentDelivery: (r.development_delivery as string) ?? undefined,
+    expenses: Array.isArray(r.expenses) ? (r.expenses as Property["expenses"]) : undefined,
+    ownerName: (r.owner_name as string) ?? undefined,
+    ownerPhone: (r.owner_phone as string) ?? undefined,
+    ownerEmail: (r.owner_email as string) ?? undefined,
+    ownerNif: (r.owner_nif as string) ?? undefined,
+    tags: Array.isArray(r.tags) ? (r.tags as string[]) : undefined,
+    hasPlaca: r.has_placa != null ? Boolean(r.has_placa) : undefined,
+    hasKeys: r.has_keys != null ? Boolean(r.has_keys) : undefined,
+    listingState: (r.listing_state as Property["listingState"]) ?? undefined,
+    offMarket: r.off_market != null ? Boolean(r.off_market) : undefined,
+    licenseEndorsed: r.license_endorsed != null ? Boolean(r.license_endorsed) : undefined,
     approval: (r.approval as Property["approval"]) ?? undefined,
     submittedAt: (r.submitted_at as string) ?? undefined,
     agent: mapAgent((r.agent ?? r.profiles) as Row | null | undefined),
     agentId: String(r.agent_id ?? ""),
+    coAgentIds: Array.isArray(r.co_agent_ids) ? (r.co_agent_ids as string[]) : undefined,
     interest: r.interest != null ? Number(r.interest) : undefined,
     listedAt: (r.listed_at as string) ?? undefined,
     soldAt: (r.sold_at as string) ?? undefined,
@@ -130,6 +207,29 @@ export async function listProperties(): Promise<Property[]> {
     .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
+    .eq("listing_state", "activo")
+    .eq("off_market", false)
+    .order("listed_at", { ascending: false });
+  return (data ?? []).map(mapRow);
+}
+
+/**
+ * TODOS os imóveis não vendidos, independentemente de aprovação/publicação —
+ * uso exclusivo de páginas de administração (ex.: prontidão para exportação
+ * nos portais), onde a equipa precisa de ver precisamente os que ainda NÃO
+ * estão prontos. Usa service_role (a RLS pública só deixa ver os aprovados/
+ * ativos/próprios); a página que chama isto já está protegida a
+ * coordenação+ no layout de /admin.
+ */
+export async function listAllPropertiesAdmin(): Promise<Property[]> {
+  if (!isSupabaseConfigured()) return allMockProperties.filter((p) => p.status !== "vendido");
+  if (!hasServiceRole()) return listProperties();
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("properties")
+    .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
+    .neq("status", "vendido")
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }
@@ -147,8 +247,25 @@ export async function listDevelopments(): Promise<Property[]> {
     .eq("is_development", true)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
+    .eq("listing_state", "activo")
+    .eq("off_market", false)
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
+}
+
+/** Coleção pública, editorialmente aprovada, de imóveis portugueses Signature. */
+export async function listSignatureProperties(): Promise<Property[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("properties").select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
+    .eq("is_signature", true).eq("signature_status", "approved").eq("signature_visibility", "public")
+    .neq("status", "vendido").order("signature_order", { ascending: true, nullsFirst: false });
+  return (data ?? []).map(mapRow);
+}
+
+export async function getSignaturePropertyBySlug(slug: string): Promise<Property | null> {
+  const rows = await listSignatureProperties();
+  return rows.find((p) => p.id === slug || p.reference === slug || p.slug === slug) ?? null;
 }
 
 export async function listPropertiesByAgency(agencyId: string): Promise<Property[]> {
@@ -161,6 +278,8 @@ export async function listPropertiesByAgency(agencyId: string): Promise<Property
     .eq("profiles.agency_id", agencyId)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
+    .eq("listing_state", "activo")
+    .eq("off_market", false)
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }
@@ -191,6 +310,8 @@ export async function listSimilarProperties(
     .neq("id", property.id)
     .neq("status", "vendido")
     .eq("approval", "aprovado")
+    .eq("listing_state", "activo")
+    .eq("off_market", false)
     .eq("municipality", property.municipality)
     .limit(limit);
   return (data ?? []).map(mapRow);
@@ -403,6 +524,15 @@ export async function getConcelhosConfig(): Promise<ConcelhosConfig> {
   }
 }
 
+export async function getPropertyHubConfig(): Promise<PropertyHubConfig> {
+  if (!isSupabaseConfigured()) return DEFAULT_PROPERTY_HUB;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("site_settings").select("value").eq("key", "hp_propertyhub").maybeSingle();
+    return mergePropertyHub(data?.value as PropertyHubConfig | undefined);
+  } catch { return DEFAULT_PROPERTY_HUB; }
+}
+
 /** Configuração do advogado (honorários/serviços/pagamento) — site_settings. */
 export async function getLawyerConfig(): Promise<import("@/lib/data/legalflow").LawyerConfig> {
   const { DEFAULT_LAWYER_CONFIG } = await import("@/lib/data/legalflow");
@@ -469,38 +599,84 @@ export async function listPropertyAudit(propertyId: string): Promise<AuditEntry[
   }
 }
 
-/** Configuração de gestão de agências (site_settings, chave "agencies"). */
-export async function getAgenciesConfig(): Promise<AgenciesConfig> {
-  if (!isSupabaseConfigured()) return DEFAULT_AGENCIES_CONFIG;
+/**
+ * Agências — fonte ÚNICA de verdade: a tabela real `agencies` (a mesma que
+ * profiles.agency_id referencia). Antes existia um sistema paralelo, em
+ * site_settings, com ids DIFERENTES dos reais ("algarve" vs. o UUID
+ * verdadeiro) — por isso a página pública de uma agência nunca mostrava os
+ * imóveis/equipa reais dela. Ver migration_agencies_real.sql.
+ */
+export async function listAgenciesReal(opts: { includeHidden?: boolean } = {}): Promise<Agency[]> {
+  if (!isSupabaseConfigured()) return baseAgencies;
+  const supabase = await createClient();
+  let query = supabase.from("agencies").select(AGENCY_COLS).order("name");
+  if (!opts.includeHidden) query = query.eq("suspended", false);
+  const { data } = await query;
+  return (data ?? []).map(mapAgencyRow);
+}
+
+/** Agência por slug (site público). */
+export async function getAgencyBySlug(slug: string): Promise<Agency | undefined> {
+  if (!isSupabaseConfigured()) return baseAgencies.find((a) => a.slug === slug);
+  const supabase = await createClient();
+  const { data } = await supabase.from("agencies").select(AGENCY_COLS).eq("slug", slug).maybeSingle();
+  return data ? mapAgencyRow(data) : undefined;
+}
+
+/** Agência por id. */
+export async function getAgencyById(id: string): Promise<Agency | undefined> {
+  if (!isSupabaseConfigured()) return baseAgencies.find((a) => a.id === id);
+  const supabase = await createClient();
+  const { data } = await supabase.from("agencies").select(AGENCY_COLS).eq("id", id).maybeSingle();
+  return data ? mapAgencyRow(data) : undefined;
+}
+
+/** Equipa ativa de uma agência (para a montra pública — broker, coordenação
+ *  e consultores em atividade; suspensos ficam de fora). */
+export async function listActiveAgentsByAgency(agencyId: string): Promise<Agent[]> {
+  if (!isSupabaseConfigured()) return mockAgentsByAgency(agencyId);
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select(AGENT_COLS)
+    .eq("agency_id", agencyId)
+    .eq("active", true)
+    .order("role_key");
+  return (data ?? []).map(mapAgent).filter((a): a is Agent => Boolean(a));
+}
+
+/** Perfil público de um consultor/agente real (para a página /consultor/[id]). */
+export async function getAgentPublicById(id: string): Promise<Agent | undefined> {
+  if (!isSupabaseConfigured()) return undefined;
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select(AGENT_COLS).eq("id", id).maybeSingle();
+  return mapAgent(data ?? undefined);
+}
+
+/** Conteúdos geríveis da homepage (banners, histórias, vagas, imagens). */
+export async function getSiteContent(): Promise<{
+  banners?: unknown; stories?: unknown; vacancies?: unknown; newsimg?: unknown; homerule?: unknown;
+}> {
+  if (!isSupabaseConfigured()) return {};
   try {
     const supabase = await createClient();
     const { data } = await supabase
       .from("site_settings")
-      .select("value")
-      .eq("key", "agencies")
-      .maybeSingle();
-    const v = data?.value as Partial<AgenciesConfig> | undefined;
-    return { overrides: v?.overrides ?? {}, created: v?.created ?? [] };
+      .select("key, value")
+      .in("key", ["hp_banners", "hp_stories", "hp_vacancies", "hp_newsimg", "hp_homerule"]);
+    const map = Object.fromEntries((data ?? []).map((r) => [r.key, r.value]));
+    return {
+      banners: map["hp_banners"],
+      stories: map["hp_stories"],
+      vacancies: map["hp_vacancies"],
+      newsimg: map["hp_newsimg"],
+      homerule: map["hp_homerule"],
+    };
   } catch {
-    return DEFAULT_AGENCIES_CONFIG;
+    return {};
   }
 }
 
-/** Agências da rede com as edições/criações aplicadas (para o site público). */
-export async function getMergedAgencies(): Promise<Agency[]> {
-  const config = await getAgenciesConfig();
-  return mergeAgencies(baseAgencies, config);
-}
-
-/** Agência por slug, já com as edições aplicadas. */
-export async function getAgencyBySlug(slug: string): Promise<Agency | undefined> {
-  return (await getMergedAgencies()).find((a) => a.slug === slug);
-}
-
-/** Agência por id, já com as edições aplicadas. */
-export async function getAgencyByIdMerged(id: string): Promise<Agency | undefined> {
-  return (await getMergedAgencies()).find((a) => a.id === id);
-}
 
 // --- Qualidade -------------------------------------------------------------
 
@@ -684,20 +860,35 @@ export async function createLead(input: NewLead): Promise<Lead> {
   if (!isSupabaseConfigured()) return lead;
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("leads")
-    .insert({
-      property_id: input.propertyId ?? null,
-      owner_id: input.ownerId,
-      referrer_id: input.referrerId ?? null,
-      name: input.name,
-      contact: input.contact,
-      message: input.message ?? null,
-      source: input.source ?? "site",
-    })
-    .select("id, created_at")
-    .single();
-  return { ...lead, id: data ? String(data.id) : lead.id };
+  // Colunas garantidas (existem desde o esquema base).
+  const base = {
+    property_id: input.propertyId ?? null,
+    owner_id: input.ownerId,
+    referrer_id: input.referrerId ?? null,
+    name: input.name,
+    contact: input.contact,
+    message: input.message ?? null,
+    source: input.source ?? "site",
+  };
+  // Metadados de funil — persistem quando a migração 'lead_funnel_fields' foi
+  // aplicada. Se as colunas ainda não existirem, o insert é repetido só com as
+  // colunas base para NUNCA perder o pedido.
+  const extra = {
+    sub_source: input.subSource ?? null,
+    page_url: input.pageUrl ?? null,
+    referrer_url: input.referrerUrl ?? null,
+    utm: input.utm ?? null,
+    contact_preference: input.contactPreference ?? null,
+    marketing_consent: input.marketingConsent ?? null,
+    email_status: input.emailStatus ?? null,
+  };
+
+  let res = await supabase.from("leads").insert({ ...base, ...extra }).select("id, created_at").single();
+  if (res.error) {
+    // Provável coluna em falta → grava o essencial para não perder a lead.
+    res = await supabase.from("leads").insert(base).select("id, created_at").single();
+  }
+  return { ...lead, id: res.data ? String(res.data.id) : lead.id };
 }
 
 export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
@@ -706,7 +897,7 @@ export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("leads")
-    .select("*")
+    .select("*, property:properties!property_id(cover_url)")
     .eq("owner_id", agentId)
     .order("created_at", { ascending: false });
   return (data ?? []).map(mapLeadRow);
@@ -714,10 +905,14 @@ export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
 
 /** Mapeia uma linha da tabela `leads` para o modelo Lead (inclui campos Meta). */
 function mapLeadRow(r: Row): Lead {
+  const propJoin = (Array.isArray(r.property) ? r.property[0] : r.property) as
+    | { cover_url?: string }
+    | undefined;
   return {
     id: String(r.id),
     propertyId: (r.property_id as string) ?? undefined,
     propertyRef: (r.property_ref as string) ?? undefined,
+    propertyImage: propJoin?.cover_url || undefined,
     ownerId: String(r.owner_id ?? ""),
     referrerId: (r.referrer_id as string) ?? undefined,
     name: String(r.name ?? ""),

@@ -1,9 +1,12 @@
 import { getSession } from "@/lib/supabase/auth";
 import { RoleSwitcher } from "@/components/admin/role-switcher";
+import { RoleStatusBar } from "@/components/admin/role-status-bar";
 import { AppHeader } from "@/components/helix/app-header";
 import { HelixSidebar } from "@/components/helix/helix-sidebar";
 import { MobileBottomNavigation } from "@/components/helix/bottom-nav";
 import { agencyById } from "@/lib/data/mock";
+import { ReleaseNotice } from "@/components/helix/release-notice";
+import { isSuperadmin, ROLE_LABEL } from "@/lib/data/roles";
 
 /**
  * Layout da área profissional — shell Helix UNIFORME para todos os módulos:
@@ -22,9 +25,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) return <>{children}</>;
 
   const { agent, demo } = session;
+  const superadmin = isSuperadmin(agent);
+  const roleLabel = (agent.roleKey && ROLE_LABEL[agent.roleKey]) || agent.role || "Consultor";
+  const canSwitch = isSuperadmin(session.realAgent ?? agent);
 
   return (
     <div className="helix min-h-dvh">
+      {!demo && (
+        <RoleStatusBar
+          name={agent.name}
+          roleLabel={roleLabel}
+          canSwitch={canSwitch}
+          viewingAs={Boolean(session.viewingAs)}
+          realName={session.realAgent?.name}
+        />
+      )}
       <AppHeader
         name={agent.name}
         photo={agent.photo}
@@ -32,11 +47,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         code={agent.code != null ? `#${agent.code}` : agencyById(agent.agencyId)?.region}
         hasUnread
       />
-      <HelixSidebar />
+      <HelixSidebar superadmin={superadmin} />
       <div className="lg:pl-[76px]">
         <div className="pb-24 lg:pb-8">{children}</div>
       </div>
-      <MobileBottomNavigation />
+      <MobileBottomNavigation superadmin={superadmin} />
+      <ReleaseNotice />
       {demo && <RoleSwitcher currentId={agent.id} />}
     </div>
   );

@@ -18,29 +18,29 @@ export function ClinicaFooter() {
     { label: "Livro de reclamações", href: site.livroReclamacoes },
   ];
   return (
-    <footer className="border-t" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+    <footer className="border-t text-white" style={{ borderColor: "#18395f", background: "var(--hp-navy)" }}>
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <Logo />
-            <p className="mt-2 text-sm font-medium" style={{ color: "var(--hp-navy)" }}>Clínica de Finanças</p>
-            <p className="text-xs text-muted-foreground">Simuladores e informação imobiliária</p>
-            <p className="mt-2 text-sm text-muted-foreground">{site.legalName} · AMI {site.amiLicense}</p>
-            <p className="text-sm text-muted-foreground">{fullAddress}</p>
+            <p className="mt-2 text-sm font-medium text-white">Clínica de Finanças</p>
+            <p className="text-xs text-white/65">Simuladores e informação imobiliária</p>
+            <p className="mt-2 text-sm text-white/65">{site.legalName} · AMI {site.amiLicense}</p>
+            <p className="text-sm text-white/65">{fullAddress}</p>
           </div>
           <div className="flex items-center gap-2">
             {SOCIAL.map((s) => (
-              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} className="grid size-9 place-items-center rounded-full border text-muted-foreground transition-colors hover:text-foreground" style={{ borderColor: "var(--border)" }}>
+              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} className="grid size-9 place-items-center rounded-full border text-white/75 transition-colors hover:text-white" style={{ borderColor: "#ffffff44" }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden><path d={s.path} /></svg>
               </a>
             ))}
           </div>
         </div>
-        <div className="mt-6 flex flex-col gap-2 border-t pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--border)" }}>
+        <div className="mt-6 flex flex-col gap-2 border-t pt-5 text-xs text-white/65 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "#ffffff33" }}>
           <ul className="flex flex-wrap gap-x-4 gap-y-1">
             {legal.map((l) => {
               const external = /^https?:|^mailto:/i.test(l.href);
-              return <li key={l.label}><Link href={l.href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="hover:text-foreground">{l.label}</Link></li>;
+              return <li key={l.label}><Link href={l.href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="hover:text-white">{l.label}</Link></li>;
             })}
           </ul>
           <p>© {new Date().getFullYear()} {site.brand} · {site.legalName}</p>

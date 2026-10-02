@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Settings, ExternalLink, Stamp, ImagePlus, Trash2, Type } from "lucide-react";
+import { Settings, ExternalLink, Stamp, ImagePlus, Trash2, Type, KeyRound } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -12,11 +12,12 @@ import {
   type OrderingRule,
 } from "@/lib/data/ordering";
 import { siteConfig, HOME_RULE_KEY, WATERMARK_KEY, defaultWatermark, type WatermarkConfig } from "@/lib/config";
+import { publishSection } from "@/lib/data/site-content";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { WATERMARK_POSITIONS, docStatus } from "@/lib/imovel/model";
 import { allReferrals, REFERRAL_STATUS } from "@/lib/data/referrals";
-import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp, ShieldCheck, ShieldHalf, Rss, AlertTriangle, ChevronRight } from "lucide-react";
+import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp, ShieldCheck, ShieldHalf, Rss, AlertTriangle, ChevronRight, Map, Eye } from "lucide-react";
 import { properties, agencies, agentsByAgency, propertiesByAgency, pendingApprovals } from "@/lib/data/mock";
 import { demoDeals, stagePercent } from "@/lib/data/deal";
 import { commissionLabel } from "@/lib/data/commission";
@@ -26,8 +27,10 @@ import { formatEuro } from "@/lib/format";
 export default function AdminPage() {
   const [rule, setRule] = React.useState<OrderingRule>(siteConfig.homeMoreRule);
   const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
+  const [canManageWebsite, setCanManageWebsite] = React.useState(false);
 
   React.useEffect(() => {
+    fetch("/api/me/role").then((r) => r.json()).then((data) => setCanManageWebsite(data?.superadmin === true)).catch(() => {});
     const stored = localStorage.getItem(HOME_RULE_KEY) as OrderingRule | null;
     if (stored && stored in ORDERING_LABELS) setRule(stored);
     const wmRaw = localStorage.getItem(WATERMARK_KEY);
@@ -52,26 +55,41 @@ export default function AdminPage() {
   }, []);
 
   const [savingWm, setSavingWm] = React.useState<"idle" | "saving" | "ok" | "err">("idle");
+  const [wmError, setWmError] = React.useState<string | null>(null);
 
-  /** Publica o estilo da marca de água para TODO o site (todos os consultores). */
+  /** Publica o estilo da marca de água para TODO o site (todos os consultores).
+   *  O servidor já devolve o motivo real da falha (permissão, base de dados,
+   *  etc.) — mostra-o em vez de um texto fixo que esconde a causa. */
   async function saveWatermarkGlobal() {
     setSavingWm("saving");
+    setWmError(null);
     try {
       const res = await fetch("/api/brand/watermark", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(wm),
       });
-      setSavingWm(res.ok ? "ok" : "err");
-    } catch {
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setSavingWm("ok");
+        setTimeout(() => setSavingWm((s) => (s === "ok" ? "idle" : s)), 4000);
+      } else {
+        setWmError(typeof j.error === "string" ? j.error : `Erro ${res.status}`);
+        setSavingWm("err");
+        console.error("[watermark] falha ao gravar", res.status, j);
+        // Erro fica visível até se tentar guardar de novo — não desaparece
+        // sozinho, para dar tempo a ler/copiar a mensagem real.
+      }
+    } catch (e) {
+      setWmError(e instanceof Error ? e.message : "Falha de rede.");
       setSavingWm("err");
     }
-    setTimeout(() => setSavingWm("idle"), 3000);
   }
 
   function choose(r: OrderingRule) {
     setRule(r);
     localStorage.setItem(HOME_RULE_KEY, r);
+    publishSection("homerule", r); // publica globalmente (Supabase)
   }
 
   function patchWm(p: Partial<WatermarkConfig>) {
@@ -227,7 +245,11 @@ export default function AdminPage() {
           <NavCard href="/admin/agencia-legal" icon={ShieldAlert} title="Dados legais da agência" note="AMI, certidões, registo — obrigatório" />
           <NavCard href="/admin/premios" icon={TrendingUp} title="Artes dos prémios" note="Troféus/renders por distinção" />
           <NavCard href="/admin/frases" icon={Type} title="Frases diárias" note="Biblioteca + campanhas e datas especiais" />
-          <NavCard href="/admin/website" icon={ImagePlus} title="Website público" note="Banners, histórias, vagas e imagens de artigos" />
+          {canManageWebsite && <NavCard href="/admin/website" icon={ImagePlus} title="Website público" note="Banners, histórias, vagas e imagens de artigos" />}
+          {canManageWebsite && <NavCard href="/admin/funcoes" icon={Eye} title="Ver menus por função" note="Pré-visualização segura de todas as áreas de trabalho" />}
+          {canManageWebsite && <NavCard href="/admin/mapa-sistema" icon={Map} title="Mapa Website + Helix" note="Rotas públicas e módulos do CRM" />}
+          {canManageWebsite && <NavCard href="/admin/auditoria" icon={ShieldAlert} title="Centro de auditoria" note="Supervisão ética e de conformidade, sem caixa comercial" />}
+          {canManageWebsite && <NavCard href="/admin/seguranca" icon={KeyRound} title="Segurança da conta" note="Definir ou alterar a palavra-passe do Super Admin" />}
         </section>
 
         {/* Pipeline de negócios */}
@@ -511,7 +533,7 @@ export default function AdminPage() {
                 )}
                 {savingWm === "err" && (
                   <span className="text-sm text-destructive">
-                    Não foi possível guardar (só a administração pode).
+                    Não foi possível guardar{wmError ? `: ${wmError}` : "."}
                   </span>
                 )}
                 <span className="text-xs text-muted-foreground">

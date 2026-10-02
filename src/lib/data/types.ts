@@ -1,11 +1,8 @@
 export type Operation = "venda" | "arrendamento";
 
-export type PropertyType =
-  | "Apartamento"
-  | "Moradia"
-  | "Terreno"
-  | "Loja"
-  | "Escritório";
+/** Categoria do imóvel — texto livre entre um conjunto alargado (ver TIPOS em
+ *  lib/imovel/model). Mantido como alias de string para não ser frágil. */
+export type PropertyType = string;
 
 export type PropertyStatus =
   | "novo"
@@ -13,6 +10,7 @@ export type PropertyStatus =
   | "reduzido"
   | "oportunidade"
   | "reservado"
+  | "cpcv"
   | "vendido";
 
 export type EnergyRating =
@@ -25,6 +23,23 @@ export type EnergyRating =
   | "E"
   | "F";
 
+/** Comunicado/notícia local publicado pela própria agência (conquistas, etc.). */
+export interface AgencyNewsItem {
+  id: string;
+  title: string;
+  body: string;
+  date: string;
+}
+
+/** Prémio/distinção da agência (mostrado na ficha pública). */
+export interface AgencyPrize {
+  title: string;
+  year?: string;
+}
+
+/** Documentos legais obrigatórios carregados (comprovativo AMI, etc.). */
+export type AgencyDocKind = "ami_comprovativo" | "certidao_permanente" | "registo_comercial" | "seguro_rc";
+
 export interface Agency {
   id: string;
   name: string;
@@ -33,6 +48,27 @@ export interface Agency {
   region: string;
   /** Código numérico da agência (2 dígitos) para as referências legíveis. */
   code?: number;
+  /** Oculta a agência do site público (back office continua a vê-la). */
+  suspended?: boolean;
+  /** Serviços prestados pela agência, mostrados na ficha pública. */
+  services?: string[];
+  /** O broker decide o que aparece na montra pública da agência. */
+  showActive?: boolean;
+  showSold?: boolean;
+  showReserved?: boolean;
+  /** Notícias locais / comunicados da agência (conquistas, eventos, etc.). */
+  news?: AgencyNewsItem[];
+  /** Apresentação pública (texto livre). */
+  description?: string;
+  photos?: string[];
+  prizes?: AgencyPrize[];
+  /** Dados legais obrigatórios (licença AMI, NIPC, CAE, etc.). */
+  amiLicense?: string;
+  amiExpires?: string;
+  nipc?: string;
+  cae?: string;
+  legalEmail?: string;
+  docs?: Partial<Record<AgencyDocKind, string>>;
 }
 
 /** Papel hierárquico (governa permissões e aprovações). */
@@ -83,14 +119,25 @@ export type ApprovalStatus = "rascunho" | "pendente" | "aprovado" | "rejeitado";
 
 export interface Property {
   id: string;
-  /** Public listing reference, e.g. "HP-1024". */
+  /** Slug SEO opcional da ficha pública. */
+  slug?: string;
+  /** Public listing reference, e.g. "HP1001-01" (agência 1 · agente 001 ·
+   *  1.º imóvel) — gerada sempre pelo servidor, nunca editável. */
   reference: string;
+  /** ID antigo (outra agência/plataforma), só para imóveis migrados — nunca
+   *  público, só de consulta interna no backoffice. */
+  legacyReference?: string;
   title: string;
   operation: Operation;
+  /** Tipo de negócio detalhado (venda, permuta, trespasse, arrendamento ao ano,
+   *  curta duração, timesharing, cedência…). `operation` é a versão coarse. */
+  businessType?: string;
   type: PropertyType;
   /** Typology: T0–T5, or null for land. */
   typology: string | null;
   price: number;
+  /** Preço visível ao público (auto-oculto quando vendido/CPCV). */
+  priceVisible?: boolean;
   /** Gross private area in m². */
   area: number;
   beds: number;
@@ -108,22 +155,68 @@ export interface Property {
   developmentStage?: "planta" | "construcao" | "pronto";
   /** Nº total de frações/lotes do empreendimento (informativo). */
   developmentUnits?: number;
+  /** Empreendimento: gama de tipologias, preço "desde" e previsão de entrega. */
+  developmentTypologies?: string;
+  developmentPriceFrom?: number;
+  developmentDelivery?: string;
+  /** Encargos correntes (IMI, condomínio, etc.). */
+  expenses?: { label: string; value: number; period: "mensal" | "anual" }[];
+  /** Contactos do proprietário — PRIVADOS (nunca renderizados no público). */
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  ownerNif?: string;
+  /** Etiquetas (manuais + automáticas). */
+  tags?: string[];
+  /** Placa colocada / chaves na agência (operacional interno). */
+  hasPlaca?: boolean;
+  hasKeys?: boolean;
+  /** Estado operacional: activo é o único público. */
+  listingState?: "activo" | "pendente" | "inactivo";
+  /** Fora de mercado: visível à agência, nunca ao público/portais. */
+  offMarket?: boolean;
+  /** Brochura pública autorizada do empreendimento. Nunca é inventada: só
+   * aparece na montra quando o URL foi preenchido no backoffice. */
+  developmentBrochureUrl?: string;
+  /** Curadoria HousePro Signature — só fica visível após aprovação editorial. */
+  isSignature?: boolean;
+  signatureStatus?: "candidate" | "pending" | "approved" | "rejected";
+  signatureOrder?: number;
+  signatureHeroUrl?: string;
+  signatureEditorialTitle?: string;
+  signatureEditorialIntro?: string;
+  signatureAttributes?: string[];
+  signatureCollection?: string;
+  signatureVisibility?: "public" | "private";
+  signaturePriceVisible?: boolean;
+  signatureFeatured?: boolean;
   energy: EnergyRating;
   status: PropertyStatus | null;
   /** Cover image path under /public/properties. */
   image: string;
   /** Optional gallery (real photos); cover first. */
   gallery?: string[];
+  /** Metadados por foto (alinhados com gallery): divisão/etiqueta. */
+  galleryMeta?: { url: string; division?: string }[];
   /** Link de vídeo (YouTube, Vimeo, etc.). */
   videoUrl?: string;
   /** Link do tour virtual 3D (Matterport, etc.). */
   tourUrl?: string;
+  /** Plantas do imóvel (imagens). Ativa o separador "Plantas" quando existem. */
+  plans?: string[];
   /** Pares antes/depois (virtual staging / obras) para o slider interativo. */
   beforeAfter?: { before: string; after: string; label?: string }[];
+  /** Título editorial da página do imóvel (ex.: "Uma casa desenhada para o
+   *  mar"). Editável no CMS; quando ausente usa-se um título neutro. */
+  editorialTitle?: string;
   /** One-line teaser shown on the listing page. */
   shortDescription?: string;
   /** Full marketing description (paragraphs). */
   description?: string;
+  /** Meta descrição SEO (separada da descrição curta pública). */
+  seoDescription?: string;
+  /** Palavras-chave SEO, separadas por vírgula. */
+  keywords?: string;
   /** Área útil (privativa) em m². */
   areaUtil?: number;
   /** Área dependente (varandas, arrecadação…) em m². */
@@ -134,11 +227,24 @@ export interface Property {
   garage?: boolean;
   /** Tem elevador. */
   elevator?: boolean;
+  /** Acessível / com rampa. */
+  accessible?: boolean;
+  /** Vista (ex.: "Mar", "Serra", "Sem vista"). */
+  view?: string;
+  /** Equipamentos (ex.: "Ar condicionado", "Piscina"). */
+  amenities?: string[];
+  /** Notas sobre a zona/comunidade envolvente. */
+  neighborhoodNotes?: string;
   /** Ano de construção. */
   constructionYear?: number;
   /** Coordenadas para marcador preciso no mapa; opcional. */
   lat?: number;
   lng?: number;
+  /** Privacidade da localização: exata, aproximada, só localidade ou oculta.
+   *  Quando ausente assume-se "approx" (não revela a morada exata). */
+  locationPrivacy?: "exact" | "approx" | "locality" | "hidden";
+  /** object-position da fotografia de capa no hero (ex.: "center 30%"). */
+  imageFocus?: string;
   /** Base da comissão: percentagem do preço ou valor fixo. */
   commissionType?: "percent" | "fixed";
   /** Comissão em % do preço de venda (quando commissionType = "percent"). */
@@ -152,8 +258,20 @@ export interface Property {
   commissionApprovedBy?: string;
   /** Tipos de documento já carregados (para a nota de documentação). */
   documents?: string[];
+  /** Documentos carregados: ficheiro/URL, tipo e validação — nunca públicos. */
+  documentsMeta?: { name: string; kind: string; url: string; mime?: string; validated?: boolean }[];
+  /** Licença de utilização averbada na certidão predial permanente — dispensa
+   *  upload em separado desse documento obrigatório. */
+  licenseEndorsed?: boolean;
   /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
   sellerType?: "particular" | "empresa";
+  /** Contrato de mediação (CMI): exclusivo vs aberto; renovável; datas. */
+  cmiExclusive?: boolean;
+  cmiRenewable?: boolean;
+  cmiStart?: string;
+  cmiMonths?: number;
+  /** Validade do certificado energético (ISO date) — alerta de expiração. */
+  energyCertExpiry?: string;
   /** Estado de aprovação de publicação. Oculto ao público até "aprovado".
    *  Imóveis de agentes com AMI próprio nascem "aprovado". */
   approval?: ApprovalStatus;

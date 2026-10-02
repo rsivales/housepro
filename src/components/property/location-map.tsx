@@ -4,41 +4,59 @@ import * as React from "react";
 import { MapPin, ExternalLink } from "lucide-react";
 
 /**
- * Mini-mapa. Por defeito mostra uma pré-visualização estilizada (rápida e sem
- * pedidos externos); ao clicar carrega o mapa interativo real (OpenStreetMap,
- * sem chave). A ligação "Ver no mapa" abre o Google Maps. Padrão
- * "click-to-load" — leve, privado e correto em produção.
+ * Mini-mapa: mostra logo o mapa interativo (OpenStreetMap, sem chave) quando
+ * há coordenadas — sem exigir um clique para carregar. A ligação "Explorar a
+ * zona" abre o Google Maps.
  */
 export function LocationMap({
   parish,
   municipality,
   lat,
   lng,
+  approximate = true,
+  onOpen,
 }: {
   parish: string;
   municipality: string;
   lat?: number;
   lng?: number;
+  /** Mostra o aviso "Localização aproximada" quando a morada exata não é revelada. */
+  approximate?: boolean;
+  /** Chamado quando o mapa é apresentado (para analytics). */
+  onOpen?: () => void;
 }) {
-  const [live, setLive] = React.useState(false);
   const hasCoords = typeof lat === "number" && typeof lng === "number";
+  const openedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (hasCoords && !openedRef.current) {
+      openedRef.current = true;
+      onOpen?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasCoords]);
 
   const query = encodeURIComponent(`${parish}, ${municipality}, Portugal`);
-  const gmaps = hasCoords
-    ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
-    : `https://www.google.com/maps/search/?api=1&query=${query}`;
+  // Link externo: com morada exata aponta as coordenadas; caso contrário abre
+  // a zona pesquisada (não revela a casa).
+  const gmaps =
+    hasCoords && !approximate
+      ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+      : `https://www.google.com/maps/search/?api=1&query=${query}`;
 
-  // OpenStreetMap embed (sem chave). Com coordenadas usa uma bbox à volta do
-  // ponto + marcador; sem coordenadas centra por pesquisa.
-  const d = 0.01;
+  // OpenStreetMap embed (sem chave). O embed SÓ funciona com bbox — o parâmetro
+  // `query` não é suportado e resultava num mapa-múndi. Por isso só carregamos
+  // o mapa interativo quando temos coordenadas. Em modo aproximado alargamos a
+  // caixa e omitimos o marcador para não apontar a morada exata.
+  const d = approximate ? 0.035 : 0.008;
+  const marker = hasCoords && !approximate ? `&marker=${lat}%2C${lng}` : "";
   const osm = hasCoords
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${lng! - d}%2C${lat! - d}%2C${lng! + d}%2C${lat! + d}&layer=mapnik&marker=${lat}%2C${lng}`
-    : `https://www.openstreetmap.org/export/embed.html?query=${query}&layer=mapnik`;
+    ? `https://www.openstreetmap.org/export/embed.html?bbox=${lng! - d}%2C${lat! - d}%2C${lng! + d}%2C${lat! + d}&layer=mapnik${marker}`
+    : null;
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-card">
       <div className="relative h-56 w-full">
-        {live ? (
+        {osm ? (
           <iframe
             title={`Mapa de ${parish}, ${municipality}`}
             src={osm}
@@ -47,13 +65,16 @@ export function LocationMap({
             className="size-full border-0"
           />
         ) : (
-          <button
-            type="button"
-            onClick={() => setLive(true)}
+          // Sem coordenadas geocodificadas não há mapa fiável a incorporar —
+          // mostramos a pré-visualização e remetemos para o Google Maps.
+          <a
+            href={gmaps}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => onOpen?.()}
             className="group relative block size-full"
-            aria-label="Carregar mapa interativo"
+            aria-label="Ver a zona no Google Maps"
           >
-            {/* Pré-visualização estilizada */}
             <svg viewBox="0 0 400 224" className="size-full" preserveAspectRatio="xMidYMid slice" aria-hidden>
               <rect width="400" height="224" className="fill-secondary" />
               <g className="fill-muted/40">
@@ -75,11 +96,11 @@ export function LocationMap({
               <MapPin className="size-8 fill-primary text-primary-foreground drop-shadow" />
             </span>
             <span className="absolute inset-0 grid place-items-center transition-colors group-hover:bg-background/10">
-              <span className="rounded-full bg-background/90 px-4 py-2 text-sm font-medium shadow-sm backdrop-blur transition-transform group-hover:scale-105">
-                Carregar mapa interativo
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-background/90 px-4 py-2 text-sm font-medium shadow-sm backdrop-blur transition-transform group-hover:scale-105">
+                Ver a zona no Google Maps <ExternalLink className="size-3.5" />
               </span>
             </span>
-          </button>
+          </a>
         )}
       </div>
 
@@ -95,9 +116,12 @@ export function LocationMap({
           rel="noopener noreferrer"
           className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
         >
-          Ver no mapa <ExternalLink className="size-3.5" />
+          Explorar a zona <ExternalLink className="size-3.5" />
         </a>
       </div>
+      {approximate && (
+        <p className="border-t px-4 py-2 text-xs text-muted-foreground">Localização aproximada</p>
+      )}
     </div>
   );
 }

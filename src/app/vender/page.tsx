@@ -1,85 +1,21 @@
 import type { Metadata } from "next";
-import { BadgeCheck, Camera, LineChart, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, BarChart3, Camera, Handshake, MapPin, ShieldCheck } from "lucide-react";
+import { PublicHeader } from "@/components/home/public-header";
+import { PublicFooter } from "@/components/home/public-footer";
+import { SellContactForm } from "@/components/vender/sell-contact-form";
+import { ValuationTestimonials } from "@/components/avaliacao/valuation-testimonials";
 
-import { SiteHeader } from "@/components/layout/site-header";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ConsentField } from "@/components/forms/consent-field";
+export const metadata: Metadata = { title: "Vender imóvel com a HousePro", description: "Uma estratégia cuidada para vender o seu imóvel com clareza, acompanhamento e alcance." };
 
-export const metadata: Metadata = {
-  title: "Vender e avaliar",
-  description:
-    "Avaliação gratuita e plano de venda com a HousePro. Saiba quanto vale a sua casa.",
-};
+const benefits = [[BarChart3,"Estratégia certa", "Preço, posicionamento e plano de comercialização baseados no mercado real."],[Camera,"Apresentação que valoriza", "Fotografia, vídeo e comunicação pensados para revelar o melhor do imóvel."],[Handshake,"Acompanhamento próximo", "Um consultor acompanha cada contacto, proposta, negociação e a escritura."]];
 
-const steps = [
-  { icon: LineChart, title: "Avaliação de mercado", desc: "Análise do valor real com base em vendas comparáveis." },
-  { icon: Camera, title: "Marketing profissional", desc: "Fotografia, vídeo e divulgação nos principais portais." },
-  { icon: BadgeCheck, title: "Acompanhamento", desc: "Visitas, negociação e apoio até à escritura." },
-];
-
-export default function VenderPage() {
-  return (
-    <div className="min-h-dvh bg-background">
-      <SiteHeader />
-      <main>
-        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
-                <Sparkles className="size-3.5 text-gold" /> Gratuito e sem compromisso
-              </span>
-              <h1 className="mt-4 font-display text-4xl sm:text-5xl">
-                Quanto vale a sua casa?
-              </h1>
-              <p className="mt-4 max-w-md text-lg text-muted-foreground">
-                Peça uma avaliação gratuita. Um consultor HousePro analisa o seu
-                imóvel e apresenta um plano de venda com o valor de mercado atual.
-              </p>
-              <ul className="mt-8 space-y-4">
-                {steps.map((s) => (
-                  <li key={s.title} className="flex gap-3">
-                    <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
-                      <s.icon className="size-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{s.title}</p>
-                      <p className="text-sm text-muted-foreground">{s.desc}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div id="contacto" className="scroll-mt-24 rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-              <h2 className="font-display text-xl">Pedir avaliação gratuita</h2>
-              <form className="mt-5 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="nome">Nome</Label>
-                    <Input id="nome" placeholder="O seu nome" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="contacto-input">Contacto</Label>
-                    <Input id="contacto-input" placeholder="Telemóvel ou email" />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="morada">Morada do imóvel</Label>
-                  <Input id="morada" placeholder="Rua, concelho" />
-                </div>
-                <ConsentField />
-                <Button variant="brand" size="lg" className="w-full">
-                  Pedir avaliação gratuita
-                </Button>
-              </form>
-            </div>
-          </div>
-        </section>
-      </main>
-      <SiteFooter />
-    </div>
-  );
-}
+export default function VenderPage() { return <div className="hp min-h-dvh bg-[#f5f7fa] text-[#0b1f3a]"><PublicHeader /><main>
+  <section className="relative isolate overflow-hidden bg-[#0b1f3a] pt-28 text-white sm:pt-36"><img src="/home/banner-familia.webp" alt="Família e consultora HousePro numa moradia" className="absolute inset-0 -z-10 size-full object-cover opacity-55" /><div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(5,20,42,.98),rgba(5,20,42,.84)_42%,rgba(5,20,42,.26))]" />
+    <div className="mx-auto grid max-w-6xl gap-10 px-5 pb-16 sm:px-8 lg:grid-cols-[1fr_460px] lg:pb-20"><div className="max-w-xl pt-4"><p className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[.14em]"><ShieldCheck className="size-4" /> Vender com confiança</p><h1 className="mt-5 font-display text-4xl leading-[1.06] sm:text-6xl">A sua casa merece uma venda à altura.</h1><p className="mt-5 max-w-lg text-lg leading-8 text-white/85">Uma estratégia clara, uma apresentação cuidada e acompanhamento humano para vender bem — do primeiro passo à escritura.</p><div className="mt-8 flex flex-wrap gap-4"><a href="#contacto-venda" className="hp-btn-red inline-flex min-h-12 items-center gap-2 rounded-xl px-6 font-bold">Pedir contacto <ArrowRight className="size-4" /></a><Link href="/avaliacao-imovel#comecar" className="inline-flex min-h-12 items-center rounded-xl border border-white/50 px-6 font-semibold">Pedir avaliação</Link></div><p className="mt-5 flex items-center gap-2 text-sm text-white/75"><MapPin className="size-4" /> Algarve · Lisboa · Porto</p></div><div id="contacto-venda" className="scroll-mt-20 lg:pt-0"><SellContactForm /></div></div>
+  </section>
+  <section className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-20"><p className="hp-eyebrow">Uma venda bem preparada</p><h2 className="mt-2 max-w-2xl font-display text-3xl sm:text-4xl">Mais do que colocar um anúncio.</h2><div className="mt-9 grid gap-5 md:grid-cols-3">{benefits.map(([Icon,title,text])=>{const I=Icon as typeof BarChart3;return <article key={String(title)} className="rounded-2xl border bg-white p-6 shadow-sm"><I className="size-8 text-[#d62832]"/><h3 className="mt-5 font-display text-xl">{title as string}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{text as string}</p></article>})}</div></section>
+  <section className="bg-white px-5 py-14 sm:px-8 sm:py-20"><div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.95fr_1.05fr]"><div className="relative min-h-[310px] overflow-hidden rounded-2xl"><img src="/home/equipa.webp" alt="Equipa HousePro" className="absolute inset-0 size-full object-cover" /></div><div><p className="hp-eyebrow">O nosso compromisso</p><h2 className="mt-2 font-display text-3xl sm:text-4xl">Tratamos de tudo, do primeiro contacto à escritura.</h2><p className="mt-5 max-w-xl leading-7 text-slate-600">Coordenamos a preparação, a divulgação, as visitas e a negociação com método, mantendo-o informado em cada decisão importante.</p><Link href="/historias-reais" className="mt-6 inline-flex items-center gap-2 font-semibold text-[#d62832]">Conhecer a HousePro <ArrowRight className="size-4" /></Link></div></div></section>
+  <ValuationTestimonials />
+  <section className="mx-auto max-w-6xl px-5 py-14 sm:px-8"><div className="rounded-2xl bg-[#0b1f3a] px-7 py-10 text-white sm:px-10"><p className="text-xs font-bold uppercase tracking-[.16em] text-white/60">Sem compromisso</p><h2 className="mt-2 font-display text-3xl">Vamos falar sobre o seu imóvel?</h2><p className="mt-3 max-w-xl text-white/75">Conte-nos o essencial. A equipa HousePro responde com um próximo passo concreto.</p><a href="#contacto-venda" className="hp-btn-red mt-7 inline-flex min-h-12 items-center gap-2 rounded-xl px-6 font-bold">Pedir contacto <ArrowRight className="size-4" /></a></div></section>
+</main><PublicFooter /></div>; }

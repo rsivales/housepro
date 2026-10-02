@@ -6,8 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { Heart3D } from "@/components/icons/heart-3d";
-
-const FAV_KEY = "housepro:favoritos";
+import { loadFavorites, currentFavorites } from "@/lib/cliente/favorites";
 
 // Áreas privadas/profissionais onde não faz sentido mostrar.
 const OCULTAR = [
@@ -25,15 +24,8 @@ export function FavoritesFab() {
   const [count, setCount] = React.useState(0);
 
   React.useEffect(() => {
-    const read = () => {
-      try {
-        const ids = JSON.parse(localStorage.getItem(FAV_KEY) || "[]");
-        setCount(Array.isArray(ids) ? ids.length : 0);
-      } catch {
-        setCount(0);
-      }
-    };
-    read();
+    loadFavorites().then((list) => setCount(list.length));
+    const read = () => setCount(currentFavorites().length);
     window.addEventListener("storage", read);
     window.addEventListener("housepro:favoritos", read);
     return () => {

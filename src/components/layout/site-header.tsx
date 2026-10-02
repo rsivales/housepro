@@ -13,6 +13,7 @@ const nav = [
   { label: "Comprar", href: "/imoveis?operacao=comprar" },
   { label: "Arrendar", href: "/imoveis?operacao=arrendar" },
   { label: "Empreendimentos", href: "/empreendimentos" },
+  { label: "Signature", href: "/signature" },
   { label: "Internacional", href: "/internacional" },
   { label: "Vender", href: "/vender" },
   { label: "Investir", href: "/investir" },
@@ -37,7 +38,7 @@ export function SiteHeader() {
           <Logo />
         </Link>
 
-        <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">
+        <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground min-[1450px]:flex">
           {nav.map((item) => (
             <Link
               key={item.label}
@@ -51,25 +52,25 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-1.5">
           <ModeToggle />
-          <Button variant="ghost" size="sm" className="hidden lg:inline-flex" asChild>
+          <Button variant="ghost" size="sm" className="hidden min-[1450px]:inline-flex" asChild>
             <Link href="/entrar">
               <Briefcase className="size-4" /> Profissionais
             </Link>
           </Button>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
+          <Button variant="ghost" size="sm" className="hidden min-[1450px]:inline-flex" asChild>
             <Link href="/cliente/favoritos">
               <User className="size-4" /> A minha conta
             </Link>
           </Button>
-          <Button variant="brand" size="sm" className="hidden sm:inline-flex" asChild>
-            <Link href="/vender">Avaliação gratuita</Link>
+          <Button variant="brand" size="sm" className="hidden min-[1450px]:inline-flex" asChild>
+            <Link href="/avaliacao-imovel">Avaliação gratuita</Link>
           </Button>
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Fechar menu" : "Abrir menu"}
             aria-expanded={open}
-            className="grid size-9 place-items-center rounded-md text-foreground md:hidden"
+            className="grid size-9 place-items-center rounded-md text-foreground min-[1450px]:hidden"
           >
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
@@ -79,7 +80,7 @@ export function SiteHeader() {
       {/* Mobile menu */}
       <div
         className={cn(
-          "overflow-hidden border-t border-border/60 md:hidden",
+          "overflow-hidden border-t border-border/60 min-[1450px]:hidden",
           open ? "max-h-[32rem]" : "max-h-0 border-t-0"
         )}
       >
@@ -111,7 +112,7 @@ export function SiteHeader() {
           ))}
 
           <Button variant="brand" className="mt-2" asChild>
-            <Link href="/vender" onClick={() => setOpen(false)}>
+            <Link href="/avaliacao-imovel" onClick={() => setOpen(false)}>
               Avaliação gratuita
             </Link>
           </Button>

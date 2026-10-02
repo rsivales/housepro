@@ -3,6 +3,10 @@
 import * as React from "react";
 import { Pencil, Upload, Trash2, Quote, Target, Check, ImageIcon, ThermometerSun } from "lucide-react";
 
+import { useSetting } from "@/lib/helix/settings";
+import { downscaleImage } from "@/lib/img/downscale";
+import { UploadProgress, type UploadState } from "@/components/admin/upload-progress";
+
 const KEY = "helix:banner";
 
 /** Fundos predefinidos (Deep Navy) para quem não carrega fotografia. */
@@ -16,15 +20,6 @@ interface Stored {
   photo?: string; // data URL
   preset?: string;
   posY?: number; // 0–100 object-position
-}
-
-function readFile(file: File): Promise<string> {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(String(r.result));
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
 }
 
 interface Props {
@@ -41,33 +36,31 @@ interface Props {
 const eur = (n: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
 export function PersonalMotivationBanner(props: Props) {
-  const [store, setStore] = React.useState<Stored>({});
+  const [store, setStore, ready] = useSetting<Stored>(KEY, KEY, {});
   const [editing, setEditing] = React.useState(false);
-  const [firstUse, setFirstUse] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const [uploadState, setUploadState] = React.useState<UploadState>();
 
-  React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setStore(JSON.parse(raw));
-      else setFirstUse(true);
-    } catch {
-      setFirstUse(true);
-    }
-  }, []);
+  // Primeira utilização: já leu do servidor/local e ainda não há nada guardado.
+  const firstUse = ready && !store.photo && !store.preset;
 
-  function save(next: Stored) {
-    setStore(next);
-    setFirstUse(false);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {}
-  }
+  const save = (next: Stored) => setStore(next);
 
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    save({ ...store, photo: await readFile(f), preset: undefined, posY: store.posY ?? 50 });
+    e.target.value = "";
+    if (!f.type.startsWith("image/")) { setUploadState({ percent: 100, label: "O ficheiro não é uma imagem válida.", tone: "error" }); return; }
+    if (f.size > 15 * 1024 * 1024) { setUploadState({ percent: 100, label: "A fotografia excede 15 MB.", tone: "error" }); return; }
+    try {
+      setUploadState({ percent: 15, label: "A ler fotografia…", tone: "progress" });
+      const photo = await downscaleImage(f, 1600, 0.82);
+      setUploadState({ percent: 75, label: "A guardar no perfil…", tone: "progress" });
+      await save({ ...store, photo, preset: undefined, posY: store.posY ?? 50 });
+      setUploadState({ percent: 100, label: "Fotografia guardada com sucesso.", tone: "success" });
+    } catch (error) {
+      setUploadState({ percent: 100, label: `Não foi possível guardar: ${error instanceof Error ? error.message : "ficheiro inválido"}.`, tone: "error" });
+    }
   }
 
   const bg = store.photo
@@ -171,6 +164,7 @@ export function PersonalMotivationBanner(props: Props) {
       </div>
 
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={onUpload} />
+      <div className="relative px-5 pb-3"><UploadProgress state={uploadState} /></div>
     </section>
   );
 }

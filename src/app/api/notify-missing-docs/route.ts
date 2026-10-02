@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { propertyById, agentById } from "@/lib/data/mock";
+import { getPropertyById, getAgentPublicById } from "@/lib/db/repo";
 import { docStatus, docLabel } from "@/lib/imovel/model";
 import { agentEmail } from "@/lib/format";
 import { notifyGeneric } from "@/lib/notify";
@@ -18,12 +18,12 @@ export async function POST(request: Request) {
   }
 
   const propertyId = body.propertyId ? String(body.propertyId) : "";
-  const property = propertyId ? propertyById(propertyId) : undefined;
+  const property = propertyId ? await getPropertyById(propertyId) : undefined;
   if (!property) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const agent = agentById(property.agentId);
+  const agent = await getAgentPublicById(property.agentId);
   const st = docStatus(property.documents ?? [], property.sellerType === "empresa");
   const missing = st.missing.map(docLabel);
 

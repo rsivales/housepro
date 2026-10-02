@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { createLead } from "@/lib/db/repo";
+import { createLead, getAgentPublicById } from "@/lib/db/repo";
 import { notifyLead } from "@/lib/notify";
-import { agentById } from "@/lib/data/mock";
 import { agentEmail } from "@/lib/format";
 import {
   buildLead,
@@ -83,7 +82,7 @@ export async function POST(request: Request) {
   RECENT.set(key, now);
 
   // Notifica o consultor atribuído (best-effort; não bloqueia).
-  const owner = newLead.assignedAgentId ? agentById(newLead.assignedAgentId) : undefined;
+  const owner = newLead.assignedAgentId ? await getAgentPublicById(newLead.assignedAgentId) : undefined;
   let channels: string[] = [];
   try {
     channels = await notifyLead(lead, {

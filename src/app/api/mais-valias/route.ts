@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { createLead } from "@/lib/db/repo";
+import { createLead, getAgentPublicById } from "@/lib/db/repo";
 import { notifyGeneric, notifyLead } from "@/lib/notify";
-import { agentById } from "@/lib/data/mock";
 import { agentEmail } from "@/lib/format";
 import {
   validateSubmission, runSimulation, buildLead, buildEmailReport, dedupeKey,
@@ -74,7 +73,7 @@ export async function POST(request: Request) {
   RECENT.set(key, now);
 
   // Notifica o consultor atribuído (best-effort).
-  const owner = newLead.assignedAgentId ? agentById(newLead.assignedAgentId) : undefined;
+  const owner = newLead.assignedAgentId ? await getAgentPublicById(newLead.assignedAgentId) : undefined;
   try {
     await notifyLead(lead, { agentName: owner?.name, agentEmail: owner ? agentEmail(owner) : undefined, channel: "Calculadora mais-valias" });
   } catch { /* best-effort */ }

@@ -65,7 +65,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <CrmTabs deals={deals} leads={leads} buyerContacts={buyerContacts} agencies={agencies} prefill={prefill} />
+      <CrmTabs deals={deals} leads={leads} buyerContacts={buyerContacts} agencies={agencies} prefill={prefill} canManage={staff} />
     </div>
   );
 }

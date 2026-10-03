@@ -325,3 +325,13 @@ export async function advanceDeal(
   }
   return { ok: true, propertyStatus };
 }
+
+/** Apaga um negócio (e o seu histórico de fases, em cascata). Só para engano
+ *  de criação ou limpeza — staff apenas, gate de permissão na rota. */
+export async function deleteDeal(dealId: string): Promise<{ ok: true } | { error: string }> {
+  if (!hasServiceRole()) return { error: "not_configured" };
+  const sb = createAdminClient();
+  const { error } = await sb.from("deals").delete().eq("id", dealId);
+  if (error) return { error: error.message };
+  return { ok: true };
+}

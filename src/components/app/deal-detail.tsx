@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ChevronLeft, ChevronRight, Loader2, Mail, Pencil, Phone, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Loader2, Mail, Pencil, Phone, Trash2, Undo2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,15 +21,19 @@ export function DealDetailView({
   deal,
   buyerContacts,
   agencies,
+  canManage = false,
 }: {
   deal: DealDetail;
   buyerContacts: DealOption[];
   agencies: DealOption[];
+  /** Staff (coordenação/direção/admin) — pode apagar o negócio. */
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [advancing, setAdvancing] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
 
   const [buyerContactId, setBuyerContactId] = React.useState(deal.buyerContactId ?? "");
@@ -43,17 +47,16 @@ export function DealDetailView({
   const [splitFixed, setSplitFixed] = React.useState(deal.coBrokerSplitFixed != null ? String(deal.coBrokerSplitFixed) : "");
 
   const stepIdx = DEAL_STEPS.findIndex((s) => s.stage === deal.stage);
+  const isLost = deal.stage === "cancelado";
 
-  async function advance(dir: 1 | -1) {
-    const to = STAGE_ORDER[stepIdx + dir];
-    if (!to) return;
+  async function setStage(stage: string) {
     setAdvancing(true);
     setErr(null);
     try {
       const res = await fetch("/api/deals/advance", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ dealId: deal.id, stage: to }),
+        body: JSON.stringify({ dealId: deal.id, stage }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -63,6 +66,37 @@ export function DealDetailView({
       router.refresh();
     } finally {
       setAdvancing(false);
+    }
+  }
+
+  function advance(dir: 1 | -1) {
+    const to = STAGE_ORDER[stepIdx + dir];
+    if (to) setStage(to);
+  }
+
+  function markLost() {
+    if (window.confirm("Marcar este negócio como perdido? O imóvel não muda de estado — podes reabrir mais tarde.")) setStage("cancelado");
+  }
+
+  async function removeDeal() {
+    if (!window.confirm("Apagar este negócio? Esta ação não pode ser desfeita.")) return;
+    setDeleting(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/deals/delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dealId: deal.id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setErr(j.error === "sem_permissao" ? "Sem permissão para apagar este negócio." : "Não foi possível apagar o negócio.");
+        return;
+      }
+      router.push("/app/crm");
+      router.refresh();
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -122,56 +156,94 @@ export function DealDetailView({
           </p>
           <h1 className="mt-0.5 font-display text-2xl">{deal.propertyTitle || "Negócio"}</h1>
         </div>
-        {!editing && (
-          <button
-            onClick={() => setEditing(true)}
-            className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium hover:bg-secondary"
-          >
-            <Pencil className="size-4" /> Editar
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {!editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium hover:bg-secondary"
+            >
+              <Pencil className="size-4" /> Editar
+            </button>
+          )}
+          {canManage && (
+            <button
+              onClick={removeDeal}
+              disabled={deleting}
+              className="inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+            >
+              {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Apagar
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Fases — avança/recua diretamente aqui; o estado do imóvel sincroniza
-          sozinho (também disponível no quadro kanban). */}
-      <div className="mt-5 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => advance(-1)}
-          disabled={advancing || stepIdx <= 0}
-          aria-label="Recuar fase"
-          className="grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
-        >
-          <ChevronLeft className="size-4" />
-        </button>
-        <div className="flex flex-1 items-center gap-1 overflow-x-auto">
-          {DEAL_STEPS.map((s, i) => (
-            <div key={s.stage} className="flex items-center gap-1">
-              <span
-                className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                  i <= stepIdx ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                }`}
-              >
-                {s.label}
-              </span>
-              {i < DEAL_STEPS.length - 1 && <span className="h-px w-3 bg-border" />}
-            </div>
-          ))}
-        </div>
-        {advancing ? (
-          <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
-        ) : (
+          sozinho (também disponível no quadro kanban). Negócio perdido fica
+          marcado à parte, sem desaparecer nem bloquear reabertura. */}
+      {isLost ? (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-destructive/10 px-4 py-3">
+          <p className="flex items-center gap-2 text-sm font-medium text-destructive">
+            <X className="size-4" /> Negócio marcado como perdido
+          </p>
           <button
             type="button"
-            onClick={() => advance(1)}
-            disabled={advancing || stepIdx >= DEAL_STEPS.length - 1}
-            aria-label="Avançar fase"
-            className="grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+            onClick={() => setStage("proposta_enviada")}
+            disabled={advancing}
+            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium hover:bg-secondary disabled:opacity-50"
           >
-            <ChevronRight className="size-4" />
+            {advancing ? <Loader2 className="size-4 animate-spin" /> : <Undo2 className="size-4" />} Reabrir negócio
           </button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className="mt-5 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => advance(-1)}
+              disabled={advancing || stepIdx <= 0}
+              aria-label="Recuar fase"
+              className="grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <div className="flex flex-1 items-center gap-1 overflow-x-auto">
+              {DEAL_STEPS.map((s, i) => (
+                <div key={s.stage} className="flex items-center gap-1">
+                  <span
+                    className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                      i <= stepIdx ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                  {i < DEAL_STEPS.length - 1 && <span className="h-px w-3 bg-border" />}
+                </div>
+              ))}
+            </div>
+            {advancing ? (
+              <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+            ) : (
+              <button
+                type="button"
+                onClick={() => advance(1)}
+                disabled={advancing || stepIdx >= DEAL_STEPS.length - 1}
+                aria-label="Avançar fase"
+                className="grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={markLost}
+            disabled={advancing}
+            className="mt-2 text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline disabled:opacity-50"
+          >
+            Marcar como perdido
+          </button>
+        </>
+      )}
       {err && <p className="mt-2 text-sm text-destructive">{err}</p>}
 
       {/* Links privados — o comprador e o proprietário acompanham a evolução

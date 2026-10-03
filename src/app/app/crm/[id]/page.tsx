@@ -36,7 +36,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
       <Link href="/app/crm" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> CRM · Negócios
       </Link>
-      <DealDetailView deal={deal} buyerContacts={buyerContacts} agencies={agencies} />
+      <DealDetailView deal={deal} buyerContacts={buyerContacts} agencies={agencies} canManage={staff} />
     </div>
   );
 }

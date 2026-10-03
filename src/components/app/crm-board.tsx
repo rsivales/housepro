@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Home, Loader2, Plus, TrendingUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home, Loader2, Plus, Trash2, TrendingUp, Undo2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,7 @@ export function CrmBoard({
   buyerContacts = [],
   agencies = [],
   prefill,
+  canManage = false,
 }: {
   initial: DealListItem[];
   /** Contactos do consultor com type="comprador" — para ligar ao negócio em vez de texto livre. */
@@ -72,6 +73,8 @@ export function CrmBoard({
   agencies?: CrmBoardOption[];
   /** Veio de "Criar negócio" na ficha de um imóvel — abre o formulário já preenchido. */
   prefill?: CrmBoardPrefill;
+  /** Staff (coordenação/direção/admin) — pode apagar negócios. */
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<string | null>(null);
@@ -167,17 +170,44 @@ export function CrmBoard({
     }
   }
 
-  async function move(dealId: string, dir: 1 | -1, idx: number) {
-    const to = ORDER[idx + dir];
-    if (!to) return;
+  async function setStage(dealId: string, stage: string) {
     setBusy(dealId);
     try {
       const res = await fetch("/api/deals/advance", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ dealId, stage: to }),
+        body: JSON.stringify({ dealId, stage }),
       });
       if (res.ok) router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function move(dealId: string, dir: 1 | -1, idx: number) {
+    const to = ORDER[idx + dir];
+    if (to) setStage(dealId, to);
+  }
+
+  function markLost(dealId: string) {
+    if (!window.confirm("Marcar este negócio como perdido? O imóvel não muda de estado — podes reabrir mais tarde.")) return;
+    setStage(dealId, "cancelado");
+  }
+
+  async function removeDeal(dealId: string) {
+    if (!window.confirm("Apagar este negócio? Esta ação não pode ser desfeita.")) return;
+    setBusy(dealId);
+    try {
+      const res = await fetch("/api/deals/delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dealId }),
+      });
+      if (res.ok) router.refresh();
+      else {
+        const j = await res.json().catch(() => ({}));
+        window.alert(j.error === "sem_permissao" ? "Sem permissão para apagar este negócio." : "Não foi possível apagar o negócio.");
+      }
     } finally {
       setBusy(null);
     }
@@ -393,14 +423,38 @@ export function CrmBoard({
                           {d.coBroker && <span className="rounded-full bg-gold/15 px-2 py-0.5 font-medium text-gold-foreground">Partilha</span>}
                         </div>
                       )}
-                      <div className="mt-3 flex items-center justify-end gap-1 border-t pt-2">
-                        {busy === d.id && <Loader2 className="mr-auto size-3.5 animate-spin text-muted-foreground" />}
-                        <button onClick={() => move(d.id, -1, i)} disabled={i === 0 || busy === d.id} aria-label="Recuar fase" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30">
-                          <ChevronLeft className="size-4" />
-                        </button>
-                        <button onClick={() => move(d.id, 1, i)} disabled={i === ORDER.length - 1 || busy === d.id} aria-label="Avançar fase" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30">
-                          <ChevronRight className="size-4" />
-                        </button>
+                      <div className="mt-3 flex items-center justify-between gap-1 border-t pt-2">
+                        <div className="flex items-center gap-1">
+                          {busy === d.id && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+                          {canManage && (
+                            <button
+                              onClick={() => removeDeal(d.id)}
+                              disabled={busy === d.id}
+                              aria-label="Apagar negócio"
+                              title="Apagar negócio"
+                              className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-30"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => markLost(d.id)}
+                            disabled={busy === d.id}
+                            aria-label="Marcar como perdido"
+                            title="Marcar como perdido"
+                            className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-30"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => move(d.id, -1, i)} disabled={i === 0 || busy === d.id} aria-label="Recuar fase" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30">
+                            <ChevronLeft className="size-4" />
+                          </button>
+                          <button onClick={() => move(d.id, 1, i)} disabled={i === ORDER.length - 1 || busy === d.id} aria-label="Avançar fase" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30">
+                            <ChevronRight className="size-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -412,6 +466,53 @@ export function CrmBoard({
             </div>
           );
         })}
+
+        {/* Perdidos — negócios marcados como cancelados; ficam aqui em vez de
+            desaparecerem, para se poder reabrir ou (staff) apagar. */}
+        {(() => {
+          const lost = initial.filter((d) => d.stage === "cancelado");
+          if (lost.length === 0) return null;
+          return (
+            <div className="w-72 shrink-0">
+              <div className="flex items-center justify-between rounded-xl bg-destructive/10 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-full bg-destructive/60" />
+                  <span className="text-sm font-semibold">Perdidos</span>
+                  <span className="text-xs text-muted-foreground">({lost.length})</span>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-col gap-3">
+                {lost.map((d) => (
+                  <div key={d.id} className="rounded-2xl border border-destructive/30 bg-card p-3 opacity-80 shadow-sm">
+                    <Link href={`/app/crm/${d.id}`} className="block">
+                      <p className="font-medium leading-tight">{d.buyerName || "Comprador"}</p>
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground">{d.propertyTitle || d.propertyRef}</p>
+                    </Link>
+                    <div className="mt-3 flex items-center justify-end gap-1 border-t pt-2">
+                      {busy === d.id && <Loader2 className="mr-auto size-3.5 animate-spin text-muted-foreground" />}
+                      <button
+                        onClick={() => setStage(d.id, "proposta_enviada")}
+                        disabled={busy === d.id}
+                        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+                      >
+                        <Undo2 className="size-3.5" /> Reabrir
+                      </button>
+                      {canManage && (
+                        <button
+                          onClick={() => removeDeal(d.id)}
+                          disabled={busy === d.id}
+                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-30"
+                        >
+                          <Trash2 className="size-3.5" /> Apagar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {initial.length === 0 && (

@@ -199,14 +199,17 @@ export async function POST(request: Request) {
 
   // Candidatura à coleção Signature: o consultor só pode propor ou retirar a
   // sua proposta — nunca aprova nem revoga uma entrada já aprovada (isso é
-  // exclusivo do admin/direção em /admin/signature).
+  // exclusivo do admin/direção em /admin/signature). is_signature é o único
+  // sinal fiável de candidatura ativa — signature_status tem default
+  // "candidate" na base de dados para TODOS os imóveis (migração 0030),
+  // por isso nunca pode ser usado sozinho para detetar "já candidato".
   if ("signatureCandidate" in patch && current.signatureStatus !== "approved") {
     const wants = Boolean(patch.signatureCandidate);
-    const already = current.signatureStatus === "candidate" || current.signatureStatus === "pending";
+    const already = current.isSignature === true && current.signatureStatus !== "rejected";
     if (wants && !already) {
       dbPatch.is_signature = true;
       dbPatch.signature_status = "candidate";
-      changes.push({ field: "Candidatura Signature", from: current.signatureStatus ?? "—", to: "candidate" });
+      changes.push({ field: "Candidatura Signature", from: "—", to: "candidate" });
     } else if (!wants && already) {
       dbPatch.is_signature = false;
       dbPatch.signature_status = null;

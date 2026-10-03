@@ -22,14 +22,28 @@ const nav = [
   { label: "Notícias", href: "/noticias" },
 ];
 
-// Áreas privadas alcançáveis a partir do cabeçalho.
-const conta = [
-  { label: "A minha conta", href: "/cliente/favoritos", icon: User, hint: "Clientes" },
-  { label: "Profissionais", href: "/entrar", icon: Briefcase, hint: "Consultores" },
-];
-
 export function SiteHeader() {
   const [open, setOpen] = React.useState(false);
+  // Com sessão ativa (ex.: Super Admin a navegar pelo site público a partir
+  // do admin), o link de "Profissionais" passa a voltar direto à área de
+  // trabalho em vez de pedir login outra vez.
+  const [authed, setAuthed] = React.useState(false);
+  React.useEffect(() => {
+    fetch("/api/me/role")
+      .then((r) => r.json())
+      .then((d) => setAuthed(Boolean(d?.authenticated)))
+      .catch(() => {});
+  }, []);
+
+  const proLink = authed
+    ? { label: "Voltar à área profissional", href: "/app" }
+    : { label: "Profissionais", href: "/entrar" };
+
+  // Áreas privadas alcançáveis a partir do cabeçalho.
+  const conta = [
+    { label: "A minha conta", href: "/cliente/favoritos", icon: User, hint: "Clientes" },
+    { label: proLink.label, href: proLink.href, icon: Briefcase, hint: authed ? "A sua área" : "Consultores" },
+  ];
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
@@ -53,8 +67,8 @@ export function SiteHeader() {
         <div className="flex items-center gap-1.5">
           <ModeToggle />
           <Button variant="ghost" size="sm" className="hidden min-[1450px]:inline-flex" asChild>
-            <Link href="/entrar">
-              <Briefcase className="size-4" /> Profissionais
+            <Link href={proLink.href}>
+              <Briefcase className="size-4" /> {proLink.label}
             </Link>
           </Button>
           <Button variant="ghost" size="sm" className="hidden min-[1450px]:inline-flex" asChild>

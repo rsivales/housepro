@@ -197,6 +197,23 @@ export async function POST(request: Request) {
     }
   }
 
+  // Candidatura à coleção Signature: o consultor só pode propor ou retirar a
+  // sua proposta — nunca aprova nem revoga uma entrada já aprovada (isso é
+  // exclusivo do admin/direção em /admin/signature).
+  if ("signatureCandidate" in patch && current.signatureStatus !== "approved") {
+    const wants = Boolean(patch.signatureCandidate);
+    const already = current.signatureStatus === "candidate" || current.signatureStatus === "pending";
+    if (wants && !already) {
+      dbPatch.is_signature = true;
+      dbPatch.signature_status = "candidate";
+      changes.push({ field: "Candidatura Signature", from: current.signatureStatus ?? "—", to: "candidate" });
+    } else if (!wants && already) {
+      dbPatch.is_signature = false;
+      dbPatch.signature_status = null;
+      changes.push({ field: "Candidatura Signature", from: current.signatureStatus ?? "—", to: "retirada" });
+    }
+  }
+
   if (changes.length === 0 && Object.keys(dbPatch).length === 0) {
     return NextResponse.json({ ok: true, noop: true });
   }

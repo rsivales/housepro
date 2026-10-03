@@ -134,6 +134,11 @@ export interface ImovelDraft {
   /** Justificação interna quando a comissão fica abaixo do padrão/mínimo —
    *  obrigatória para submeter nesse caso; fica sujeita a aprovação. */
   comissaoJustificacao?: string;
+  /** Candidatura à coleção HousePro Signature — fica pendente de revisão em
+   *  /admin/signature; não garante entrada na coleção. */
+  signatureCandidate?: boolean;
+  /** Estado atual da candidatura (só leitura — vem do imóvel já gravado). */
+  signatureStatus?: "candidate" | "pending" | "approved" | "rejected";
   /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
   sellerType: "particular" | "empresa";
   /** Área bruta (m²) — a área principal do imóvel. */
@@ -361,6 +366,8 @@ export function blankImovel(id: string): ImovelDraft {
     comissao: 5,
     comissaoFixo: 0,
     comissaoJustificacao: "",
+    signatureCandidate: false,
+    signatureStatus: undefined,
     sellerType: "particular",
     area: 0,
     beds: 2,
@@ -441,6 +448,8 @@ export function draftFromProperty(p: Property): ImovelDraft {
     comissao: p.commissionPct ?? 0,
     comissaoFixo: p.commissionFixed ?? 0,
     comissaoJustificacao: p.commissionJustification ?? "",
+    signatureCandidate: p.signatureStatus === "candidate" || p.signatureStatus === "pending" || p.signatureStatus === "approved",
+    signatureStatus: p.signatureStatus,
     sellerType: p.sellerType ?? "particular",
     area: p.area,
     areaUtil: p.areaUtil,

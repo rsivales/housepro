@@ -121,6 +121,10 @@ export async function POST(request: Request) {
     commission_fixed: d.comissaoTipo === "fixed" ? Number(d.comissaoFixo ?? 0) : null,
     commission_justification:
       typeof d.comissaoJustificacao === "string" && d.comissaoJustificacao.trim() ? d.comissaoJustificacao.trim() : null,
+    // Candidatura à coleção Signature — fica pendente de revisão/aprovação do
+    // admin/direção em /admin/signature; nunca entra aprovada diretamente.
+    is_signature: Boolean(d.signatureCandidate),
+    signature_status: d.signatureCandidate ? "candidate" : null,
     short_description: d.descricaoCurta ? String(d.descricaoCurta) : null,
     seo_description: d.seoDescription ? String(d.seoDescription) : null,
     keywords: d.keywords ? String(d.keywords) : null,

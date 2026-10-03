@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
-import { isSuperadmin } from "@/lib/data/roles";
+import { isBrandAdmin } from "@/lib/data/roles";
 
 const allowed = new Set([
   "is_signature", "signature_status", "signature_order", "signature_hero_url",
@@ -10,20 +10,28 @@ const allowed = new Set([
   "signature_collection", "signature_visibility", "signature_price_visible", "signature_featured",
 ]);
 
-/** Gestão exclusivamente server-side da seleção Signature. */
+const SELECT_COLS =
+  "id, reference, title, municipality, image, is_signature, signature_status, signature_order, signature_editorial_title, signature_collection, signature_visibility, signature_price_visible, signature_featured";
+
+/** Gestão exclusivamente server-side da seleção Signature.
+ *  Candidaturas (submetidas pelos consultores ou já na coleção) vêm sempre
+ *  primeiro — para quem aprova não ter de procurar entre os imóveis recentes. */
 export async function GET() {
   const session = await getSession();
-  if (!session || !isSuperadmin(session.agent)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (!session || !isBrandAdmin(session.agent)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (!hasServiceRole()) return NextResponse.json({ error: "not_configured" }, { status: 503 });
   const db = createAdminClient();
-  const { data, error } = await db.from("properties").select("id, reference, title, municipality, image, is_signature, signature_status, signature_order, signature_editorial_title, signature_collection, signature_visibility, signature_price_visible, signature_featured").order("listed_at", { ascending: false }).limit(100);
-  if (error) return NextResponse.json({ error: "read_failed" }, { status: 500 });
-  return NextResponse.json({ properties: data ?? [] });
+  const [{ data: nominated, error: e1 }, { data: recent, error: e2 }] = await Promise.all([
+    db.from("properties").select(SELECT_COLS).eq("is_signature", true).order("listed_at", { ascending: false }),
+    db.from("properties").select(SELECT_COLS).or("is_signature.is.null,is_signature.eq.false").order("listed_at", { ascending: false }).limit(100),
+  ]);
+  if (e1 || e2) return NextResponse.json({ error: "read_failed" }, { status: 500 });
+  return NextResponse.json({ properties: [...(nominated ?? []), ...(recent ?? [])] });
 }
 
 export async function PATCH(request: Request) {
   const session = await getSession();
-  if (!session || !isSuperadmin(session.agent)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (!session || !isBrandAdmin(session.agent)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (!hasServiceRole()) return NextResponse.json({ error: "not_configured" }, { status: 503 });
   const body = await request.json().catch(() => null) as { id?: string; patch?: Record<string, unknown> } | null;
   if (!body?.id || !body.patch) return NextResponse.json({ error: "invalid_request" }, { status: 400 });

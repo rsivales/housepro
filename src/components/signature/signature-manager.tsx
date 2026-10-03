@@ -6,7 +6,17 @@ import Link from "next/link";
 type Item = { id: string; reference: string; title: string; municipality: string; is_signature: boolean; signature_status: string; signature_order: number | null; signature_editorial_title: string | null; signature_collection: string | null; signature_visibility: string; signature_price_visible: boolean; signature_featured: boolean };
 export function SignatureManager() {
   const [items, setItems] = useState<Item[]>([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState<string | null>(null); const [error, setError] = useState("");
-  useEffect(() => { fetch("/api/signature/manage").then((r) => r.ok ? r.json() : Promise.reject()).then((d) => setItems(d.properties ?? [])).catch(() => setError("Não foi possível carregar os imóveis.")).finally(() => setLoading(false)); }, []);
+  useEffect(() => {
+    fetch("/api/signature/manage")
+      .then(async (r) => {
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(body?.detail || body?.error || `HTTP ${r.status}`);
+        return body;
+      })
+      .then((d) => setItems(d.properties ?? []))
+      .catch((e) => setError(`Não foi possível carregar os imóveis (${e.message}).`))
+      .finally(() => setLoading(false));
+  }, []);
   async function save(item: Item) { setSaving(item.id); setError(""); const patch={ is_signature:item.is_signature, signature_status:item.signature_status, signature_order:item.signature_order, signature_editorial_title:item.signature_editorial_title, signature_collection:item.signature_collection, signature_visibility:item.signature_visibility, signature_price_visible:item.signature_price_visible, signature_featured:item.signature_featured }; const r=await fetch("/api/signature/manage",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({id:item.id,patch})}); if(!r.ok)setError("Não foi possível guardar. Confirme as permissões e tente novamente."); setSaving(null); }
   function update(id:string, patch:Partial<Item>){setItems((all)=>all.map((item)=>item.id===id?{...item,...patch}:item));}
   if(loading)return <p className="mt-8 text-sm text-muted-foreground">A carregar coleção…</p>;

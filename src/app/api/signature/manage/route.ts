@@ -23,10 +23,15 @@ export async function GET() {
   const db = createAdminClient();
   const [{ data: nominated, error: e1 }, { data: recent, error: e2 }] = await Promise.all([
     db.from("properties").select(SELECT_COLS).eq("is_signature", true).order("listed_at", { ascending: false }),
-    db.from("properties").select(SELECT_COLS).or("is_signature.is.null,is_signature.eq.false").order("listed_at", { ascending: false }).limit(100),
+    db.from("properties").select(SELECT_COLS).order("listed_at", { ascending: false }).limit(100),
   ]);
-  if (e1 || e2) return NextResponse.json({ error: "read_failed" }, { status: 500 });
-  return NextResponse.json({ properties: [...(nominated ?? []), ...(recent ?? [])] });
+  if (e1 || e2) {
+    console.error("[signature/manage GET]", e1 ?? e2);
+    return NextResponse.json({ error: "read_failed", detail: (e1 ?? e2)?.message }, { status: 500 });
+  }
+  const nominatedIds = new Set((nominated ?? []).map((p) => p.id));
+  const rest = (recent ?? []).filter((p) => !nominatedIds.has(p.id));
+  return NextResponse.json({ properties: [...(nominated ?? []), ...rest] });
 }
 
 export async function PATCH(request: Request) {

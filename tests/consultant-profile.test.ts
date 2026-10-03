@@ -72,3 +72,18 @@ describe("editorial approval", () => {
     expect((await decide(request({ id: "request", decision: "recusado" }))).status).toBe(409);
   });
 });
+
+
+describe("public property contact links", () => {
+  it("normalizes international phone formatting for WhatsApp", async () => {
+    const { whatsappLink } = await import("@/lib/format");
+    const link = whatsappLink("+351 967-178-288", { reference: "HP0001-05", title: "Apartamento" });
+    expect(new URL(link).pathname).toBe("/351967178288");
+    expect(new URL(link).searchParams.get("text")).toContain("HP0001-05");
+  });
+  it("preserves the attributed property URL in the message", async () => {
+    const { whatsappLink } = await import("@/lib/format");
+    const target = `https://housepro.pt/imovel/real?ref=${id}`;
+    expect(new URL(whatsappLink("351967178288", { reference: "HP1", title: "Apartamento" }, target)).searchParams.get("text")).toContain(target);
+  });
+});

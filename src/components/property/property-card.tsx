@@ -42,6 +42,7 @@ export function PropertyCard({
 }) {
   const listingAgent = property.agent ?? agentById(property.agentId);
   const contact = referrer ?? listingAgent;
+  const hasWhatsapp = Boolean(contact.whatsapp.replace(/\D/g, ""));
   const href = `/imovel/${property.id}${referrer ? `?ref=${referrer.id}` : ""}`;
 
   return (
@@ -106,15 +107,15 @@ export function PropertyCard({
           {property.typology && (
             <span className="font-medium text-foreground">{property.typology}</span>
           )}
-          <span className="flex items-center gap-1.5">
+          {property.beds > 0 && <span className="flex items-center gap-1.5">
             <BedDouble className="size-4" /> {property.beds}
-          </span>
-          <span className="flex items-center gap-1.5">
+          </span>}
+          {property.baths > 0 && <span className="flex items-center gap-1.5">
             <Bath className="size-4" /> {property.baths}
-          </span>
-          <span className="flex items-center gap-1.5">
+          </span>}
+          {property.area > 0 && <span className="flex items-center gap-1.5">
             <Maximize2 className="size-4" /> {formatArea(property.area)}
-          </span>
+          </span>}
         </div>
 
         {/* Contact (referrer takes precedence over the listing agent) */}
@@ -128,7 +129,7 @@ export function PropertyCard({
               </p>
             </div>
           </div>
-          <a
+          {hasWhatsapp && <a
             href={whatsappLink(contact.whatsapp, property)}
             target="_blank"
             rel="noopener noreferrer"
@@ -136,7 +137,7 @@ export function PropertyCard({
             className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white shadow-sm transition-transform hover:scale-105 active:scale-95"
           >
             <WhatsappIcon className="size-5" />
-          </a>
+          </a>}
         </div>
       </div>
     </motion.article>

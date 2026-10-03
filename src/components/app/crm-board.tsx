@@ -19,6 +19,16 @@ const ACCENT = ["bg-slate-400", "bg-sky-400", "bg-violet-400", "bg-amber-400", "
 
 export interface CrmBoardOption { id: string; name: string }
 
+interface PropertyMatch {
+  id: string;
+  reference: string;
+  title: string;
+  municipality: string;
+  price: number;
+  sellerName: string;
+  commissionPreview: string;
+}
+
 /** Vem da ficha do imóvel ("Criar negócio") — liga o negócio ao imóvel pelo
  *  id (nunca por referência escrita à mão) e já traz valor/vendedor/comissão. */
 export interface CrmBoardPrefill {
@@ -69,6 +79,43 @@ export function CrmBoard({
   const [creating, setCreating] = React.useState(false);
   const [form, setForm] = React.useState(() => formFromPrefill(prefill));
   const [err, setErr] = React.useState<string | null>(null);
+  const [commissionPreview, setCommissionPreview] = React.useState(prefill?.commissionPreview ?? "");
+
+  // Pesquisa de imóvel por referência/título/localidade — "detetar" o imóvel
+  // ao escrever, em vez de exigir a referência exata de cor.
+  const [matches, setMatches] = React.useState<PropertyMatch[]>([]);
+  const [searching, setSearching] = React.useState(false);
+  const [showMatches, setShowMatches] = React.useState(false);
+
+  React.useEffect(() => {
+    if (form.propertyId || form.reference.trim().length < 2) {
+      setMatches([]);
+      return;
+    }
+    const q = form.reference.trim();
+    setSearching(true);
+    const t = setTimeout(() => {
+      fetch(`/api/properties/search?q=${encodeURIComponent(q)}`)
+        .then((r) => (r.ok ? r.json() : { properties: [] }))
+        .then((d) => setMatches(d.properties ?? []))
+        .catch(() => setMatches([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [form.reference, form.propertyId]);
+
+  function pickProperty(p: PropertyMatch) {
+    setForm((f) => ({
+      ...f,
+      propertyId: p.id,
+      reference: p.reference,
+      sellerName: p.sellerName || f.sellerName,
+      amount: p.price ? String(p.price) : f.amount,
+    }));
+    setCommissionPreview(p.commissionPreview);
+    setMatches([]);
+    setShowMatches(false);
+  }
 
   const total = initial.reduce((s, d) => s + d.amount, 0);
 
@@ -156,24 +203,57 @@ export function CrmBoard({
       {showNew && (
         <form onSubmit={create} className="mt-4 rounded-2xl border bg-card p-4 shadow-sm">
           {form.propertyId && (
-            <p className="mb-2 rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
-              Ligado ao imóvel {form.reference} — valor, vendedor e comissão já vieram da ficha.
+            <p className="mb-2 flex items-center justify-between gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
+              <span>Ligado ao imóvel {form.reference} — valor, vendedor e comissão já vieram da ficha.</span>
+              <button
+                type="button"
+                onClick={() => { setForm((f) => ({ ...f, propertyId: "", reference: "" })); setCommissionPreview(""); }}
+                className="shrink-0 underline-offset-2 hover:underline"
+              >
+                Trocar
+              </button>
             </p>
           )}
           <div className="grid gap-2 sm:grid-cols-3">
-            <Input
-              value={form.reference}
-              onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
-              placeholder="Referência (ex.: HP-1049)"
-              disabled={Boolean(form.propertyId)}
-            />
+            <div className="relative">
+              <Input
+                value={form.reference}
+                onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
+                onFocus={() => setShowMatches(true)}
+                onBlur={() => setTimeout(() => setShowMatches(false), 150)}
+                placeholder="Escrever referência, título ou localidade…"
+                disabled={Boolean(form.propertyId)}
+                autoComplete="off"
+              />
+              {!form.propertyId && showMatches && (searching || matches.length > 0) && (
+                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+                  {searching ? (
+                    <p className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+                      <Loader2 className="size-3.5 animate-spin" /> A procurar…
+                    </p>
+                  ) : (
+                    matches.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onMouseDown={() => pickProperty(p)}
+                        className="block w-full px-3 py-2 text-left text-xs hover:bg-secondary"
+                      >
+                        <span className="font-medium">{p.reference}</span> · {p.title || p.municipality}
+                        {p.price ? ` · ${formatEuro(p.price)}` : ""}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
             <Input value={form.sellerName} onChange={(e) => setForm((f) => ({ ...f, sellerName: e.target.value }))} placeholder="Vendedor" />
             <Input type="number" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="Valor (€)" />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            {prefill?.commissionPreview
-              ? <>Comissão em vigor no imóvel: <strong className="text-foreground">{prefill.commissionPreview}</strong> — só precisas de indicar abaixo se há partilha com outra agência.</>
-              : "A comissão vem do imóvel — só precisas de indicar abaixo se há partilha com outra agência."}
+            {commissionPreview
+              ? <>Comissão em vigor no imóvel: <strong className="text-foreground">{commissionPreview}</strong> — só precisas de indicar abaixo se há partilha com outra agência.</>
+              : "Escolhe o imóvel na lista para a comissão vir preenchida automaticamente — só precisas de indicar abaixo se há partilha com outra agência."}
           </p>
 
           <div className="mt-2 grid gap-2 sm:grid-cols-4">

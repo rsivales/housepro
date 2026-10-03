@@ -1401,7 +1401,18 @@ export function PropertyForm({
               </p>
             ) : (
               <>
-                <label className="flex items-start gap-2 text-sm">
+                <p className="text-xs font-medium text-gold-foreground">✦ HousePro Signature</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Reservado a imóveis verdadeiramente fora do comum. Antes de submeter, confirme que o imóvel
+                  cumpre o essencial:
+                </p>
+                <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-xs leading-5 text-muted-foreground">
+                  <li>Localização, arquitetura, história ou vista claramente diferenciadoras — não um imóvel comum.</li>
+                  <li>Fotografia profissional de qualidade (ou disponibilidade para a agendar).</li>
+                  <li>Documentação completa e em dia.</li>
+                  <li>Descrição e preço já revistos — a candidatura não substitui o anúncio normal, soma-se a ele.</li>
+                </ul>
+                <label className="mt-3 flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
                     checked={!!d.signatureCandidate}

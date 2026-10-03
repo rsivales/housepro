@@ -448,8 +448,14 @@ export function draftFromProperty(p: Property): ImovelDraft {
     comissao: p.commissionPct ?? 0,
     comissaoFixo: p.commissionFixed ?? 0,
     comissaoJustificacao: p.commissionJustification ?? "",
-    signatureCandidate: p.signatureStatus === "candidate" || p.signatureStatus === "pending" || p.signatureStatus === "approved",
-    signatureStatus: p.signatureStatus,
+    // is_signature é o único sinal fiável de candidatura — a coluna
+    // signature_status tem default "candidate" na base de dados para TODOS
+    // os imóveis (histórico, migração 0030), por isso nunca se pode usar
+    // sozinha para decidir se um imóvel foi mesmo submetido. Uma
+    // candidatura recusada mostra a caixa desmarcada, para permitir
+    // submeter de novo.
+    signatureCandidate: Boolean(p.isSignature) && p.signatureStatus !== "rejected",
+    signatureStatus: p.isSignature ? p.signatureStatus : undefined,
     sellerType: p.sellerType ?? "particular",
     area: p.area,
     areaUtil: p.areaUtil,

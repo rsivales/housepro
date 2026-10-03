@@ -37,6 +37,7 @@ const FIELDS: Record<string, string> = {
   commissionType: "commission_type",
   commissionPct: "commission_pct",
   commissionFixed: "commission_fixed",
+  commissionJustification: "commission_justification",
   sellerType: "seller_type",
   videoUrl: "video_url",
   tourUrl: "tour_url",

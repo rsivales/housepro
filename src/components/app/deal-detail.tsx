@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Mail, Pencil, Phone, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Loader2, Mail, Pencil, Phone, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { BuyerLinkButton } from "@/components/property/buyer-link-button";
 import { formatEuro } from "@/lib/format";
 import { DEAL_STEPS } from "@/lib/data/deal";
 import type { DealDetail, CommissionType as SplitType } from "@/lib/db/deals";
+
+const STAGE_ORDER = DEAL_STEPS.map((s) => s.stage);
 
 export interface DealOption { id: string; name: string }
 
@@ -27,6 +29,7 @@ export function DealDetailView({
   const router = useRouter();
   const [editing, setEditing] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [advancing, setAdvancing] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
 
   const [buyerContactId, setBuyerContactId] = React.useState(deal.buyerContactId ?? "");
@@ -40,6 +43,28 @@ export function DealDetailView({
   const [splitFixed, setSplitFixed] = React.useState(deal.coBrokerSplitFixed != null ? String(deal.coBrokerSplitFixed) : "");
 
   const stepIdx = DEAL_STEPS.findIndex((s) => s.stage === deal.stage);
+
+  async function advance(dir: 1 | -1) {
+    const to = STAGE_ORDER[stepIdx + dir];
+    if (!to) return;
+    setAdvancing(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/deals/advance", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dealId: deal.id, stage: to }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setErr(j.error === "sem_permissao" ? "Sem permissão para mover este negócio de fase." : "Não foi possível avançar o negócio.");
+        return;
+      }
+      router.refresh();
+    } finally {
+      setAdvancing(false);
+    }
+  }
 
   async function save() {
     setBusy(true);
@@ -107,21 +132,47 @@ export function DealDetailView({
         )}
       </div>
 
-      {/* Fases — só leitura aqui; avançar/recuar faz-se no quadro kanban. */}
-      <div className="mt-5 flex items-center gap-1 overflow-x-auto">
-        {DEAL_STEPS.map((s, i) => (
-          <div key={s.stage} className="flex items-center gap-1">
-            <span
-              className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                i <= stepIdx ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-              }`}
-            >
-              {s.label}
-            </span>
-            {i < DEAL_STEPS.length - 1 && <span className="h-px w-3 bg-border" />}
-          </div>
-        ))}
+      {/* Fases — avança/recua diretamente aqui; o estado do imóvel sincroniza
+          sozinho (também disponível no quadro kanban). */}
+      <div className="mt-5 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => advance(-1)}
+          disabled={advancing || stepIdx <= 0}
+          aria-label="Recuar fase"
+          className="grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+        <div className="flex flex-1 items-center gap-1 overflow-x-auto">
+          {DEAL_STEPS.map((s, i) => (
+            <div key={s.stage} className="flex items-center gap-1">
+              <span
+                className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                  i <= stepIdx ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                }`}
+              >
+                {s.label}
+              </span>
+              {i < DEAL_STEPS.length - 1 && <span className="h-px w-3 bg-border" />}
+            </div>
+          ))}
+        </div>
+        {advancing ? (
+          <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+        ) : (
+          <button
+            type="button"
+            onClick={() => advance(1)}
+            disabled={advancing || stepIdx >= DEAL_STEPS.length - 1}
+            aria-label="Avançar fase"
+            className="grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        )}
       </div>
+      {err && <p className="mt-2 text-sm text-destructive">{err}</p>}
 
       {/* Links privados — o comprador e o proprietário acompanham a evolução
           destas mesmas fases sem precisar de login, assim que o negócio existe. */}

@@ -29,6 +29,9 @@ export async function POST(request: Request) {
     budget?: string;
     language?: string;
     source?: string;
+    nif?: string;
+    idDocument?: string;
+    address?: string;
   };
   try {
     body = await request.json();
@@ -50,6 +53,9 @@ export async function POST(request: Request) {
     budget: body.budget,
     language: body.language,
     source: body.source ?? "manual",
+    nif: body.nif,
+    idDocument: body.idDocument,
+    address: body.address,
   });
   return NextResponse.json({ contact, demo: session.demo });
 }

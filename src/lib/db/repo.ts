@@ -1617,6 +1617,9 @@ function mapContact(r: Row): Contact {
     tags: Array.isArray(r.tags) ? (r.tags as string[]) : undefined,
     source: (r.source as string) ?? undefined,
     consent: (r.consent as Contact["consent"]) ?? undefined,
+    nif: (r.nif as string) ?? undefined,
+    idDocument: (r.id_document as string) ?? undefined,
+    address: (r.address as string) ?? undefined,
     createdAt: String(r.created_at ?? new Date().toISOString()),
     lastActivityAt: (r.last_activity_at as string) ?? undefined,
   };
@@ -1698,6 +1701,9 @@ export async function createContact(input: {
   budget?: string;
   language?: string;
   source?: string;
+  nif?: string;
+  idDocument?: string;
+  address?: string;
 }): Promise<Contact> {
   const contact: Contact = {
     id: `ct-${Date.now()}`,
@@ -1720,12 +1726,53 @@ export async function createContact(input: {
         budget: input.budget ?? null,
         language: input.language ?? null,
         source: input.source ?? null,
+        nif: input.nif ?? null,
+        id_document: input.idDocument ?? null,
+        address: input.address ?? null,
       })
       .select("id")
       .single();
     return { ...contact, id: data ? String(data.id) : contact.id };
   } catch {
     return contact;
+  }
+}
+
+/** Edita um contacto já criado — dono do contacto ou staff. */
+export async function updateContact(
+  id: string,
+  patch: {
+    name?: string;
+    phone?: string | null;
+    email?: string | null;
+    type?: Contact["type"];
+    zone?: string | null;
+    budget?: string | null;
+    language?: string | null;
+    nif?: string | null;
+    idDocument?: string | null;
+    address?: string | null;
+  }
+): Promise<{ ok: true } | { error: string }> {
+  if (!isSupabaseConfigured()) return { ok: true };
+  const dbPatch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if ("name" in patch) dbPatch.name = patch.name;
+  if ("phone" in patch) dbPatch.phone = patch.phone || null;
+  if ("email" in patch) dbPatch.email = patch.email || null;
+  if ("type" in patch) dbPatch.type = patch.type;
+  if ("zone" in patch) dbPatch.zone = patch.zone || null;
+  if ("budget" in patch) dbPatch.budget = patch.budget || null;
+  if ("language" in patch) dbPatch.language = patch.language || null;
+  if ("nif" in patch) dbPatch.nif = patch.nif || null;
+  if ("idDocument" in patch) dbPatch.id_document = patch.idDocument || null;
+  if ("address" in patch) dbPatch.address = patch.address || null;
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.from("contacts").update(dbPatch).eq("id", id);
+    if (error) return { error: error.message };
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "update_failed" };
   }
 }
 

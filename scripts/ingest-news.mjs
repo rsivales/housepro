@@ -41,7 +41,22 @@ const MAX_PER_FEED = 2;
 const MAX_TOTAL = 6;
 const FETCH_TIMEOUT_MS = 15_000;
 
-const parser = new Parser({ timeout: FETCH_TIMEOUT_MS });
+// rss-parser's own "timeout" option nem sempre corta uma ligação pendurada
+// (já travou um run mais de 20 minutos). O corte real vem daqui: fetch com
+// AbortController — o parser só recebe o XML já descarregado.
+async function fetchWithTimeout(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: controller.signal, headers: { "user-agent": "HouseProBot/1.0" } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const parser = new Parser();
 
 function cleanExcerpt(raw) {
   if (!raw) return "";
@@ -60,7 +75,8 @@ function toIsoDate(value) {
 
 async function readFeed(feed) {
   try {
-    const parsed = await parser.parseURL(feed.url);
+    const xml = await fetchWithTimeout(feed.url);
+    const parsed = await parser.parseString(xml);
     const items = (parsed.items ?? []).slice(0, MAX_PER_FEED);
     console.log(`[ok] ${feed.source}: ${items.length} item(ns)`);
     return items.map((item) => {

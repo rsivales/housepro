@@ -44,7 +44,7 @@ export function whatsappLink(
   property: Pick<Property, "reference" | "title">,
   url?: string
 ) {
-  return `https://wa.me/${whatsapp}?text=${encodeURIComponent(interesseMsg(property, url))}`;
+  return `https://wa.me/${whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(interesseMsg(property, url))}`;
 }
 
 export function smsLink(

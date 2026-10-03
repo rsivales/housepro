@@ -7,6 +7,8 @@ import { Check, Loader2, Mail, Pencil, Phone, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { OwnerLinkButton } from "@/components/property/owner-link-button";
+import { BuyerLinkButton } from "@/components/property/buyer-link-button";
 import { formatEuro } from "@/lib/format";
 import { DEAL_STEPS } from "@/lib/data/deal";
 import type { DealDetail, CommissionType as SplitType } from "@/lib/db/deals";
@@ -119,6 +121,17 @@ export function DealDetailView({
             {i < DEAL_STEPS.length - 1 && <span className="h-px w-3 bg-border" />}
           </div>
         ))}
+      </div>
+
+      {/* Links privados — o comprador e o proprietário acompanham a evolução
+          destas mesmas fases sem precisar de login, assim que o negócio existe. */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {deal.buyerContactId ? (
+          <BuyerLinkButton contactId={deal.buyerContactId} />
+        ) : (
+          <span className="text-xs text-muted-foreground">Liga um comprador dos teus contactos para poderes partilhar o portal com ele.</span>
+        )}
+        {deal.propertyId && <OwnerLinkButton propertyId={deal.propertyId} />}
       </div>
 
       {!editing ? (

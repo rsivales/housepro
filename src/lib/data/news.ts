@@ -166,16 +166,24 @@ const CURATED: NewsItem[] = [
 ];
 
 /**
- * Devolve as notícias do feed. Assíncrono de propósito — para em produção
- * passar a `await fetchAndParseFeeds()` sem mudar quem a consome.
+ * Devolve as notícias do feed — artigos reais aprovados (gerados pela
+ * ingestão semanal e revistos em /admin/website/artigos) quando existirem;
+ * o conjunto curado serve só de reserva, para a secção nunca ficar vazia
+ * antes do primeiro lote ser aprovado.
  */
 export async function getNews(limit?: number): Promise<NewsItem[]> {
+  const { listApprovedNews } = await import("@/lib/db/news");
+  const real = await listApprovedNews(limit);
+  if (real.length > 0) return real;
   const sorted = [...CURATED].sort((a, b) => b.date.localeCompare(a.date));
   return typeof limit === "number" ? sorted.slice(0, limit) : sorted;
 }
 
 /** Um artigo pelo id (para a página interna `/noticias/[id]`). */
 export async function getNewsById(id: string): Promise<NewsItem | null> {
+  const { getApprovedNewsById } = await import("@/lib/db/news");
+  const real = await getApprovedNewsById(id);
+  if (real) return real;
   return CURATED.find((n) => n.id === id) ?? null;
 }
 

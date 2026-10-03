@@ -24,15 +24,15 @@ export async function GET() {
   const admin = createAdminClient();
   const { data: requests, error } = await admin
     .from("profile_change_requests")
-    .select("id, profile_id, name, photo_url, whatsapp, public_title, status, created_at")
+    .select("id, profile_id, name, photo_url, banner_url, banner_changed, whatsapp, public_title, status, created_at")
     .eq("status", "pendente")
     .order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   const profileIds = [...new Set((requests ?? []).map((r) => r.profile_id))];
   const { data: profiles } = profileIds.length
-    ? await admin.from("profiles").select("id, name, email, photo_url, whatsapp, public_title").in("id", profileIds)
-    : { data: [] as { id: string; name: string; email: string | null; photo_url: string | null; whatsapp: string | null; public_title: string | null }[] };
+    ? await admin.from("profiles").select("id, name, email, photo_url, banner_url, whatsapp, public_title").in("id", profileIds)
+    : { data: [] as { id: string; name: string; email: string | null; photo_url: string | null; banner_url: string | null; whatsapp: string | null; public_title: string | null }[] };
   const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
 
   const items = (requests ?? []).map((r) => ({
@@ -40,6 +40,9 @@ export async function GET() {
     profileId: r.profile_id,
     currentName: byId.get(r.profile_id)?.name ?? "—",
     currentEmail: byId.get(r.profile_id)?.email ?? "—",
+    currentBanner: byId.get(r.profile_id)?.banner_url ?? null,
+    proposedBanner: r.banner_url,
+    bannerChanged: r.banner_changed,
     currentPhoto: byId.get(r.profile_id)?.photo_url ?? null,
     currentWhatsapp: byId.get(r.profile_id)?.whatsapp ?? null,
     currentPublicTitle: byId.get(r.profile_id)?.public_title ?? null,

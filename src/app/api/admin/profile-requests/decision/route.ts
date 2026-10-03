@@ -30,31 +30,16 @@ export async function POST(request: Request) {
   }
 
   const admin = createAdminClient();
-  const { data: reqRow, error: reqErr } = await admin
-    .from("profile_change_requests")
-    .select("id, profile_id, name, photo_url, whatsapp, public_title, status")
-    .eq("id", id)
-    .single();
-  if (reqErr || !reqRow) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (reqRow.status !== "pendente") return NextResponse.json({ error: "already_decided" }, { status: 409 });
-
-  if (decision === "aprovado") {
-    const patch: Record<string, string> = {};
-    if (reqRow.name) patch.name = reqRow.name;
-    if (reqRow.photo_url) patch.photo_url = reqRow.photo_url;
-    if (reqRow.whatsapp) patch.whatsapp = reqRow.whatsapp;
-    if (reqRow.public_title) patch.public_title = reqRow.public_title;
-    if (Object.keys(patch).length > 0) {
-      const { error: updErr } = await admin.from("profiles").update(patch).eq("id", reqRow.profile_id);
-      if (updErr) return NextResponse.json({ error: updErr.message }, { status: 400 });
-    }
+  const { error } = await admin.rpc("decide_profile_change", {
+    p_request_id: id,
+    p_actor_id: session.agent.id,
+    p_decision: decision,
+    p_note: typeof body.note === "string" ? body.note.slice(0, 1000) : null,
+  });
+  if (error) {
+    const status = /already_decided/.test(error.message) ? 409 : /not_found/.test(error.message) ? 404 : 400;
+    return NextResponse.json({ error: error.message }, { status });
   }
-
-  const { error } = await admin
-    .from("profile_change_requests")
-    .update({ status: decision, note: body.note ?? null, decided_by: session.agent.id, decided_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   return NextResponse.json({ ok: true });
 }

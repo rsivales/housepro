@@ -1,3 +1,4 @@
+import { isProfileMediaUrl } from "@/lib/profile-media";
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
@@ -31,13 +32,17 @@ export async function POST(request: Request) {
   }
   if (!isSupabaseConfigured()) return NextResponse.json({ ok: true, demo: true });
 
-  let body: { name?: string; photoUrl?: string; whatsapp?: string; publicTitle?: string; cancel?: boolean };
+  let body: { name?: string; photoUrl?: string; whatsapp?: string; publicTitle?: string; bannerUrl?: string; cancel?: boolean };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
+  if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "invalid_body" }, { status: 422 });
+  if ([body.name, body.photoUrl, body.whatsapp, body.publicTitle, body.bannerUrl].some(v => v !== undefined && typeof v !== "string")) return NextResponse.json({ error: "invalid_body" }, { status: 422 });
+  if ((body.photoUrl && !isProfileMediaUrl(body.photoUrl, (session.realAgent ?? session.agent).id)) || (body.bannerUrl && !isProfileMediaUrl(body.bannerUrl, (session.realAgent ?? session.agent).id))) return NextResponse.json({ error: "invalid_image_url" }, { status: 422 });
+  if ((body.name?.length ?? 0) > 160 || (body.publicTitle?.length ?? 0) > 160 || (body.whatsapp?.length ?? 0) > 40) return NextResponse.json({ error: "invalid_body" }, { status: 422 });
   const supabase = await createClient();
   const { data: existing, error: existingErr } = await supabase
     .from("profile_change_requests")
@@ -68,14 +73,16 @@ export async function POST(request: Request) {
   const photoUrl = body.photoUrl?.trim() || null;
   const whatsapp = body.whatsapp?.trim() || null;
   const publicTitle = body.publicTitle?.trim() || null;
-  if (!name && !photoUrl && !whatsapp && !publicTitle) {
+  const bannerChanged = body.bannerUrl !== undefined;
+  const bannerUrl = body.bannerUrl?.trim() || null;
+  if (!name && !photoUrl && !whatsapp && !publicTitle && !bannerChanged) {
     return NextResponse.json({ error: "empty_request" }, { status: 422 });
   }
 
   if (existing) {
     const { error } = await supabase
       .from("profile_change_requests")
-      .update({ name, photo_url: photoUrl, whatsapp, public_title: publicTitle, status: "pendente" })
+      .update({ name, photo_url: photoUrl, whatsapp, public_title: publicTitle, banner_url: bannerUrl, banner_changed: bannerChanged, status: "pendente" })
       .eq("id", existing.id);
     if (error) {
       console.error("[profile/change-request] falha ao atualizar pedido", error);
@@ -86,7 +93,7 @@ export async function POST(request: Request) {
 
   const { data: created, error } = await supabase
     .from("profile_change_requests")
-    .insert({ profile_id: session.agent.id, name, photo_url: photoUrl, whatsapp, public_title: publicTitle })
+    .insert({ profile_id: session.agent.id, name, photo_url: photoUrl, whatsapp, public_title: publicTitle, banner_url: bannerUrl, banner_changed: bannerChanged })
     .select("id")
     .single();
   if (error) {

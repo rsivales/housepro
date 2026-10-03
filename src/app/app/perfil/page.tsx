@@ -28,12 +28,12 @@ export default async function PerfilPage() {
     const supabase = await createClient();
     const { data } = await supabase
       .from("profile_change_requests")
-      .select("name, photo_url, whatsapp, public_title, created_at")
+      .select("name, photo_url, banner_url, banner_changed, whatsapp, public_title, created_at")
       .eq("profile_id", agent.id)
       .eq("status", "pendente")
       .maybeSingle();
     if (data) {
-      pendingRequest = { name: data.name, whatsapp: data.whatsapp, photoUrl: data.photo_url, publicTitle: data.public_title, createdAt: data.created_at };
+      pendingRequest = { name: data.name, whatsapp: data.whatsapp, photoUrl: data.photo_url, bannerUrl: data.banner_url, bannerChanged: data.banner_changed, publicTitle: data.public_title, createdAt: data.created_at };
     }
   }
 
@@ -102,7 +102,7 @@ export default async function PerfilPage() {
             ? "Como Super Admin não há ninguém acima para aprovar as tuas alterações — Editar perfil grava de imediato. Para editar outros consultores usa Consultores & papéis acima."
             : canManageConsultores
               ? "Para alterar nome, foto, papel ou dados de outros consultores usa Consultores & papéis acima. Para os teus próprios dados podes também usar Editar perfil — fica sujeito à aprovação do Super Admin."
-              : "Nome, foto e WhatsApp: usa Editar perfil acima — fica pendente até o Super Admin aprovar. Para alterar o papel ou a agência, contacta a coordenação."}
+              : "Nome, foto, banner e WhatsApp: usa Editar perfil acima — fica pendente até o Super Admin aprovar. Para alterar o papel ou a agência, contacta a coordenação."}
       </p>
     </div>
   );

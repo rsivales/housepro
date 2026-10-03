@@ -124,7 +124,7 @@ export function PropertyCard({
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{contact.name}</p>
               <p className="truncate text-xs text-muted-foreground">
-                {referrer ? "Apresentado por si" : contact.agency}
+                {referrer ? "O seu acompanhamento" : contact.agency}
               </p>
             </div>
           </div>

@@ -11,7 +11,7 @@ const allowed = new Set([
 ]);
 
 const SELECT_COLS =
-  "id, reference, title, municipality, image, is_signature, signature_status, signature_order, signature_editorial_title, signature_collection, signature_visibility, signature_price_visible, signature_featured";
+  "id, reference, title, municipality, is_signature, signature_status, signature_order, signature_editorial_title, signature_collection, signature_visibility, signature_price_visible, signature_featured";
 
 /** Gestão exclusivamente server-side da seleção Signature.
  *  Candidaturas (submetidas pelos consultores ou já na coleção) vêm sempre

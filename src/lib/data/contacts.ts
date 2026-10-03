@@ -41,6 +41,12 @@ export interface Contact {
   tags?: string[];
   /** Origem (site, facebook, referência, importado…). */
   source?: string;
+  /** NIF — preenchido quando necessário (ex.: para CPCV/escritura). */
+  nif?: string;
+  /** Número de documento de identificação (CC/passaporte). */
+  idDocument?: string;
+  /** Morada completa. */
+  address?: string;
   /** Consentimento/base legal (RGPD). */
   consent?: { base?: string; at?: string };
   createdAt: string;

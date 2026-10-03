@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Check, Clock, X, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { Check, Clock, ExternalLink, X, AlertTriangle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,11 @@ export function ApprovalQueue({ items }: { items: PendingItem[] }) {
               </p>
             ) : (
               <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" asChild>
+                  <Link href={`/imovel/${it.id}`} target="_blank" rel="noreferrer">
+                    <ExternalLink className="size-4" /> Ver imóvel
+                  </Link>
+                </Button>
                 <Button size="sm" onClick={() => act(it.id, "approve")}>
                   <Check className="size-4" /> Aprovar e publicar
                 </Button>

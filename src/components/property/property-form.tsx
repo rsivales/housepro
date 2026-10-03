@@ -1392,6 +1392,36 @@ export function PropertyForm({
               Chaves na agência
             </label>
           </div>
+
+          {/* Candidatura à coleção Signature */}
+          <div className="mt-6 rounded-xl border border-gold/40 bg-gold/5 p-4">
+            {d.signatureStatus === "approved" ? (
+              <p className="flex items-center gap-2 text-sm font-medium text-gold-foreground">
+                ✦ Já faz parte da coleção HousePro Signature.
+              </p>
+            ) : (
+              <>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!!d.signatureCandidate}
+                    onChange={(e) => patch({ signatureCandidate: e.target.checked })}
+                    className="mt-0.5 size-4 accent-primary"
+                  />
+                  <span>
+                    Submeter como candidato à coleção HousePro Signature
+                    <span className="block text-xs text-muted-foreground">
+                      Fica à espera de revisão em Admin → Signature — não garante entrada na coleção nem fica
+                      visível ao público antes de aprovado.
+                    </span>
+                  </span>
+                </label>
+                {d.signatureStatus === "rejected" && !d.signatureCandidate && (
+                  <p className="mt-2 text-xs text-muted-foreground">Candidatura anterior não aprovada. Pode submeter novamente.</p>
+                )}
+              </>
+            )}
+          </div>
         </Card>
 
         {/* Contrato de mediação (CMI) e validades */}
@@ -1746,6 +1776,7 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     commissionPct: d.comissao,
     commissionFixed: d.comissaoFixo,
     commissionJustification: d.comissaoJustificacao?.trim() ? d.comissaoJustificacao.trim() : null,
+    signatureCandidate: !!d.signatureCandidate,
     sellerType: d.sellerType,
     videoUrl: d.videoUrl ?? "",
     tourUrl: d.tourUrl ?? "",

@@ -28,9 +28,13 @@ export default function AdminPage() {
   const [rule, setRule] = React.useState<OrderingRule>(siteConfig.homeMoreRule);
   const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
   const [canManageWebsite, setCanManageWebsite] = React.useState(false);
+  const [canManageSignature, setCanManageSignature] = React.useState(false);
 
   React.useEffect(() => {
-    fetch("/api/me/role").then((r) => r.json()).then((data) => setCanManageWebsite(data?.superadmin === true)).catch(() => {});
+    fetch("/api/me/role").then((r) => r.json()).then((data) => {
+      setCanManageWebsite(data?.superadmin === true);
+      setCanManageSignature(data?.brandAdmin === true);
+    }).catch(() => {});
     const stored = localStorage.getItem(HOME_RULE_KEY) as OrderingRule | null;
     if (stored && stored in ORDERING_LABELS) setRule(stored);
     const wmRaw = localStorage.getItem(WATERMARK_KEY);
@@ -250,7 +254,7 @@ export default function AdminPage() {
           {canManageWebsite && <NavCard href="/admin/mapa-sistema" icon={Map} title="Mapa Website + Helix" note="Rotas públicas e módulos do CRM" />}
           {canManageWebsite && <NavCard href="/admin/auditoria" icon={ShieldAlert} title="Centro de auditoria" note="Supervisão ética e de conformidade, sem caixa comercial" />}
           {canManageWebsite && <NavCard href="/admin/seguranca" icon={KeyRound} title="Segurança da conta" note="Definir ou alterar a palavra-passe do Super Admin" />}
-          {canManageWebsite && <NavCard href="/admin/signature" icon={Stamp} title="HousePro Signature" note="Curadoria da coleção — aprovar, publicar ou retirar imóveis" />}
+          {canManageSignature && <NavCard href="/admin/signature" icon={Stamp} title="HousePro Signature" note="Curadoria da coleção — aprovar, publicar ou retirar imóveis" />}
         </section>
 
         {/* Pipeline de negócios */}

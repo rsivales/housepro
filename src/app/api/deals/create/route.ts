@@ -65,6 +65,9 @@ export async function POST(request: Request) {
     coBrokerSplitPct: body.coBrokerSplitPct != null ? Number(body.coBrokerSplitPct) : undefined,
     coBrokerSplitFixed: body.coBrokerSplitFixed != null ? Number(body.coBrokerSplitFixed) : undefined,
   });
-  if ("error" in res) return NextResponse.json(res, { status: 400 });
+  if ("error" in res) {
+    console.error("[deals/create]", res.error);
+    return NextResponse.json(res, { status: 400 });
+  }
   return NextResponse.json({ ok: true, id: res.id });
 }

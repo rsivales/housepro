@@ -152,7 +152,15 @@ export function CrmBoard({
         router.replace("/app/crm");
         router.refresh();
       } else {
-        setErr(out.error === "property_missing" ? "Referência de imóvel não encontrada." : "Não foi possível criar o negócio.");
+        setErr(
+          out.error === "property_missing"
+            ? "Referência de imóvel não encontrada."
+            : out.error === "sem_permissao"
+              ? "Sem permissão para criar negócio neste imóvel."
+              : out.error === "agency_unknown"
+                ? "Não foi possível determinar a agência do imóvel/consultor."
+                : `Não foi possível criar o negócio${out.error ? ` (${out.error})` : ""}.`
+        );
       }
     } finally {
       setCreating(false);

@@ -102,12 +102,25 @@ export interface NewsDraft {
   image?: string;
 }
 
-/** Insere novos artigos como "pendente" — usado pela ingestão semanal. */
-export async function ingestNewsDrafts(drafts: NewsDraft[]): Promise<{ inserted: number } | { error: string }> {
+/** Insere novos artigos como "pendente" — usado pela ingestão semanal.
+ *  Ignora artigos cujo source_url já exista (evita repetir a mesma notícia
+ *  em semanas seguintes caso a fonte continue a listá-la no feed). */
+export async function ingestNewsDrafts(drafts: NewsDraft[]): Promise<{ inserted: number; skipped: number } | { error: string }> {
   if (!hasServiceRole()) return { error: "not_configured" };
-  if (drafts.length === 0) return { inserted: 0 };
+  if (drafts.length === 0) return { inserted: 0, skipped: 0 };
   const sb = createAdminClient();
-  const rows = drafts.map((d) => ({
+
+  const urls = drafts.map((d) => d.sourceUrl).filter((u): u is string => !!u);
+  let existing = new Set<string>();
+  if (urls.length > 0) {
+    const { data } = await sb.from("news_articles").select("source_url").in("source_url", urls);
+    existing = new Set((data ?? []).map((r: { source_url: string | null }) => r.source_url).filter((u): u is string => !!u));
+  }
+  const fresh = drafts.filter((d) => !d.sourceUrl || !existing.has(d.sourceUrl));
+  const skipped = drafts.length - fresh.length;
+  if (fresh.length === 0) return { inserted: 0, skipped };
+
+  const rows = fresh.map((d) => ({
     category: d.category,
     title: d.title,
     excerpt: d.excerpt,
@@ -120,5 +133,5 @@ export async function ingestNewsDrafts(drafts: NewsDraft[]): Promise<{ inserted:
   }));
   const { error } = await sb.from("news_articles").insert(rows);
   if (error) return { error: error.message };
-  return { inserted: rows.length };
+  return { inserted: rows.length, skipped };
 }

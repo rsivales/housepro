@@ -4,7 +4,7 @@ import * as React from "react";
 import { Filter } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { CrmBoard, type CrmBoardOption } from "@/components/app/crm-board";
+import { CrmBoard, type CrmBoardOption, type CrmBoardPrefill } from "@/components/app/crm-board";
 import { LeadsBoard, type LeadCard } from "@/components/app/leads-board";
 import { LEAD_PIPELINES, leadPipeline } from "@/lib/data/lead-pipelines";
 import type { DealListItem } from "@/lib/db/deals";
@@ -17,11 +17,13 @@ export function CrmTabs({
   leads,
   buyerContacts = [],
   agencies = [],
+  prefill,
 }: {
   deals: DealListItem[];
   leads: LeadCard[];
   buyerContacts?: CrmBoardOption[];
   agencies?: CrmBoardOption[];
+  prefill?: CrmBoardPrefill;
 }) {
   const [tab, setTab] = React.useState<string>("negocios");
 
@@ -51,7 +53,7 @@ export function CrmTabs({
 
       <div className="mt-6">
         {tab === "negocios" ? (
-          <CrmBoard initial={deals} buyerContacts={buyerContacts} agencies={agencies} />
+          <CrmBoard initial={deals} buyerContacts={buyerContacts} agencies={agencies} prefill={prefill} />
         ) : (
           <div>
             <p className="text-sm font-medium text-primary">Área do consultor</p>

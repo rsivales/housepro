@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { getSession } from "@/lib/supabase/auth";
 import { isStaff } from "@/lib/data/roles";
 import { getDeal } from "@/lib/db/deals";
-import { listContactsByOwner, listAgenciesReal } from "@/lib/db/repo";
+import { listContactsByOwner, listAllContactsByType, listAgenciesReal } from "@/lib/db/repo";
 import { DealDetailView } from "@/components/app/deal-detail";
 
 export const metadata: Metadata = { title: "Negócio — Helix" };
@@ -21,7 +21,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
   if (!deal) notFound();
 
   const [contacts, agencyList] = await Promise.all([
-    listContactsByOwner(session.agent.id),
+    staff ? listAllContactsByType("comprador") : listContactsByOwner(session.agent.id),
     listAgenciesReal(),
   ]);
   const buyerContacts = contacts

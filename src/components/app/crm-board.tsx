@@ -19,11 +19,32 @@ const ACCENT = ["bg-slate-400", "bg-sky-400", "bg-violet-400", "bg-amber-400", "
 
 export interface CrmBoardOption { id: string; name: string }
 
+/** Vem da ficha do imóvel ("Criar negócio") — liga o negócio ao imóvel pelo
+ *  id (nunca por referência escrita à mão) e já traz valor/vendedor/comissão. */
+export interface CrmBoardPrefill {
+  propertyId: string;
+  reference: string;
+  amount: number;
+  sellerName: string;
+  commissionPreview: string;
+}
+
 const NEW_DEAL_FORM = {
-  reference: "", buyerName: "", buyerContactId: "", sellerName: "", amount: "",
+  propertyId: "", reference: "", buyerName: "", buyerContactId: "", sellerName: "", amount: "",
   coBroker: false, coBrokerAgencyId: "",
   coBrokerSplitType: "percent" as "percent" | "fixed", coBrokerSplitPct: "50", coBrokerSplitFixed: "",
 };
+
+function formFromPrefill(p?: CrmBoardPrefill): typeof NEW_DEAL_FORM {
+  if (!p) return NEW_DEAL_FORM;
+  return {
+    ...NEW_DEAL_FORM,
+    propertyId: p.propertyId,
+    reference: p.reference,
+    amount: p.amount ? String(p.amount) : "",
+    sellerName: p.sellerName,
+  };
+}
 
 /** Kanban de negócios REAIS (persistidos). Ao mover um cartão de fase, o estado
  *  do imóvel muda automaticamente (reserva→reservado, cpcv→cpcv, escritura/
@@ -32,25 +53,28 @@ export function CrmBoard({
   initial,
   buyerContacts = [],
   agencies = [],
+  prefill,
 }: {
   initial: DealListItem[];
   /** Contactos do consultor com type="comprador" — para ligar ao negócio em vez de texto livre. */
   buyerContacts?: CrmBoardOption[];
   /** Outras agências (para "partilha com outra agência"). */
   agencies?: CrmBoardOption[];
+  /** Veio de "Criar negócio" na ficha de um imóvel — abre o formulário já preenchido. */
+  prefill?: CrmBoardPrefill;
 }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<string | null>(null);
-  const [showNew, setShowNew] = React.useState(false);
+  const [showNew, setShowNew] = React.useState(Boolean(prefill));
   const [creating, setCreating] = React.useState(false);
-  const [form, setForm] = React.useState(NEW_DEAL_FORM);
+  const [form, setForm] = React.useState(() => formFromPrefill(prefill));
   const [err, setErr] = React.useState<string | null>(null);
 
   const total = initial.reduce((s, d) => s + d.amount, 0);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.reference.trim()) return;
+    if (!form.propertyId && !form.reference.trim()) return;
     setCreating(true);
     setErr(null);
     try {
@@ -58,7 +82,11 @@ export function CrmBoard({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          reference: form.reference.trim(),
+          // Com propertyId (veio da ficha do imóvel) a ligação é direta pelo
+          // id — a referência só serve de fallback para quem abre o formulário
+          // a partir do CRM e tem de identificar o imóvel à mão.
+          propertyId: form.propertyId || undefined,
+          reference: form.propertyId ? undefined : form.reference.trim(),
           buyerName: form.buyerName,
           buyerContactId: form.buyerContactId || undefined,
           sellerName: form.sellerName,
@@ -74,6 +102,7 @@ export function CrmBoard({
       if (res.ok) {
         setForm(NEW_DEAL_FORM);
         setShowNew(false);
+        router.replace("/app/crm");
         router.refresh();
       } else {
         setErr(out.error === "property_missing" ? "Referência de imóvel não encontrada." : "Não foi possível criar o negócio.");
@@ -126,13 +155,25 @@ export function CrmBoard({
       {/* Novo negócio */}
       {showNew && (
         <form onSubmit={create} className="mt-4 rounded-2xl border bg-card p-4 shadow-sm">
+          {form.propertyId && (
+            <p className="mb-2 rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
+              Ligado ao imóvel {form.reference} — valor, vendedor e comissão já vieram da ficha.
+            </p>
+          )}
           <div className="grid gap-2 sm:grid-cols-3">
-            <Input value={form.reference} onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))} placeholder="Referência (ex.: HP-1049)" />
+            <Input
+              value={form.reference}
+              onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
+              placeholder="Referência (ex.: HP-1049)"
+              disabled={Boolean(form.propertyId)}
+            />
             <Input value={form.sellerName} onChange={(e) => setForm((f) => ({ ...f, sellerName: e.target.value }))} placeholder="Vendedor" />
             <Input type="number" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="Valor (€)" />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            A comissão vem do imóvel — só precisas de indicar abaixo se há partilha com outra agência.
+            {prefill?.commissionPreview
+              ? <>Comissão em vigor no imóvel: <strong className="text-foreground">{prefill.commissionPreview}</strong> — só precisas de indicar abaixo se há partilha com outra agência.</>
+              : "A comissão vem do imóvel — só precisas de indicar abaixo se há partilha com outra agência."}
           </p>
 
           <div className="mt-2 grid gap-2 sm:grid-cols-4">
@@ -197,7 +238,7 @@ export function CrmBoard({
           </div>
 
           <div className="mt-3 flex items-center gap-3">
-            <Button type="submit" disabled={creating || !form.reference.trim()}>
+            <Button type="submit" disabled={creating || (!form.propertyId && !form.reference.trim())}>
               {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Criar
             </Button>
             {err && <span className="text-sm text-destructive">{err}</span>}

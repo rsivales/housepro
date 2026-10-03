@@ -1591,6 +1591,7 @@ export async function anonymizeLead(input: {
 import {
   contactsByOwner as demoContactsByOwner,
   contactById as demoContactById,
+  demoContacts,
   activitiesForContact as demoActivitiesForContact,
   tasksByOwner as demoTasksByOwner,
   visitsByOwner as demoVisitsByOwner,
@@ -1651,6 +1652,25 @@ export async function listContactsByOwner(ownerId: string): Promise<Contact[]> {
     return (data ?? []).map(mapContact);
   } catch {
     return demoContactsByOwner(ownerId);
+  }
+}
+
+/** Todos os contactos de um dado tipo, de qualquer consultor — para staff
+ *  conseguir ligar comprador/vendedor a um negócio sem depender de ter o
+ *  contacto na sua própria carteira. */
+export async function listAllContactsByType(type: Contact["type"]): Promise<Contact[]> {
+  if (!isSupabaseConfigured()) return demoContacts.filter((c) => c.type === type);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("contacts")
+      .select("*")
+      .eq("type", type)
+      .order("updated_at", { ascending: false })
+      .limit(500);
+    return (data ?? []).map(mapContact);
+  } catch {
+    return [];
   }
 }
 

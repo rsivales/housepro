@@ -6,6 +6,7 @@ import { ArrowLeft, ImagePlus, RotateCcw } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { UploadProgress, type UploadState } from "@/components/admin/upload-progress";
+import { PendingNewsQueue } from "@/components/admin/pending-news-queue";
 import { getNews, newsImage, type NewsItem } from "@/lib/data/news";
 import { readNewsImages, writeNewsImages, loadSiteContent, uploadSiteImage, uploadErrorMessage, type NewsImageMap } from "@/lib/data/site-content";
 
@@ -49,13 +50,18 @@ export default function ArtigosAdminPage() {
         <Link href="/admin/website" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-4" /> Website público
         </Link>
-        <h1 className="mt-2 font-display text-2xl sm:text-3xl">Imagens de artigos</h1>
+        <h1 className="mt-2 font-display text-2xl sm:text-3xl">Artigos</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           Cada artigo tem sempre uma imagem: primeiro a capa escolhida aqui, depois a imagem da fonte e,
           como proteção final, uma fotografia profissional da respetiva categoria.
         </p>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-8">
+          <PendingNewsQueue />
+        </div>
+
+        <h2 className="mt-2 font-display text-xl">Imagens dos artigos publicados</h2>
+        <div className="mt-4 space-y-3">
           {articles.map((a) => {
             const shown = map[a.id] || newsImage(a);
             return (

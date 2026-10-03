@@ -52,7 +52,7 @@ import {
   type WatermarkConfig,
 } from "@/lib/config";
 import { toIdealistaXML } from "@/lib/imovel/idealista";
-import { commissionLabel } from "@/lib/data/commission";
+import { commissionLabel, isBelowStandardCommission, STANDARD_COMMISSION_PCT } from "@/lib/data/commission";
 import type { AuditEntry } from "@/lib/data/audit";
 import type { PropertyStatus } from "@/lib/data/types";
 import { STATUS_LABEL, autoTagsFromStatus } from "@/lib/data/status";
@@ -1015,17 +1015,50 @@ export function PropertyForm({
                 <select
                   value={d.comissaoTipo}
                   onChange={(e) => patch({ comissaoTipo: e.target.value as "percent" | "fixed" })}
-                  className={box + " w-28 shrink-0"}
+                  className={cn(box, "w-20 shrink-0 px-2")}
                 >
                   <option value="percent">%</option>
-                  <option value="fixed">€ fixo</option>
+                  <option value="fixed">€</option>
                 </select>
                 {d.comissaoTipo === "percent" ? (
-                  <Input type="number" step="0.1" value={d.comissao || ""} onChange={(e) => patch({ comissao: Number(e.target.value) || 0 })} placeholder="5" />
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={d.comissao || ""}
+                    onChange={(e) => patch({ comissao: Number(e.target.value) || 0 })}
+                    placeholder="5"
+                    className="min-w-0 flex-1"
+                  />
                 ) : (
-                  <Input type="number" step="100" value={d.comissaoFixo || ""} onChange={(e) => patch({ comissaoFixo: Number(e.target.value) || 0 })} placeholder="6000" />
+                  <Input
+                    type="number"
+                    step="100"
+                    value={d.comissaoFixo || ""}
+                    onChange={(e) => patch({ comissaoFixo: Number(e.target.value) || 0 })}
+                    placeholder="6000"
+                    className="min-w-0 flex-1"
+                  />
                 )}
               </div>
+              {isBelowStandardCommission(d.price, {
+                commissionType: d.comissaoTipo,
+                commissionPct: d.comissao,
+                commissionFixed: d.comissaoFixo,
+              }) && (
+                <div className="mt-2 space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+                  <p>
+                    ⚠️ Comissão abaixo do padrão HousePro ({STANDARD_COMMISSION_PCT}%) — carece de aprovação da
+                    administração. Indique o motivo abaixo.
+                  </p>
+                  <textarea
+                    value={d.comissaoJustificacao ?? ""}
+                    onChange={(e) => patch({ comissaoJustificacao: e.target.value })}
+                    placeholder="Motivo da comissão reduzida (ex.: negociação com o cliente, campanha, etc.)"
+                    rows={2}
+                    className="w-full rounded-md border border-amber-300 bg-white px-2 py-1.5 text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-amber-300"
+                  />
+                </div>
+              )}
             </Field>
             <Field label="Área bruta (m²)"><Input type="number" value={d.area || ""} onChange={(e) => patch({ area: Number(e.target.value) || 0 })} /></Field>
             <Field label="Área útil (m²)" hint="Área privativa. Aparece no imóvel e é exportada para os portais quando preenchida.">
@@ -1712,6 +1745,7 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     commissionType: d.comissaoTipo,
     commissionPct: d.comissao,
     commissionFixed: d.comissaoFixo,
+    commissionJustification: d.comissaoJustificacao?.trim() ? d.comissaoJustificacao.trim() : null,
     sellerType: d.sellerType,
     videoUrl: d.videoUrl ?? "",
     tourUrl: d.tourUrl ?? "",

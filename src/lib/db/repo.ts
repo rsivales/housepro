@@ -144,6 +144,7 @@ function mapRow(r: Row): Property {
     commissionType: (r.commission_type as "percent" | "fixed") ?? undefined,
     commissionPct: r.commission_pct != null ? Number(r.commission_pct) : undefined,
     commissionFixed: r.commission_fixed != null ? Number(r.commission_fixed) : undefined,
+    commissionJustification: (r.commission_justification as string) ?? undefined,
     documents: Array.isArray(r.document_kinds) ? (r.document_kinds as string[]) : undefined,
     documentsMeta: Array.isArray(r.documents_meta) ? (r.documents_meta as Property["documentsMeta"]) : undefined,
     plans: Array.isArray(r.plans) ? (r.plans as string[]) : undefined,

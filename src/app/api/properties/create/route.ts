@@ -119,6 +119,8 @@ export async function POST(request: Request) {
     commission_type: d.comissaoTipo === "fixed" ? "fixed" : "percent",
     commission_pct: d.comissaoTipo === "percent" ? Number(d.comissao ?? 0) : null,
     commission_fixed: d.comissaoTipo === "fixed" ? Number(d.comissaoFixo ?? 0) : null,
+    commission_justification:
+      typeof d.comissaoJustificacao === "string" && d.comissaoJustificacao.trim() ? d.comissaoJustificacao.trim() : null,
     short_description: d.descricaoCurta ? String(d.descricaoCurta) : null,
     seo_description: d.seoDescription ? String(d.seoDescription) : null,
     keywords: d.keywords ? String(d.keywords) : null,

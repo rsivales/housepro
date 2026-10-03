@@ -131,6 +131,9 @@ export interface ImovelDraft {
   comissao: number;
   /** Comissão em € (quando comissaoTipo = "fixed"). */
   comissaoFixo: number;
+  /** Justificação interna quando a comissão fica abaixo do padrão/mínimo —
+   *  obrigatória para submeter nesse caso; fica sujeita a aprovação. */
+  comissaoJustificacao?: string;
   /** Tipo de vendedor — "empresa" exige certidão permanente de empresa. */
   sellerType: "particular" | "empresa";
   /** Área bruta (m²) — a área principal do imóvel. */
@@ -357,6 +360,7 @@ export function blankImovel(id: string): ImovelDraft {
     comissaoTipo: "percent",
     comissao: 5,
     comissaoFixo: 0,
+    comissaoJustificacao: "",
     sellerType: "particular",
     area: 0,
     beds: 2,
@@ -436,6 +440,7 @@ export function draftFromProperty(p: Property): ImovelDraft {
     comissaoTipo: p.commissionType ?? "percent",
     comissao: p.commissionPct ?? 0,
     comissaoFixo: p.commissionFixed ?? 0,
+    comissaoJustificacao: p.commissionJustification ?? "",
     sellerType: p.sellerType ?? "particular",
     area: p.area,
     areaUtil: p.areaUtil,

@@ -39,6 +39,7 @@ export const AUDIT_FIELD_LABEL: Record<string, string> = {
   commissionType: "Base da comissão",
   commissionPct: "Comissão (%)",
   commissionFixed: "Comissão (€)",
+  commissionJustification: "Justificação da comissão",
   operation: "Operação",
   businessType: "Tipo de negócio",
   priceVisible: "Preço visível",

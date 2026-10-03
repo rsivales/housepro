@@ -29,6 +29,20 @@ export interface EffectiveCommission {
   pct?: number;
 }
 
+/** Percentagem padrão da HousePro — valor de referência em todos os imóveis. */
+export const STANDARD_COMMISSION_PCT = 5;
+
+/** Verdadeiro quando a comissão configurada fica abaixo do padrão (5%) ou do
+ *  mínimo do escalão de preço — nesse caso carece de justificação/aprovação. */
+export function isBelowStandardCommission(price: number, c: CommissionInput): boolean {
+  if (price <= 0) return false;
+  const isFixed = c.commissionType === "fixed" || (c.commissionFixed != null && c.commissionType == null);
+  const base = isFixed ? c.commissionFixed ?? 0 : c.commissionPct != null ? (price * c.commissionPct) / 100 : 0;
+  if (base <= 0) return false;
+  const standard = Math.max((price * STANDARD_COMMISSION_PCT) / 100, commissionFloor(price));
+  return base < standard;
+}
+
 /** Mínimo (€) da comissão para um dado preço. */
 export function commissionFloor(price: number): number {
   if (price <= 0) return 0;

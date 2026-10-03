@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { Camera, Check, Clock, Loader2, Pencil, Send, X, XCircle } from "lucide-react";
 
 import { AgentAvatar } from "@/components/brand/agent-avatar";
-import { uploadErrorMessage, uploadSiteImage } from "@/lib/data/site-content";
+import { uploadErrorMessage, uploadProfileImage } from "@/lib/data/site-content";
 import { publicRoleLabel } from "@/lib/data/roles";
 import type { Agent } from "@/lib/data/types";
 
 export interface PendingProfileRequest {
   name: string | null;
   photoUrl: string | null;
+  bannerUrl?: string | null;
+  bannerChanged?: boolean;
   whatsapp: string | null;
   publicTitle: string | null;
   createdAt: string;
@@ -34,10 +36,27 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
   const [publicTitle, setPublicTitle] = React.useState(agent.publicTitle ?? "");
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = React.useState<string | null>(null);
+  const [bannerFile, setBannerFile] = React.useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = React.useState<string | null>(null);
+  const [removeBanner, setRemoveBanner] = React.useState(false);
   const [pending, setPending] = React.useState<PendingProfileRequest | null>(initialPending);
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
   const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
+  React.useEffect(() => () => { if (bannerPreview) URL.revokeObjectURL(bannerPreview); }, [bannerPreview]);
+
+  React.useEffect(() => { setPending(initialPending); }, [initialPending]);
+
+  function pickBanner(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBannerFile(file);
+    setBannerPreview(URL.createObjectURL(file));
+    setRemoveBanner(false);
+  }
 
   function pickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -52,12 +71,13 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
     setErr(null);
     try {
       let photoUrl: string | undefined;
-      if (photoFile) photoUrl = await uploadSiteImage(photoFile, "profile");
+      if (photoFile) photoUrl = await uploadProfileImage(photoFile);
+      const bannerUrl = bannerFile ? await uploadProfileImage(bannerFile) : removeBanner ? "" : undefined;
       const nameChanged = name.trim() && name.trim() !== agent.name;
       const emailChanged = email.trim() !== (agent.email ?? "");
       const whatsappChanged = whatsapp.trim() !== (agent.whatsapp ?? "");
       const publicTitleChanged = publicTitle.trim() !== (agent.publicTitle ?? "");
-      if (!nameChanged && !emailChanged && !whatsappChanged && !publicTitleChanged && !photoUrl) {
+      if (!nameChanged && !emailChanged && !whatsappChanged && !publicTitleChanged && !photoUrl && bannerUrl === undefined) {
         setErr("Altera pelo menos um campo antes de guardar.");
         return;
       }
@@ -71,6 +91,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
           whatsapp: whatsappChanged ? whatsapp.trim() : undefined,
           publicTitle: publicTitleChanged ? publicTitle.trim() : undefined,
           photoUrl,
+          bannerUrl,
         }),
       });
       const j = await res.json().catch(() => ({}));
@@ -80,6 +101,9 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
       }
       setEditing(false);
       setPhotoFile(null);
+      setBannerFile(null);
+      setBannerPreview(null);
+      setRemoveBanner(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 4000);
       router.refresh();
@@ -95,7 +119,8 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
     setErr(null);
     try {
       let photoUrl: string | undefined;
-      if (photoFile) photoUrl = await uploadSiteImage(photoFile, "profile");
+      if (photoFile) photoUrl = await uploadProfileImage(photoFile);
+      const bannerUrl = bannerFile ? await uploadProfileImage(bannerFile) : removeBanner ? "" : undefined;
       const nameChanged = name.trim() && name.trim() !== agent.name;
       const whatsappChanged = whatsapp.trim() !== (agent.whatsapp ?? "");
       const publicTitleChanged = publicTitle.trim() !== (agent.publicTitle ?? "");
@@ -107,6 +132,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
           whatsapp: whatsappChanged ? whatsapp.trim() : undefined,
           publicTitle: publicTitleChanged ? publicTitle.trim() : undefined,
           photoUrl,
+          bannerUrl,
         }),
       });
       const j = await res.json().catch(() => ({}));
@@ -121,10 +147,15 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
         whatsapp: whatsappChanged ? whatsapp.trim() : null,
         publicTitle: publicTitleChanged ? publicTitle.trim() : null,
         photoUrl: photoUrl ?? null,
+        bannerUrl: bannerUrl ?? null,
+        bannerChanged: bannerUrl !== undefined,
         createdAt: new Date().toISOString(),
       });
       setEditing(false);
       setPhotoFile(null);
+      setBannerFile(null);
+      setBannerPreview(null);
+      setRemoveBanner(false);
     } catch (e) {
       setErr(uploadErrorMessage(e));
     } finally {
@@ -135,13 +166,15 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
   async function cancelRequest() {
     setBusy(true);
     try {
-      await fetch("/api/profile/change-request", {
+      setErr(null);
+      const response = await fetch("/api/profile/change-request", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ cancel: true }),
       });
+      if (!response.ok) { setErr("Não foi possível cancelar o pedido. Tenta novamente."); return; }
       setPending(null);
-    } finally {
+    } catch { setErr("Falha de ligação ao cancelar o pedido."); } finally {
       setBusy(false);
     }
   }
@@ -157,7 +190,9 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
           {pending.whatsapp && <li>WhatsApp proposto: <strong className="text-foreground">{pending.whatsapp}</strong></li>}
           {pending.publicTitle && <li>Alias público proposto: <strong className="text-foreground">{pending.publicTitle}</strong></li>}
           {pending.photoUrl && <li>Nova fotografia enviada — aguarda aprovação.</li>}
+          {pending.bannerChanged && <li>{pending.bannerUrl ? "Novo banner enviado" : "Remoção do banner pedida"} — aguarda aprovação.</li>}
         </ul>
+        {err && <p role="alert" className="mt-2 text-destructive">{err}</p>}
         <button
           onClick={cancelRequest}
           disabled={busy}
@@ -198,11 +233,25 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
             <AgentAvatar agent={agent} className="size-16 text-lg" />
           )}
           <label className="absolute -bottom-1 -right-1 grid size-6 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground shadow">
-            <Camera className="size-3.5" />
+            <span className="sr-only">Alterar fotografia</span><Camera className="size-3.5" />
             <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={pickPhoto} />
           </label>
         </div>
         <p className="text-xs hx-muted">{instant ? "Nova fotografia — aplica-se assim que guardares." : "Nova fotografia — só fica visível depois de aprovada."}</p>
+      </div>
+
+      <div className="mt-5 border-t border-[var(--hx-border)] pt-4">
+        <p className="text-sm font-medium">Banner da página pública</p>
+        <p className="mt-1 text-sm hx-muted">Imagem horizontal, idealmente 1920 × 800 px. O texto e a fotografia do perfil são apresentados sobre o banner.</p>
+        {!removeBanner && (bannerPreview || agent.banner) && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={bannerPreview || agent.banner} alt="Pré-visualização do banner" className="mt-3 aspect-[12/5] w-full rounded-xl object-cover" />
+        )}
+        <label className="mt-3 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-4 text-sm font-medium">
+          <Camera className="size-4" /> Escolher banner
+          <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={pickBanner} />
+        </label>
+        {(agent.banner || bannerFile) && <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={removeBanner} onChange={e => { setRemoveBanner(e.target.checked); if (e.target.checked) { setBannerFile(null); setBannerPreview(null); } }} />Remover banner e usar o fundo HousePro</label>}
       </div>
 
       <label className="mt-4 block text-sm">
@@ -248,7 +297,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
           {instant ? "Guardar" : "Enviar para aprovação"}
         </button>
         <button
-          onClick={() => { setEditing(false); setPhotoFile(null); setPhotoPreview(null); setName(agent.name); setEmail(agent.email ?? ""); setWhatsapp(agent.whatsapp ?? ""); setPublicTitle(agent.publicTitle ?? ""); setErr(null); }}
+          onClick={() => { setEditing(false); setPhotoFile(null); setPhotoPreview(null); setBannerFile(null); setBannerPreview(null); setRemoveBanner(false); setName(agent.name); setEmail(agent.email ?? ""); setWhatsapp(agent.whatsapp ?? ""); setPublicTitle(agent.publicTitle ?? ""); setErr(null); }}
           disabled={busy}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm text-muted-foreground hover:bg-secondary"
         >

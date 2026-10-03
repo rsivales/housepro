@@ -116,6 +116,8 @@ export interface Agent {
   accent: string;
   /** Headshot under /public/agents; falls back to initials when absent. */
   photo?: string;
+  /** Banner da montra pública, publicado após aprovação editorial. */
+  banner?: string;
 }
 
 /** Estado de aprovação de publicação. */

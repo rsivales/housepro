@@ -1,7 +1,8 @@
+import { isProfileMediaUrl } from "@/lib/profile-media";
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { isStaff, ROLE_LABEL } from "@/lib/data/roles";
+import { isStaff, isSuperadmin, ROLE_LABEL } from "@/lib/data/roles";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import type { RoleKey } from "@/lib/data/types";
 
@@ -166,7 +167,10 @@ export async function PATCH(request: Request) {
     .eq("id", id)
     .maybeSingle();
 
+  if (("bannerUrl" in b || "photoUrl" in b) && !isSuperadmin(session.agent)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (b.bannerUrl && !isProfileMediaUrl(b.bannerUrl)) return NextResponse.json({ error: "invalid_image_url" }, { status: 422 });
   const patch: Record<string, unknown> = {};
+  if (typeof b.bannerUrl === "string") patch.banner_url = b.bannerUrl || null;
   if (typeof b.name === "string") patch.name = b.name.trim();
   if (typeof b.email === "string") patch.email = b.email.trim().toLowerCase() || null;
   if (typeof b.whatsapp === "string") patch.whatsapp = b.whatsapp || null;

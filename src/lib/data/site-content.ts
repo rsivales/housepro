@@ -297,3 +297,17 @@ export function uploadErrorMessage(error: unknown): string {
 export function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
+
+/** Immutable, owner-scoped uploads for consultant portraits and public banners. */
+export async function uploadProfileImage(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("invalid_image");
+  const blob = await compressImage(file);
+  if (blob.size > 4 * 1024 * 1024) throw new Error("compressed_file_too_large");
+  const client = createClient();
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) throw new Error("unauthorized");
+  const path = `${user.id}/${crypto.randomUUID()}.webp`;
+  const { error } = await client.storage.from("consultant-media").upload(path, blob, { contentType: "image/webp", cacheControl: "31536000", upsert: false });
+  if (error) throw new Error(error.message);
+  return client.storage.from("consultant-media").getPublicUrl(path).data.publicUrl;
+}

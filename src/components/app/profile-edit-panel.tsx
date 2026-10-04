@@ -237,7 +237,7 @@ export function ProfileEditPanel({ agent, initialPending, instant = false }: { a
             <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={pickPhoto} />
           </label>
         </div>
-        <p className="text-xs hx-muted">{instant ? "Nova fotografia — aplica-se assim que guardares." : "Nova fotografia — só fica visível depois de aprovada."}</p>
+        <div className="text-xs hx-muted"><p>{instant ? "Nova fotografia — aplica-se assim que guardares." : "Nova fotografia — só fica visível depois de aprovada."}</p><p className="mt-1">Para uma fotografia integrada no cenário, use PNG ou WebP com fundo transparente. Também pode enviar uma fotografia normal.</p></div>
       </div>
 
       <div className="mt-5 border-t border-[var(--hx-border)] pt-4">

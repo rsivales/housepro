@@ -21,7 +21,7 @@
 .portrait { position:absolute; z-index:1; width:650px; max-width:none; height:auto; right:-46px; bottom:0; object-fit:contain; }
 /* The mask supplies alpha only. The image visible to visitors is the original
    photograph from the profile, including the exact original face pixels. */
-.originalPortrait { mask-image:url('/consultor/rodrigo-mask.webp'); mask-size:100% 100%; mask-repeat:no-repeat; }
+.originalPortrait { mask-image:url('/consultor/rodrigo-mask.webp'); mask-size:97% 100%; mask-position:center; mask-repeat:no-repeat; }
 .newPortrait { width:520px; right:0; max-height:540px; object-fit:contain; object-position:bottom; }
 .initials { position:absolute; right:9%; bottom:15%; font-family:Georgia,serif; font-size:140px; color:#fff8; }
 .affiliation { background:var(--secondary); border-bottom:1px solid var(--border); }

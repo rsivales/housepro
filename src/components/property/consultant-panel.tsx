@@ -1,4 +1,5 @@
-import { CalendarClock, Phone } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, CalendarClock, Phone } from "lucide-react";
 
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
@@ -7,9 +8,8 @@ import { ContactLink } from "@/components/property/contact-link";
 import type { Agent } from "@/lib/data/types";
 
 /**
- * Painel de contacto do consultor — compacto e sticky, apenas no desktop.
- * (No telemóvel o contacto vive na barra fixa inferior.) Não é um segundo
- * cartão grande: mostra o essencial e encaminha para o pedido de visita.
+ * Contactos no desktop e acesso à montra do consultor em todos os ecrãs.
+ * A mesma pessoa que acompanha o imóvel mantém a atribuição dos contactos.
  */
 export function ConsultantPanel({
   agent,
@@ -31,8 +31,12 @@ export function ConsultantPanel({
   referrerName?: string;
 }) {
   return (
-    <aside className="hidden lg:block">
-      <div className="sticky top-24 rounded-2xl border bg-white p-5 shadow-[0_10px_40px_-24px_rgba(11,31,58,.35)]">
+    <aside>
+      <Link href={`/consultor/${agent.id}#imoveis`} className="flex min-h-14 items-center gap-3 rounded-xl border bg-white p-4 text-sm font-semibold text-[var(--hp-navy)] transition-colors hover:bg-black/[0.03] lg:hidden">
+        <AgentAvatar agent={agent} className="size-10 shrink-0" />
+        <span className="flex-1">Ver mais imóveis de {agent.name}</span><ArrowRight className="size-5 shrink-0" />
+      </Link>
+      <div className="sticky top-24 hidden lg:block rounded-2xl border bg-white p-5 shadow-[0_10px_40px_-24px_rgba(11,31,58,.35)]">
         {referrerName && (
           <p className="mb-3 rounded-lg bg-black/[0.04] px-3 py-2 text-xs text-[var(--hp-text-2)]">
             Apresentado por <span className="font-medium text-[var(--hp-navy)]">{referrerName}</span> — o seu consultor dedicado.
@@ -74,6 +78,9 @@ export function ConsultantPanel({
         <p className="mt-1.5 text-center text-xs text-[var(--hp-text-2)]">
           <PhoneNote />
         </p>
+        <Link href={`/consultor/${agent.id}#imoveis`} className="mt-4 flex min-h-11 items-center justify-between gap-3 border-t pt-3 text-sm font-semibold text-[var(--hp-navy)] hover:text-[var(--hp-red)]">
+          <span>Ver mais imóveis de {agent.name}</span><ArrowRight className="size-4 shrink-0" />
+        </Link>
       </div>
     </aside>
   );

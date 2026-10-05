@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
+import { getSignatureCollection } from "@/lib/signature/collections";
 import { isBrandAdmin } from "@/lib/data/roles";
 
 const allowed = new Set([
@@ -42,6 +43,12 @@ export async function PATCH(request: Request) {
   if (!body?.id || !body.patch) return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   const patch = Object.fromEntries(Object.entries(body.patch).filter(([key]) => allowed.has(key)));
   if (!Object.keys(patch).length) return NextResponse.json({ error: "no_changes" }, { status: 400 });
+  if ("signature_collection" in patch) {
+    const value = patch.signature_collection;
+    if (value === null || value === "") patch.signature_collection = null;
+    else if (typeof value === "string" && getSignatureCollection(value)) patch.signature_collection = getSignatureCollection(value)!.slug;
+    else return NextResponse.json({ error: "invalid_collection" }, { status: 400 });
+  }
   if (patch.signature_status === "approved") {
     patch.is_signature = true;
     patch.signature_approved_by = session.agent.id;

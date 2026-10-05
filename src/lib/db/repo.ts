@@ -266,6 +266,7 @@ export async function listSignatureProperties(): Promise<Property[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("properties").select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .eq("is_signature", true).eq("signature_status", "approved").eq("signature_visibility", "public")
+    .eq("approval", "aprovado").eq("listing_state", "activo").eq("off_market", false)
     .neq("status", "vendido").order("signature_order", { ascending: true, nullsFirst: false });
   return (data ?? []).map(mapRow);
 }

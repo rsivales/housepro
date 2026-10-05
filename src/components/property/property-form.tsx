@@ -1398,6 +1398,7 @@ export function PropertyForm({
             {d.signatureStatus === "approved" ? (
               <p className="flex items-center gap-2 text-sm font-medium text-gold-foreground">
                 ✦ Já faz parte da coleção HousePro Signature.
+                <span className="text-xs font-normal text-muted-foreground">A coleção temática é escolhida pela administração em Helix → Signature.</span>
               </p>
             ) : (
               <>

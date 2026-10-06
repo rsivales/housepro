@@ -123,8 +123,11 @@ export async function POST(request: Request) {
       typeof d.comissaoJustificacao === "string" && d.comissaoJustificacao.trim() ? d.comissaoJustificacao.trim() : null,
     // Candidatura à coleção Signature — fica pendente de revisão/aprovação do
     // admin/direção em /admin/signature; nunca entra aprovada diretamente.
+    // signature_status é "not null" na base de dados, por isso tem sempre de
+    // levar um valor — só conta quando is_signature é true (ver bug anterior,
+    // a coluna tem default 'candidate' para todos os imóveis históricos).
     is_signature: Boolean(d.signatureCandidate),
-    signature_status: d.signatureCandidate ? "candidate" : null,
+    signature_status: "candidate",
     short_description: d.descricaoCurta ? String(d.descricaoCurta) : null,
     seo_description: d.seoDescription ? String(d.seoDescription) : null,
     keywords: d.keywords ? String(d.keywords) : null,

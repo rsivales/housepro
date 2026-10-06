@@ -212,7 +212,9 @@ export async function POST(request: Request) {
       changes.push({ field: "Candidatura Signature", from: "—", to: "candidate" });
     } else if (!wants && already) {
       dbPatch.is_signature = false;
-      dbPatch.signature_status = null;
+      // signature_status é "not null" na base de dados — nunca pode levar
+      // null (já causou falha ao submeter imóveis sem candidatura).
+      dbPatch.signature_status = "candidate";
       changes.push({ field: "Candidatura Signature", from: current.signatureStatus ?? "—", to: "retirada" });
     }
   }

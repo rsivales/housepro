@@ -16,12 +16,16 @@ interface ProfileRequest {
   proposedWhatsapp: string | null;
   proposedPublicTitle: string | null;
   createdAt: string;
+  currentBanner: string | null;
+  proposedBanner: string | null;
+  bannerChanged: boolean;
 }
 
 /** Fila de pedidos de alteração de perfil (nome/foto/WhatsApp) — aprova ou recusa. */
 export function ProfileRequestsQueue() {
   const [items, setItems] = React.useState<ProfileRequest[] | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
+  const [decisionError, setDecisionError] = React.useState<string | null>(null);
   const [state, setState] = React.useState<"ok" | "forbidden" | "no_service" | "error">("ok");
 
   const load = React.useCallback(async () => {
@@ -41,6 +45,7 @@ export function ProfileRequestsQueue() {
 
   async function decide(id: string, decision: "aprovado" | "recusado") {
     setBusy(id);
+    setDecisionError(null);
     try {
       const res = await fetch("/api/admin/profile-requests/decision", {
         method: "POST",
@@ -48,12 +53,14 @@ export function ProfileRequestsQueue() {
         body: JSON.stringify({ id, decision }),
       });
       if (res.ok) await load();
-    } finally {
+      else setDecisionError("Não foi possível guardar a decisão. Atualiza a fila e tenta novamente.");
+    } catch { setDecisionError("Falha de ligação. A decisão não foi confirmada."); } finally {
       setBusy(null);
     }
   }
 
-  if (state === "forbidden" || state === "no_service" || state === "error") return null; // secção opcional — não polui a página de aprovações se indisponível
+  if (state === "forbidden") return null;
+  if (state === "no_service" || state === "error") return <p role="alert" className="mt-8 text-sm text-destructive">Não foi possível carregar os pedidos de perfil. <button onClick={load} className="underline">Tentar novamente</button></p>;
   if (items === null) return null;
   if (items.length === 0) return null;
 
@@ -62,6 +69,7 @@ export function ProfileRequestsQueue() {
       <h2 className="mb-4 flex items-center gap-2 font-display text-xl">
         <User className="size-5 text-primary" /> Alterações de perfil pendentes ({items.length})
       </h2>
+      {decisionError && <p role="alert" className="mb-3 text-sm text-destructive">{decisionError}</p>}
       <ul className="space-y-3">
         {items.map((r) => (
           <li key={r.id} className="rounded-2xl border bg-card p-4 shadow-sm">
@@ -111,7 +119,24 @@ export function ProfileRequestsQueue() {
                   <dt className="text-muted-foreground">Foto proposta:</dt>
                   <dd>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={r.proposedPhoto} alt="" className="size-10 rounded-full object-cover" />
+                    <img src={r.proposedPhoto} alt="" className="size-24 rounded-lg object-contain" />
+                  </dd>
+                </div>
+              )}
+              {r.bannerChanged && (
+                <div className="pt-3">
+                  <dt className="mb-2 text-muted-foreground">Banner: {r.proposedBanner ? "nova imagem proposta" : "remover e usar fundo HousePro"}</dt>
+                  <dd className="grid gap-3 sm:grid-cols-2">
+                    {r.currentBanner && <figure>
+                      <p className="mb-1 text-sm">Atual</p>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.currentBanner} alt="Banner atual" className="aspect-[12/5] w-full rounded-lg object-cover" />
+                    </figure>}
+                    {r.proposedBanner && <figure>
+                      <p className="mb-1 text-sm">Proposto</p>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.proposedBanner} alt="Banner proposto" className="aspect-[12/5] w-full rounded-lg object-cover" />
+                    </figure>}
                   </dd>
                 </div>
               )}

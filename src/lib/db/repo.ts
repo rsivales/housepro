@@ -30,7 +30,7 @@ import { DEFAULT_PROPERTY_HUB, mergePropertyHub, type PropertyHubConfig } from "
 type Row = Record<string, unknown>;
 
 const AGENT_COLS =
-  "id, name, role, role_key, own_ami, agency, agency_id, code, whatsapp, email, photo_url, accent, public_title";
+  "id, name, role, role_key, own_ami, agency, agency_id, code, whatsapp, email, photo_url, banner_url, accent, public_title";
 
 function mapAgent(a: Row | null | undefined): Agent | undefined {
   if (!a) return undefined;
@@ -48,6 +48,7 @@ function mapAgent(a: Row | null | undefined): Agent | undefined {
     publicTitle: (a.public_title as string | null) ?? undefined,
     accent: String(a.accent ?? "var(--brand)"),
     photo: (a.photo_url as string) ?? undefined,
+    banner: (a.banner_url as string) ?? undefined,
   };
 }
 
@@ -265,6 +266,7 @@ export async function listSignatureProperties(): Promise<Property[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("properties").select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .eq("is_signature", true).eq("signature_status", "approved").eq("signature_visibility", "public")
+    .eq("approval", "aprovado").eq("listing_state", "activo").eq("off_market", false)
     .neq("status", "vendido").order("signature_order", { ascending: true, nullsFirst: false });
   return (data ?? []).map(mapRow);
 }
@@ -657,7 +659,7 @@ export async function listActiveAgentsByAgency(agencyId: string): Promise<Agent[
 export async function getAgentPublicById(id: string): Promise<Agent | undefined> {
   if (!isSupabaseConfigured()) return mockAgents.find((a) => a.id === id);
   const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select(AGENT_COLS).eq("id", id).maybeSingle();
+  const { data } = await supabase.from("profiles").select(AGENT_COLS).eq("id", id).eq("active", true).maybeSingle();
   return mapAgent(data ?? undefined);
 }
 

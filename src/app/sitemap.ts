@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { SIGNATURE_COLLECTIONS } from "@/lib/signature/collections";
+import { signaturePropertyHref } from "@/lib/signature/media";
 import { site } from "@/lib/site";
 import { listSignatureProperties } from "@/lib/db/repo";
 
@@ -30,8 +32,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const signature = await listSignatureProperties();
   return [
     ...staticEntries,
+    ...SIGNATURE_COLLECTIONS.map(collection => ({ url: `${base}/signature/colecoes/${collection.slug}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 })),
     ...signature.map((property) => ({
-      url: `${base}/signature/${property.slug ?? property.id}`,
+      url: `${base}${signaturePropertyHref(property)}`,
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.7,

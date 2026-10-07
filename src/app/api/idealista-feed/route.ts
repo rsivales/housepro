@@ -2,7 +2,7 @@ import { listProperties } from "@/lib/db/repo";
 import { propertiesToFeedXML } from "@/lib/imovel/feed";
 
 /**
- * Feed XML dos imóveis disponíveis, compatível com Idealista / Imovirtual.
+ * XML genérico legado dos imóveis disponíveis. Não é o feed JSON V6 do idealista.
  * O portal consome este endpoint periodicamente (ex.: GET diário) e publica.
  * Lê sempre do Supabase quando configurado (produção); só cai nos dados de
  * exemplo em desenvolvimento local sem base de dados ligada.

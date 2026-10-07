@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "https://feeds.idealista.com/v6/schemas/properties/virtualTour3D.json",
+  "title": "Virtual Tours 3D Object",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "virtualTourUrl"
+  ],
+  "properties": {
+    "virtualTour3DType": {
+      "title": "virtual tour 3D type",
+      "description": "Deprecated. It will be automatically calculated from the url if it belongs to one of the virtual tours 3D supported by idealista",
+      "enum": [
+        "matterport",
+        "vistaplayer3d"
+      ]
+    },
+    "virtualTourUrl": {
+      "title": "3D tour url",
+      "$ref": "../rules.json#/urlFormat"
+    }
+  }
+}

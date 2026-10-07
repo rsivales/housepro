@@ -1,0 +1,18 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+const mocks = vi.hoisted(() => ({ readConfig:vi.fn(), prepare:vi.fn(), sendToFtp:vi.fn(), rpc:vi.fn(), update:vi.fn() }));
+vi.mock('@/lib/supabase/admin',()=>({hasServiceRole:()=>true,createAdminClient:()=>({rpc:mocks.rpc,from:()=>({update:mocks.update})})}));
+vi.mock('@/lib/idealista/server',()=>({readConfig:mocks.readConfig,prepare:mocks.prepare,sendToFtp:mocks.sendToFtp,ftpConfigured:()=>true,secretMatches:(a:string,b:string)=>a===b,payloadHash:()=> 'new-hash'}));
+import { POST } from '@/app/api/cron/idealista/route';
+const config={enabled:true,sync_secret:'test-secret',review_approved:true,migration_confirmed:true,customer_code:'ilcaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',last_hash:null};
+const request=(token='test-secret')=>new Request('https://housepro.pt/api/cron/idealista',{method:'POST',headers:{authorization:`Bearer ${token}`}});
+beforeEach(()=>{vi.clearAllMocks();mocks.readConfig.mockResolvedValue({...config});mocks.prepare.mockResolvedValue({count:1,problems:[],schemaErrors:[],payload:{}});mocks.rpc.mockResolvedValue({data:true,error:null});mocks.update.mockImplementation(()=>({eq:()=>({eq:async()=>({error:null})})}));mocks.sendToFtp.mockResolvedValue('feed.json');});
+describe('Idealista scheduler — prevent destructive/incomplete mass uploads',()=>{
+ it('rejects unauthenticated callers before loading properties',async()=>{expect((await POST(request('wrong'))).status).toBe(401);expect(mocks.prepare).not.toHaveBeenCalled();});
+ it('does nothing while the integration is disabled',async()=>{mocks.readConfig.mockResolvedValue({...config,enabled:false});expect(await (await POST(request())).json()).toEqual({status:'disabled'});expect(mocks.rpc).not.toHaveBeenCalled();});
+ it('requires review approval',async()=>{mocks.readConfig.mockResolvedValue({...config,review_approved:false});expect((await POST(request())).status).toBe(409);expect(mocks.sendToFtp).not.toHaveBeenCalled();});
+ it('honours the database concurrency/frequency lock',async()=>{mocks.rpc.mockResolvedValue({data:false,error:null});expect(await (await POST(request())).json()).toEqual({status:'busy_or_throttled'});expect(mocks.prepare).not.toHaveBeenCalled();});
+ it.each(['validation','empty','database'])('never transfers a %s failure as a partial snapshot',async(kind)=>{if(kind==='validation')mocks.prepare.mockResolvedValue({count:1,problems:[{}],schemaErrors:[],payload:{}});if(kind==='empty')mocks.prepare.mockResolvedValue({count:0,problems:[],schemaErrors:[],payload:{}});if(kind==='database')mocks.prepare.mockRejectedValue(new Error('Read interrupted'));expect((await POST(request())).status).toBe(503);expect(mocks.sendToFtp).not.toHaveBeenCalled();expect(mocks.update).toHaveBeenLastCalledWith({lock_until:null,lock_token:null});});
+ it('does not retransmit an unchanged snapshot',async()=>{mocks.readConfig.mockResolvedValue({...config,last_hash:'new-hash'});expect(await (await POST(request())).json()).toEqual({status:'unchanged'});expect(mocks.sendToFtp).not.toHaveBeenCalled();});
+ it('records a hash only after a successful transfer',async()=>{expect(await (await POST(request())).json()).toMatchObject({status:'uploaded',count:1});expect(mocks.sendToFtp).toHaveBeenCalledOnce();expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({last_hash:'new-hash',last_count:1}));});
+ it('keeps the previous hash on FTP failure and releases the lock',async()=>{mocks.sendToFtp.mockRejectedValue(new Error('Transfer failed'));expect((await POST(request())).status).toBe(503);expect(mocks.update).not.toHaveBeenCalledWith(expect.objectContaining({last_hash:'new-hash'}));expect(mocks.update).toHaveBeenLastCalledWith({lock_until:null,lock_token:null});});
+});

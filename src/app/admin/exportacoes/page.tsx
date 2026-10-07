@@ -3,6 +3,9 @@ import Link from "next/link";
 import { ArrowLeft, Rss, Check, X, AlertTriangle } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
+import { IdealistaIntegration } from "@/components/admin/idealista-integration";
+import { getSession } from "@/lib/supabase/auth";
+import { isBrandAdmin } from "@/lib/data/roles";
 import { PortalContracts } from "@/components/admin/portal-contracts";
 import { portalIntegrations, exportReadiness } from "@/lib/data/exports";
 import { listAllPropertiesAdmin } from "@/lib/db/repo";
@@ -10,6 +13,7 @@ import { listAllPropertiesAdmin } from "@/lib/db/repo";
 export const metadata: Metadata = { title: "Exportações · Back office" };
 
 export default async function ExportacoesPage() {
+  const session = await getSession();
   const catalog = await listAllPropertiesAdmin();
   const feedable = catalog.map((p) => ({ p, r: exportReadiness(p) }));
 
@@ -27,18 +31,18 @@ export default async function ExportacoesPage() {
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           Gestão dos contratos de exportação com portais. Ative integrações,
           verifique o estado e os condicionalismos que impedem a exportação de
-          cada imóvel. O feed HousePro está em{" "}
-          <code className="rounded bg-secondary px-1">/api/idealista-feed</code>.
+          cada imóvel. O idealista usa a integração JSON V6 abaixo; os restantes portais mantêm as ligações existentes.
         </p>
 
         {/* Portais */}
-        <PortalContracts initial={portalIntegrations} />
+        {session && isBrandAdmin(session.agent) && <IdealistaIntegration />}
+        <PortalContracts initial={portalIntegrations.filter(p => p.id !== "idealista")} />
 
         {/* Estado de exportação por imóvel */}
         <section className="mt-10">
-          <h2 className="font-display text-xl">Estado de exportação por imóvel</h2>
+          <h2 className="font-display text-xl">Documentação e preparação geral</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Condicionalismos que impedem a publicação nos portais.
+            Controlos internos dos imóveis. A validação específica do idealista aparece no painel de integração acima.
           </p>
           <div className="mt-4 space-y-2">
             {feedable.map(({ p, r }) => (
@@ -50,7 +54,7 @@ export default async function ExportacoesPage() {
                   </div>
                   {r.ready ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-medium text-success">
-                      <Check className="size-3.5" /> Pronto a exportar
+                      <Check className="size-3.5" /> Preparação interna completa
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/15 px-2.5 py-1 text-xs font-medium text-destructive">

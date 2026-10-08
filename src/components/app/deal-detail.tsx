@@ -19,12 +19,10 @@ export interface DealOption { id: string; name: string }
 
 export function DealDetailView({
   deal,
-  buyerContacts,
   agencies,
   canManage = false,
 }: {
   deal: DealDetail;
-  buyerContacts: DealOption[];
   agencies: DealOption[];
   /** Staff (coordenação/direção/admin) — pode apagar o negócio. */
   canManage?: boolean;
@@ -38,6 +36,27 @@ export function DealDetailView({
 
   const [buyerContactId, setBuyerContactId] = React.useState(deal.buyerContactId ?? "");
   const [buyerName, setBuyerName] = React.useState(deal.buyerName);
+  const [buyerMatches, setBuyerMatches] = React.useState<DealOption[]>([]);
+  const [buyerSearching, setBuyerSearching] = React.useState(false);
+  const [showBuyerMatches, setShowBuyerMatches] = React.useState(false);
+
+  React.useEffect(() => {
+    if (buyerContactId || buyerName.trim().length < 2) {
+      setBuyerMatches([]);
+      return;
+    }
+    const q = buyerName.trim();
+    setBuyerSearching(true);
+    const t = setTimeout(() => {
+      fetch(`/api/contacts/search?type=comprador&q=${encodeURIComponent(q)}`)
+        .then((r) => (r.ok ? r.json() : { contacts: [] }))
+        .then((d) => setBuyerMatches(d.contacts ?? []))
+        .catch(() => setBuyerMatches([]))
+        .finally(() => setBuyerSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [buyerName, buyerContactId]);
+
   const [sellerName, setSellerName] = React.useState(deal.sellerName);
   const [amount, setAmount] = React.useState(String(deal.amount || ""));
   const [coBroker, setCoBroker] = React.useState(deal.coBroker);
@@ -292,26 +311,46 @@ export function DealDetailView({
       ) : (
         <div className="mt-6 space-y-4">
           <div className="grid gap-2 sm:grid-cols-2">
-            {buyerContacts.length > 0 ? (
-              <select
-                value={buyerContactId}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  const c = buyerContacts.find((x) => x.id === id);
-                  setBuyerContactId(id);
-                  if (c) setBuyerName(c.name);
-                }}
-                className="h-10 rounded-md border border-input bg-transparent px-3 text-sm"
-              >
-                <option value="">Comprador: escolher dos meus contactos…</option>
-                {buyerContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            ) : <span />}
-            <Input
-              value={buyerName}
-              onChange={(e) => { setBuyerName(e.target.value); setBuyerContactId(""); }}
-              placeholder={buyerContacts.length > 0 ? "…ou nome do comprador" : "Comprador"}
-            />
+            <div className="relative">
+              <Input
+                value={buyerName}
+                onChange={(e) => { setBuyerName(e.target.value); setBuyerContactId(""); }}
+                onFocus={() => setShowBuyerMatches(true)}
+                onBlur={() => setTimeout(() => setShowBuyerMatches(false), 150)}
+                placeholder="Comprador — nome, e-mail ou telefone"
+                autoComplete="off"
+              />
+              {!buyerContactId && showBuyerMatches && (buyerSearching || buyerMatches.length > 0) && (
+                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+                  {buyerSearching ? (
+                    <p className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+                      <Loader2 className="size-3.5 animate-spin" /> A procurar…
+                    </p>
+                  ) : (
+                    buyerMatches.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onMouseDown={() => { setBuyerContactId(c.id); setBuyerName(c.name); setBuyerMatches([]); setShowBuyerMatches(false); }}
+                        className="block w-full px-3 py-2 text-left text-xs hover:bg-secondary"
+                      >
+                        {c.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            {buyerContactId ? (
+              <p className="flex items-center gap-2 self-center text-xs text-muted-foreground">
+                Ligado ao contacto.
+                <button type="button" onClick={() => { setBuyerContactId(""); setBuyerName(""); }} className="underline-offset-2 hover:underline">
+                  Trocar
+                </button>
+              </p>
+            ) : (
+              <p className="self-center text-xs text-muted-foreground">Escreve e escolhe da lista.</p>
+            )}
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <Input value={sellerName} onChange={(e) => setSellerName(e.target.value)} placeholder="Vendedor" />

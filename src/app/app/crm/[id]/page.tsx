@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { getSession } from "@/lib/supabase/auth";
 import { isStaff } from "@/lib/data/roles";
 import { getDeal } from "@/lib/db/deals";
-import { listContactsByOwner, listAllContactsByType, listAgenciesReal } from "@/lib/db/repo";
+import { listAgenciesReal } from "@/lib/db/repo";
 import { DealDetailView } from "@/components/app/deal-detail";
 
 export const metadata: Metadata = { title: "Negócio — Helix" };
@@ -20,13 +20,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
   const deal = await getDeal(id, session.agent.id, staff);
   if (!deal) notFound();
 
-  const [contacts, agencyList] = await Promise.all([
-    staff ? listAllContactsByType("comprador") : listContactsByOwner(session.agent.id),
-    listAgenciesReal(),
-  ]);
-  const buyerContacts = contacts
-    .filter((c) => c.type === "comprador")
-    .map((c) => ({ id: c.id, name: c.name }));
+  const agencyList = await listAgenciesReal();
   const agencies = agencyList
     .filter((ag) => ag.id !== deal.agencyId)
     .map((ag) => ({ id: ag.id, name: ag.name }));
@@ -36,7 +30,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
       <Link href="/app/crm" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> CRM · Negócios
       </Link>
-      <DealDetailView deal={deal} buyerContacts={buyerContacts} agencies={agencies} canManage={staff} />
+      <DealDetailView deal={deal} agencies={agencies} canManage={staff} />
     </div>
   );
 }

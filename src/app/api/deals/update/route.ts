@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { getPropertyById } from "@/lib/db/repo";
+import { getPropertyById, claimContactIfUnowned } from "@/lib/db/repo";
 import { isStaff } from "@/lib/data/roles";
 import { getDealGate, updateDeal } from "@/lib/db/deals";
 
@@ -58,5 +58,6 @@ export async function POST(request: Request) {
 
   const res = await updateDeal(dealId, patch);
   if ("error" in res) return NextResponse.json(res, { status: 400 });
+  if (patch.buyerContactId) await claimContactIfUnowned(patch.buyerContactId, a.id);
   return NextResponse.json(res);
 }

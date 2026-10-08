@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { getPropertyById } from "@/lib/db/repo";
+import { getPropertyById, claimContactIfUnowned } from "@/lib/db/repo";
 import { isStaff } from "@/lib/data/roles";
 import { createDeal } from "@/lib/db/deals";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
@@ -69,5 +69,8 @@ export async function POST(request: Request) {
     console.error("[deals/create]", res.error);
     return NextResponse.json(res, { status: 400 });
   }
+  // Comprador autorregistado (/cliente/entrar) sem consultor ainda — ao
+  // ligá-lo a este negócio, passa a ser da carteira de quem o criou.
+  if (body.buyerContactId) await claimContactIfUnowned(String(body.buyerContactId), a.id);
   return NextResponse.json({ ok: true, id: res.id });
 }

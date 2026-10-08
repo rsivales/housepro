@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Heart, Mail, X } from "lucide-react";
 
 import { PropertyCard } from "@/components/property/property-card";
-import { propertyById } from "@/lib/data/mock";
 import { formatArea, formatPrice } from "@/lib/format";
 import type { Property } from "@/lib/data/types";
 import { loadFavorites, currentFavorites, isLoggedIn } from "@/lib/cliente/favorites";
@@ -110,6 +109,8 @@ function ComparisonModal({
 
 export function FavoritesList() {
   const [ids, setIds] = React.useState<string[] | null>(null);
+  const [properties, setProperties] = React.useState<Property[]>([]);
+  const [propsLoaded, setPropsLoaded] = React.useState(false);
   const [loggedIn, setLoggedIn] = React.useState<boolean | null>(null);
   const [selected, setSelected] = React.useState<string[]>([]);
   const [comparing, setComparing] = React.useState(false);
@@ -124,7 +125,22 @@ export function FavoritesList() {
     return () => window.removeEventListener("housepro:favoritos", sync);
   }, []);
 
-  if (ids === null) {
+  // Dados reais dos imóveis guardados (os favoritos só guardam o id).
+  React.useEffect(() => {
+    if (!ids || ids.length === 0) {
+      setProperties([]);
+      setPropsLoaded(true);
+      return;
+    }
+    setPropsLoaded(false);
+    fetch(`/api/properties/by-ids?ids=${ids.map(encodeURIComponent).join(",")}`)
+      .then((r) => (r.ok ? r.json() : { properties: [] }))
+      .then((d) => setProperties(d.properties ?? []))
+      .catch(() => setProperties([]))
+      .finally(() => setPropsLoaded(true));
+  }, [ids]);
+
+  if (ids === null || !propsLoaded) {
     return <p className="mt-8 text-sm text-muted-foreground">A carregar…</p>;
   }
 
@@ -141,7 +157,8 @@ export function FavoritesList() {
     </div>
   ) : null;
 
-  const props = ids.map((id) => propertyById(id)).filter(Boolean) as Property[];
+  const byId = new Map(properties.map((p) => [p.id, p]));
+  const props = ids.map((id) => byId.get(id)).filter(Boolean) as Property[];
 
   if (props.length === 0) {
     return (

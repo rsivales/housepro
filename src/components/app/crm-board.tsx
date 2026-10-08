@@ -29,6 +29,14 @@ interface PropertyMatch {
   commissionPreview: string;
 }
 
+interface ContactMatch {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  claimed: boolean;
+}
+
 /** Vem da ficha do imóvel ("Criar negócio") — liga o negócio ao imóvel pelo
  *  id (nunca por referência escrita à mão) e já traz valor/vendedor/comissão. */
 export interface CrmBoardPrefill {
@@ -61,14 +69,11 @@ function formFromPrefill(p?: CrmBoardPrefill): typeof NEW_DEAL_FORM {
  *  concluído→vendido). Cada cartão abre o detalhe do negócio. */
 export function CrmBoard({
   initial,
-  buyerContacts = [],
   agencies = [],
   prefill,
   canManage = false,
 }: {
   initial: DealListItem[];
-  /** Contactos do consultor com type="comprador" — para ligar ao negócio em vez de texto livre. */
-  buyerContacts?: CrmBoardOption[];
   /** Outras agências (para "partilha com outra agência"). */
   agencies?: CrmBoardOption[];
   /** Veio de "Criar negócio" na ficha de um imóvel — abre o formulário já preenchido. */
@@ -118,6 +123,36 @@ export function CrmBoard({
     setCommissionPreview(p.commissionPreview);
     setMatches([]);
     setShowMatches(false);
+  }
+
+  // Pesquisa de comprador por nome/e-mail/telefone — abrange QUALQUER
+  // contacto, não só os da carteira do consultor, incluindo quem já se
+  // autorregistou em /cliente/entrar e ainda não tem consultor atribuído.
+  const [buyerMatches, setBuyerMatches] = React.useState<ContactMatch[]>([]);
+  const [buyerSearching, setBuyerSearching] = React.useState(false);
+  const [showBuyerMatches, setShowBuyerMatches] = React.useState(false);
+
+  React.useEffect(() => {
+    if (form.buyerContactId || form.buyerName.trim().length < 2) {
+      setBuyerMatches([]);
+      return;
+    }
+    const q = form.buyerName.trim();
+    setBuyerSearching(true);
+    const t = setTimeout(() => {
+      fetch(`/api/contacts/search?type=comprador&q=${encodeURIComponent(q)}`)
+        .then((r) => (r.ok ? r.json() : { contacts: [] }))
+        .then((d) => setBuyerMatches(d.contacts ?? []))
+        .catch(() => setBuyerMatches([]))
+        .finally(() => setBuyerSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [form.buyerName, form.buyerContactId]);
+
+  function pickBuyer(c: ContactMatch) {
+    setForm((f) => ({ ...f, buyerContactId: c.id, buyerName: c.name }));
+    setBuyerMatches([]);
+    setShowBuyerMatches(false);
   }
 
   const total = initial.reduce((s, d) => s + d.amount, 0);
@@ -332,27 +367,50 @@ export function CrmBoard({
           </div>
 
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {buyerContacts.length > 0 ? (
-              <select
-                value={form.buyerContactId}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  const c = buyerContacts.find((x) => x.id === id);
-                  setForm((f) => ({ ...f, buyerContactId: id, buyerName: c ? c.name : f.buyerName }));
-                }}
-                className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
-              >
-                <option value="">Comprador: escolher dos meus contactos…</option>
-                {buyerContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+            <div className="relative">
+              <Input
+                value={form.buyerName}
+                onChange={(e) => setForm((f) => ({ ...f, buyerName: e.target.value, buyerContactId: "" }))}
+                onFocus={() => setShowBuyerMatches(true)}
+                onBlur={() => setTimeout(() => setShowBuyerMatches(false), 150)}
+                placeholder="Comprador — nome, e-mail ou telefone"
+                autoComplete="off"
+              />
+              {!form.buyerContactId && showBuyerMatches && (buyerSearching || buyerMatches.length > 0) && (
+                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+                  {buyerSearching ? (
+                    <p className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+                      <Loader2 className="size-3.5 animate-spin" /> A procurar…
+                    </p>
+                  ) : (
+                    buyerMatches.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onMouseDown={() => pickBuyer(c)}
+                        className="block w-full px-3 py-2 text-left text-xs hover:bg-secondary"
+                      >
+                        <span className="font-medium">{c.name}</span>
+                        {c.email ? ` · ${c.email}` : c.phone ? ` · ${c.phone}` : ""}
+                        {!c.claimed && <span className="ml-1.5 rounded-full bg-gold/15 px-1.5 py-0.5 text-[10px] font-medium text-gold-foreground">autorregisto</span>}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            {form.buyerContactId ? (
+              <p className="flex items-center gap-2 self-center text-xs text-muted-foreground">
+                Ligado ao contacto — favoritos e histórico já guardados.
+                <button type="button" onClick={() => setForm((f) => ({ ...f, buyerContactId: "", buyerName: "" }))} className="underline-offset-2 hover:underline">
+                  Trocar
+                </button>
+              </p>
             ) : (
-              <span />
+              <p className="self-center text-xs text-muted-foreground">
+                Escreve e escolhe da lista — encontra qualquer contacto, mesmo sem ser teu.
+              </p>
             )}
-            <Input
-              value={form.buyerName}
-              onChange={(e) => setForm((f) => ({ ...f, buyerName: e.target.value, buyerContactId: "" }))}
-              placeholder={buyerContacts.length > 0 ? "…ou nome do comprador (sem contacto ligado)" : "Comprador"}
-            />
           </div>
 
           <div className="mt-3 flex items-center gap-3">

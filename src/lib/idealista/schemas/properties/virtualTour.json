@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "https://feeds.idealista.com/v6/schemas/properties/virtualTour.json",
+  "title": "Virtual Tours Object",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "virtualTourUrl"
+  ],
+  "properties": {
+    "virtualTourType": {
+      "title": "virtual tour type",
+      "description": "Deprecated. It will be automatically calculated from the url if it belongs to one of the virtual tours supported by idealista",
+      "enum": [
+        "immoviewer",
+        "spectando",
+        "floorplanner",
+        "realisti_co",
+        "goldmark",
+        "floorfy",
+        "fastout",
+        "everpano",
+        "panotour",
+        "toursvirtuales360",
+        "keepeyeonball",
+        "inmovilla",
+        "abitarepn",
+        "pano2vr",
+        "plushglobalmedia",
+        "vizor_io",
+        "gothru",
+        "guru360",
+        "creotour",
+        "habiteo",
+        "vitrio",
+        "plug_in_studio",
+        "ppg_studios",
+        "forcurious360",
+        "roundme"
+      ]
+    },
+    "virtualTourUrl": {
+      "title": "virtual tour url",
+      "$ref": "../rules.json#/urlFormat"
+    }
+  }
+}

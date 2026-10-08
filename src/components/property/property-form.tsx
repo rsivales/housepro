@@ -762,7 +762,7 @@ export function PropertyForm({
           </Link>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={exportarIdealista}>
-              <FileDown className="size-4" /> Exportar Idealista
+              <FileDown className="size-4" /> XML genérico (legado)
             </Button>
             {isEdit ? (
               <Button size="sm" onClick={publicar} disabled={publishing}>
@@ -1642,7 +1642,7 @@ export function PropertyForm({
 
         {/* Export preview */}
         {xml && (
-          <Card title="Exportação Idealista (pré-visualização)">
+          <Card title="XML genérico (legado · não enviar ao idealista)">
             <pre className="max-h-80 overflow-auto rounded-lg bg-secondary/50 p-4 text-xs">{xml}</pre>
           </Card>
         )}
@@ -1662,7 +1662,7 @@ export function PropertyForm({
               </Button>
             </>
           )}
-          <Button variant="outline" onClick={exportarIdealista}><FileDown className="size-4" /> Exportar Idealista (XML)</Button>
+          <Button variant="outline" onClick={exportarIdealista}><FileDown className="size-4" /> XML genérico (legado)</Button>
           {savedMsg === "ok" && <span className="inline-flex items-center gap-1 text-sm text-primary"><Check className="size-4" /> Guardado.</span>}
           {savedMsg === "noop" && <span className="text-sm text-muted-foreground">Sem alterações.</span>}
           {savedMsg === "err" && <span className="text-sm text-destructive">{errMsg ?? "Falha ao guardar."}</span>}

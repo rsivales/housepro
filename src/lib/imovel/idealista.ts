@@ -1,7 +1,7 @@
 import type { ImovelDraft } from "./model";
 
 /**
- * Exportação compatível com o feed de portais (Idealista / Imovirtual).
+ * XML genérico legado: não corresponde ao protocolo JSON V6 do idealista.
  * Mapeia os campos do carregamento HousePro para a estrutura XML do feed —
  * a via fiável de publicação nos portais (a API/push fica para o futuro).
  */

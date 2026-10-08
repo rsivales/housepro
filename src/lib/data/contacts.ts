@@ -47,6 +47,10 @@ export interface Contact {
   idDocument?: string;
   /** Morada completa. */
   address?: string;
+  /** Conta de cliente (login por magic link em /cliente/entrar) ligada a este
+   *  contacto — permite ao comprador ver o seu histórico mesmo antes de
+   *  qualquer negócio existir. */
+  authUserId?: string;
   /** Consentimento/base legal (RGPD). */
   consent?: { base?: string; at?: string };
   createdAt: string;

@@ -15,14 +15,12 @@ import type { DealListItem } from "@/lib/db/deals";
 export function CrmTabs({
   deals,
   leads,
-  buyerContacts = [],
   agencies = [],
   prefill,
   canManage = false,
 }: {
   deals: DealListItem[];
   leads: LeadCard[];
-  buyerContacts?: CrmBoardOption[];
   agencies?: CrmBoardOption[];
   prefill?: CrmBoardPrefill;
   /** Staff (coordenação/direção/admin) — pode apagar negócios. */
@@ -56,7 +54,7 @@ export function CrmTabs({
 
       <div className="mt-6">
         {tab === "negocios" ? (
-          <CrmBoard initial={deals} buyerContacts={buyerContacts} agencies={agencies} prefill={prefill} canManage={canManage} />
+          <CrmBoard initial={deals} agencies={agencies} prefill={prefill} canManage={canManage} />
         ) : (
           <div>
             <p className="text-sm font-medium text-primary">Área do consultor</p>

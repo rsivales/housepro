@@ -205,6 +205,19 @@ export async function getPropertyById(id: string): Promise<Property | null> {
   return data ? mapRow(data) : null;
 }
 
+/** Vários imóveis pelo id, de uma vez — ex.: lista de favoritos do cliente. */
+export async function getPropertiesByIds(ids: string[]): Promise<Property[]> {
+  if (ids.length === 0) return [];
+  if (!isSupabaseConfigured()) return ids.map((id) => mockById(id)).filter((p): p is Property => Boolean(p));
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("properties")
+    .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
+    .in("id", ids);
+  return (data ?? []).map(mapRow);
+}
+
 export async function listProperties(): Promise<Property[]> {
   if (!isSupabaseConfigured()) return availableProperties;
 
@@ -1622,6 +1635,7 @@ function mapContact(r: Row): Contact {
     nif: (r.nif as string) ?? undefined,
     idDocument: (r.id_document as string) ?? undefined,
     address: (r.address as string) ?? undefined,
+    authUserId: (r.auth_user_id as string) ?? undefined,
     createdAt: String(r.created_at ?? new Date().toISOString()),
     lastActivityAt: (r.last_activity_at as string) ?? undefined,
   };
@@ -1691,7 +1705,10 @@ export async function getContact(id: string): Promise<Contact | undefined> {
   }
 }
 
-/** Cria um contacto (dual). Em demo devolve o objeto construído. */
+/** Cria um contacto (dual). Em demo devolve o objeto construído.
+ *  Antes de criar, verifica se já existe um contacto com o mesmo e-mail —
+ *  evita duplicar quem já se autorregistou em /cliente/entrar ou já foi
+ *  criado por outro consultor (devolve o existente em vez de duplicar). */
 export async function createContact(input: {
   name: string;
   phone?: string;
@@ -1715,6 +1732,22 @@ export async function createContact(input: {
   if (!isSupabaseConfigured()) return contact;
   try {
     const supabase = await createClient();
+    if (input.email?.trim()) {
+      const { data: existing } = await supabase
+        .from("contacts")
+        .select("*")
+        .ilike("email", input.email.trim())
+        .maybeSingle();
+      if (existing) {
+        const mapped = mapContact(existing as Row);
+        // Sem dono ainda (ex.: autorregisto) — este consultor assume-o.
+        if (!mapped.ownerId) {
+          await supabase.from("contacts").update({ owner_id: input.ownerId }).eq("id", mapped.id);
+          mapped.ownerId = input.ownerId;
+        }
+        return mapped;
+      }
+    }
     const { data } = await supabase
       .from("contacts")
       .insert({
@@ -1738,6 +1771,84 @@ export async function createContact(input: {
   } catch {
     return contact;
   }
+}
+
+/** Atribui um consultor a um contacto ainda sem dono (ex.: autorregisto em
+ *  /cliente/entrar) — "puxar" o cliente para a carteira ao ligá-lo a um
+ *  negócio. Não faz nada se já tiver dono (nunca rouba contactos). */
+export async function claimContactIfUnowned(contactId: string, ownerId: string): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const supabase = await createClient();
+    await supabase.from("contacts").update({ owner_id: ownerId }).eq("id", contactId).is("owner_id", null);
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** Pesquisa contactos por nome/e-mail/telefone, de qualquer consultor — para
+ *  "puxar" um comprador já existente (incluindo autorregistado em
+ *  /cliente/entrar, ainda sem consultor) em vez de criar duplicado. */
+export async function searchContacts(query: string, type?: Contact["type"]): Promise<Contact[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  if (!isSupabaseConfigured()) {
+    return demoContacts
+      .filter((c) => (!type || c.type === type) && `${c.name} ${c.email ?? ""} ${c.phone ?? ""}`.toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 8);
+  }
+  try {
+    const supabase = await createClient();
+    let qb = supabase
+      .from("contacts")
+      .select("*")
+      .or(`name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`)
+      .order("updated_at", { ascending: false })
+      .limit(8);
+    if (type) qb = qb.eq("type", type);
+    const { data } = await qb;
+    return (data ?? []).map(mapContact);
+  } catch {
+    return [];
+  }
+}
+
+/** Contacto ligado a uma conta de cliente (magic link) — null se ainda não
+ *  tiver contacto associado. Usa o cliente admin: a sessão aqui é do
+ *  COMPRADOR (auth.users), não de um consultor, por isso não passa pela RLS
+ *  desenhada para a equipa. */
+export async function getContactByAuthUser(authUserId: string): Promise<Contact | undefined> {
+  if (!hasServiceRole()) return undefined;
+  const sb = createAdminClient();
+  const { data } = await sb.from("contacts").select("*").eq("auth_user_id", authUserId).maybeSingle();
+  return data ? mapContact(data as Row) : undefined;
+}
+
+/** Garante que um comprador autenticado (login por magic link) tem um
+ *  contacto — para o seu histórico (favoritos, depois negócios) ficar
+ *  salvaguardado desde o primeiro acesso, sem depender de um consultor criar
+ *  o contacto primeiro. Liga a um contacto já existente com o mesmo e-mail
+ *  (ex.: criado manualmente por um consultor) em vez de duplicar. */
+export async function ensureBuyerContact(authUserId: string, email: string): Promise<Contact | undefined> {
+  if (!hasServiceRole() || !email.trim()) return undefined;
+  const sb = createAdminClient();
+
+  const { data: byAuth } = await sb.from("contacts").select("*").eq("auth_user_id", authUserId).maybeSingle();
+  if (byAuth) return mapContact(byAuth as Row);
+
+  const { data: byEmail } = await sb.from("contacts").select("*").ilike("email", email.trim()).maybeSingle();
+  if (byEmail) {
+    await sb.from("contacts").update({ auth_user_id: authUserId }).eq("id", byEmail.id);
+    return mapContact({ ...byEmail, auth_user_id: authUserId } as Row);
+  }
+
+  const name = email.split("@")[0]?.replace(/[._]/g, " ") || "Comprador";
+  const { data: created } = await sb
+    .from("contacts")
+    .insert({ name, email: email.trim(), type: "comprador", owner_id: null, source: "autorregisto", auth_user_id: authUserId })
+    .select("*")
+    .single();
+  return created ? mapContact(created as Row) : undefined;
 }
 
 /** Edita um contacto já criado — dono do contacto ou staff. */

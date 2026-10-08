@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/supabase/auth";
 import { isStaff } from "@/lib/data/roles";
 import { listDeals } from "@/lib/db/deals";
-import { listLeadsByAgent, listContactsByOwner, listAllContactsByType, listAgenciesReal, getPropertyById } from "@/lib/db/repo";
+import { listLeadsByAgent, listAgenciesReal, getPropertyById } from "@/lib/db/repo";
 import { commissionLabel } from "@/lib/data/commission";
 import { CrmTabs } from "@/components/app/crm-tabs";
 import type { LeadCard } from "@/components/app/leads-board";
@@ -18,18 +18,12 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   const staff = isStaff(session.agent);
   const { propertyId } = await searchParams;
 
-  const [deals, leadRows, contacts, agencyList, prefillProperty] = await Promise.all([
+  const [deals, leadRows, agencyList, prefillProperty] = await Promise.all([
     listDeals(session.agent.id, staff),
     listLeadsByAgent(session.agent.id),
-    // Staff precisa de ver compradores de toda a equipa para conseguir ligar
-    // qualquer negócio a um contacto — não só os que tem na sua carteira.
-    staff ? listAllContactsByType("comprador") : listContactsByOwner(session.agent.id),
     listAgenciesReal(),
     propertyId ? getPropertyById(propertyId) : Promise.resolve(undefined),
   ]);
-  const buyerContacts = contacts
-    .filter((c) => c.type === "comprador")
-    .map((c) => ({ id: c.id, name: c.name }));
   // Outras agências (para "partilha com outra agência") — exclui a própria.
   const agencies = agencyList
     .filter((ag) => ag.id !== session.agent.agencyId)
@@ -65,7 +59,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <CrmTabs deals={deals} leads={leads} buyerContacts={buyerContacts} agencies={agencies} prefill={prefill} canManage={staff} />
+      <CrmTabs deals={deals} leads={leads} agencies={agencies} prefill={prefill} canManage={staff} />
     </div>
   );
 }

@@ -36,17 +36,32 @@ export async function getBuyerPortalData(token: string): Promise<BuyerPortal | n
     .eq("portal_token", token)
     .maybeSingle();
   if (!contact) return null;
+  return getBuyerPortalDataByContactId(String(contact.id), String(contact.name ?? ""));
+}
+
+/** Mesmos dados, a partir do id do contacto diretamente — usado pelo portal
+ *  por token (acima) e pela conta de cliente autenticada (auth_user_id),
+ *  que já sabe o contacto sem precisar de token. */
+export async function getBuyerPortalDataByContactId(contactId: string, name?: string): Promise<BuyerPortal | null> {
+  if (!hasServiceRole() || !contactId) return null;
+  const sb = createAdminClient();
+  let resolvedName = name;
+  if (resolvedName == null) {
+    const { data: contact } = await sb.from("contacts").select("name").eq("id", contactId).maybeSingle();
+    if (!contact) return null;
+    resolvedName = String(contact.name ?? "");
+  }
 
   const { data: deal } = await sb
     .from("deals")
     .select("id, stage, amount, property:properties!property_id(reference, title, cover_url)")
-    .eq("buyer_contact_id", contact.id)
+    .eq("buyer_contact_id", contactId)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (!deal) {
-    return { name: String(contact.name ?? ""), propertyRef: "", propertyTitle: "", propertyImage: null, amount: 0, dealStage: null, milestones: [] };
+    return { name: resolvedName, propertyRef: "", propertyTitle: "", propertyImage: null, amount: 0, dealStage: null, milestones: [] };
   }
 
   const reachedAt = new Map<string, string>();
@@ -73,7 +88,7 @@ export async function getBuyerPortalData(token: string): Promise<BuyerPortal | n
     | null;
 
   return {
-    name: String(contact.name ?? ""),
+    name: resolvedName,
     propertyRef: p?.reference ?? "",
     propertyTitle: p?.title ?? "",
     propertyImage: p?.cover_url || null,

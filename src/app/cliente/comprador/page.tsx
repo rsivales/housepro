@@ -1,116 +1,101 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Bookmark, Calculator, FileText } from "lucide-react";
+import { redirect } from "next/navigation";
+import { Check, Home } from "lucide-react";
 
-import { PortalShell } from "@/components/portal/portal-shell";
-import { PropertyCard } from "@/components/property/property-card";
-import { PropertyRef } from "@/components/property/property-ref";
-import { DealStepper } from "@/components/process/deal-stepper";
-import { ReportQuality } from "@/components/portal/report-quality";
-import { compradorPortal } from "@/lib/data/client";
-import { propertyById } from "@/lib/data/mock";
-import { dealById } from "@/lib/data/deal";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { ensureBuyerContact } from "@/lib/db/repo";
+import { getBuyerPortalDataByContactId } from "@/lib/db/buyer-portal";
+import { SiteHeader } from "@/components/layout/site-header";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { FavoritesList } from "@/components/cliente/favorites-list";
 import { formatEuro } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Portal do comprador" };
+export const metadata: Metadata = { title: "A minha compra" };
 
-const PROPOSAL_LABEL: Record<string, string> = {
-  enviada: "Enviada",
-  aceite: "Aceite",
-  recusada: "Recusada",
-};
+/**
+ * Área do comprador autenticado (conta por e-mail em /cliente/entrar) — o
+ * contacto e os favoritos ficam salvaguardados desde o primeiro acesso,
+ * antes de qualquer negócio existir. Assim que um consultor liga este
+ * e-mail a um negócio, o processo aparece aqui automaticamente.
+ */
+export default async function CompradorPortal() {
+  if (!isSupabaseConfigured()) redirect("/cliente/entrar");
 
-export default function CompradorPortal() {
-  const p = compradorPortal;
-  const deal = dealById(p.dealId);
-  const saved = p.saved.map((id) => propertyById(id)).filter(Boolean);
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user?.email) redirect("/cliente/entrar");
+
+  const contact = await ensureBuyerContact(user.id, user.email);
+  const deal = contact ? await getBuyerPortalDataByContactId(contact.id, contact.name) : null;
+  const firstName = (contact?.name || user.email.split("@")[0] || "").split(" ")[0];
 
   return (
-    <PortalShell active="comprador" clientName={p.name} consultantId={p.consultantId}>
-      <h1 className="font-display text-2xl sm:text-3xl">A sua compra</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Acompanhe o processo, as propostas e os imóveis que guardou — tudo num só sítio.
-      </p>
+    <div className="min-h-dvh bg-background">
+      <SiteHeader />
+      <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+        <p className="text-sm font-medium text-primary">A minha conta</p>
+        <h1 className="mt-1 font-display text-3xl sm:text-4xl">Olá, {firstName || "bem-vindo(a)"}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          O seu processo de compra e os imóveis que guardou — tudo num só sítio.
+        </p>
 
-      {/* Processo ativo */}
-      {deal && (
-        <section className="mt-8 rounded-2xl border bg-card p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium text-primary">Negócio em curso · {deal.reference}</p>
-              <h2 className="mt-1 font-display text-xl">{deal.propertyTitle}</h2>
-              <p className="text-sm text-muted-foreground">{deal.location}</p>
-            </div>
-            <p className="font-display text-2xl">{formatEuro(deal.amount)}</p>
-          </div>
-          <div className="mt-6">
-            <DealStepper stage={deal.stage} creditStage={deal.creditStage} />
-          </div>
-        </section>
-      )}
-
-      {/* Propostas */}
-      <section className="mt-8">
-        <h2 className="flex items-center gap-2 font-display text-xl">
-          <FileText className="size-5 text-primary" /> Propostas
-        </h2>
-        <div className="mt-4 space-y-3">
-          {p.proposals.map((pr) => {
-            const prop = propertyById(pr.propertyId);
-            return (
-              <div key={pr.propertyId} className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-4 shadow-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">
-                    <PropertyRef propertyId={pr.propertyId} label={prop?.title ?? "Imóvel"} />
-                  </p>
-                  <p className="text-sm text-muted-foreground">Proposta: {formatEuro(pr.amount)}</p>
-                </div>
-                <span
-                  className={
-                    "shrink-0 rounded-full px-2.5 py-1 text-xs font-medium " +
-                    (pr.status === "aceite"
-                      ? "bg-primary/15 text-primary"
-                      : pr.status === "recusada"
-                        ? "bg-destructive/15 text-destructive"
-                        : "bg-gold/15 text-gold-foreground")
-                  }
-                >
-                  {PROPOSAL_LABEL[pr.status]}
-                </span>
+        {deal?.propertyRef ? (
+          <section className="mt-8 overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div className="flex items-center gap-4 p-4">
+              <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-secondary">
+                {deal.propertyImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={deal.propertyImage} alt="" className="size-full object-cover" />
+                ) : (
+                  <div className="grid size-full place-items-center text-muted-foreground"><Home className="size-5" /></div>
+                )}
               </div>
-            );
-          })}
-        </div>
-      </section>
+              <div className="min-w-0">
+                <p className="truncate font-medium">{deal.propertyTitle || "O seu imóvel"}</p>
+                <p className="text-sm text-muted-foreground">
+                  Ref. {deal.propertyRef}{deal.amount ? ` · ${formatEuro(deal.amount)}` : ""}
+                </p>
+              </div>
+            </div>
+            <div className="border-t p-4">
+              <h2 className="font-display text-lg">Estado do processo</h2>
+              <ol className="mt-3 space-y-2">
+                {deal.milestones.map((m) => (
+                  <li key={m.stage} className="flex items-center gap-3 rounded-xl border bg-background px-4 py-3">
+                    <span
+                      className={cn(
+                        "grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold",
+                        m.reached ? "bg-primary text-primary-foreground" : "border text-muted-foreground"
+                      )}
+                    >
+                      {m.reached ? <Check className="size-4" /> : ""}
+                    </span>
+                    <span className={cn("text-sm", m.reached ? "font-medium" : "text-muted-foreground")}>{m.label}</span>
+                    {m.at && (
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {new Date(m.at).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" })}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </section>
+        ) : (
+          <p className="mt-8 rounded-2xl border border-dashed bg-card px-4 py-6 text-center text-sm text-muted-foreground">
+            Ainda não há nenhum processo de compra associado. Assim que o seu consultor iniciar um negócio consigo, o
+            progresso aparece aqui automaticamente — não precisa de pedir um link.
+          </p>
+        )}
 
-      {/* Orçamento + crédito */}
-      <section className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-secondary/40 p-5">
-        <div>
-          <p className="text-sm text-muted-foreground">Orçamento definido</p>
-          <p className="font-display text-2xl">{formatEuro(p.budget)}</p>
-        </div>
-        <Link
-          href="/credito"
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground"
-        >
-          <Calculator className="size-4" /> Simular crédito
-        </Link>
-      </section>
-
-      {/* Guardados */}
-      <section className="mt-10">
-        <h2 className="flex items-center gap-2 font-display text-xl">
-          <Bookmark className="size-5 text-primary" /> Imóveis guardados
-        </h2>
-        <div className="mt-4 grid gap-6 sm:grid-cols-2">
-          {saved.map((prop) => prop && <PropertyCard key={prop.id} property={prop} />)}
-        </div>
-      </section>
-
-      {/* Voz do cliente → Qualidade */}
-      <section className="mt-10">
-        <ReportQuality consultantId={p.consultantId} clientName={p.name} />
-      </section>
-    </PortalShell>
+        <section className="mt-10">
+          <h2 className="font-display text-xl">Imóveis guardados</h2>
+          <FavoritesList />
+        </section>
+      </main>
+      <SiteFooter />
+    </div>
   );
 }

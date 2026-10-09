@@ -28,10 +28,10 @@ export default function PrivacidadePage() {
           <section>
             <h2 className="font-medium text-foreground">Responsável pelo tratamento</h2>
             <p className="mt-1">
-              {site.brand} — {site.legalName} (AMI {site.amiLicense}), com
-              sede em {fullAddress}, é a entidade responsável pelo
-              tratamento dos seus dados pessoais. Contacto geral:{" "}
-              {site.email.general}.
+              {site.brand} — {site.legalName} (NIPC {site.nipc}, AMI{" "}
+              {site.amiLicense}), com sede em {fullAddress}, é a entidade
+              responsável pelo tratamento dos seus dados pessoais. Contacto
+              geral: {site.email.general}.
             </p>
           </section>
 

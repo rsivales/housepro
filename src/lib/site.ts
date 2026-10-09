@@ -6,6 +6,7 @@
 export const site = {
   brand: "HousePro",
   legalName: "Tranquil Search Lda",
+  nipc: "516272632",
   amiLicense: "18746",
   address: {
     street: "Rua de Portugal, n.º 31",
@@ -41,6 +42,9 @@ export const fullAddress = `${site.address.street}, ${site.address.postalCode} $
 
 /** Identificação legal curta: denominação + AMI (rodapé/legal). */
 export const legalLine = `${site.legalName} · AMI ${site.amiLicense}`;
+
+/** Identificação legal completa, incluindo NIPC (política de privacidade). */
+export const legalLineFull = `${site.legalName} · NIPC ${site.nipc} · AMI ${site.amiLicense}`;
 
 /** PostalAddress para JSON-LD (schema.org). */
 export const postalAddressJsonLd = {

@@ -3,11 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, Lock, Quote, Trophy, Star, Sparkles, TrendingUp, BadgeCheck,
-  Compass, Medal, Lightbulb, Gem, Award, Home, Crosshair, KeyRound, Building2,
-  Landmark, Target, CalendarClock,
+  ArrowLeft, Lock, Quote, Trophy, Star, TrendingUp, BadgeCheck,
+  Medal, Home, Target, CalendarClock,
 } from "lucide-react";
 
+import { PrizeEmblem } from "@/components/premios/prize-emblem";
 import { cn } from "@/lib/utils";
 import { formatEuro } from "@/lib/format";
 import {
@@ -15,11 +15,6 @@ import {
   type Prize, type PrizeTrack,
 } from "@/lib/data/prizes";
 import { readPrizeArt, type PrizeArtMap } from "@/lib/data/prize-art";
-
-const ICONS: Record<string, React.ElementType> = {
-  Sparkles, TrendingUp, BadgeCheck, Compass, Medal, Lightbulb, Gem, Award, Trophy, Star,
-  Home, Crosshair, KeyRound, Building2, Landmark,
-};
 
 // Valores demo (ligam ao acumulador real com o Supabase).
 const DEMO = { faturacao: 72000, angariacao: 12, pontos: 1240, nivel: "Ouro" };
@@ -123,7 +118,7 @@ export default function PremiosPage() {
           <div className="relative p-6 text-[#f3ead2] sm:p-8"
                style={{ background: "radial-gradient(120% 120% at 70% -10%, #2a2620 0%, #14120e 55%, #0c0b09 100%)" }}>
             <div className="flex flex-col items-center gap-6 sm:flex-row">
-              <PrizeMedal prize={cur} art={cur ? art[cur.name] : undefined} earned big />
+              <PrizeMedal prize={cur} art={cur ? art[cur.artKey ?? cur.name] : undefined} earned big />
               <div className="min-w-0 text-center sm:text-left">
                 <p className="text-xs uppercase tracking-[0.18em] text-[#c9a13b]">
                   {cur ? "Patamar atual" : "A caminho do primeiro prémio"}
@@ -167,7 +162,7 @@ export default function PremiosPage() {
                   isNext && "ring-2 ring-gold"
                 )}
               >
-                <PrizeMedal prize={p} art={art[p.name]} earned={isEarned} />
+                <PrizeMedal prize={p} art={art[p.artKey ?? p.name]} earned={isEarned} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className={cn("font-medium", !isEarned && "text-muted-foreground")}>{p.name}</p>
@@ -195,7 +190,7 @@ export default function PremiosPage() {
               return (
                 <li key={p.threshold} className="flex gap-4">
                   <div className="flex flex-col items-center">
-                    <PrizeMedal prize={p} art={art[p.name]} earned small />
+                    <PrizeMedal prize={p} art={art[p.artKey ?? p.name]} earned small />
                     {!last && <span className="my-1 w-0.5 flex-1 bg-border" />}
                   </div>
                   <div className={cn("pb-6", last && "pb-0")}>
@@ -252,23 +247,5 @@ function PrizeMedal({ prize, art, earned, big, small }: { prize?: Prize; art?: s
     );
   }
 
-  const C = prize ? ICONS[prize.icon] ?? Star : Sparkles;
-  const iconSize = big ? 40 : small ? 18 : 24;
-  return (
-    <span
-      className={cn("relative grid shrink-0 place-items-center rounded-full", !earned && "opacity-45 grayscale")}
-      style={{
-        width: dim, height: dim,
-        background: earned
-          ? "radial-gradient(circle at 32% 26%, #f7ecc3 0%, #d9b452 42%, #a5822f 72%, #6f571c 100%)"
-          : "radial-gradient(circle at 32% 26%, #d8d5cc, #a6a29a 70%)",
-        boxShadow: earned
-          ? "inset 0 2px 5px rgba(255,255,255,.5), inset 0 -3px 6px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25)"
-          : "inset 0 1px 3px rgba(0,0,0,.2)",
-      }}
-    >
-      <span className="absolute inset-[10%] rounded-full" style={{ boxShadow: "inset 0 0 0 1.5px rgba(0,0,0,.12)" }} />
-      <C style={{ width: iconSize, height: iconSize, color: earned ? "#4a3a12" : "#6b6862" }} />
-    </span>
-  );
+  return <PrizeEmblem prize={prize} size={dim} earned={earned} />;
 }

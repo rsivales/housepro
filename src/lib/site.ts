@@ -17,7 +17,12 @@ export const site = {
   /** Emails no domínio da marca (não são números/placeholders fictícios). */
   email: {
     general: "geral@housepro.pt",
-    dpo: "dpo@housepro.pt",
+    dpo: "mjlanca.housepro@gmail.com",
+  },
+  /** Encarregada de Proteção de Dados (RGPD art. 37.º / Lei n.º 58/2019). */
+  dpo: {
+    name: "Manuela Lança",
+    email: "mjlanca.housepro@gmail.com",
   },
   /** URL público. Em preview/produção vem de NEXT_PUBLIC_SITE_URL. */
   get url() {

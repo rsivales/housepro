@@ -1,17 +1,8 @@
-import {
-  BadgeCheck, Sparkles, TrendingUp, Compass, Medal, Lightbulb, Gem, Award, Trophy, Star,
-  Home, Crosshair, KeyRound, Building2, Landmark,
-} from "lucide-react";
-
+import { BadgeCheck } from "lucide-react";
 import { earnedPrizes, type Prize } from "@/lib/data/prizes";
-
-const ICONS: Record<string, React.ElementType> = {
-  Sparkles, TrendingUp, BadgeCheck, Compass, Medal, Lightbulb, Gem, Award, Trophy, Star,
-  Home, Crosshair, KeyRound, Building2, Landmark,
-};
+import { PrizeEmblem } from "@/components/premios/prize-emblem";
 
 function Badge({ prize, size = 44 }: { prize: Prize; size?: number }) {
-  const C = ICONS[prize.icon] ?? Star;
   return (
     <div className="flex flex-col items-center gap-1.5 text-center" style={{ width: size + 26 }}>
       {prize.image ? (
@@ -23,17 +14,7 @@ function Badge({ prize, size = 44 }: { prize: Prize; size?: number }) {
           style={{ width: size, height: size, borderColor: "#c9a13b55" }}
         />
       ) : (
-        <span
-          className="relative grid place-items-center rounded-full"
-          style={{
-            width: size, height: size,
-            background: "radial-gradient(circle at 32% 26%, #f7ecc3 0%, #d9b452 42%, #a5822f 72%, #6f571c 100%)",
-            boxShadow: "inset 0 2px 5px rgba(255,255,255,.5), inset 0 -3px 6px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.2)",
-          }}
-        >
-          <span className="absolute inset-[10%] rounded-full" style={{ boxShadow: "inset 0 0 0 1.5px rgba(0,0,0,.12)" }} />
-          <C style={{ width: size * 0.42, height: size * 0.42, color: "#4a3a12" }} />
-        </span>
+        <PrizeEmblem prize={prize} size={size} />
       )}
       <span className="text-[11px] font-medium leading-tight">{prize.name}</span>
     </div>
@@ -59,7 +40,7 @@ export function PrizeShowcase({
   const badges = [
     ...earnedPrizes(faturacao, "faturacao"),
     ...earnedPrizes(angariacao, "angariacao"),
-  ].map((p) => (art[p.name] ? { ...p, image: art[p.name] } : p));
+  ].map((p) => (art[p.artKey ?? p.name] ? { ...p, image: art[p.artKey ?? p.name] } : p));
   if (badges.length === 0) return null;
   // Mostra os mais altos de cada trilha (fim das listas), até `max`.
   const shown = badges.slice(-max);

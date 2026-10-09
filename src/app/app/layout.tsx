@@ -1,4 +1,6 @@
 import { getSession } from "@/lib/supabase/auth";
+import { listNotifications } from "@/lib/db/repo";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { RoleSwitcher } from "@/components/admin/role-switcher";
 import { RoleStatusBar } from "@/components/admin/role-status-bar";
 import { AppHeader } from "@/components/helix/app-header";
@@ -28,6 +30,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const superadmin = isSuperadmin(agent);
   const roleLabel = (agent.roleKey && ROLE_LABEL[agent.roleKey]) || agent.role || "Consultor";
   const canSwitch = isSuperadmin(session.realAgent ?? agent);
+  // Indicador de não lidas: reflete notificações reais; nunca aceso por
+  // omissão (evita sugerir contactos fictícios por atender).
+  const hasUnread = isSupabaseConfigured()
+    ? (await listNotifications(agent.id)).some((n) => !n.read)
+    : false;
 
   return (
     <div className="helix min-h-dvh">
@@ -45,7 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         photo={agent.photo}
         agency={agent.agency}
         code={agent.code != null ? `#${agent.code}` : agencyById(agent.agencyId)?.region}
-        hasUnread
+        hasUnread={hasUnread}
       />
       <HelixSidebar superadmin={superadmin} />
       <div className="lg:pl-[76px]">

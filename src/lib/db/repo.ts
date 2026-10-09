@@ -676,6 +676,23 @@ export async function getAgentPublicById(id: string): Promise<Agent | undefined>
   return mapAgent(data ?? undefined);
 }
 
+/** Dono de reserva para leads públicas sem consultor resolvido (sem `?ref`
+ *  válido) — evita leads "no limbo" com owner_id vazio que nunca aparecem a
+ *  ninguém no Helix. Mesmo critério já usado em signature/lead e
+ *  project-interest: superadmin/admin/diretor ativo mais antigo. */
+export async function getFallbackOwner(): Promise<Agent | undefined> {
+  if (!isSupabaseConfigured()) return undefined;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select(AGENT_COLS)
+    .in("role_key", ["superadmin", "admin", "diretor"])
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
+  return mapAgent(data ?? undefined);
+}
+
 /** O advogado da equipa (papel não-comercial único) — usado pelo LegalFlow
  *  para saber a quem notificar um novo pedido jurídico. */
 export async function getLawyerAgent(): Promise<Agent | undefined> {

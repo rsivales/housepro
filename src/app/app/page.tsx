@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications, getAgencyById, getAgentPublicById } from "@/lib/db/repo";
 import { demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
 import { quoteTextOfDay } from "@/lib/data/quotes";
@@ -94,8 +95,9 @@ export default async function AppPage() {
   // Dashboard: frase do dia, notificações, última angariação da agência, atividades.
   const phrase = quoteTextOfDay(new Date(), await getQuotesConfig());
   const tip = tipOfTheDay();
-  const realNotifs = await listNotifications(agent.id);
-  const notifs = realNotifs.length ? realNotifs : demoNotifications();
+  // Fictícias só em modo demo (sem Supabase) — nunca mostrar notificações de
+  // contactos que não existem em produção.
+  const notifs = isSupabaseConfigured() ? await listNotifications(agent.id) : demoNotifications();
   const activities = demoActivities();
   const agencyProps = agent.agencyId ? await listPropertiesByAgency(agent.agencyId) : [];
   const lastAngariado = agencyProps[0];

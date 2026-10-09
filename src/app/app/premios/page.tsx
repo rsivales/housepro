@@ -29,13 +29,10 @@ const metas = [
   { icon: CalendarClock, label: "Visitas (mês)", atual: 7, alvo: 10 },
   { icon: Target, label: "Avaliações (mês)", atual: 4, alvo: 6 },
 ];
-const ranking = [
-  { nome: "Ana Marques", pts: 1980 },
-  { nome: "Rui Tavares", pts: 1610 },
-  { nome: "Você", pts: 1240, eu: true },
-  { nome: "Sofia Nunes", pts: 1120 },
-  { nome: "Carla Dias", pts: 940 },
-];
+// Sem acumulador de pontos real ligado ainda — nunca inventar colegas ou
+// pontuações fictícias aqui. Mostra só o próprio consultor; a tabela ganha
+// mais linhas quando houver pontuação real de equipa no Supabase.
+const ranking = [{ nome: "Você", pts: DEMO.pontos, eu: true }];
 
 export default function PremiosPage() {
   const [track, setTrack] = React.useState<PrizeTrack>("faturacao");
@@ -224,6 +221,9 @@ export default function PremiosPage() {
             </div>
           ))}
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          A equipa aparece aqui assim que houver pontuação real registada.
+        </p>
 
         <p className="mt-6 rounded-xl border bg-secondary/40 p-4 text-xs text-muted-foreground">
           As artes dos prémios são carregáveis pela marca em{" "}

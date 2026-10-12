@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Home, Loader2, Phone } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home, Loader2, Phone, X, Mail, MapPin, Wallet, Calendar, Tag } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { LEAD_PIPELINES, type LeadPipeline } from "@/lib/data/lead-pipelines";
@@ -12,13 +12,45 @@ export interface LeadCard {
   id: string;
   name: string;
   contact: string;
+  email?: string;
   propertyId?: string;
   propertyRef?: string;
   propertyImage?: string;
   pipeline?: string;
   stage?: number;
   source?: string;
+  message?: string;
+  intent?: string;
+  zone?: string;
+  budget?: string;
+  qualification?: string;
+  score?: number;
+  campaignId?: string;
+  formId?: string;
+  createdAt?: string;
 }
+
+const SOURCE_LABEL: Record<string, string> = {
+  site: "Site",
+  whatsapp: "WhatsApp",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  portal: "Portal",
+  consultor: "Consultor",
+};
+
+const QUALIFICATION_LABEL: Record<string, string> = {
+  novo: "Por qualificar",
+  qualificado: "Qualificada",
+  desqualificado: "Desqualificada",
+  duplicado: "Duplicada",
+};
+
+const INTENT_LABEL: Record<string, string> = {
+  mensagem: "Mensagem",
+  visita: "Pedido de visita",
+  custos: "Pedido de custos",
+};
 
 const ACCENT = ["bg-slate-400", "bg-sky-400", "bg-violet-400", "bg-amber-400", "bg-orange-400", "bg-emerald-500"];
 
@@ -27,6 +59,7 @@ const ACCENT = ["bg-slate-400", "bg-sky-400", "bg-violet-400", "bg-amber-400", "
 export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads: LeadCard[] }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<string | null>(null);
+  const [selected, setSelected] = React.useState<LeadCard | null>(null);
 
   // Leads deste pipeline; as por classificar (sem pipeline) caem no 1.º pipeline.
   const isDefault = pipeline.key === LEAD_PIPELINES[0].key;
@@ -61,7 +94,14 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
             </div>
             <div className="mt-3 flex flex-col gap-3">
               {cards.map((l) => (
-                <div key={l.id} className="rounded-2xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
+                <div
+                  key={l.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelected(l)}
+                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSelected(l)}
+                  className="cursor-pointer rounded-2xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md"
+                >
                   <div className="flex items-start gap-2.5">
                     {l.propertyRef && (
                       // Thumbnail da foto de capa — identificar o imóvel de relance.
@@ -93,7 +133,7 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
                   </div>
 
                   {/* Classificar noutro pipeline */}
-                  <div className="mt-2">
+                  <div className="mt-2" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={l.pipeline ?? (isDefault ? pipeline.key : "")}
                       onChange={(e) => post(l.id, 0, e.target.value)}
@@ -106,7 +146,7 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
                     </select>
                   </div>
 
-                  <div className="mt-2 flex items-center justify-end gap-1 border-t pt-2">
+                  <div className="mt-2 flex items-center justify-end gap-1 border-t pt-2" onClick={(e) => e.stopPropagation()}>
                     {busy === l.id && <Loader2 className="mr-auto size-3.5 animate-spin text-muted-foreground" />}
                     <a href={`tel:${l.contact.replace(/\s/g, "")}`} aria-label="Contactar" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground">
                       <Phone className="size-3.5" />
@@ -127,6 +167,119 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
           </div>
         );
       })}
+
+      {selected && <LeadDetail lead={selected} onClose={() => setSelected(null)} />}
+    </div>
+  );
+}
+
+/** Ficha completa da lead, aberta ao clicar no cartão: contacto, respostas do
+ *  formulário/qualificação e origem — tudo o que o cartão do pipeline não
+ *  tem espaço para mostrar. */
+function LeadDetail({ lead, onClose }: { lead: LeadCard; onClose: () => void }) {
+  const createdLabel = lead.createdAt
+    ? new Date(lead.createdAt).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })
+    : undefined;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-card p-5 shadow-xl sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium text-primary">Ficha da lead</p>
+            <h2 className="font-display text-xl leading-tight">{lead.name}</h2>
+          </div>
+          <button onClick={onClose} aria-label="Fechar" className="rounded-full p-1 text-muted-foreground hover:bg-secondary">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {/* Origem + qualificação — o que faltava ver de relance */}
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {lead.source && (
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              Origem: {SOURCE_LABEL[lead.source] ?? lead.source}
+            </span>
+          )}
+          {lead.qualification && (
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              {QUALIFICATION_LABEL[lead.qualification] ?? lead.qualification}
+            </span>
+          )}
+          {typeof lead.score === "number" && (
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              Pontuação: {lead.score}
+            </span>
+          )}
+        </div>
+
+        {/* Contacto */}
+        <div className="mt-4 space-y-2">
+          <a href={`tel:${lead.contact.replace(/\s/g, "")}`} className="flex items-center gap-2 text-sm hover:underline">
+            <Phone className="size-4 text-muted-foreground" /> {lead.contact}
+          </a>
+          {lead.email && lead.email !== lead.contact && (
+            <a href={`mailto:${lead.email}`} className="flex items-center gap-2 text-sm hover:underline">
+              <Mail className="size-4 text-muted-foreground" /> {lead.email}
+            </a>
+          )}
+        </div>
+
+        {/* Respostas do formulário / qualificação dadas no preenchimento */}
+        <div className="mt-4 rounded-2xl bg-secondary/50 p-3 text-sm">
+          {lead.intent && (
+            <p>
+              <span className="font-medium">Pedido:</span> {INTENT_LABEL[lead.intent] ?? lead.intent}
+            </p>
+          )}
+          {lead.message && <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{lead.message}</p>}
+          {!lead.message && !lead.intent && <p className="text-muted-foreground">Sem respostas registadas no formulário.</p>}
+        </div>
+
+        {/* Zona / orçamento, quando o formulário os captou */}
+        {(lead.zone || lead.budget) && (
+          <div className="mt-3 flex flex-wrap gap-4 text-sm">
+            {lead.zone && (
+              <p className="flex items-center gap-1.5"><MapPin className="size-4 text-muted-foreground" /> {lead.zone}</p>
+            )}
+            {lead.budget && (
+              <p className="flex items-center gap-1.5"><Wallet className="size-4 text-muted-foreground" /> {lead.budget}</p>
+            )}
+          </div>
+        )}
+
+        {lead.propertyRef && (
+          <p className="mt-3 flex items-center gap-1.5 text-sm">
+            <Home className="size-4 text-muted-foreground" />
+            {lead.propertyId ? (
+              <Link href={`/imovel/${lead.propertyId}`} className="text-primary hover:underline">{lead.propertyRef}</Link>
+            ) : lead.propertyRef}
+          </p>
+        )}
+
+        {(lead.campaignId || lead.formId) && (
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Tag className="size-3.5" />
+            {lead.campaignId && `Campanha ${lead.campaignId}`}
+            {lead.campaignId && lead.formId && " · "}
+            {lead.formId && `Formulário ${lead.formId}`}
+          </p>
+        )}
+
+        {createdLabel && (
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="size-3.5" /> Recebida em {createdLabel}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

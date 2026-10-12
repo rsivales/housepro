@@ -49,12 +49,22 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
     id: l.id,
     name: l.name,
     contact: l.contact,
+    email: l.email,
     propertyId: l.propertyId,
     propertyRef: l.propertyRef,
     propertyImage: l.propertyImage,
     pipeline: l.pipeline,
     stage: l.stage,
     source: l.source,
+    message: l.message,
+    intent: l.intent,
+    zone: l.zone,
+    budget: l.budget,
+    qualification: l.qualification,
+    score: l.score,
+    campaignId: l.campaignId,
+    formId: l.formId,
+    createdAt: l.createdAt,
   }));
 
   return (

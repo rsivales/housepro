@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { createLead, getAgentPublicById } from "@/lib/db/repo";
+import { createLead, getAgentPublicById, getFallbackOwner } from "@/lib/db/repo";
 import { notifyLead } from "@/lib/notify";
 import { agentEmail } from "@/lib/format";
 import {
@@ -70,6 +70,17 @@ export async function POST(request: Request) {
   }
 
   const newLead = buildLead(s);
+
+  // Sem ?ref válido: nunca deixar a lead sem dono (ficava sem aparecer a
+  // ninguém no Helix) — cai no fallback superadmin/admin/diretor.
+  if (!newLead.assignedAgentId) {
+    const fallback = await getFallbackOwner();
+    if (fallback) {
+      newLead.ownerId = fallback.id;
+      newLead.assignedAgentId = fallback.id;
+      newLead.unassigned = false;
+    }
+  }
 
   let lead;
   try {

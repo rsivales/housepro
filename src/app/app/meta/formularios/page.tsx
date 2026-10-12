@@ -8,6 +8,7 @@ import { listLeadForms, listCampaigns, getFieldMapping } from "@/lib/db/repo";
 import type { FieldMapping } from "@/lib/data/meta";
 import { CAMPAIGN_TYPE_LABEL } from "@/lib/data/meta";
 import { FieldMapper } from "@/components/meta/field-mapper";
+import { NewForm } from "@/components/meta/new-form";
 
 export const metadata: Metadata = { title: "Formulários & mapeamento — Meta CRM" };
 
@@ -69,6 +70,10 @@ export default async function FormulariosPage() {
             ))}
           </div>
         )}
+
+        <div className="mt-6">
+          <NewForm campaigns={campaigns.map((c) => ({ id: c.id, name: c.name, type: c.type }))} />
+        </div>
 
         <div className="mt-6">
           <FieldMapper forms={forms} mappings={mappings} />

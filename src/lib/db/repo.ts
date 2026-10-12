@@ -919,6 +919,15 @@ export async function createLead(input: NewLead): Promise<Lead> {
     contact_preference: input.contactPreference ?? null,
     marketing_consent: input.marketingConsent ?? null,
     email_status: input.emailStatus ?? null,
+    email: input.email ?? null,
+    pipeline: input.pipeline ?? null,
+    qualification: input.qualification ?? "novo",
+    unassigned: input.unassigned ?? !input.ownerId,
+    campaign_id: input.campaignId ?? null,
+    form_id: input.formId ?? null,
+    zone: input.zone ?? null,
+    budget: input.budget ?? null,
+    consent: input.consent ?? null,
   };
 
   let res = await supabase.from("leads").insert({ ...base, ...extra }).select("id, created_at").single();

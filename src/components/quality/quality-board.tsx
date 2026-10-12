@@ -1,20 +1,35 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
-  AlertTriangle, Award, Check, Gavel, Inbox, MessageSquareWarning,
-  ShieldAlert, ShieldCheck, TrendingDown, Users, Wrench, X,
+  AlertTriangle, Award, Check, ChevronDown, ChevronUp, ExternalLink, Gavel,
+  Inbox, MessageSquareWarning, ShieldAlert, ShieldCheck, TrendingDown, Users,
+  Wrench, X,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatEuro } from "@/lib/format";
 import { agents } from "@/lib/data/mock";
+import { dealByReference } from "@/lib/data/deal";
 import {
   ABANDONO_RESIDUAL_PCT, CATEGORY_LABEL, KIND_LABEL, REFERRAL_STANDARD_PCT,
   SEVERITY, STATUS_LABEL, escalation, qualityScore,
   type QualityCategory, type QualityEvent, type QualitySeverity,
 } from "@/lib/data/quality";
+
+/** Liga o registo à sua origem concreta, quando é possível resolver um
+ *  destino real (negócio real no CRM, ou processo demo por referência). */
+function resolveSource(e: QualityEvent): { href: string; label: string } | null {
+  if (!e.dealRef) return null;
+  if (e.dealRef.startsWith("lead:")) {
+    const leadId = e.dealRef.slice("lead:".length);
+    return leadId ? { href: `/app/crm/${leadId}`, label: "Ver negócio" } : null;
+  }
+  const deal = dealByReference(e.dealRef);
+  return deal ? { href: `/processo/${deal.id}`, label: "Ver processo do imóvel" } : null;
+}
 
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as QualityCategory[];
 const SEVERITIES = Object.keys(SEVERITY) as QualitySeverity[];
@@ -209,6 +224,10 @@ function QueueRow({
   e: QualityEvent; busy: boolean;
   onTriage: (to: "reparo" | "infracao" | "arquivar", severity?: QualitySeverity) => void;
 }) {
+  const [open, setOpen] = React.useState(false);
+  const source = resolveSource(e);
+  const hasDetail = source || e.dealRef || e.submittedBy;
+
   return (
     <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-3.5">
       <div className="flex items-start gap-3">
@@ -222,6 +241,28 @@ function QueueRow({
             {e.submittedBy ? `${e.submittedBy} · ` : ""}
             {new Date(e.createdAt).toLocaleDateString("pt-PT")}
           </p>
+
+          {source && (
+            <Link
+              href={source.href}
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              <ExternalLink className="size-3.5" /> {source.label}
+            </Link>
+          )}
+          {!source && hasDetail && (
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              {open ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />} Ver detalhe
+            </button>
+          )}
+          {!source && open && (
+            <DetailCard e={e} />
+          )}
+
           <div className="mt-2.5 flex flex-wrap gap-2">
             <Button size="sm" variant="outline" disabled={busy} onClick={() => onTriage("reparo")}>
               <Wrench className="size-3.5" /> Registar reparo
@@ -239,6 +280,41 @@ function QueueRow({
   );
 }
 
+/** Cartão de detalhe completo, para quando não há (ainda) um link direto à
+ *  origem — ex.: queixa de cliente do portal, só com o texto e quem submeteu. */
+function DetailCard({ e }: { e: QualityEvent }) {
+  return (
+    <div className="mt-2 space-y-1 rounded-lg border bg-secondary/40 p-2.5 text-xs">
+      <p className="font-medium text-foreground">Detalhe completo</p>
+      <p className="text-muted-foreground">
+        <span className="font-medium text-foreground">Relato: </span>{e.reason}
+      </p>
+      {e.submittedBy && (
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Submetido por: </span>{e.submittedBy}
+        </p>
+      )}
+      {e.category && (
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Categoria: </span>{CATEGORY_LABEL[e.category]}
+        </p>
+      )}
+      {e.origin && (
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Origem: </span>
+          {e.origin === "portal" ? "Portal do cliente" : e.origin === "checklist" ? "Checklist automático" : "Registo manual"}
+        </p>
+      )}
+      {e.dealRef && (
+        <p className="text-muted-foreground">
+          <span className="font-medium text-foreground">Referência: </span>
+          {e.dealRef} <span className="italic">(sem processo encontrado para abrir o link)</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 function EventRow({
   e, mine, canManage, busy, esc, onContest, onConfirm, onCancel, onResolve, onReassign,
 }: {
@@ -248,7 +324,10 @@ function EventRow({
   onResolve: () => void; onReassign: (toAgentId: string) => void;
 }) {
   const [reassignOpen, setReassignOpen] = React.useState(false);
+  const [detailOpen, setDetailOpen] = React.useState(false);
   const [colega, setColega] = React.useState(agents.find((a) => a.id !== e.agentId)?.id ?? "");
+  const source = resolveSource(e);
+  const hasDetail = source || e.dealRef || e.submittedBy;
   const merit = e.kind === "merito";
   const reparo = e.kind === "reparo";
   const sev = e.severity ? SEVERITY[e.severity] : undefined;
@@ -294,6 +373,27 @@ function EventRow({
               Contestação: {e.contestNote}
             </p>
           )}
+
+          {/* Contexto: link direto à origem (processo/negócio), ou cartão de
+              detalhe quando não há destino resolvível (ex.: queixa do portal). */}
+          {source && (
+            <Link
+              href={source.href}
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              <ExternalLink className="size-3.5" /> {source.label}
+            </Link>
+          )}
+          {!source && hasDetail && (
+            <button
+              type="button"
+              onClick={() => setDetailOpen((v) => !v)}
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              {detailOpen ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />} Ver detalhe
+            </button>
+          )}
+          {!source && detailOpen && <DetailCard e={e} />}
 
           {/* Sugestão de escalonamento (reincidência) */}
           {canManage && reparoOpen && esc?.suggestInfraction && (

@@ -100,6 +100,9 @@ export interface QualityEvent {
   origin?: QualityOrigin;
   /** Quem submeteu (ex.: nome do cliente, no caso do portal). */
   submittedBy?: string;
+  /** Origem concreta do registo (ex.: referência do negócio "NEG-2041" ou
+   *  "lead:<id>"), para ligar de volta ao processo/negócio que o gerou. */
+  dealRef?: string;
   contestNote?: string;
   /** Consequência de abandono: colega para quem o contacto foi reatribuído. */
   reassignedTo?: string;
@@ -114,8 +117,8 @@ export const demoQualityEvents: QualityEvent[] = [
   { id: "q5", kind: "reparo", agentId: "rui", category: "atraso", points: 0, amount: 0, reason: "Cliente reportou espera longa por resposta", status: "ativo", origin: "portal", submittedBy: "Cliente (portal)", createdAt: "2026-07-25" },
   { id: "q6", kind: "reparo", agentId: "rui", category: "reclamacao", points: 0, amount: 0, reason: "Visita remarcada em cima da hora", status: "resolvido", origin: "portal", createdAt: "2026-06-18" },
   { id: "q7", kind: "reparo", agentId: "rui", category: "atraso", points: 0, amount: 0, reason: "Sem retorno de chamada em 48h (portal)", status: "pendente", origin: "portal", submittedBy: "Ana (cliente)", createdAt: "2026-07-28" },
-  { id: "q3", kind: "infracao", agentId: "rui", category: "atraso", severity: "leve", points: -20, amount: 0, reason: "Documento entregue fora do prazo", status: "proposta", createdAt: "2026-07-24" },
-  { id: "q4", kind: "infracao", agentId: "rui", category: "documental", severity: "media", points: -50, amount: 100, reason: "Certificado energético em falta na escritura", status: "confirmada", createdAt: "2026-06-30" },
+  { id: "q3", kind: "infracao", agentId: "rui", category: "atraso", severity: "leve", points: -20, amount: 0, reason: "Documento entregue fora do prazo", status: "proposta", dealRef: "NEG-2041", createdAt: "2026-07-24" },
+  { id: "q4", kind: "infracao", agentId: "rui", category: "documental", severity: "media", points: -50, amount: 100, reason: "Certificado energético em falta na escritura", status: "confirmada", dealRef: "NEG-2043", createdAt: "2026-06-30" },
 ];
 
 export interface QualityScore {

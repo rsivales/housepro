@@ -133,3 +133,8 @@ export const demoDeals: Deal[] = [
 
 export const dealById = (id: string): Deal | undefined =>
   demoDeals.find((d) => d.id === id);
+
+/** Resolve pela referência do negócio (ex.: "NEG-2041"), usada como `dealRef`
+ *  no livro-razão da Qualidade, para montar o link direto ao processo. */
+export const dealByReference = (reference: string): Deal | undefined =>
+  demoDeals.find((d) => d.reference === reference);

@@ -6,6 +6,7 @@
 export const site = {
   brand: "HousePro",
   legalName: "Tranquil Search Lda",
+  nipc: "516272632",
   amiLicense: "18746",
   address: {
     street: "Rua de Portugal, n.º 31",
@@ -17,7 +18,12 @@ export const site = {
   /** Emails no domínio da marca (não são números/placeholders fictícios). */
   email: {
     general: "geral@housepro.pt",
-    dpo: "dpo@housepro.pt",
+    dpo: "mjlanca.housepro@gmail.com",
+  },
+  /** Encarregada de Proteção de Dados (RGPD art. 37.º / Lei n.º 58/2019). */
+  dpo: {
+    name: "Manuela Lança",
+    email: "mjlanca.housepro@gmail.com",
   },
   /** URL público. Em preview/produção vem de NEXT_PUBLIC_SITE_URL. */
   get url() {
@@ -36,6 +42,9 @@ export const fullAddress = `${site.address.street}, ${site.address.postalCode} $
 
 /** Identificação legal curta: denominação + AMI (rodapé/legal). */
 export const legalLine = `${site.legalName} · AMI ${site.amiLicense}`;
+
+/** Identificação legal completa, incluindo NIPC (política de privacidade). */
+export const legalLineFull = `${site.legalName} · NIPC ${site.nipc} · AMI ${site.amiLicense}`;
 
 /** PostalAddress para JSON-LD (schema.org). */
 export const postalAddressJsonLd = {

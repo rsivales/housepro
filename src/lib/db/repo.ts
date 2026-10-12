@@ -490,6 +490,20 @@ export async function insertNotifications(
   }
 }
 
+/** Marca notificações do consultor como lidas (RLS garante que só as suas).
+ *  Sem `ids`, marca todas as não lidas — usado por "marcar todas como lidas". */
+export async function markNotificationsRead(userId: string, ids?: string[]): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const supabase = await createClient();
+    let q = supabase.from("notifications").update({ read: true }).eq("user_id", userId);
+    q = ids && ids.length > 0 ? q.in("id", ids) : q.eq("read", false);
+    await q;
+  } catch {
+    /* best-effort */
+  }
+}
+
 /** Notificações do consultor (mais recentes primeiro). */
 export async function listNotifications(userId: string, limit = 20): Promise<Notification[]> {
   if (!isSupabaseConfigured()) return [];

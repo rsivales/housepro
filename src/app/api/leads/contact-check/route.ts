@@ -59,17 +59,23 @@ export async function POST(request: Request) {
     });
 
     if (state === "warn") {
-      await insertQualityReparo({
+      // insertQualityReparo já deduplica por dealRef+categoria+estado — sem
+      // verificar o resultado, cada reabertura da área (ex.: noutro
+      // separador/dispositivo, onde o 1.º aviso em localStorage não existe)
+      // voltava a inserir notificação e email para o mesmo contacto.
+      const created = await insertQualityReparo({
         agentId: agent.id, category: "abandono",
         reason: `Sem contacto há +48h — ${lead.name}${lead.propertyRef ? ` (${lead.propertyRef})` : ""}`,
         dealRef: `lead:${lead.id}`, status: "ativo", origin: "manual", createdBy: agent.id,
       });
-      const msg = agentWarningMessage(lead.name, lead.propertyRef);
-      await insertNotifications([{
-        userId: agent.id, type: "qualidade", title: "Contacto por atender há +48h",
-        body: `${lead.name}: 2.º aviso em 24h reatribui a outro consultor.`, href: "/app/qualidade",
-      }]);
-      await notifyGeneric({ subject: msg.subject, text: msg.text });
+      if (created) {
+        const msg = agentWarningMessage(lead.name, lead.propertyRef);
+        await insertNotifications([{
+          userId: agent.id, type: "qualidade", title: "Contacto por atender há +48h",
+          body: `${lead.name}: 2.º aviso em 24h reatribui a outro consultor.`, href: "/app/qualidade",
+        }]);
+        await notifyGeneric({ subject: msg.subject, text: msg.text });
+      }
       nextWarned[lead.id] = now.toISOString();
       outcomes.push({ leadId: lead.id, name: lead.name, outcome: "warned" });
       continue;

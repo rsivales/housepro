@@ -7,7 +7,7 @@ import { getSession } from "@/lib/supabase/auth";
 import { listNotifications } from "@/lib/db/repo";
 import { demoNotifications } from "@/lib/data/dashboard";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { formatEuro } from "@/lib/format";
+import { NotificationsList } from "@/components/consultant/notifications-list";
 
 export const metadata: Metadata = { title: "Notificações" };
 
@@ -17,7 +17,7 @@ export default async function NotificacoesPage() {
 
   // Fictícias só em modo demo (sem Supabase). Em produção, lista real mesmo
   // vazia — nunca mostrar notificações de contactos que não existem.
-  const items = isSupabaseConfigured() ? await listNotifications(session.agent.id) : demoNotifications();
+  const items = isSupabaseConfigured() ? await listNotifications(session.agent.id, 100) : demoNotifications();
 
   return (
     <div className="min-h-dvh bg-background">
@@ -30,33 +30,7 @@ export default async function NotificacoesPage() {
           <Bell className="size-7 text-primary" /> Notificações
         </h1>
 
-        <ul className="mt-6 space-y-2.5">
-          {items.map((n) => {
-            const inner = (
-              <div className={n.read ? "opacity-70" : ""}>
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-medium">{n.title}</p>
-                  {!n.read && <span className="mt-1 size-2 shrink-0 rounded-full bg-primary" />}
-                </div>
-                {n.body && <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>}
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {new Date(n.createdAt).toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" })}
-                  {n.amount ? ` · ${formatEuro(n.amount)}` : ""}
-                </p>
-              </div>
-            );
-            return (
-              <li key={n.id} className="rounded-2xl border bg-card p-4 shadow-sm">
-                {n.href ? <Link href={n.href} className="block">{inner}</Link> : inner}
-              </li>
-            );
-          })}
-          {items.length === 0 && (
-            <li className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-              Sem notificações.
-            </li>
-          )}
-        </ul>
+        <NotificationsList initial={items} />
       </div>
     </div>
   );

@@ -1117,6 +1117,59 @@ export async function listLeadForms(campaignId?: string): Promise<LeadForm[]> {
   }
 }
 
+/** Formulário Meta pelo ID do formulário NO META (vem no evento do webhook). */
+export async function getLeadFormByMetaFormId(metaFormId: string): Promise<LeadForm | undefined> {
+  const forms = await listLeadForms();
+  return forms.find((f) => f.metaFormId === metaFormId);
+}
+
+/** Regista um formulário Meta (o ID de formulário dado no Gestor de Anúncios,
+ *  em Publicação → Biblioteca de formulários) e as suas perguntas — para o
+ *  webhook passar a reconhecer as leads que chegam desse formulário. */
+export async function createLeadForm(input: {
+  metaFormId: string;
+  name: string;
+  campaignId?: string;
+  questions: LeadForm["questions"];
+}): Promise<LeadForm> {
+  const form: LeadForm = {
+    id: `form-${Date.now()}`,
+    metaFormId: input.metaFormId,
+    name: input.name,
+    campaignId: input.campaignId,
+    questions: input.questions,
+    createdAt: new Date().toISOString(),
+  };
+  if (!isSupabaseConfigured()) return form;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("lead_forms")
+      .insert({
+        meta_form_id: input.metaFormId,
+        name: input.name,
+        campaign_id: input.campaignId ?? null,
+      })
+      .select("id")
+      .single();
+    const id = data ? String(data.id) : form.id;
+    if (input.questions.length) {
+      await supabase.from("lead_form_questions").insert(
+        input.questions.map((q) => ({
+          form_id: id,
+          key: q.key,
+          label: q.label,
+          type: q.type,
+          options: q.options ?? null,
+        }))
+      );
+    }
+    return { ...form, id };
+  } catch {
+    return form;
+  }
+}
+
 /** Mapeamento pergunta→campo de um formulário. */
 export async function getFieldMapping(formId: string): Promise<FieldMapping | undefined> {
   if (!isSupabaseConfigured()) return fieldMappingForForm(formId);

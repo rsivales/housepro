@@ -7,7 +7,7 @@ import { BedDouble, Bath, MapPin, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatArea, formatPrice, whatsappLink } from "@/lib/format";
 import { agentById } from "@/lib/data/mock";
-import { STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
+import { PROPERTY_BADGE_STYLE, STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
 import type { Agent, Property } from "@/lib/data/types";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
@@ -17,7 +17,8 @@ function StatusBadge({ status }: { status: NonNullable<Property["status"]> }) {
   return (
     <span
       className={cn(
-        "rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm backdrop-blur",
+        "px-2.5 py-1 text-xs",
+        PROPERTY_BADGE_STYLE,
         STATUS_STYLE[status]
       )}
     >
@@ -73,7 +74,7 @@ export function PropertyCard({
           <FavoriteButton propertyId={property.id} />
         </div>
 
-        <span className="absolute bottom-3 left-3 rounded-full bg-background/85 px-2.5 py-1 text-xs font-medium capitalize text-foreground shadow-sm backdrop-blur">
+        <span className="absolute bottom-3 left-3 rounded-lg bg-background/85 px-2.5 py-1 text-xs font-medium capitalize text-foreground shadow-sm backdrop-blur">
           {property.operation}
         </span>
       </div>

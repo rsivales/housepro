@@ -23,7 +23,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
-import { STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
+import { PROPERTY_BADGE_STYLE, STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
 import type { PropertyStatus } from "@/lib/data/types";
 import { FavoriteButton } from "@/components/property/favorite-button";
 import { PropertyLightbox } from "@/components/property/property-lightbox";
@@ -276,11 +276,11 @@ export function PropertyStage({
             {mode === "photo" ? (
               <>
                 {status && (
-                  <span className={cn("rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-sm", STATUS_STYLE[status])}>
+                  <span className={cn("px-3.5 py-1.5 text-xs", PROPERTY_BADGE_STYLE, STATUS_STYLE[status])}>
                     {STATUS_LABEL[status]}
                   </span>
                 )}
-                <span className="rounded-full bg-white/85 px-3.5 py-1.5 text-xs font-semibold capitalize text-[var(--hp-navy)] shadow-sm backdrop-blur">
+                <span className="rounded-lg border border-white/20 bg-white/85 px-3.5 py-1.5 text-xs font-semibold capitalize text-[var(--hp-navy)] shadow-sm backdrop-blur">
                   {operation}
                 </span>
               </>

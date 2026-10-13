@@ -4,8 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, BedDouble, Bath, Maximize2, MapPin } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { formatPrice, formatArea } from "@/lib/format";
-import { STATUS_LABEL } from "@/lib/data/status";
+import { PROPERTY_BADGE_STYLE, STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
 import type { Property } from "@/lib/data/types";
 import { SafeImage } from "@/components/home/safe-image";
 import { FavoriteButton } from "@/components/property/favorite-button";
@@ -35,7 +36,7 @@ function FeaturedCard({ property }: { property: Property }) {
           className="size-full object-cover"
         />
         {property.status && (
-          <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold text-white" style={{ background: "var(--hp-navy)" }}>
+          <span className={cn("absolute left-3 top-3 px-2.5 py-1 text-xs", PROPERTY_BADGE_STYLE, STATUS_STYLE[property.status])}>
             {STATUS_LABEL[property.status]}
           </span>
         )}

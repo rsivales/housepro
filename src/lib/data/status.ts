@@ -17,19 +17,19 @@ export const STATUS_LABEL: Record<PropertyStatus, string> = {
 export const PROPERTY_BADGE_STYLE =
   "rounded-[8px] border border-white/20 font-semibold shadow-sm backdrop-blur-sm";
 
-export const SIGNATURE_BADGE_STYLE = "bg-[#D6B45C]/85 text-[#2B210D]";
+export const SIGNATURE_BADGE_STYLE = "bg-[#D6B45C]/70 text-[#2B210D]";
 
 /** Cores semânticas: novidade verde, destaque vermelho vivo, oportunidade carmim,
- *  redução de preço rosa, reserva âmbar e estados finais mais sóbrios. */
+ *  redução de preço rosa, reserva azul vivo e estados finais mais sóbrios. */
 export const STATUS_STYLE: Record<PropertyStatus, string> = {
-  novo: "bg-emerald-700/85 text-white",
-  destaque: "bg-[#E00018]/85 text-white",
-  reduzido: "bg-rose-800/85 text-white",
-  oportunidade: "bg-[#A31621]/85 text-white",
-  reservado: "bg-amber-800/85 text-white",
-  cpcv: "bg-violet-800/85 text-white",
-  vendido: "bg-slate-800/85 text-white",
-  arrendado: "bg-teal-800/85 text-white",
+  novo: "bg-emerald-700/70 text-white",
+  destaque: "bg-[#E00018]/70 text-white",
+  reduzido: "bg-rose-800/70 text-white",
+  oportunidade: "bg-[#A31621]/70 text-white",
+  reservado: "bg-[#2563EB]/70 text-white",
+  cpcv: "bg-violet-800/70 text-white",
+  vendido: "bg-slate-800/70 text-white",
+  arrendado: "bg-teal-800/70 text-white",
 };
 
 /** Etiquetas AUTOMÁTICAS derivadas do estado comercial (aparecem no site sem

@@ -52,7 +52,7 @@ import {
   type WatermarkConfig,
 } from "@/lib/config";
 import { toIdealistaXML } from "@/lib/imovel/idealista";
-import { commissionLabel, isBelowStandardCommission, STANDARD_COMMISSION_PCT } from "@/lib/data/commission";
+import { commissionLabel, isBelowStandardCommission, standardCommissionPct } from "@/lib/data/commission";
 import type { AuditEntry } from "@/lib/data/audit";
 import type { PropertyStatus } from "@/lib/data/types";
 import { STATUS_LABEL, autoTagsFromStatus } from "@/lib/data/status";
@@ -965,7 +965,17 @@ export function PropertyForm({
             <Field label="Tipo de negócio">
               <select
                 value={d.businessType}
-                onChange={(e) => patch({ businessType: e.target.value, operation: operationOf(e.target.value) })}
+                onChange={(e) => {
+                  const operation = operationOf(e.target.value);
+                  const previousStandard = standardCommissionPct({ operation: operationOf(d.businessType) });
+                  patch({
+                    businessType: e.target.value,
+                    operation,
+                    ...(d.comissaoTipo === "percent" && d.comissao === previousStandard
+                      ? { comissao: standardCommissionPct({ operation }) }
+                      : {}),
+                  });
+                }}
                 className={box}
               >
                 {BUSINESS_TYPES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
@@ -998,6 +1008,8 @@ export function PropertyForm({
             <Field
               label="Comissão"
               hint={`Em vigor: ${commissionLabel(d.price, {
+                operation: operationOf(d.businessType),
+                commissionJustification: d.comissaoJustificacao,
                 commissionType: d.comissaoTipo,
                 commissionPct: d.comissao,
                 commissionFixed: d.comissaoFixo,
@@ -1018,7 +1030,7 @@ export function PropertyForm({
                     step="0.1"
                     value={d.comissao || ""}
                     onChange={(e) => patch({ comissao: Number(e.target.value) || 0 })}
-                    placeholder="5"
+                    placeholder={String(standardCommissionPct({ operation: operationOf(d.businessType) }))}
                     className="min-w-0 flex-1"
                   />
                 ) : (
@@ -1033,13 +1045,14 @@ export function PropertyForm({
                 )}
               </div>
               {isBelowStandardCommission(d.price, {
+                operation: operationOf(d.businessType),
                 commissionType: d.comissaoTipo,
                 commissionPct: d.comissao,
                 commissionFixed: d.comissaoFixo,
               }) && (
                 <div className="mt-2 space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
                   <p>
-                    ⚠️ Comissão abaixo do padrão HousePro ({STANDARD_COMMISSION_PCT}%) — carece de aprovação da
+                    ⚠️ Comissão abaixo do padrão HousePro ({standardCommissionPct({ operation: operationOf(d.businessType) })}%{operationOf(d.businessType) === "arrendamento" ? " da renda mensal" : ""}) — carece de aprovação da
                     administração. Indique o motivo abaixo.
                   </p>
                   <textarea

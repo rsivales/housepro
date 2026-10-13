@@ -278,7 +278,7 @@ export function PropertyStage({
             {mode === "photo" ? (
               <>
                 <PropertyBadges status={status} isSignature={isSignature} />
-                <span className="rounded-[8px] border border-white/20 bg-white/85 px-3.5 py-1.5 text-xs font-semibold capitalize text-[var(--hp-navy)] shadow-sm backdrop-blur">
+                <span className="rounded-[8px] border border-white/20 bg-white/70 px-3.5 py-1.5 text-xs font-semibold capitalize text-[var(--hp-navy)] shadow-sm backdrop-blur">
                   {operation}
                 </span>
               </>

@@ -490,6 +490,20 @@ export async function insertNotifications(
   }
 }
 
+/** Marca notificações do consultor como lidas (RLS garante que só as suas).
+ *  Sem `ids`, marca todas as não lidas — usado por "marcar todas como lidas". */
+export async function markNotificationsRead(userId: string, ids?: string[]): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const supabase = await createClient();
+    let q = supabase.from("notifications").update({ read: true }).eq("user_id", userId);
+    q = ids && ids.length > 0 ? q.in("id", ids) : q.eq("read", false);
+    await q;
+  } catch {
+    /* best-effort */
+  }
+}
+
 /** Notificações do consultor (mais recentes primeiro). */
 export async function listNotifications(userId: string, limit = 20): Promise<Notification[]> {
   if (!isSupabaseConfigured()) return [];
@@ -673,6 +687,23 @@ export async function getAgentPublicById(id: string): Promise<Agent | undefined>
   if (!isSupabaseConfigured()) return mockAgents.find((a) => a.id === id);
   const supabase = await createClient();
   const { data } = await supabase.from("profiles").select(AGENT_COLS).eq("id", id).eq("active", true).maybeSingle();
+  return mapAgent(data ?? undefined);
+}
+
+/** Dono de reserva para leads públicas sem consultor resolvido (sem `?ref`
+ *  válido) — evita leads "no limbo" com owner_id vazio que nunca aparecem a
+ *  ninguém no Helix. Mesmo critério já usado em signature/lead e
+ *  project-interest: superadmin/admin/diretor ativo mais antigo. */
+export async function getFallbackOwner(): Promise<Agent | undefined> {
+  if (!isSupabaseConfigured()) return undefined;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select(AGENT_COLS)
+    .in("role_key", ["superadmin", "admin", "diretor"])
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
   return mapAgent(data ?? undefined);
 }
 
@@ -919,6 +950,15 @@ export async function createLead(input: NewLead): Promise<Lead> {
     contact_preference: input.contactPreference ?? null,
     marketing_consent: input.marketingConsent ?? null,
     email_status: input.emailStatus ?? null,
+    email: input.email ?? null,
+    pipeline: input.pipeline ?? null,
+    qualification: input.qualification ?? "novo",
+    unassigned: input.unassigned ?? !input.ownerId,
+    campaign_id: input.campaignId ?? null,
+    form_id: input.formId ?? null,
+    zone: input.zone ?? null,
+    budget: input.budget ?? null,
+    consent: input.consent ?? null,
   };
 
   let res = await supabase.from("leads").insert({ ...base, ...extra }).select("id, created_at").single();
@@ -1088,6 +1128,59 @@ export async function listLeadForms(campaignId?: string): Promise<LeadForm[]> {
     }));
   } catch {
     return demoLeadForms;
+  }
+}
+
+/** Formulário Meta pelo ID do formulário NO META (vem no evento do webhook). */
+export async function getLeadFormByMetaFormId(metaFormId: string): Promise<LeadForm | undefined> {
+  const forms = await listLeadForms();
+  return forms.find((f) => f.metaFormId === metaFormId);
+}
+
+/** Regista um formulário Meta (o ID de formulário dado no Gestor de Anúncios,
+ *  em Publicação → Biblioteca de formulários) e as suas perguntas — para o
+ *  webhook passar a reconhecer as leads que chegam desse formulário. */
+export async function createLeadForm(input: {
+  metaFormId: string;
+  name: string;
+  campaignId?: string;
+  questions: LeadForm["questions"];
+}): Promise<LeadForm> {
+  const form: LeadForm = {
+    id: `form-${Date.now()}`,
+    metaFormId: input.metaFormId,
+    name: input.name,
+    campaignId: input.campaignId,
+    questions: input.questions,
+    createdAt: new Date().toISOString(),
+  };
+  if (!isSupabaseConfigured()) return form;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("lead_forms")
+      .insert({
+        meta_form_id: input.metaFormId,
+        name: input.name,
+        campaign_id: input.campaignId ?? null,
+      })
+      .select("id")
+      .single();
+    const id = data ? String(data.id) : form.id;
+    if (input.questions.length) {
+      await supabase.from("lead_form_questions").insert(
+        input.questions.map((q) => ({
+          form_id: id,
+          key: q.key,
+          label: q.label,
+          type: q.type,
+          options: q.options ?? null,
+        }))
+      );
+    }
+    return { ...form, id };
+  } catch {
+    return form;
   }
 }
 

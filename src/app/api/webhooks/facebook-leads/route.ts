@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createLead } from "@/lib/db/repo";
 import { notifyLead } from "@/lib/notify";
+import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 
 /**
  * Webhook do Facebook / Instagram Lead Ads (Meta).
@@ -9,7 +10,13 @@ import { notifyLead } from "@/lib/notify";
  *  - POST → recebe leadgen; obtém os dados (via FB_PAGE_TOKEN, na Graph API,
  *           ou diretamente no payload de teste), cria a lead e notifica.
  * Cada lead vira cartão no pipeline (createLead) + notificação (notifyLead).
+ *
+ * Pipeline: entra sempre em FB_LEADS_PIPELINE (por omissão "proprietarios",
+ * porque a campanha Meta ligada aqui é de angariação de proprietários). Se
+ * um dia houver também campanhas de compradores a apontar para este mesmo
+ * webhook, isto terá de passar a distinguir por formulário/campanha.
  */
+const LEADS_PIPELINE = process.env.FB_LEADS_PIPELINE || "proprietarios";
 
 type FieldDatum = { name?: string; values?: string[] };
 type FbBody = {
@@ -64,6 +71,26 @@ export async function POST(request: Request) {
   const entries = body.entry ?? [];
   let processed = 0;
 
+  // Sem responsável atribuído por formulário ainda — usa o fallback (staff
+  // superadmin/admin/diretor) para a lead nunca ficar invisível a todos
+  // (mesmo problema que já aconteceu com os pedidos de avaliação do /vender).
+  let fallbackOwnerId = "";
+  if (hasServiceRole()) {
+    try {
+      const admin = createAdminClient();
+      const { data } = await admin
+        .from("profiles")
+        .select("id")
+        .in("role_key", ["superadmin", "admin", "diretor"])
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
+      fallbackOwnerId = data?.id ?? "";
+    } catch {
+      /* best-effort */
+    }
+  }
+
   for (const entry of entries) {
     for (const change of entry.changes ?? []) {
       const v = change.value ?? {};
@@ -78,13 +105,16 @@ export async function POST(request: Request) {
       const phone = pick(fields, ["phone", "telefone", "telemovel"]);
 
       const lead = await createLead({
-        ownerId: "",
+        ownerId: fallbackOwnerId,
         name,
         contact: phone || email || "(sem contacto)",
         email,
         intent: "mensagem",
         message: "Lead do Facebook / Instagram Lead Ads",
         source: "facebook",
+        pipeline: LEADS_PIPELINE,
+        qualification: "novo",
+        unassigned: !fallbackOwnerId,
       });
       await notifyLead(lead, { channel: "Facebook Lead Ads" });
       processed++;

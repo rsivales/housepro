@@ -4,6 +4,7 @@ import { Phone, MessageSquare } from "lucide-react";
 
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
+import { recordEngagement } from "@/lib/portfolio/engagement";
 import { notifyContact } from "@/lib/contact-notify";
 import { track, type AnalyticsEvent } from "@/lib/analytics";
 import type { Agent } from "@/lib/data/types";
@@ -38,7 +39,8 @@ export function AgentContactBar({
 }) {
   const notify = (channel: string) => {
     if (EVENT[channel]) track(EVENT[channel]);
-    notifyContact(channel, { propertyId, ref: refId });
+    recordEngagement(propertyId,"contact");
+        notifyContact(channel, { propertyId, ref: refId });
   };
 
   return (

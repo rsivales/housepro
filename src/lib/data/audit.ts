@@ -56,6 +56,7 @@ export const AUDIT_FIELD_LABEL: Record<string, string> = {
   elevator: "Elevador",
   isDevelopment: "Empreendimento novo",
   developmentName: "Nome do empreendimento",
+  unitLabel: "Fração / lote",
   developmentStage: "Fase da obra",
   developmentUnits: "Nº de frações",
   cmiExclusive: "CMI exclusivo",

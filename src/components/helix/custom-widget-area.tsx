@@ -31,7 +31,7 @@ const CATALOG: WidgetDef[] = [
   { key: "objetivos", label: "Objetivos", href: "/app/objetivos", icon: Target, note: "Metas e prémios" },
   { key: "formacao", label: "Formação", href: "/app/formacao", icon: GraduationCap, note: "Academia" },
   { key: "meteo", label: "Meteorologia", href: "#", icon: CloudSun, note: "Tempo local" },
-  { key: "imoveis", label: "Imóveis recentes", href: "/app/desempenho", icon: Home, note: "Últimas angariações" },
+  { key: "imoveis", label: "Portefólio de imóveis", href: "/app/imoveis", icon: Home, note: "Últimas angariações" },
   { key: "atalhos", label: "Atalhos favoritos", href: "/app", icon: Star, note: "Acesso rápido" },
 ];
 

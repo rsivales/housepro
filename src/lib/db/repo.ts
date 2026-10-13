@@ -102,6 +102,7 @@ function mapRow(r: Row): Property {
     district: (r.district as string) ?? undefined,
     isDevelopment: r.is_development != null ? Boolean(r.is_development) : undefined,
     developmentName: (r.development_name as string) ?? undefined,
+    unitLabel: (r.unit_label as string) ?? undefined,
     developmentStage: (r.development_stage as Property["developmentStage"]) ?? undefined,
     developmentUnits: r.development_units != null ? Number(r.development_units) : undefined,
     developmentBrochureUrl: (r.development_brochure_url as string) ?? undefined,
@@ -202,7 +203,26 @@ export async function getPropertyById(id: string): Promise<Property | null> {
     .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .eq("id", id)
     .single();
-  return data ? mapRow(data) : null;
+  // Public records keep their existing fast path. Private drafts also respect
+  // delegated portfolio roles instead of the legacy all-staff read policy.
+  if (data && data.approval === "aprovado" && data.listing_state === "activo" && !data.off_market) return mapRow(data);
+  if (!hasServiceRole()) return null;
+  const { getSession } = await import("@/lib/supabase/auth");
+  const session = await getSession();
+  if (!session || session.demo) return null;
+  const admin = createAdminClient();
+  const {data: allowed,error: accessError}=await admin.rpc("portfolio_allowed",{p_actor:session.agent.id,p_property:id,p_kind:"read"});
+  if(accessError || allowed!==true) return null;
+  let row = data;
+  if(!row){const result=await admin.from("properties").select(`*, agent:profiles!agent_id(${AGENT_COLS})`).eq("id",id).maybeSingle();if(result.error)return null;row=result.data;}
+  if(!row)return null;
+  const property=mapRow(row);
+  const {data: mayEdit}=await admin.rpc("portfolio_allowed",{p_actor:session.agent.id,p_property:id,p_kind:"edit"});
+  if(mayEdit!==true){
+    delete property.ownerName;delete property.ownerPhone;delete property.ownerEmail;delete property.ownerNif;delete property.documentsMeta;
+    delete property.commissionPct;delete property.commissionFixed;delete property.commissionJustification;delete property.commissionApprovedBy;delete property.commissionSplit;
+  }
+  return property;
 }
 
 /** Vários imóveis pelo id, de uma vez — ex.: lista de favoritos do cliente. */

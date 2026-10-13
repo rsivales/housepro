@@ -208,7 +208,7 @@ export default async function ImovelPage({
 
   return (
     <div className="hp min-h-dvh bg-[var(--card)] text-[var(--hp-navy)]">
-      <PdpView />
+      <PdpView propertyId={property.id} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <PropertyHeader />
 

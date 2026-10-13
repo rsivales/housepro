@@ -1208,6 +1208,7 @@ export function PropertyForm({
                   placeholder="Ex.: Jardins do Tejo"
                 />
               </Field>
+              <Field label="Fração / lote"><Input value={d.unitLabel ?? ""} maxLength={50} onChange={e=>patch({unitLabel:e.target.value})} placeholder="Ex.: A01 · 2.º direito" /></Field>
               <Field label="Fase da obra">
                 <select
                   value={d.developmentStage ?? "planta"}
@@ -1803,6 +1804,7 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     amenities: d.equipamentos,
     isDevelopment: Boolean(d.isDevelopment),
     developmentName: d.developmentName ?? "",
+    unitLabel: d.unitLabel ?? "",
     developmentStage: d.developmentStage ?? "",
     developmentUnits: d.developmentUnits ?? "",
     cmiExclusive: d.cmiExclusive,

@@ -18,13 +18,16 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { WATERMARK_POSITIONS, docStatus } from "@/lib/imovel/model";
 import { allReferrals, REFERRAL_STATUS } from "@/lib/data/referrals";
 import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp, ShieldCheck, ShieldHalf, Rss, AlertTriangle, ChevronRight, Map, Eye } from "lucide-react";
-import { properties, agencies, agentsByAgency, propertiesByAgency, pendingApprovals } from "@/lib/data/mock";
+import { properties, agencies, agentsByAgency, propertiesByAgency } from "@/lib/data/mock";
 import { demoDeals, stagePercent } from "@/lib/data/deal";
 import { commissionLabel } from "@/lib/data/commission";
 import { PropertyRef } from "@/components/property/property-ref";
+import { operationalState, type PortfolioReport } from "@/lib/portfolio/types";
 import { formatEuro } from "@/lib/format";
 
 export default function AdminPage() {
+  const [portfolio,setPortfolio]=React.useState<PortfolioReport|null>(null);
+  React.useEffect(()=>{void fetch("/api/properties/portfolio?scope=agency",{cache:"no-store"}).then(async r=>{if(r.ok)setPortfolio(await r.json());}).catch(()=>{});},[]);
   const [rule, setRule] = React.useState<OrderingRule>(siteConfig.homeMoreRule);
   const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
   const [canManageWebsite, setCanManageWebsite] = React.useState(false);
@@ -167,18 +170,16 @@ export default function AdminPage() {
     }
   }
 
-  const activos = properties.filter((p) => p.status !== "vendido");
+  const activos = portfolio?.items.filter((p) => operationalState(p) === "activo") ?? [];
   const pipelineValue = demoDeals
     .filter((d) => d.stage !== "cancelado")
     .reduce((s, d) => s + d.amount, 0);
   const excecoes = properties.filter((p) => p.commissionJustification);
-  const pendentes = pendingApprovals();
-  const docMissingCount = properties.filter(
-    (p) => p.status !== "vendido" && !docStatus(p.documents ?? [], p.sellerType === "empresa").complete
-  ).length;
+  const pendentes = portfolio?.items.filter(p=>p.approval==="pendente") ?? [];
+  const docMissingCount = portfolio?.items.filter(p=>!docStatus([...new Set([...(p.documentKinds??[]),...p.documents])],p.sellerType==='empresa',p.licenseEndorsed?['licenca_utilizacao']:[]).complete).length ?? 0;
 
   const kpis = [
-    { icon: Building2, label: "Imóveis ativos", value: String(activos.length), href: "/admin/imoveis" },
+    { icon: Building2, label: "Imóveis ativos", value: portfolio ? String(activos.length) : "…", href: "/admin/imoveis" },
     { icon: Briefcase, label: "Negócios em curso", value: String(demoDeals.length), href: "/admin#negocios" },
     { icon: TrendingUp, label: "Valor em pipeline", value: formatEuro(pipelineValue), href: "/admin#negocios" },
     { icon: Users, label: "Consultores", value: String(agencies.reduce((s, a) => s + agentsByAgency(a.id).length, 0)), href: "/admin/consultores" },

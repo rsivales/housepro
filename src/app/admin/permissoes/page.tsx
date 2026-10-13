@@ -12,6 +12,8 @@ import type { RoleKey } from "@/lib/data/types";
 import { agents, agencyById, agentById } from "@/lib/data/mock";
 import { teams, partnerships, type TeamStatus } from "@/lib/data/teams";
 
+import { PortfolioPermissions } from "@/components/portfolio/portfolio-permissions";
+
 const PERMS_KEY = "housepro:perms";
 
 export default function PermissoesPage() {
@@ -65,6 +67,8 @@ export default function PermissoesPage() {
           <strong>direção de agência (broker)</strong>. Em produção, aplica-se por RLS.
         </p>
 
+        <PortfolioPermissions />
+        <p className="mt-6 text-xs text-muted-foreground">A matriz abaixo mantém as preferências locais dos restantes módulos; a gestão de imóveis usa as permissões guardadas no painel acima.</p>
         {/* Matriz editável */}
         <div className="mt-6 overflow-x-auto rounded-2xl border bg-card shadow-sm">
           <table className="w-full min-w-[720px] text-sm">

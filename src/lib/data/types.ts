@@ -157,6 +157,8 @@ export interface Property {
   isDevelopment?: boolean;
   /** Nome do empreendimento (ex.: "Jardins do Tejo") quando aplicável. */
   developmentName?: string;
+  /** Identificação interna da fração/lote no empreendimento. */
+  unitLabel?: string;
   /** Fase da obra do empreendimento — informa o comprador do estado. */
   developmentStage?: "planta" | "construcao" | "pronto";
   /** Nº total de frações/lotes do empreendimento (informativo). */

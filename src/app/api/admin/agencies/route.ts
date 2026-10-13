@@ -105,7 +105,7 @@ export async function PATCH(request: Request) {
 
   const admin = createAdminClient();
   const { error } = await admin.from("agencies").update(patch).eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: error.code === "23503" ? "Esta agência tem registos associados. Reatribua-os à agência correta antes de eliminar." : error.message }, { status: 409 });
   return NextResponse.json({ ok: true });
 }
 
@@ -123,12 +123,13 @@ export async function DELETE(request: Request) {
   if (!id) return NextResponse.json({ error: "missing_id" }, { status: 422 });
 
   const admin = createAdminClient();
-  const { count } = await admin.from("profiles").select("id", { count: "exact", head: true }).eq("agency_id", id);
+  const { count, error: countError } = await admin.from("profiles").select("id", { count: "exact", head: true }).eq("agency_id", id);
+  if (countError) return NextResponse.json({ error: "Não foi possível verificar a equipa desta agência." }, { status: 503 });
   if ((count ?? 0) > 0) {
     return NextResponse.json({ error: "Esta agência ainda tem consultores atribuídos — reatribui-os primeiro ou suspende a agência em vez de a eliminar." }, { status: 409 });
   }
 
   const { error } = await admin.from("agencies").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: error.code === "23503" ? "Esta agência tem registos associados. Reatribua-os à agência correta antes de eliminar." : error.message }, { status: 409 });
   return NextResponse.json({ ok: true });
 }

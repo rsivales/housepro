@@ -5,7 +5,7 @@ import { ArrowLeft, Megaphone } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listCampaigns } from "@/lib/db/repo";
-import { agents, agencies } from "@/lib/data/mock";
+import { listAgentsReal, listAgenciesReal } from "@/lib/db/repo";
 import { CampaignsManager } from "@/components/meta/campaigns-manager";
 
 export const metadata: Metadata = { title: "Campanhas — Meta CRM" };
@@ -13,13 +13,15 @@ export const metadata: Metadata = { title: "Campanhas — Meta CRM" };
 export default async function CampanhasPage() {
   const session = await getSession();
   if (!session) redirect("/entrar");
+  const agents = await listAgentsReal();
+  const agencies = await listAgenciesReal();
 
   const campaigns = await listCampaigns();
 
   // Opções para os seletores (dono/responsável). Consultores e advogados/superadmin
   // ficam de fora das opções de responsável comercial.
   const agentOptions = agents
-    .filter((a) => a.roleKey !== "superadmin" && a.roleKey !== "advogado")
+    .filter((a) => a.roleKey !== "advogado")
     .map((a) => ({ id: a.id, name: `${a.name} · ${a.agency}` }));
   const agencyOptions = agencies.map((a) => ({ id: a.id, name: a.name }));
 

@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * X Campaigns — email marketing integrado com o CRM.
  *
@@ -253,7 +254,7 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
 
 // ── Demo ─────────────────────────────────────────────────────────────────────
 
-export const demoEmailCampaigns: EmailCampaign[] = [
+export const demoEmailCampaigns: EmailCampaign[] = DEMO_DATA_ENABLED ? [
   {
     id: "ec-1",
     name: "Promoção HP-1048 — compradores Algarve",
@@ -277,7 +278,7 @@ export const demoEmailCampaigns: EmailCampaign[] = [
     ownerId: "rui",
     createdAt: "2026-08-17T09:00:00",
   },
-];
+] : [];
 
 export const emailCampaignsByOwner = (ownerId: string): EmailCampaign[] =>
   demoEmailCampaigns
@@ -287,11 +288,11 @@ export const emailCampaignsByOwner = (ownerId: string): EmailCampaign[] =>
 /** Contexto de exemplo para a pré-visualização. */
 export const previewContext: Partial<Record<MergeVar, string>> = {
   nome: "Helena",
-  consultor: "Carla Sousa",
+  consultor: "",
   agencia: "HousePro Algarve",
   imovel: "Moradia T4 com piscina",
   preco: "615 000 €",
   localizacao: "Loulé",
   link: "https://housepro.pt/imovel/7",
-  assinatura: "Carla Sousa · HousePro Algarve · 912 000 000",
+  assinatura: "",
 };

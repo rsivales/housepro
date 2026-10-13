@@ -1,5 +1,7 @@
 "use client";
 
+import { useDirectory } from "@/lib/use-directory";
+
 import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft, ShieldHalf, BadgeCheck, Users, Check, X, Crown, Handshake } from "lucide-react";
@@ -9,7 +11,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { Button } from "@/components/ui/button";
 import { CAPABILITIES, ROLE_CAPS, ROLE_LABEL, ROLE_ORDER } from "@/lib/data/permissions";
 import type { RoleKey } from "@/lib/data/types";
-import { agents, agencyById, agentById } from "@/lib/data/mock";
+import { agentById } from "@/lib/data/mock";
 import { teams, partnerships, type TeamStatus } from "@/lib/data/teams";
 
 import { PortfolioPermissions } from "@/components/portfolio/portfolio-permissions";
@@ -17,6 +19,10 @@ import { PortfolioPermissions } from "@/components/portfolio/portfolio-permissio
 const PERMS_KEY = "housepro:perms";
 
 export default function PermissoesPage() {
+  const { agents, agencies } = useDirectory();
+  const agencyById = (id: string) => agencies.find((a) => a.id === id);
+  const agentsByAgency = (id: string) => agents.filter((a) => a.agencyId === id);
+
   // Overrides guardados no browser (protótipo). Merge com os defaults.
   const [caps, setCaps] = React.useState<Record<string, Record<string, boolean>>>(() =>
     structuredClone(ROLE_CAPS)
@@ -157,6 +163,8 @@ function StatusPill({ status }: { status: TeamStatus }) {
 }
 
 function TeamsSection() {
+  const { agencies } = useDirectory();
+  const agencyById = (id: string) => agencies.find((a) => a.id === id);
   const [state, setState] = React.useState<Record<string, TeamStatus>>({});
   return (
     <section className="mt-10">

@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * X Market — marketplace interno: produtos, serviços, consumos e créditos.
  *
@@ -189,7 +190,7 @@ export const orderTotal = (items: OrderItem[]): number =>
 
 // ── Dados de exemplo ─────────────────────────────────────────────────────────
 
-export const demoProducts: Product[] = [
+export const demoProducts: Product[] = DEMO_DATA_ENABLED ? [
   { id: "p-email", name: "Pacote 1.000 emails", category: "creditos", price: 9, unit: "pacote", creditType: "email", creditAmount: 1000 },
   { id: "p-sms", name: "Pacote 200 SMS", category: "creditos", price: 12, unit: "pacote", creditType: "sms", creditAmount: 200 },
   { id: "p-metaads", name: "Saldo publicidade Meta 50€", category: "publicidade", price: 50, unit: "saldo", creditType: "meta_ads", creditAmount: 50, supplier: "Meta" },
@@ -202,7 +203,7 @@ export const demoProducts: Product[] = [
   { id: "p-polo", name: "Polo HousePro", category: "merchandising", price: 24, unit: "un", stock: 60 },
   { id: "p-juridico", name: "Consulta jurídica (LegalFlow)", category: "servicos", price: 60, unit: "consulta" },
   { id: "p-traducao", name: "Tradução de anúncio (EN)", category: "servicos", price: 15, unit: "anúncio" },
-];
+] : [];
 
 export const productsByCategory = (cat?: ProductCategory): Product[] =>
   cat ? demoProducts.filter((p) => p.category === cat) : demoProducts;
@@ -227,7 +228,7 @@ export function demoWallet(ownerId: string, ownerName?: string): Wallet {
   };
 }
 
-export const demoOrders: Order[] = [
+export const demoOrders: Order[] = DEMO_DATA_ENABLED ? [
   {
     id: "o-1",
     buyerId: "rui",
@@ -246,7 +247,7 @@ export const demoOrders: Order[] = [
     status: "pendente_aprovacao",
     createdAt: "2026-08-18T09:00:00",
   },
-];
+] : [];
 
 export const ordersByBuyer = (buyerId: string): Order[] =>
   demoOrders

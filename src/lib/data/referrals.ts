@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 import { agencies, agentById } from "./mock";
 
 /** Referências (partilha de leads) — sempre em PERCENTAGEM, transparente. */
@@ -49,16 +50,11 @@ export interface Referral {
 }
 
 /** Distribui uma referência de cliente pela agência da zona geográfica. */
-export function agencyForMunicipality(municipality: string): string {
-  const m = municipality.toLowerCase();
-  const ALGARVE = ["albufeira", "faro", "loulé", "loule", "portimão", "portimao", "lagos", "tavira", "olhão", "olhao", "silves", "são brás", "sao bras"];
-  if (ALGARVE.some((x) => m.includes(x))) return "algarve";
-  if (m.includes("porto")) return "porto";
-  if (m.includes("cascais")) return "cascais";
-  if (m.includes("braga")) return "braga";
-  if (m.includes("lisboa")) return "lisboa";
-  // Fallback: primeira agência.
-  return agencies[0].id;
+export function agencyForMunicipality(municipality: string, directory = agencies): string {
+  const clean = (v: string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const m = clean(municipality);
+  const agency = directory.find((a) => [a.region, a.slug].some((v) => v && m.includes(clean(v)))) ?? directory[0];
+  return agency?.id ?? "";
 }
 
 export const REFERRAL_STATUS: Record<ReferralStatus, { label: string; badge: string; dot: string }> = {
@@ -85,7 +81,7 @@ export const REFERRAL_STATUS: Record<ReferralStatus, { label: string; badge: str
 };
 
 /** Referências de exemplo (modo demo) — em torno do consultor Rui. */
-export const mockReferrals: Referral[] = [
+export const mockReferrals: Referral[] = DEMO_DATA_ENABLED ? [
   {
     id: "ref-1",
     type: "consultor",
@@ -155,7 +151,7 @@ export const mockReferrals: Referral[] = [
     status: "pendente",
     createdAt: "2026-07-21T11:00:00",
   },
-];
+] : [];
 
 export const referralsIncoming = (consultantId: string): Referral[] =>
   mockReferrals
@@ -219,7 +215,7 @@ export interface TrackedReferral {
 }
 
 /** Indicação demo acompanhada (exemplo no portal de quem refere). */
-export const demoTrackedReferrals: TrackedReferral[] = [
+export const demoTrackedReferrals: TrackedReferral[] = DEMO_DATA_ENABLED ? [
   {
     id: "trk-1",
     referrerName: "Você",
@@ -240,4 +236,4 @@ export const demoTrackedReferrals: TrackedReferral[] = [
     ],
     estimatedReward: 900,
   },
-];
+] : [];

@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 import { overrideForLevel, maxOverrideDepth, DEFAULT_SPLIT } from "@/lib/commission/split";
 
 /**
@@ -49,7 +50,7 @@ export function removeNodeFromTree(root: AfilhadoNode, id: string): AfilhadoNode
 }
 
 /** Árvore demo, com raiz no consultor "rui" (o utilizador demo). */
-export const demoAfilhados: AfilhadoNode = {
+export const demoAfilhados: AfilhadoNode = DEMO_DATA_ENABLED ? {
   id: "rui",
   name: "Rui (eu)",
   contact: "",
@@ -115,7 +116,7 @@ export const demoAfilhados: AfilhadoNode = {
       ],
     },
   ],
-};
+} : { id: "", name: "", contact: "", joinedAt: "", active: false, monthlyGross: 0, children: [] };
 
 export interface FlatAfilhado extends Omit<AfilhadoNode, "children"> {
   /** Nível relativo ao agente raiz (1 = direto). */

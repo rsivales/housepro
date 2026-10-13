@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 export type DealStage =
   | "proposta_enviada"
   | "proposta_aceite"
@@ -80,7 +81,7 @@ export interface Deal {
 }
 
 /** Demo transaction used to preview the process infographic (M2/M8). */
-export const demoDeals: Deal[] = [
+export const demoDeals: Deal[] = DEMO_DATA_ENABLED ? [
   {
     id: "d1",
     reference: "NEG-2041",
@@ -129,7 +130,7 @@ export const demoDeals: Deal[] = [
     coordenadorId: "sofia",
     updatedAt: "2026-07-19",
   },
-];
+] : [];
 
 export const dealById = (id: string): Deal | undefined =>
   demoDeals.find((d) => d.id === id);

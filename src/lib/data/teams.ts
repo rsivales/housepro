@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /** Equipas e parcerias entre agentes (aprovação por admin / diretor / broker). */
 
 export type TeamStatus = "aprovada" | "pendente" | "rejeitada";
@@ -20,7 +21,7 @@ export interface Partnership {
   status: TeamStatus;
 }
 
-export const teams: Team[] = [
+export const teams: Team[] = DEMO_DATA_ENABLED ? [
   {
     id: "t1",
     name: "Equipa Porto Centro",
@@ -37,9 +38,9 @@ export const teams: Team[] = [
     memberIds: ["carla"],
     status: "pendente",
   },
-];
+] : [];
 
-export const partnerships: Partnership[] = [
+export const partnerships: Partnership[] = DEMO_DATA_ENABLED ? [
   {
     id: "p1",
     agentIds: ["ana", "rui"],
@@ -52,4 +53,4 @@ export const partnerships: Partnership[] = [
     scope: "Parceria Braga ↔ Algarve",
     status: "pendente",
   },
-];
+] : [];

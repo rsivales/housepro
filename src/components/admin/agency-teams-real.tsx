@@ -3,13 +3,14 @@
 import * as React from "react";
 import { Building2, Crown, Loader2, Pause, Play, Users } from "lucide-react";
 
+import { isCommercialAgent } from "@/lib/data/agent-directory";
 import { ROLE_LABEL } from "@/lib/data/roles";
 import type { RoleKey } from "@/lib/data/types";
 
 interface Consultor {
   id: string; name: string; email?: string | null; role?: string; role_key?: string;
   agency_id?: string | null; whatsapp?: string | null; active?: boolean;
-  sponsor_id?: string | null; code?: number | null;
+  sponsor_id?: string | null; code?: number | null; public_title?: string | null;
 }
 interface Agency { id: string; name: string; region?: string }
 
@@ -62,7 +63,8 @@ export function AgencyTeamsReal() {
     }
   }
 
-  if (state === "no_service" || state === "error" || list === null) return null;
+  if (state === "no_service" || state === "error") return <p role="alert" className="rounded-xl border p-4 text-sm">Não foi possível carregar os consultores. Atualize a página ou tente novamente.</p>;
+  if (list === null) return <p role="status" className="text-sm text-muted-foreground">A carregar os consultores…</p>;
   if (state === "forbidden") {
     return (
       <p className="mt-6 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground">
@@ -72,16 +74,19 @@ export function AgencyTeamsReal() {
   }
 
   const byRank = (a: Consultor, b: Consultor) => (RANK[a.role_key ?? "agente"] ?? 9) - (RANK[b.role_key ?? "agente"] ?? 9) || a.name.localeCompare(b.name);
+  const commercial = list.filter((p) => isCommercialAgent({ roleKey: p.role_key as RoleKey, publicTitle: p.public_title ?? undefined }));
+  const systemAccounts = list.filter((p) => !commercial.includes(p));
   const groups = agencies
-    .map((a) => ({ agency: a, members: list.filter((m) => m.agency_id === a.id).sort(byRank) }))
+    .map((a) => ({ agency: a, members: commercial.filter((m) => m.agency_id === a.id).sort(byRank) }))
     .filter((g) => g.members.length > 0 || agencies.length <= 3); // com poucas agências, mostra sempre; com muitas, só as que têm gente
-  const orphans = list.filter((m) => !m.agency_id || !agencies.some((a) => a.id === m.agency_id)).sort(byRank);
+  const orphans = commercial.filter((m) => !m.agency_id || !agencies.some((a) => a.id === m.agency_id)).sort(byRank);
 
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
         Ordenados por hierarquia (direção → coordenação → consultores) dentro de cada agência. O <Crown className="inline size-3" /> marca o broker/diretor da agência; <Users className="inline size-3" /> mostra a rede de padrinhado (quem apadrinhou quem).
       </p>
+      {systemAccounts.length > 0 && <div className="rounded-xl border p-4"><p className="text-sm font-medium">Gestão da marca e do website</p><p className="text-sm text-muted-foreground">{systemAccounts.map((p) => p.name).join(", ")} · contas de administração, separadas dos consultores.</p></div>}
       {groups.map(({ agency, members }) => (
         <div key={agency.id} className="rounded-2xl border bg-card p-4 shadow-sm">
           <p className="flex items-center gap-2 font-medium">

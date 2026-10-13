@@ -5,7 +5,7 @@ import { ArrowLeft, Shuffle } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listCampaigns, listAssignmentRules } from "@/lib/db/repo";
-import { agents } from "@/lib/data/mock";
+import { listAgentsReal } from "@/lib/db/repo";
 import { CAMPAIGN_TYPE_LABEL, ASSIGN_STRATEGY_LABEL, type AssignmentRule } from "@/lib/data/meta";
 import { RuleEditor } from "@/components/meta/rule-editor";
 
@@ -14,13 +14,14 @@ export const metadata: Metadata = { title: "Distribuição — Meta CRM" };
 export default async function DistribuicaoPage() {
   const session = await getSession();
   if (!session) redirect("/entrar");
+  const agents = await listAgentsReal();
 
   const [campaigns, rules] = await Promise.all([listCampaigns(), listAssignmentRules()]);
   const ruleFor = (id: string): AssignmentRule | undefined =>
     rules.find((r) => r.campaignId === id && r.active) ?? rules.find((r) => r.campaignId === id);
 
   const agentOptions = agents
-    .filter((a) => a.roleKey !== "superadmin" && a.roleKey !== "advogado")
+    .filter((a) => a.roleKey !== "advogado")
     .map((a) => ({ id: a.id, name: `${a.name} · ${a.agency}` }));
 
   return (

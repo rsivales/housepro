@@ -1,3 +1,4 @@
+import { isCommercialAgent } from "@/lib/data/agent-directory";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
@@ -704,7 +705,38 @@ export async function listActiveAgentsByAgency(agencyId: string): Promise<Agent[
     .eq("agency_id", agencyId)
     .eq("active", true)
     .order("role_key");
-  return (data ?? []).map(mapAgent).filter((a): a is Agent => Boolean(a));
+  return (data ?? []).map(mapAgent).filter((a): a is Agent => Boolean(a)).filter(isCommercialAgent);
+}
+
+/** Real active commercial profiles for operational selectors. System-only
+ *  administrators stay in account management, not in client referrals. */
+export async function listAgentsReal(): Promise<Agent[]> {
+  if (!isSupabaseConfigured()) return mockAgents.filter((a) => a.roleKey !== "advogado" && a.roleKey !== "superadmin");
+  const sb = await createClient();
+  const { data, error } = await sb.from("profiles").select(AGENT_COLS).eq("active", true).order("name");
+  if (error) throw new Error("Não foi possível carregar os consultores reais.");
+  const agencies = await listAgenciesReal();
+  const byId = new Map(agencies.map((a) => [a.id, a]));
+  return (data ?? []).map(mapAgent).filter((a): a is Agent => Boolean(a))
+    .filter(isCommercialAgent)
+    .map((a) => ({ ...a, agency: byId.get(a.agencyId)?.name ?? a.agency }));
+}
+
+export async function listReferralsReal(agentId: string): Promise<import("@/lib/data/referrals").Referral[]> {
+  if (!isSupabaseConfigured()) return [];
+  const sb = await createClient();
+  const { data, error } = await sb.from("referrals")
+    .select("*, origin:profiles!from_id(name), destination:profiles!to_id(name), agency:agencies!agency_id(name), property:properties!property_id(reference,title)")
+    .or(`from_id.eq.${agentId},to_id.eq.${agentId}`).order("created_at", { ascending: false });
+  if (error) throw new Error("Não foi possível carregar as referências reais.");
+  return (data ?? []).map((r) => ({
+    id: String(r.id), type: r.type, fromId: r.from_id ?? "cliente", fromName: r.origin?.name ?? "Cliente",
+    toId: r.to_id ?? undefined, toName: r.destination?.name ?? undefined,
+    agencyId: r.agency_id ?? undefined, agencyName: r.agency?.name ?? undefined,
+    propertyId: r.property_id ?? undefined, propertyRef: r.property?.reference, propertyTitle: r.property?.title,
+    clientName: r.client_name, clientContact: r.client_contact, sharePct: Number(r.share_pct),
+    proposedBy: r.proposed_by ?? "origem", note: r.note ?? undefined, status: r.status, createdAt: r.created_at,
+  }));
 }
 
 /** Perfil público de um consultor/agente real (para a página /consultor/[id]
@@ -714,7 +746,8 @@ export async function getAgentPublicById(id: string): Promise<Agent | undefined>
   if (!isSupabaseConfigured()) return mockAgents.find((a) => a.id === id);
   const supabase = await createClient();
   const { data } = await supabase.from("profiles").select(AGENT_COLS).eq("id", id).eq("active", true).maybeSingle();
-  return mapAgent(data ?? undefined);
+  const agent = mapAgent(data ?? undefined);
+  return agent && isCommercialAgent(agent) ? agent : undefined;
 }
 
 /** Dono de reserva para leads públicas sem consultor resolvido (sem `?ref`
@@ -729,6 +762,7 @@ export async function getFallbackOwner(): Promise<Agent | undefined> {
     .select(AGENT_COLS)
     .in("role_key", ["superadmin", "admin", "diretor"])
     .eq("active", true)
+    .or("role_key.neq.superadmin,public_title.not.is.null")
     .limit(1)
     .maybeSingle();
   return mapAgent(data ?? undefined);

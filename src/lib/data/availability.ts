@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 import type { Lead } from "@/lib/data/leads";
 
 /**
@@ -59,8 +60,8 @@ export function atCapacityAgents(
 }
 
 /** Perfis de disponibilidade de exemplo (modo demo). */
-export const demoAvailability: AgentAvailability[] = [
+export const demoAvailability: AgentAvailability[] = DEMO_DATA_ENABLED ? [
   { agentId: "miguel", vacationUntil: "2026-09-01" }, // de férias
   { agentId: "carla", workStart: 9, workEnd: 19 },
   { agentId: "rui", workStart: 8, workEnd: 20 },
-];
+] : [];

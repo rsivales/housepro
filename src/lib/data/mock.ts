@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 import type { Agency, Agent, Property } from "./types";
 import { agentPrefix, COUNTRY } from "@/lib/codes";
 
@@ -6,13 +7,13 @@ import { agentPrefix, COUNTRY } from "@/lib/codes";
  * Replaced by Supabase queries (RLS por agência) from Milestone 2 onwards.
  */
 
-export const agencies: Agency[] = [
+export const agencies: Agency[] = DEMO_DATA_ENABLED ? [
   { id: "lisboa", name: "HousePro Lisboa", slug: "lisboa", region: "Lisboa", code: 1 },
   { id: "porto", name: "HousePro Porto", slug: "porto", region: "Porto", code: 2 },
   { id: "cascais", name: "HousePro Cascais", slug: "cascais", region: "Cascais", code: 3 },
   { id: "braga", name: "HousePro Braga", slug: "braga", region: "Braga", code: 4 },
   { id: "algarve", name: "HousePro Algarve", slug: "algarve", region: "Algarve", code: 5 },
-];
+] : [];
 
 export const agencyBySlug = (slug: string): Agency | undefined =>
   agencies.find((a) => a.slug === slug);
@@ -20,7 +21,7 @@ export const agencyBySlug = (slug: string): Agency | undefined =>
 export const agencyById = (id: string): Agency | undefined =>
   agencies.find((a) => a.id === id);
 
-export const agents: Agent[] = [
+export const agents: Agent[] = DEMO_DATA_ENABLED ? [
   {
     id: "ana",
     name: "Ana Marques",
@@ -104,7 +105,7 @@ export const agents: Agent[] = [
     whatsapp: "351910000009",
     accent: "oklch(0.55 0.12 280)",
   },
-];
+] : [];
 
 /** Prefixo legível de 7 dígitos do agente (país + agência + agente). */
 export function agentPrefixOf(agentId: string): string {
@@ -114,7 +115,7 @@ export function agentPrefixOf(agentId: string): string {
 }
 
 export const agentById = (id: string): Agent =>
-  agents.find((a) => a.id === id) ?? agents[0];
+  agents.find((a) => a.id === id) ?? { id: "", name: "Consultor indisponível", role: "", roleKey: "agente", agency: "", agencyId: "", whatsapp: "", accent: "var(--brand)" };
 
 export const agentsByAgency = (agencyId: string): Agent[] =>
   agents.filter((a) => a.agencyId === agencyId);
@@ -125,7 +126,7 @@ export const publicAgents: Agent[] = agents.filter(
   (a) => a.roleKey !== "superadmin" && a.roleKey !== "advogado"
 );
 
-export const properties: Property[] = [
+export const properties: Property[] = DEMO_DATA_ENABLED ? [
   {
     id: "1",
     reference: "HP-1042",
@@ -434,7 +435,7 @@ export const properties: Property[] = [
     listedAt: "2026-03-30",
     soldAt: "2026-06-12",
   },
-];
+] : [];
 
 /** Publicável: não vendido e aprovado (oculto ao público até aprovação). */
 export const isPublished = (p: Property): boolean =>

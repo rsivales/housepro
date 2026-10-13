@@ -89,7 +89,7 @@ export default async function MercadoPage({
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {all.map((p) => {
-            const listing = agentById(p.agentId);
+            const listing = p.agent ?? agentById(p.agentId);
             const isMine = p.agentId === agent.id;
             const commission = {
               operation: p.operation,

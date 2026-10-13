@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * Faturação & pagamentos — liga o fecho de negócio ao processamento real.
  *
@@ -78,6 +79,7 @@ export function payoutTotals(list: Payout[]) {
 
 /** Payouts de exemplo (modo demo, à volta do consultor "rui"). */
 export function demoPayouts(): Payout[] {
+  if (!DEMO_DATA_ENABLED) return [];
   return [
     { id: "p1", dealRef: "HP-1048", beneficiaryId: "rui", beneficiaryName: "Rui Tavares", role: "producao", amount: 4250, status: "pago", createdAt: "2026-07-10T10:00:00", paidAt: "2026-07-15T10:00:00" },
     { id: "p2", dealRef: "HP-1048", beneficiaryId: "rui", beneficiaryName: "Rui Tavares", role: "pensao", amount: 100, status: "pago", createdAt: "2026-07-10T10:00:00", paidAt: "2026-07-15T10:00:00" },

@@ -5,7 +5,7 @@ import { ArrowLeft, Inbox } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listUnassignedMetaLeads, listCampaigns } from "@/lib/db/repo";
-import { agents } from "@/lib/data/mock";
+import { listAgentsReal } from "@/lib/db/repo";
 import { LeadInbox } from "@/components/meta/lead-inbox";
 
 export const metadata: Metadata = { title: "Leads sem responsável — Meta CRM" };
@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: "Leads sem responsável — Meta CRM"
 export default async function InboxPage() {
   const session = await getSession();
   if (!session) redirect("/entrar");
+  const agents = await listAgentsReal();
 
   const [leads, campaigns] = await Promise.all([
     listUnassignedMetaLeads(),
@@ -20,7 +21,7 @@ export default async function InboxPage() {
   ]);
 
   const agentOptions = agents
-    .filter((a) => a.roleKey !== "superadmin" && a.roleKey !== "advogado")
+    .filter((a) => a.roleKey !== "advogado")
     .map((a) => ({ id: a.id, name: `${a.name} · ${a.agency}` }));
   const campaignName: Record<string, string> = {};
   for (const c of campaigns) campaignName[c.id] = c.name;

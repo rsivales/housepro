@@ -3,9 +3,10 @@ import {
   listPropertiesByAgency,
   listVisitsByOwner,
   getQuotesConfig,
+  getAgencyById,
 } from "@/lib/db/repo";
 import { quoteTextOfDay } from "@/lib/data/quotes";
-import { agencyById } from "@/lib/data/mock";
+
 import { perfSummary } from "@/lib/data/property-perf";
 import type { Agent } from "@/lib/data/types";
 import type { Lead } from "@/lib/data/leads";
@@ -41,6 +42,7 @@ function capitalize(s: string): string {
  */
 export async function ConsultantHome({ agent, demo }: { agent: Agent; demo: boolean }) {
   const now = new Date();
+  const agency = agent.agencyId ? await getAgencyById(agent.agencyId) : undefined;
   const [leads, agencyProps, visits, quotesExtra] = await Promise.all([
     listLeadsByAgent(agent.id),
     agent.agencyId ? listPropertiesByAgency(agent.agencyId) : Promise.resolve([]),
@@ -115,7 +117,7 @@ export async function ConsultantHome({ agent, demo }: { agent: Agent; demo: bool
   const data: DashboardData = {
     firstName: agent.name.split(" ")[0] ?? agent.name,
     dateLabel: capitalize(now.toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" })),
-    location: agencyById(agent.agencyId)?.region ?? agent.agency,
+    location: agency?.region ?? agent.agency,
     temperature: demo ? "26°" : undefined,
     quote: quoteTextOfDay(now, quotesExtra),
     // Estatísticas motivacionais (fixtures em demo — claramente separadas).

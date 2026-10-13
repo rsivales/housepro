@@ -1,5 +1,7 @@
 "use client";
 
+import { useDirectory } from "@/lib/use-directory";
+
 import * as React from "react";
 import Link from "next/link";
 import { Settings, ExternalLink, Stamp, ImagePlus, Trash2, Type, KeyRound } from "lucide-react";
@@ -18,7 +20,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { WATERMARK_POSITIONS, docStatus } from "@/lib/imovel/model";
 import { allReferrals, REFERRAL_STATUS } from "@/lib/data/referrals";
 import { Handshake, Building2, Users, Briefcase, ShieldAlert, TrendingUp, ShieldCheck, ShieldHalf, Rss, AlertTriangle, ChevronRight, Map, Eye } from "lucide-react";
-import { properties, agencies, agentsByAgency, propertiesByAgency } from "@/lib/data/mock";
+import { properties, propertiesByAgency } from "@/lib/data/mock";
 import { demoDeals, stagePercent } from "@/lib/data/deal";
 import { commissionLabel } from "@/lib/data/commission";
 import { PropertyRef } from "@/components/property/property-ref";
@@ -26,6 +28,10 @@ import { operationalState, type PortfolioReport } from "@/lib/portfolio/types";
 import { formatEuro } from "@/lib/format";
 
 export default function AdminPage() {
+  const { agents, agencies } = useDirectory();
+  const agencyById = (id: string) => agencies.find((a) => a.id === id);
+  const agentsByAgency = (id: string) => agents.filter((a) => a.agencyId === id);
+
   const [portfolio,setPortfolio]=React.useState<PortfolioReport|null>(null);
   React.useEffect(()=>{void fetch("/api/properties/portfolio?scope=agency",{cache:"no-store"}).then(async r=>{if(r.ok)setPortfolio(await r.json());}).catch(()=>{});},[]);
   const [rule, setRule] = React.useState<OrderingRule>(siteConfig.homeMoreRule);

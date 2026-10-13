@@ -78,7 +78,7 @@ export async function GET(request: Request) {
   }
 
   const [{ data: profiles }, { data: agencies }] = await Promise.all([
-    admin.from("profiles").select("id, name, email, role, role_key, agency_id, whatsapp, active, sponsor_id, code").order("name"),
+    admin.from("profiles").select("id, name, email, role, role_key, agency_id, whatsapp, active, sponsor_id, code, public_title").order("name"),
     admin.from("agencies").select("id, name, region").order("name"),
   ]);
   return NextResponse.json({ ok: true, consultores: profiles ?? [], agencies: agencies ?? [] });

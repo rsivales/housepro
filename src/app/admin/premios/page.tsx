@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft, ImagePlus, Trophy, Trash2 } from "lucide-react";
 
+import { PrizeEmblem } from "@/components/premios/prize-emblem";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -77,7 +78,7 @@ export default function AdminPremiosPage() {
           if (!up.error) value = supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl;
         } catch { /* cai para o data URL local */ }
       }
-      update({ ...art, [prize.name]: value });
+      update({ ...art, [prize.artKey ?? prize.name]: value });
     } catch { /* ignora */ } finally {
       setBusy(null);
     }
@@ -85,7 +86,7 @@ export default function AdminPremiosPage() {
 
   function remove(prize: Prize) {
     const next = { ...art };
-    delete next[prize.name];
+    delete next[prize.artKey ?? prize.name];
     update(next);
   }
 
@@ -117,7 +118,7 @@ export default function AdminPremiosPage() {
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           Carrega a arte dedicada (troféu/render) de cada distinção. Aparece na área
           do consultor, no hall da fama e na montra pública. Sem arte, mostra-se uma
-          medalha dourada.
+          distinção vetorial com símbolo próprio.
         </p>
 
         {[["Faturação", FATURACAO_PRIZES], ["Angariação", ANGARIACAO_PRIZES]].map(([label, list]) => (
@@ -125,7 +126,7 @@ export default function AdminPremiosPage() {
             <h2 className="font-display text-xl">{label as string}</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {(list as Prize[]).map((p) => {
-                const src = art[p.name];
+                const src = art[p.artKey ?? p.name];
                 return (
                   <div key={p.name} className="flex items-center gap-3 rounded-2xl border bg-card p-3.5 shadow-sm">
                     <span className={cn("grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl border", !src && "bg-secondary")}>
@@ -133,7 +134,7 @@ export default function AdminPremiosPage() {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={src} alt={p.name} className="size-full object-cover" />
                       ) : (
-                        <Trophy className="size-6 text-muted-foreground" />
+                        <PrizeEmblem prize={p} size={56} />
                       )}
                     </span>
                     <div className="min-w-0 flex-1">

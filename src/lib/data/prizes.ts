@@ -19,6 +19,8 @@ export interface Prize {
   color: string;
   /** Imagem carregada pela marca (data URL / URL). Substitui o ícone. */
   image?: string;
+  /** Chave estável das artes, preservada quando o título muda. */
+  artKey?: string;
 }
 
 export const FATURACAO_PRIZES: Prize[] = [
@@ -35,12 +37,12 @@ export const FATURACAO_PRIZES: Prize[] = [
 ];
 
 export const ANGARIACAO_PRIZES: Prize[] = [
-  { threshold: 1, name: "Primeira Montra", tagline: "A primeira angariação. Começou a história.", icon: "Home", color: "#a3862c" },
-  { threshold: 5, name: "Caçador", tagline: "Cinco angariações — instinto afinado.", icon: "Crosshair", color: "#c79a2e" },
+  { threshold: 1, name: "Revelação", artKey: "Primeira Montra", tagline: "A primeira angariação. O teu talento começa a destacar-se.", icon: "Sparkles", color: "#a3862c" },
+  { threshold: 5, name: "Estratega", artKey: "Caçador", tagline: "Cinco angariações. Método, visão e resultados.", icon: "Compass", color: "#c79a2e" },
   { threshold: 10, name: "Angariador", tagline: "Dez montras. És máquina de captar.", icon: "KeyRound", color: "#3f6f52" },
-  { threshold: 25, name: "Especialista de Montra", tagline: "Vinte e cinco. A tua carteira fala por ti.", icon: "Building2", color: "#3f4a44" },
-  { threshold: 50, name: "Mestre de Montra", tagline: "Cinquenta angariações. Referência local.", icon: "Landmark", color: "#b8860b" },
-  { threshold: 100, name: "Lenda da Angariação", tagline: "Cem montras. Poucos no país o conseguem.", icon: "Trophy", color: "#6b46c1" },
+  { threshold: 25, name: "Embaixador", artKey: "Especialista de Montra", tagline: "Vinte e cinco angariações. A confiança tem o teu nome.", icon: "BadgeCheck", color: "#3f4a44" },
+  { threshold: 50, name: "Mestre", artKey: "Mestre de Montra", tagline: "Cinquenta angariações. Domínio e consistência.", icon: "Award", color: "#b8860b" },
+  { threshold: 100, name: "Lenda", artKey: "Lenda da Angariação", tagline: "Cem angariações. Um percurso que inspira.", icon: "Crown", color: "#6b46c1" },
 ];
 
 export function prizesFor(track: PrizeTrack): Prize[] {

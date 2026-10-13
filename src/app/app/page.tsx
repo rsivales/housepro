@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications, getAgencyById, getAgentPublicById } from "@/lib/db/repo";
 import { demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
 import { quoteTextOfDay } from "@/lib/data/quotes";
@@ -51,6 +52,7 @@ import { referralsIncoming } from "@/lib/data/referrals";
 import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
 import { DocNote } from "@/components/consultant/doc-note";
 import { PropertyRef } from "@/components/property/property-ref";
+import { isValidPhone } from "@/lib/valuation";
 import { agentById } from "@/lib/data/mock";
 import { consultantCode } from "@/lib/codes";
 import { formatPhone } from "@/lib/format";
@@ -94,8 +96,9 @@ export default async function AppPage() {
   // Dashboard: frase do dia, notificações, última angariação da agência, atividades.
   const phrase = quoteTextOfDay(new Date(), await getQuotesConfig());
   const tip = tipOfTheDay();
-  const realNotifs = await listNotifications(agent.id);
-  const notifs = realNotifs.length ? realNotifs : demoNotifications();
+  // Fictícias só em modo demo (sem Supabase) — nunca mostrar notificações de
+  // contactos que não existem em produção.
+  const notifs = isSupabaseConfigured() ? await listNotifications(agent.id) : demoNotifications();
   const activities = demoActivities();
   const agencyProps = agent.agencyId ? await listPropertiesByAgency(agent.agencyId) : [];
   const lastAngariado = agencyProps[0];
@@ -276,8 +279,13 @@ export default async function AppPage() {
                       <div className="min-w-0">
                         <p className="font-medium leading-none">{l.name}</p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          {l.contact.includes("@") ? l.contact : formatPhone(l.contact)}
-                          {l.propertyId && (
+                          {(() => {
+                            const isEmail = l.contact.includes("@");
+                            const isPhone = isValidPhone(l.contact);
+                            if (!isEmail && !isPhone) return "Via site — sem contacto direto (clique registado, sem telefone/email)";
+                            return isEmail ? l.contact : formatPhone(l.contact);
+                          })()}
+                          {l.propertyRef && l.propertyId && (
                             <>
                               {" · "}
                               <PropertyRef propertyId={l.propertyId} label={`Ref. ${l.propertyRef}`} />
@@ -302,6 +310,45 @@ export default async function AppPage() {
                     <p className="mt-3 rounded-lg bg-secondary/50 px-3 py-2 text-sm text-muted-foreground">
                       “{l.message}”
                     </p>
+                  )}
+
+                  {(isValidPhone(l.contact) || l.contact.includes("@")) && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {isValidPhone(l.contact) && (
+                        <>
+                          <a
+                            href={`tel:${l.contact.replace(/[^\d+]/g, "")}`}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
+                          >
+                            <PhoneCall className="size-3.5" /> Ligar
+                          </a>
+                          <a
+                            href={`https://wa.me/${l.contact.replace(/[^\d]/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
+                          >
+                            <MessageSquare className="size-3.5" /> WhatsApp
+                          </a>
+                        </>
+                      )}
+                      {l.contact.includes("@") && (
+                        <a
+                          href={`mailto:${l.contact}`}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
+                        >
+                          <Mail className="size-3.5" /> Email
+                        </a>
+                      )}
+                      {l.email && l.email !== l.contact && (
+                        <a
+                          href={`mailto:${l.email}`}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
+                        >
+                          <Mail className="size-3.5" /> Email
+                        </a>
+                      )}
+                    </div>
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -362,12 +409,16 @@ export default async function AppPage() {
           )}
         </section>
 
-        {/* Objetivos */}
+        {/* Objetivos — ligam à página de Prémios, onde se vê o detalhe e a escada. */}
         <section className="mt-10">
           <h2 className="font-display text-xl">Objetivos & prémios</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             {goals.map((g) => (
-              <div key={g.label} className="rounded-2xl border bg-card p-5 shadow-sm">
+              <Link
+                key={g.label}
+                href="/app/premios"
+                className="block rounded-2xl border bg-card p-5 shadow-sm transition-colors hover:border-primary/40"
+              >
                 <div className="flex items-center justify-between">
                   <div className="grid size-10 place-items-center rounded-xl bg-secondary text-primary">
                     <g.icon className="size-5" />
@@ -378,7 +429,7 @@ export default async function AppPage() {
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                   <div className="h-full rounded-full bg-primary" style={{ width: `${g.pct}%` }} />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

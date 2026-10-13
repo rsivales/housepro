@@ -74,7 +74,7 @@ export function PropertyCard({
           <FavoriteButton propertyId={property.id} />
         </div>
 
-        <span className="absolute bottom-3 left-3 rounded-lg bg-background/85 px-2.5 py-1 text-xs font-medium capitalize text-foreground shadow-sm backdrop-blur">
+        <span className="absolute bottom-3 left-3 rounded-[8px] bg-background/85 px-2.5 py-1 text-xs font-medium capitalize text-foreground shadow-sm backdrop-blur">
           {property.operation}
         </span>
       </div>

@@ -14,7 +14,7 @@ export const STATUS_LABEL: Record<PropertyStatus, string> = {
 /** Geometria e acabamento comuns às etiquetas sobre fotografias.
  *  Só o fundo é translúcido: o texto mantém a sua legibilidade. */
 export const PROPERTY_BADGE_STYLE =
-  "rounded-lg border border-white/20 font-semibold shadow-sm backdrop-blur-sm";
+  "rounded-[8px] border border-white/20 font-semibold shadow-sm backdrop-blur-sm";
 
 /** Cores semânticas: novidade verde, destaque azul, oportunidade carmim,
  *  redução de preço rosa, reserva âmbar e estados finais mais sóbrios. */

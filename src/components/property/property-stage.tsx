@@ -280,7 +280,7 @@ export function PropertyStage({
                     {STATUS_LABEL[status]}
                   </span>
                 )}
-                <span className="rounded-lg border border-white/20 bg-white/85 px-3.5 py-1.5 text-xs font-semibold capitalize text-[var(--hp-navy)] shadow-sm backdrop-blur">
+                <span className="rounded-[8px] border border-white/20 bg-white/85 px-3.5 py-1.5 text-xs font-semibold capitalize text-[var(--hp-navy)] shadow-sm backdrop-blur">
                   {operation}
                 </span>
               </>

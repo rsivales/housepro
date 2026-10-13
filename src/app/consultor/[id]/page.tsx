@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { Handshake, MapPin, ChartNoAxesColumnIncreasing, Phone, Mail, ArrowRight, ChevronRight } from "lucide-react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { ConsultantPropertyGrid } from "@/components/property/consultant-property-grid";
 import styles from "./profile.module.css";
 import type { Property } from "@/lib/data/types";
 import { STATUS_LABEL } from "@/lib/data/status";
@@ -44,7 +45,7 @@ export default async function ConsultorPage({ params }: { params: Promise<{ id: 
   const contactProps = { href: primaryContact || "#contacto", target: whatsapp ? "_blank" : undefined, rel: whatsapp ? "noopener noreferrer" : undefined };
   function propertyStrip(p: Property) {
     return <Link key={p.id} href={`/imovel/${p.id}?ref=${agent!.id}`} className={styles.property} aria-label={`Conhecer imóvel: ${p.title}`}>
-      <Image src={p.image} alt={p.title} fill unoptimized sizes="(min-width: 1200px) 1120px, 100vw" className={styles.propertyImage} />
+      <Image src={p.image} alt={p.title} fill unoptimized sizes="(min-width: 1200px) 553px, (min-width: 640px) 50vw, 100vw" className={styles.propertyImage} />
       <div className={styles.propertyShade} />
       <div className={styles.propertyInfo}>
         <p className={styles.propertyMeta}>{p.status ? `${STATUS_LABEL[p.status]} · ` : ""}Ref. {p.reference}</p>
@@ -87,9 +88,9 @@ export default async function ConsultorPage({ params }: { params: Promise<{ id: 
       </section>
       <section id="imoveis" className={`${styles.container} ${styles.listings}`}>
         <h2>Imóveis com {firstName}</h2><div className={styles.accent} />
-        {mine.length ? <div className={styles.propertyList}>{mine.map(propertyStrip)}</div> : <p className={styles.empty}>Neste momento não tenho imóveis publicados nesta seleção.{primaryContact && <a {...contactProps}> Fale comigo sobre o que procura.</a>}</p>}
+        {mine.length ? <ConsultantPropertyGrid>{mine.map(propertyStrip)}</ConsultantPropertyGrid> : <p className={styles.empty}>Neste momento não tenho imóveis publicados nesta seleção.{primaryContact && <a {...contactProps}> Fale comigo sobre o que procura.</a>}</p>}
       </section>
-      {others.length > 0 && <section className={`${styles.container} ${styles.listings}`}><h2>Mais oportunidades HousePro</h2><p className={styles.introText}>Outros imóveis da rede que posso apresentar-lhe.</p><div className={styles.propertyList}>{others.map(propertyStrip)}</div></section>}
+      {others.length > 0 && <section className={`${styles.container} ${styles.listings}`}><h2>Mais oportunidades HousePro</h2><p className={styles.introText}>Outros imóveis da rede que posso apresentar-lhe.</p><ConsultantPropertyGrid>{others.map(propertyStrip)}</ConsultantPropertyGrid></section>}
       <section id="contacto" className={styles.contact}>
         <Image src={banner} alt="" fill unoptimized sizes="100vw" className={styles.backdrop} /><div className={styles.contactShade} />
         <div className={styles.container}><div><h2>Vamos falar sobre o seu imóvel?</h2><p>Estou disponível para ajudar a encontrar a melhor solução.</p></div>{primaryContact && <a {...contactProps} className={styles.contactButton}>Entrar em contacto <ChevronRight size={20} /></a>}</div>

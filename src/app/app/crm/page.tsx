@@ -38,6 +38,8 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
         amount: prefillProperty.price,
         sellerName: prefillProperty.ownerName ?? "",
         commissionPreview: commissionLabel(prefillProperty.price, {
+          operation: prefillProperty.operation,
+          commissionJustification: prefillProperty.commissionJustification,
           commissionType: prefillProperty.commissionType,
           commissionPct: prefillProperty.commissionPct,
           commissionFixed: prefillProperty.commissionFixed,

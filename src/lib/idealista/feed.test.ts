@@ -11,7 +11,7 @@ describe("idealista JSON V6 — official schemas and mass-feed semantics",()=>{
  it("validates a Portuguese listing against the vendor schemas with real photo URLs",()=>{
   const feed=buildFeed([p],cfg);expect(feed.schemaErrors).toEqual([]);expect(feed.problems).toEqual([]);expect(feed.payload.customerProperties[0].propertyFeatures.featuresType).toBe("flat");expect(feed.payload.customerProperties[0].propertyImages).toHaveLength(2);expect(feed.payload.customerProperties[0].propertyReference).toBe("OLD-1");
  });
- it.each(["reservado","cpcv","vendido"])("excludes %s and keeps non-selected properties out",status=>{expect(eligible({...p,status})).toBe(false);expect(buildFeed([{...p,status}],cfg).count).toBe(0);expect(buildFeed([p],{...cfg,property_ids:[]}).count).toBe(0);});
+ it.each(["reservado","cpcv","vendido","arrendado"])("excludes %s and keeps non-selected properties out",status=>{expect(eligible({...p,status})).toBe(false);expect(buildFeed([{...p,status}],cfg).count).toBe(0);expect(buildFeed([p],{...cfg,property_ids:[]}).count).toBe(0);});
  it("never repairs missing areas or bathrooms with fictional values",()=>{
   const feed=buildFeed([{...p,area:0,baths:0}],cfg);expect(feed.problems[0].errors).toContain("Área construída em falta (m² inteiros)");expect(feed.payload.customerProperties).toEqual([]);
  });

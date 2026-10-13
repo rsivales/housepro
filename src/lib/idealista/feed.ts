@@ -23,7 +23,7 @@ const validate = ajv.getSchema("https://feeds.idealista.com/v6/schemas/propertie
 export function validateFeed(payload: unknown): string[] {
  return validate(payload) ? [] : (validate.errors ?? []).slice(0,20).map(e => `${e.instancePath || "/"}: ${e.message}`);
 }
-export function eligible(p: Listing) { return p.approval === "aprovado" && p.listing_state === "activo" && !p.off_market && !["reservado","cpcv","vendido"].includes(p.status ?? ""); }
+export function eligible(p: Listing) { return p.approval === "aprovado" && p.listing_state === "activo" && !p.off_market && !["reservado","cpcv","vendido","arrendado"].includes(p.status ?? ""); }
 export function listingProblems(p: Listing, override: Override = {}): string[] {
  const errors: string[] = [];
  const type = TYPES[p.type];

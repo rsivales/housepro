@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { getUplineChain, addMonthlyGross, getMonthlyGross, getAgentCompanyValidated, insertNotifications } from "@/lib/db/repo";
+import { getPropertyById, getUplineChain, addMonthlyGross, getMonthlyGross, getAgentCompanyValidated, insertNotifications } from "@/lib/db/repo";
 import { overrideChain, overrideChainTotal } from "@/lib/commission/override-chain";
-import { effectiveCommission } from "@/lib/data/commission";
+import { effectiveCommission, standardCommissionPct } from "@/lib/data/commission";
 import { computeLeg } from "@/lib/commission/tiers";
 import { COMMISSION } from "@/lib/commission/config";
 import { buildPayouts } from "@/lib/data/payments";
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   const producerId = String(body.producerId ?? "").trim();
   const producerName = body.producerName ? String(body.producerName) : undefined;
   const amount = Number(body.amount ?? 0);
-  const commissionPct = body.commissionPct != null ? Number(body.commissionPct) : 5;
+
   const dealRef = body.dealRef ? String(body.dealRef) : undefined;
   const propertyId = body.propertyId ? String(body.propertyId) : undefined;
 
@@ -46,11 +46,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "producer_or_amount_missing" }, { status: 400 });
   }
 
+  if (body.operation != null && !["venda", "arrendamento"].includes(String(body.operation))) {
+    return NextResponse.json({ error: "operation_invalid" }, { status: 400 });
+  }
+  const property = propertyId ? await getPropertyById(propertyId) : null;
+  if (propertyId && !property) return NextResponse.json({ error: "property_not_found" }, { status: 404 });
+  const operation = property?.operation ?? (body.operation === "arrendamento" ? "arrendamento" : "venda");
+  const commissionPct = body.commissionPct != null ? Number(body.commissionPct) : property?.commissionPct ?? standardCommissionPct({ operation });
+
   // Automação: negócio fechado → imóvel associado passa a "vendido".
   if (propertyId) await syncPropertyStatusFromDeal(propertyId, "concluido");
 
   // Comissão bruta do negócio (aplica mínimos por escalão).
-  const gross = effectiveCommission(amount, { commissionType: "percent", commissionPct }).amount;
+  const gross = effectiveCommission(amount, { operation, commissionType: "percent", commissionPct }).amount;
 
   // Repartição da comissão do produtor pela ESCADA (fonte única). A faturação
   // anterior determina o patamar; assume empresa validada para o exemplo.

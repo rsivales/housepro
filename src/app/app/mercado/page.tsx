@@ -13,14 +13,17 @@ import { CommissionInfo } from "@/components/consultant/commission-info";
 import { DocNote } from "@/components/consultant/doc-note";
 import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
 import { MercadoFilters } from "@/components/consultant/mercado-filters";
-import { effectiveCommission } from "@/lib/data/commission";
+import type { Property } from "@/lib/data/types";
+import { effectiveCommission, standardCommissionPct } from "@/lib/data/commission";
 
 export const metadata: Metadata = { title: "Mercado · Comissões e referências" };
 
-function estCommission(p: { price: number; commissionType?: "percent" | "fixed"; commissionPct?: number; commissionFixed?: number }) {
+function estCommission(p: Property) {
   return effectiveCommission(p.price, {
+    operation: p.operation,
+    commissionJustification: p.commissionJustification,
     commissionType: p.commissionType ?? "percent",
-    commissionPct: p.commissionPct ?? 5,
+    commissionPct: p.commissionPct ?? standardCommissionPct(p),
     commissionFixed: p.commissionFixed,
   }).amount;
 }
@@ -89,6 +92,8 @@ export default async function MercadoPage({
             const listing = agentById(p.agentId);
             const isMine = p.agentId === agent.id;
             const commission = {
+              operation: p.operation,
+              commissionJustification: p.commissionJustification,
               commissionType: p.commissionType,
               commissionPct: p.commissionPct,
               commissionFixed: p.commissionFixed,

@@ -155,10 +155,10 @@ export default async function ImovelPage({
     { label: "Referência", value: property.reference },
   ];
 
-  const unavailable = property.status === "vendido" || property.status === "reservado";
+  const unavailable = property.status === "vendido" || property.status === "arrendado" || property.status === "reservado";
   // Preço oculto: por opção do consultor OU automaticamente quando vendido/CPCV.
   const priceHidden =
-    property.priceVisible === false || property.status === "vendido" || property.status === "cpcv";
+    property.priceVisible === false || property.status === "vendido" || property.status === "arrendado" || property.status === "cpcv";
   const priceLabel = priceHidden ? "Preço sob consulta" : formatPrice(property);
   const businessLabel = businessTypeLabel(property.businessType ?? property.operation);
   // Etiquetas públicas: automáticas (do estado) + manuais, sem duplicar.
@@ -248,6 +248,7 @@ export default async function ImovelPage({
             municipality={property.municipality}
             price={priceLabel}
             status={property.status}
+            isSignature={property.isSignature}
             operation={businessLabel}
             stats={heroStats}
             propertyId={property.id}
@@ -329,7 +330,7 @@ export default async function ImovelPage({
 
             {unavailable && (
               <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 px-5 py-4 text-sm text-amber-800">
-                Este imóvel está {property.status === "vendido" ? "vendido" : "reservado"}. Fale com o consultor —
+                Este imóvel está {property.status === "vendido" ? "vendido" : property.status === "arrendado" ? "arrendado" : "reservado"}. Fale com o consultor —
                 encontramos alternativas semelhantes para si (veja em baixo).
               </div>
             )}

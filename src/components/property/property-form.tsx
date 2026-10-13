@@ -52,7 +52,7 @@ import {
   type WatermarkConfig,
 } from "@/lib/config";
 import { toIdealistaXML } from "@/lib/imovel/idealista";
-import { commissionLabel, isBelowStandardCommission, STANDARD_COMMISSION_PCT } from "@/lib/data/commission";
+import { commissionLabel, isBelowStandardCommission, standardCommissionPct } from "@/lib/data/commission";
 import type { AuditEntry } from "@/lib/data/audit";
 import type { PropertyStatus } from "@/lib/data/types";
 import { STATUS_LABEL, autoTagsFromStatus } from "@/lib/data/status";
@@ -965,7 +965,17 @@ export function PropertyForm({
             <Field label="Tipo de negócio">
               <select
                 value={d.businessType}
-                onChange={(e) => patch({ businessType: e.target.value, operation: operationOf(e.target.value) })}
+                onChange={(e) => {
+                  const operation = operationOf(e.target.value);
+                  const previousStandard = standardCommissionPct({ operation: operationOf(d.businessType) });
+                  patch({
+                    businessType: e.target.value,
+                    operation,
+                    ...(d.comissaoTipo === "percent" && d.comissao === previousStandard
+                      ? { comissao: standardCommissionPct({ operation }) }
+                      : {}),
+                  });
+                }}
                 className={box}
               >
                 {BUSINESS_TYPES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
@@ -979,14 +989,6 @@ export function PropertyForm({
             <Field label="Tipologia">
               <select value={d.typology} onChange={(e) => patch({ typology: e.target.value })} className={box}>
                 {TIPOLOGIAS.map((t) => <option key={t}>{t}</option>)}
-              </select>
-            </Field>
-            <Field label="Estado / etiqueta" hint={autoTagsFromStatus(d.status as PropertyStatus).length ? "Gera etiqueta automática no site." : "Etiqueta pública do imóvel."}>
-              <select value={d.status} onChange={(e) => patch({ status: e.target.value })} className={box}>
-                <option value="">— (sem etiqueta)</option>
-                {(Object.keys(STATUS_LABEL) as PropertyStatus[]).map((s) => (
-                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                ))}
               </select>
             </Field>
             <Field label="Preço (€)" hint={d.priceVisible ? "Visível ao público." : "Oculto — aparece como “Sob consulta”."}>
@@ -1006,6 +1008,8 @@ export function PropertyForm({
             <Field
               label="Comissão"
               hint={`Em vigor: ${commissionLabel(d.price, {
+                operation: operationOf(d.businessType),
+                commissionJustification: d.comissaoJustificacao,
                 commissionType: d.comissaoTipo,
                 commissionPct: d.comissao,
                 commissionFixed: d.comissaoFixo,
@@ -1026,7 +1030,7 @@ export function PropertyForm({
                     step="0.1"
                     value={d.comissao || ""}
                     onChange={(e) => patch({ comissao: Number(e.target.value) || 0 })}
-                    placeholder="5"
+                    placeholder={String(standardCommissionPct({ operation: operationOf(d.businessType) }))}
                     className="min-w-0 flex-1"
                   />
                 ) : (
@@ -1041,13 +1045,14 @@ export function PropertyForm({
                 )}
               </div>
               {isBelowStandardCommission(d.price, {
+                operation: operationOf(d.businessType),
                 commissionType: d.comissaoTipo,
                 commissionPct: d.comissao,
                 commissionFixed: d.comissaoFixo,
               }) && (
                 <div className="mt-2 space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
                   <p>
-                    ⚠️ Comissão abaixo do padrão HousePro ({STANDARD_COMMISSION_PCT}%) — carece de aprovação da
+                    ⚠️ Comissão abaixo do padrão HousePro ({standardCommissionPct({ operation: operationOf(d.businessType) })}%{operationOf(d.businessType) === "arrendamento" ? " da renda mensal" : ""}) — carece de aprovação da
                     administração. Indique o motivo abaixo.
                   </p>
                   <textarea
@@ -1304,10 +1309,20 @@ export function PropertyForm({
 
         {/* Etiquetas, encargos, proprietário e flags */}
         <Card title="Etiquetas, encargos e proprietário">
+          <div className="mb-4 max-w-sm">
+            <Field label="Estado comercial / etiqueta" hint={autoTagsFromStatus(d.status as PropertyStatus).length ? "Gera etiqueta automática no site." : "Etiqueta pública do imóvel."}>
+              <select aria-label="Estado comercial / etiqueta" value={d.status} onChange={(e) => patch({ status: e.target.value })} className={box}>
+                <option value="">— (sem etiqueta)</option>
+                {(Object.keys(STATUS_LABEL) as PropertyStatus[]).map((s) => (
+                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
           {/* Etiquetas manuais */}
           <p className="text-sm font-medium">Etiquetas</p>
           <p className="mb-2 text-xs text-muted-foreground">
-            As etiquetas de estado (reservado, vendido, CPCV, baixa de preço) são automáticas e chegam a seguir.
+            Selecione Reservado, Arrendado, Vendido, CPCV ou Preço reduzido no campo acima. A etiqueta aparece automaticamente no site. As opções abaixo são etiquetas adicionais.
           </p>
           <div className="flex flex-wrap gap-2">
             {MANUAL_TAGS.map((t) => (

@@ -7,24 +7,11 @@ import { BedDouble, Bath, MapPin, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatArea, formatPrice, whatsappLink } from "@/lib/format";
 import { agentById } from "@/lib/data/mock";
-import { STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
+import { PropertyBadges } from "@/components/property/property-badges";
 import type { Agent, Property } from "@/lib/data/types";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { FavoriteButton } from "@/components/property/favorite-button";
-
-function StatusBadge({ status }: { status: NonNullable<Property["status"]> }) {
-  return (
-    <span
-      className={cn(
-        "rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm backdrop-blur",
-        STATUS_STYLE[status]
-      )}
-    >
-      {STATUS_LABEL[status]}
-    </span>
-  );
-}
 
 export function PropertyCard({
   property,
@@ -67,13 +54,11 @@ export function PropertyCard({
         </Link>
 
         <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between">
-          <div className="flex gap-2">
-            {property.status && <StatusBadge status={property.status} />}
-          </div>
+          <PropertyBadges status={property.status} isSignature={property.isSignature} className="max-w-[calc(100%-3rem)]" />
           <FavoriteButton propertyId={property.id} />
         </div>
 
-        <span className="absolute bottom-3 left-3 rounded-full bg-background/85 px-2.5 py-1 text-xs font-medium capitalize text-foreground shadow-sm backdrop-blur">
+        <span className="absolute bottom-3 left-3 rounded-[8px] bg-background/70 px-2.5 py-1 text-xs font-medium capitalize text-foreground shadow-sm backdrop-blur">
           {property.operation}
         </span>
       </div>

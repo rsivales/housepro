@@ -24,7 +24,7 @@ export function featuredScore(
   p: Property,
   ctx: { maxPrice: number; now?: number }
 ): number {
-  if (p.status === "vendido") return Number.NEGATIVE_INFINITY;
+  if (p.status === "vendido" || p.status === "arrendado") return Number.NEGATIVE_INFINITY;
 
   const estado =
     p.status === "destaque"
@@ -52,7 +52,7 @@ export function rankedProperties(list: Property[] = properties): Property[] {
   const maxPrice = Math.max(...list.map((p) => p.price));
   const now = Date.now();
   return list
-    .filter((p) => p.status !== "vendido")
+    .filter((p) => p.status !== "vendido" && p.status !== "arrendado")
     .map((p) => ({ p, s: featuredScore(p, { maxPrice, now }) }))
     .sort((a, b) => b.s - a.s)
     .map((x) => x.p);

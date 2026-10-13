@@ -1,10 +1,10 @@
-import type { Property } from "./types";
+import type { Operation, Property } from "./types";
 import { formatEuro } from "@/lib/format";
 
 /**
  * Comissão do imóvel — em % ou valor fixo, com mínimos por escalão de preço.
  *
- * Mínimos (comissão em vigor) para imóveis de valor baixo, onde a % renderia
+ * Mínimos nas vendas (comissão em vigor) para imóveis de valor baixo, onde a % renderia
  * pouco:
  *   preço < 50.000 €  → mínimo 4.000 €
  *   preço < 100.000 € → mínimo 5.000 €
@@ -12,6 +12,8 @@ import { formatEuro } from "@/lib/format";
  */
 
 export interface CommissionInput {
+  /** A base é o preço de venda ou a renda mensal, consoante a operação. */
+  operation?: Operation;
   commissionType?: "percent" | "fixed";
   commissionPct?: number;
   commissionFixed?: number;
@@ -29,23 +31,28 @@ export interface EffectiveCommission {
   pct?: number;
 }
 
-/** Percentagem padrão da HousePro — valor de referência em todos os imóveis. */
+/** Standard de venda. Arrendamentos usam 150% da renda mensal. */
 export const STANDARD_COMMISSION_PCT = 5;
+export const STANDARD_RENTAL_COMMISSION_PCT = 150;
 
-/** Verdadeiro quando a comissão configurada fica abaixo do padrão (5%) ou do
- *  mínimo do escalão de preço — nesse caso carece de justificação/aprovação. */
+export function standardCommissionPct(c: Pick<CommissionInput, "operation"> = {}): number {
+  return c.operation === "arrendamento" ? STANDARD_RENTAL_COMMISSION_PCT : STANDARD_COMMISSION_PCT;
+}
+
+/** Compara com o standard da operação. Os mínimos por escalão só se aplicam
+ *  às vendas; nos arrendamentos a referência é 150% da renda mensal. */
 export function isBelowStandardCommission(price: number, c: CommissionInput): boolean {
   if (price <= 0) return false;
   const isFixed = c.commissionType === "fixed" || (c.commissionFixed != null && c.commissionType == null);
   const base = isFixed ? c.commissionFixed ?? 0 : c.commissionPct != null ? (price * c.commissionPct) / 100 : 0;
   if (base <= 0) return false;
-  const standard = Math.max((price * STANDARD_COMMISSION_PCT) / 100, commissionFloor(price));
+  const standard = Math.max((price * standardCommissionPct(c)) / 100, commissionFloor(price, c.operation));
   return base < standard;
 }
 
 /** Mínimo (€) da comissão para um dado preço. */
-export function commissionFloor(price: number): number {
-  if (price <= 0) return 0;
+export function commissionFloor(price: number, operation: Operation = "venda"): number {
+  if (operation === "arrendamento" || price <= 0) return 0;
   if (price < 50000) return 4000;
   if (price < 100000) return 5000;
   return 0;
@@ -62,7 +69,7 @@ export function effectiveCommission(
     : c.commissionPct != null
       ? (price * c.commissionPct) / 100
       : 0;
-  const floor = commissionFloor(price);
+  const floor = commissionFloor(price, c.operation);
   const override = Boolean(c.commissionJustification && c.commissionJustification.trim());
 
   if (base <= 0 && floor <= 0) return { amount: 0, basis: "none" };
@@ -81,7 +88,7 @@ export function effectiveCommission(
 export function commissionLabel(price: number, c: CommissionInput): string {
   const e = effectiveCommission(price, c);
   if (e.basis === "none") return "Comissão a definir";
-  if (e.basis === "percent") return `${e.pct}% · ${formatEuro(e.amount)}`;
+  if (e.basis === "percent") return `${e.pct}%${c.operation === "arrendamento" ? " da renda mensal" : ""} · ${formatEuro(e.amount)}`;
   if (e.basis === "fixed") return `${formatEuro(e.amount)} (fixo)`;
   if (e.basis === "override") return `${formatEuro(e.amount)} (exceção autorizada)`;
   // floor

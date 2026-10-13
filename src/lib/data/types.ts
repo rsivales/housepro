@@ -11,7 +11,8 @@ export type PropertyStatus =
   | "oportunidade"
   | "reservado"
   | "cpcv"
-  | "vendido";
+  | "vendido"
+  | "arrendado";
 
 export type EnergyRating =
   | "A+"

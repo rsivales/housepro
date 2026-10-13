@@ -9,20 +9,27 @@ export const STATUS_LABEL: Record<PropertyStatus, string> = {
   reservado: "Reservado",
   cpcv: "CPCV",
   vendido: "Vendido",
+  arrendado: "Arrendado",
 };
 
-/** Classes Tailwind para o badge (fundo + texto). Vermelho reservado às
- *  etiquetas mais impactantes/urgentes (oportunidade, baixa de preço); as
- *  restantes usam cores distintas mas mais neutras, para não competirem
- *  visualmente com o que realmente merece destaque. */
+/** Geometria e acabamento comuns às etiquetas sobre fotografias.
+ *  Só o fundo é translúcido: o texto mantém a sua legibilidade. */
+export const PROPERTY_BADGE_STYLE =
+  "rounded-[8px] border border-white/20 font-semibold shadow-sm backdrop-blur-sm";
+
+export const SIGNATURE_BADGE_STYLE = "bg-[#D6B45C]/70 text-[#2B210D]";
+
+/** Cores semânticas: novidade verde, destaque vermelho vivo, oportunidade carmim,
+ *  redução de preço rosa, reserva azul vivo e estados finais mais sóbrios. */
 export const STATUS_STYLE: Record<PropertyStatus, string> = {
-  novo: "bg-emerald-600 text-white",
-  destaque: "bg-indigo-600 text-white",
-  reduzido: "bg-rose-600 text-white",
-  oportunidade: "bg-destructive text-destructive-foreground",
-  reservado: "bg-red-600 text-white",
-  cpcv: "bg-slate-600 text-white",
-  vendido: "bg-foreground text-background",
+  novo: "bg-emerald-700/70 text-white",
+  destaque: "bg-[#E00018]/70 text-white",
+  reduzido: "bg-rose-800/70 text-white",
+  oportunidade: "bg-[#A31621]/70 text-white",
+  reservado: "bg-[#2563EB]/70 text-white",
+  cpcv: "bg-violet-800/70 text-white",
+  vendido: "bg-slate-800/70 text-white",
+  arrendado: "bg-teal-800/70 text-white",
 };
 
 /** Etiquetas AUTOMÁTICAS derivadas do estado comercial (aparecem no site sem
@@ -30,6 +37,7 @@ export const STATUS_STYLE: Record<PropertyStatus, string> = {
 export function autoTagsFromStatus(status?: PropertyStatus | null): string[] {
   switch (status) {
     case "vendido": return ["Vendido"];
+    case "arrendado": return ["Arrendado"];
     case "cpcv": return ["CPCV"];
     case "reservado": return ["Reservado"];
     case "reduzido": return ["Baixa de preço"];

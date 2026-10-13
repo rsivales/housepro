@@ -9,7 +9,8 @@ import { formatEuro } from "@/lib/format";
 import { afilhadoStats, flattenAfilhados, setNodeInactive, removeNodeFromTree, type AfilhadoNode } from "@/lib/data/afilhados";
 import { DEFAULT_SPLIT, maxOverrideDepth } from "@/lib/commission/split";
 import { COMMISSION, NETWORK_POOL_PCT } from "@/lib/commission/config";
-import { effectiveCommission } from "@/lib/data/commission";
+import type { Operation } from "@/lib/data/types";
+import { effectiveCommission, standardCommissionPct } from "@/lib/data/commission";
 import type { OverridePayout } from "@/lib/commission/override-chain";
 import type { Notification } from "@/lib/db/repo";
 import { Button } from "@/components/ui/button";
@@ -387,6 +388,7 @@ function CloseDealPanel({ root, meId }: { root: AfilhadoNode; meId?: string }) {
   const membros = React.useMemo(() => flattenAfilhados(root), [root]);
   const [producerId, setProducerId] = React.useState(membros[0]?.id ?? "");
   const [amount, setAmount] = React.useState(300000);
+  const [operation, setOperation] = React.useState<Operation>("venda");
   const [pct, setPct] = React.useState(5);
   const [loading, setLoading] = React.useState(false);
   const [result, setResult] = React.useState<
@@ -401,7 +403,7 @@ function CloseDealPanel({ root, meId }: { root: AfilhadoNode; meId?: string }) {
     | null
   >(null);
 
-  const grossPreview = effectiveCommission(amount, { commissionType: "percent", commissionPct: pct }).amount;
+  const grossPreview = effectiveCommission(amount, { operation, commissionType: "percent", commissionPct: pct }).amount;
   const producer = membros.find((m) => m.id === producerId);
 
   async function fechar() {
@@ -417,6 +419,7 @@ function CloseDealPanel({ root, meId }: { root: AfilhadoNode; meId?: string }) {
           producerName: producer?.name,
           amount,
           commissionPct: pct,
+          operation,
         }),
       });
       const out = await res.json();
@@ -454,11 +457,20 @@ function CloseDealPanel({ root, meId }: { root: AfilhadoNode; meId?: string }) {
           </select>
         </div>
         <div className="space-y-1.5">
-          <Label>Valor do negócio (€)</Label>
+          <Label htmlFor="close-operation">Tipo de negócio</Label>
+          <select id="close-operation" value={operation} onChange={(e) => {
+            const next = e.target.value as Operation;
+            if (pct === standardCommissionPct({ operation })) setPct(standardCommissionPct({ operation: next }));
+            setOperation(next);
+          }} className="mb-2 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm">
+            <option value="venda">Venda</option>
+            <option value="arrendamento">Arrendamento</option>
+          </select>
+          <Label>{operation === "arrendamento" ? "Renda mensal (€)" : "Valor do negócio (€)"}</Label>
           <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value) || 0)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Comissão (%)</Label>
+          <Label>{operation === "arrendamento" ? "Comissão (% da renda mensal)" : "Comissão (%)"}</Label>
           <Input type="number" value={pct} onChange={(e) => setPct(Number(e.target.value) || 0)} />
         </div>
       </div>

@@ -6,6 +6,8 @@ import { CheckCircle2, Handshake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatEuro } from "@/lib/format";
+import type { Operation } from "@/lib/data/types";
+import { standardCommissionPct } from "@/lib/data/commission";
 import type { OverridePayout } from "@/lib/commission/override-chain";
 
 /**
@@ -14,12 +16,13 @@ import type { OverridePayout } from "@/lib/commission/override-chain";
  * e notifica cada um. Fecha o ciclo dos afilhados a partir do processo real.
  */
 export function DealCloseTrigger({
-  dealRef, producerId, producerName, amount, commissionPct = 5, alreadyClosed,
+  dealRef, producerId, producerName, amount, operation = "venda", commissionPct, alreadyClosed,
 }: {
   dealRef: string;
   producerId: string;
   producerName: string;
   amount: number;
+  operation?: Operation;
   commissionPct?: number;
   alreadyClosed?: boolean;
 }) {
@@ -36,7 +39,7 @@ export function DealCloseTrigger({
       const res = await fetch("/api/deals/close", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ producerId, producerName, amount, commissionPct, dealRef }),
+        body: JSON.stringify({ producerId, producerName, amount, operation, commissionPct: commissionPct ?? standardCommissionPct({ operation }), dealRef }),
       });
       const out = await res.json();
       if (res.ok && out.ok) { setResult(out); setDone(true); }

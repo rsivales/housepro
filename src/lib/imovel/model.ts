@@ -121,7 +121,7 @@ export interface ImovelDraft {
   /** Preço visível ao público. Auto-oculto quando vendido/CPCV. */
   priceVisible: boolean;
   /** Estado comercial (etiqueta pública): "" | novo | destaque | reduzido |
-   *  oportunidade | reservado | cpcv | vendido. Algumas geram etiqueta automática. */
+   *  oportunidade | reservado | cpcv | vendido | arrendado. Algumas geram etiqueta automática. */
   status: string;
   /** Privacidade da morada no mapa público. */
   locationPrivacy: "exact" | "approx" | "locality" | "hidden";

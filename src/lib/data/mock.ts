@@ -438,7 +438,7 @@ export const properties: Property[] = [
 
 /** Publicável: não vendido e aprovado (oculto ao público até aprovação). */
 export const isPublished = (p: Property): boolean =>
-  p.status !== "vendido" && (p.approval == null || p.approval === "aprovado");
+  p.status !== "vendido" && p.status !== "arrendado" && (p.approval == null || p.approval === "aprovado");
 
 /** Available = publicáveis, usados nas montras públicas. */
 export const availableProperties = properties.filter(isPublished);
@@ -449,7 +449,7 @@ export const featuredProperties = availableProperties;
 
 /** Imóveis do consultor — inclui pendentes de aprovação (visão interna). */
 export const propertiesByAgent = (agentId: string): Property[] =>
-  properties.filter((p) => p.agentId === agentId && p.status !== "vendido");
+  properties.filter((p) => p.agentId === agentId && p.status !== "vendido" && p.status !== "arrendado");
 
 /** Montra pública da agência — apenas publicados. */
 export const propertiesByAgency = (agencyId: string): Property[] =>

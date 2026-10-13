@@ -4,9 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, BedDouble, Bath, Maximize2, MapPin } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { formatPrice, formatArea } from "@/lib/format";
-import { PROPERTY_BADGE_STYLE, STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
+import { PropertyBadges } from "@/components/property/property-badges";
 import type { Property } from "@/lib/data/types";
 import { SafeImage } from "@/components/home/safe-image";
 import { FavoriteButton } from "@/components/property/favorite-button";
@@ -35,11 +34,7 @@ function FeaturedCard({ property }: { property: Property }) {
           alt={`${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}`}
           className="size-full object-cover"
         />
-        {property.status && (
-          <span className={cn("absolute left-3 top-3 px-2.5 py-1 text-xs", PROPERTY_BADGE_STYLE, STATUS_STYLE[property.status])}>
-            {STATUS_LABEL[property.status]}
-          </span>
-        )}
+        <PropertyBadges status={property.status} isSignature={property.isSignature} className="absolute left-3 top-3 max-w-[calc(100%-4.5rem)]" />
         <div className="absolute right-3 top-3">
           <FavoriteButton propertyId={property.id} />
         </div>

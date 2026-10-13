@@ -51,6 +51,7 @@ describe("Portfolio bulk input", () => {
 it("separates publication from commercial reservation", () => {
   expect(operationalState({ state: "reservado" })).toBe("activo");
   expect(operationalState({ state: "cpcv" })).toBe("inactivo");
+  expect(operationalState({ state: "arrendado" })).toBe("inactivo");
   expect(operationalState({ state: "rascunho" })).toBe("rascunho");
 });
 

@@ -981,14 +981,6 @@ export function PropertyForm({
                 {TIPOLOGIAS.map((t) => <option key={t}>{t}</option>)}
               </select>
             </Field>
-            <Field label="Estado / etiqueta" hint={autoTagsFromStatus(d.status as PropertyStatus).length ? "Gera etiqueta automática no site." : "Etiqueta pública do imóvel."}>
-              <select value={d.status} onChange={(e) => patch({ status: e.target.value })} className={box}>
-                <option value="">— (sem etiqueta)</option>
-                {(Object.keys(STATUS_LABEL) as PropertyStatus[]).map((s) => (
-                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                ))}
-              </select>
-            </Field>
             <Field label="Preço (€)" hint={d.priceVisible ? "Visível ao público." : "Oculto — aparece como “Sob consulta”."}>
               <div className="space-y-2">
                 <Input type="number" value={d.price || ""} onChange={(e) => patch({ price: Number(e.target.value) || 0 })} />
@@ -1304,10 +1296,20 @@ export function PropertyForm({
 
         {/* Etiquetas, encargos, proprietário e flags */}
         <Card title="Etiquetas, encargos e proprietário">
+          <div className="mb-4 max-w-sm">
+            <Field label="Estado comercial / etiqueta" hint={autoTagsFromStatus(d.status as PropertyStatus).length ? "Gera etiqueta automática no site." : "Etiqueta pública do imóvel."}>
+              <select aria-label="Estado comercial / etiqueta" value={d.status} onChange={(e) => patch({ status: e.target.value })} className={box}>
+                <option value="">— (sem etiqueta)</option>
+                {(Object.keys(STATUS_LABEL) as PropertyStatus[]).map((s) => (
+                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
           {/* Etiquetas manuais */}
           <p className="text-sm font-medium">Etiquetas</p>
           <p className="mb-2 text-xs text-muted-foreground">
-            As etiquetas de estado (reservado, vendido, CPCV, baixa de preço) são automáticas e chegam a seguir.
+            Selecione Reservado, Arrendado, Vendido, CPCV ou Preço reduzido no campo acima. A etiqueta aparece automaticamente no site. As opções abaixo são etiquetas adicionais.
           </p>
           <div className="flex flex-wrap gap-2">
             {MANUAL_TAGS.map((t) => (

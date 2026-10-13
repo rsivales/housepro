@@ -86,6 +86,7 @@ export const STATE_LABEL: Record<string, string> = {
   reservado: "Reservado",
   cpcv: "CPCV",
   vendido: "Vendido",
+  arrendado: "Arrendado",
 };
 export function daysSince(iso: string | null, now = Date.now()) {
   if (!iso) return null;
@@ -156,7 +157,7 @@ export function validUnits(value: unknown): value is UnitDraft[] {
 export function operationalState(p: Pick<PortfolioItem, "state">) {
   return p.state === "reservado"
     ? "activo"
-    : ["vendido", "cpcv"].includes(p.state)
+    : ["vendido", "arrendado", "cpcv"].includes(p.state)
       ? "inactivo"
       : p.state;
 }

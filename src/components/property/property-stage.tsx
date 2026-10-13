@@ -23,7 +23,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
-import { PROPERTY_BADGE_STYLE, STATUS_LABEL, STATUS_STYLE } from "@/lib/data/status";
+import { PropertyBadges } from "@/components/property/property-badges";
 import type { PropertyStatus } from "@/lib/data/types";
 import { FavoriteButton } from "@/components/property/favorite-button";
 import { PropertyLightbox } from "@/components/property/property-lightbox";
@@ -73,6 +73,7 @@ export function PropertyStage({
   municipality,
   price,
   status,
+  isSignature,
   operation,
   stats,
   propertyId,
@@ -88,6 +89,7 @@ export function PropertyStage({
   municipality: string;
   price: string;
   status?: PropertyStatus | null;
+  isSignature?: boolean;
   operation: string;
   stats: HeroStat[];
   propertyId: string;
@@ -272,14 +274,10 @@ export function PropertyStage({
           )}
 
           {/* Etiquetas: estado + operação (foto) OU voltar (outros modos) */}
-          <div className="absolute left-4 top-4 z-10 flex flex-wrap items-center gap-2 sm:left-6 sm:top-6">
+          <div className="absolute left-4 top-4 z-10 flex max-w-[calc(100%-8rem)] flex-wrap items-center gap-2 sm:left-6 sm:top-6">
             {mode === "photo" ? (
               <>
-                {status && (
-                  <span className={cn("px-3.5 py-1.5 text-xs", PROPERTY_BADGE_STYLE, STATUS_STYLE[status])}>
-                    {STATUS_LABEL[status]}
-                  </span>
-                )}
+                <PropertyBadges status={status} isSignature={isSignature} />
                 <span className="rounded-[8px] border border-white/20 bg-white/85 px-3.5 py-1.5 text-xs font-semibold capitalize text-[var(--hp-navy)] shadow-sm backdrop-blur">
                   {operation}
                 </span>

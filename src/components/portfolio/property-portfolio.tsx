@@ -59,7 +59,7 @@ function actionable(p: PortfolioItem, action: string) {
     return (
       p.approval === "aprovado" &&
       p.listingState !== "activo" &&
-      !["vendido", "cpcv"].includes(p.status)
+      !["vendido", "arrendado", "cpcv"].includes(p.status)
     );
   return action === "deactivate" && p.listingState !== "inactivo";
 }
@@ -144,7 +144,7 @@ export function PropertyPortfolio({
       return (
         (!term || text.includes(term)) &&
         (!state ||
-          (["reservado", "vendido", "cpcv"].includes(state)
+          (["reservado", "vendido", "arrendado", "cpcv"].includes(state)
             ? p.status === state
             : operationalState(p) === state)) &&
         (!agency || p.agencyId === agency) &&
@@ -550,7 +550,7 @@ export function PropertyPortfolio({
                       >
                         {STATE_LABEL[operationalState(p)] || p.state}
                       </span>
-                      {["reservado", "vendido", "cpcv"].includes(p.status) && (
+                      {["reservado", "vendido", "arrendado", "cpcv"].includes(p.status) && (
                         <span className="text-[10px] text-muted-foreground">
                           {STATE_LABEL[p.status]}
                         </span>

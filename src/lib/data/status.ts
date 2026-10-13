@@ -9,6 +9,7 @@ export const STATUS_LABEL: Record<PropertyStatus, string> = {
   reservado: "Reservado",
   cpcv: "CPCV",
   vendido: "Vendido",
+  arrendado: "Arrendado",
 };
 
 /** Geometria e acabamento comuns às etiquetas sobre fotografias.
@@ -16,16 +17,19 @@ export const STATUS_LABEL: Record<PropertyStatus, string> = {
 export const PROPERTY_BADGE_STYLE =
   "rounded-[8px] border border-white/20 font-semibold shadow-sm backdrop-blur-sm";
 
-/** Cores semânticas: novidade verde, destaque azul, oportunidade carmim,
+export const SIGNATURE_BADGE_STYLE = "bg-[#D6B45C]/85 text-[#2B210D]";
+
+/** Cores semânticas: novidade verde, destaque vermelho vivo, oportunidade carmim,
  *  redução de preço rosa, reserva âmbar e estados finais mais sóbrios. */
 export const STATUS_STYLE: Record<PropertyStatus, string> = {
   novo: "bg-emerald-700/85 text-white",
-  destaque: "bg-blue-800/85 text-white",
+  destaque: "bg-[#E00018]/85 text-white",
   reduzido: "bg-rose-800/85 text-white",
   oportunidade: "bg-[#A31621]/85 text-white",
   reservado: "bg-amber-800/85 text-white",
   cpcv: "bg-violet-800/85 text-white",
   vendido: "bg-slate-800/85 text-white",
+  arrendado: "bg-teal-800/85 text-white",
 };
 
 /** Etiquetas AUTOMÁTICAS derivadas do estado comercial (aparecem no site sem
@@ -33,6 +37,7 @@ export const STATUS_STYLE: Record<PropertyStatus, string> = {
 export function autoTagsFromStatus(status?: PropertyStatus | null): string[] {
   switch (status) {
     case "vendido": return ["Vendido"];
+    case "arrendado": return ["Arrendado"];
     case "cpcv": return ["CPCV"];
     case "reservado": return ["Reservado"];
     case "reduzido": return ["Baixa de preço"];

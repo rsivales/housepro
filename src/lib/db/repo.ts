@@ -190,6 +190,7 @@ export async function listPropertiesByAgent(agentId: string): Promise<Property[]
     .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .eq("agent_id", agentId)
     .neq("status", "vendido")
+    .neq("status", "arrendado")
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }
@@ -246,6 +247,7 @@ export async function listProperties(): Promise<Property[]> {
     .from("properties")
     .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .neq("status", "vendido")
+    .neq("status", "arrendado")
     .eq("approval", "aprovado")
     .eq("listing_state", "activo")
     .eq("off_market", false)
@@ -270,6 +272,7 @@ export async function listAllPropertiesAdmin(): Promise<Property[]> {
     .from("properties")
     .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .neq("status", "vendido")
+    .neq("status", "arrendado")
     .order("listed_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }
@@ -286,6 +289,7 @@ export async function listDevelopments(): Promise<Property[]> {
     .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .eq("is_development", true)
     .neq("status", "vendido")
+    .neq("status", "arrendado")
     .eq("approval", "aprovado")
     .eq("listing_state", "activo")
     .eq("off_market", false)
@@ -300,7 +304,8 @@ export async function listSignatureProperties(): Promise<Property[]> {
   const { data } = await supabase.from("properties").select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .eq("is_signature", true).eq("signature_status", "approved").eq("signature_visibility", "public")
     .eq("approval", "aprovado").eq("listing_state", "activo").eq("off_market", false)
-    .neq("status", "vendido").order("signature_order", { ascending: true, nullsFirst: false });
+    .neq("status", "vendido")
+    .neq("status", "arrendado").order("signature_order", { ascending: true, nullsFirst: false });
   return (data ?? []).map(mapRow);
 }
 
@@ -318,6 +323,7 @@ export async function listPropertiesByAgency(agencyId: string): Promise<Property
     .select(`*, profiles!inner(${AGENT_COLS})`)
     .eq("profiles.agency_id", agencyId)
     .neq("status", "vendido")
+    .neq("status", "arrendado")
     .eq("approval", "aprovado")
     .eq("listing_state", "activo")
     .eq("off_market", false)
@@ -350,6 +356,7 @@ export async function listSimilarProperties(
     .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .neq("id", property.id)
     .neq("status", "vendido")
+    .neq("status", "arrendado")
     .eq("approval", "aprovado")
     .eq("listing_state", "activo")
     .eq("off_market", false)

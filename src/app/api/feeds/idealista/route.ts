@@ -15,6 +15,7 @@ export async function GET(request: Request) {
       !p.offMarket &&
       (p.listingState ?? "activo") === "activo" &&
       p.status !== "vendido" &&
+      p.status !== "arrendado" &&
       p.status !== "cpcv"
   );
   return new Response(propertiesToIdealistaXML(publicos), {

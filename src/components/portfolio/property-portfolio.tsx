@@ -749,7 +749,7 @@ export function PropertyPortfolio({
                         >
                           {STATE_LABEL[operationalState(p)] || p.state}
                         </span>
-                        {["reservado", "cpcv", "vendido"].includes(
+                        {["reservado", "cpcv", "vendido", "arrendado"].includes(
                           p.status,
                         ) && (
                           <span className="ml-1 text-[10px] font-medium text-muted-foreground">

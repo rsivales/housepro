@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -9,7 +10,7 @@ import { operationOf } from "@/lib/imovel/model";
 /** Cria um imóvel no Supabase, com o angariador = utilizador autenticado. */
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session || session.demo) {
+  if (!session || session.demo || session.viewingAs) {
     return NextResponse.json({ error: "Sessão inválida — faça login." }, { status: 401 });
   }
 
@@ -45,11 +46,11 @@ export async function POST(request: Request) {
           d.parish || d.municipality || "Portugal"
         )}`;
 
-  const isAdminOrAmi =
-    session.agent.role === "admin" ||
-    session.agent.roleKey === "admin" ||
-    session.agent.roleKey === "superadmin" ||
-    Boolean(session.agent.ownAMI);
+  if (!hasServiceRole()) return NextResponse.json({error:"Serviço de permissões indisponível."},{status:503});
+  const {data: caps,error: capsError}=await createAdminClient().rpc("portfolio_caps",{p_actor:session.agent.id});
+  if(capsError) return NextResponse.json({error:"Sem permissão para criar imóveis."},{status:403});
+  const isAdminOrAmi=Boolean(caps.ownAMI || (caps.approveAgency && ["admin","superadmin"].includes(session.agent.roleKey ?? session.agent.role)));
+
 
   // Operação coarse derivada do tipo de negócio (compat. com filtros/portais).
   const businessType = typeof d.businessType === "string" && d.businessType ? d.businessType : (d.operation === "arrendamento" ? "arrendamento" : "venda");
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
     district: d.distrito ? String(d.distrito) : null,
     is_development: Boolean(d.isDevelopment),
     development_name: d.developmentName ? String(d.developmentName) : null,
+    unit_label: typeof d.unitLabel === "string" ? d.unitLabel.trim().slice(0,50) || null : null,
     development_stage: d.developmentStage ? String(d.developmentStage) : null,
     development_units: d.developmentUnits != null ? Number(d.developmentUnits) : null,
     energy: d.energy ? String(d.energy) : "C",

@@ -1,3 +1,4 @@
+import { PdpView } from "@/components/property/pdp-view";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, MapPin, ArrowRight } from "lucide-react";
@@ -28,7 +29,7 @@ export default async function SignatureProperty({ params }: Props) {
   const collection = getSignatureCollection(p.signatureCollection);
   const stats = [p.beds ? `${p.beds} quartos` : null, p.baths ? `${p.baths} WC` : null, p.area ? formatArea(p.area) : null, p.landArea ? `Terreno ${formatArea(p.landArea)}` : null, p.garage ? "Garagem" : null].filter(Boolean);
   const structured = { "@context": "https://schema.org", "@type": "Residence", name: title, url: `${siteUrl}${signaturePropertyHref(p)}`, image: gallery, address: { "@type": "PostalAddress", addressLocality: p.municipality, addressRegion: p.parish, addressCountry: "PT" } };
-  return <div className="min-h-dvh min-w-0 bg-[#f3efe7] text-[#171512]"><SiteHeader/><main className="min-w-0 w-full">
+  return <div className="min-h-dvh min-w-0 bg-[#f3efe7] text-[#171512]"><SiteHeader/><PdpView propertyId={p.id}/><main className="min-w-0 w-full">
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, "\\u003c") }}/>
     <nav className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-1 px-5 py-5 text-xs text-black/60 sm:px-8" aria-label="Localização na página"><Link href="/">Início</Link><ChevronRight className="size-3"/><Link href="/signature">Signature</Link><ChevronRight className="size-3"/>{collection && <><Link href={`/signature/colecoes/${collection.slug}`}>{collection.label}</Link><ChevronRight className="size-3"/></>}<span>{p.reference}</span></nav>
     <section className="mx-auto w-full min-w-0 max-w-7xl px-5 sm:px-8">

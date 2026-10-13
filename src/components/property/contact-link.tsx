@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { recordEngagement } from "@/lib/portfolio/engagement";
 import { notifyContact } from "@/lib/contact-notify";
 import { track, type AnalyticsEvent } from "@/lib/analytics";
 
@@ -35,6 +36,7 @@ export function ContactLink({
       className={className}
       onClick={() => {
         if (EVENT[channel]) track(EVENT[channel]);
+        recordEngagement(propertyId,"contact");
         notifyContact(channel, { propertyId, ref: refId });
       }}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}

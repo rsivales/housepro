@@ -201,6 +201,7 @@ export interface ImovelDraft {
   /** Empreendimento novo (obra nova) — categoria própria + flag de portal. */
   isDevelopment?: boolean;
   developmentName?: string;
+  unitLabel?: string;
   developmentStage?: "planta" | "construcao" | "pronto";
   developmentUnits?: number;
   /** Gama de tipologias do empreendimento (ex.: "T1 a T3"). */
@@ -486,6 +487,7 @@ export function draftFromProperty(p: Property): ImovelDraft {
     beforeAfter: p.beforeAfter ?? [],
     isDevelopment: p.isDevelopment,
     developmentName: p.developmentName,
+    unitLabel: p.unitLabel,
     developmentStage: p.developmentStage,
     developmentUnits: p.developmentUnits,
     cmiExclusive: p.cmiExclusive ?? true,

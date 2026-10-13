@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getPropertyById } from "@/lib/db/repo";
 import { auditFieldLabel, type AuditChange, type AuditEntry } from "@/lib/data/audit";
 import { isStaff } from "@/lib/data/roles";
+import { mayEditProperty } from "@/lib/portfolio/server";
 import { formatEuro } from "@/lib/format";
 
 /** Campos editáveis e como se mapeiam para a coluna do Supabase.
@@ -49,6 +50,7 @@ const FIELDS: Record<string, string> = {
   neighborhoodNotes: "neighborhood_notes",
   isDevelopment: "is_development",
   developmentName: "development_name",
+  unitLabel: "unit_label",
   developmentStage: "development_stage",
   developmentUnits: "development_units",
   cmiExclusive: "cmi_exclusive",
@@ -96,7 +98,7 @@ function fmt(field: string, v: unknown): string {
  */
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Sessão inválida." }, { status: 401 });
+  if (!session || session.viewingAs) return NextResponse.json({ error: "Sessão inválida ou supervisão sem escrita." }, { status: 401 });
 
   let body: { id?: string; patch?: Record<string, unknown> };
   try {
@@ -107,6 +109,7 @@ export async function POST(request: Request) {
   const id = String(body.id ?? "").trim();
   const patch = body.patch ?? {};
   if (!id) return NextResponse.json({ error: "id_missing" }, { status: 400 });
+  if ("unitLabel" in patch && (typeof patch.unitLabel!=="string" || patch.unitLabel.length>50)) return NextResponse.json({error:"Código de fração inválido."},{status:400});
 
   const current = await getPropertyById(id);
   if (!current) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -114,7 +117,7 @@ export async function POST(request: Request) {
   // Permissão: dono, co-angariador, ou staff (coordenação/direção/admin/superadmin).
   const a = session.agent;
   const owner = current.agentId === a.id || (current.coAgentIds ?? []).includes(a.id);
-  if (!owner && !isStaff(a)) {
+  if (session.demo ? !owner && !isStaff(a) : !await mayEditProperty(a,id)) {
     return NextResponse.json({ error: "sem_permissao" }, { status: 403 });
   }
 

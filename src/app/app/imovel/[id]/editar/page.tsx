@@ -5,6 +5,7 @@ import { ArrowLeft, Lock } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { getPropertyById, listPropertyAudit } from "@/lib/db/repo";
+import { mayEditProperty } from "@/lib/portfolio/server";
 import { isStaff } from "@/lib/data/roles";
 import { demoAudit } from "@/lib/data/audit";
 import { draftFromProperty } from "@/lib/imovel/model";
@@ -22,7 +23,7 @@ export default async function EditarImovelPage({ params }: { params: Promise<{ i
 
   const a = session.agent;
   const owner = property.agentId === a.id || (property.coAgentIds ?? []).includes(a.id);
-  const canEdit = owner || isStaff(a);
+  const canEdit = !session.viewingAs && (session.demo ? owner || isStaff(a) : await mayEditProperty(a,id));
 
   if (!canEdit) {
     return (
@@ -49,7 +50,7 @@ export default async function EditarImovelPage({ params }: { params: Promise<{ i
   }
 
   const real = await listPropertyAudit(id);
-  const audit = real.length ? real : demoAudit(id);
+  const audit = session.demo ? demoAudit(id) : real;
 
   const initialPhotos = property.gallery ?? (property.image ? [property.image] : []);
   const divByUrl = new Map((property.galleryMeta ?? []).map((m) => [m.url, m.division ?? ""]));

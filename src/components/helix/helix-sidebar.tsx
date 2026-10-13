@@ -14,6 +14,7 @@ function activeFor(path: string): string {
   if (path.startsWith("/app/contactos")) return "leads";
   if (path.startsWith("/app/crm") || path.startsWith("/app/meta/pipeline")) return "pipeline";
   if (path.startsWith("/app/agenda")) return "agenda";
+  if (path.startsWith("/app/imoveis")) return "imoveis";
   if (path.startsWith("/app/menu")) return "menu";
   return "";
 }
@@ -22,6 +23,7 @@ const NAV = [
   { key: "inicio", label: "Início", href: "/app", icon: Home },
   { key: "leads", label: "Leads", href: "/app/contactos", icon: Users },
   { key: "pipeline", label: "Pipeline", href: "/app/crm", icon: KanbanSquare },
+  { key: "imoveis", label: "Imóveis", href: "/app/imoveis", icon: Building2 },
   { key: "agenda", label: "Agenda", href: "/app/agenda", icon: CalendarClock },
   { key: "menu", label: "Menu", href: "/app/menu", icon: MenuIcon },
 ] as const;

@@ -35,7 +35,6 @@ import {
   Activity,
   Gauge,
   ArrowRight,
-  Pencil,
   Building2,
 } from "lucide-react";
 
@@ -50,7 +49,6 @@ import { PhraseOfTheDay, LastAngariadoBanner, NotificationsInbox, ActivitiesBoar
 import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
 import { referralsIncoming } from "@/lib/data/referrals";
 import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
-import { DocNote } from "@/components/consultant/doc-note";
 import { PropertyRef } from "@/components/property/property-ref";
 import { isValidPhone } from "@/lib/valuation";
 import { agentById } from "@/lib/data/mock";
@@ -59,9 +57,7 @@ import { formatPhone } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { PadrinhoAutoRedeem } from "@/components/afilhados/padrinho-auto-redeem";
 import { ContactSlaWatcher } from "@/components/consultant/contact-sla-watcher";
-import { PropertyCard } from "@/components/property/property-card";
-import { ShareProperty } from "@/components/property/share-property";
-import { OwnerLinkButton } from "@/components/property/owner-link-button";
+import { PropertyPortfolio } from "@/components/portfolio/property-portfolio";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Área profissional" };
@@ -440,36 +436,7 @@ export default async function AppPage() {
             <h2 className="font-display text-xl">Os meus imóveis</h2>
             <span className="text-sm text-muted-foreground">{mine.length}</span>
           </div>
-          {mine.length > 0 ? (
-            <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {mine.map((p) => (
-                <div key={p.id} className="space-y-3">
-                  <PropertyCard property={p} />
-                  {p.legacyReference && (
-                    <p className="text-xs text-muted-foreground">
-                      Antigo ID: <span className="font-mono">{p.legacyReference}</span>
-                    </p>
-                  )}
-                  <DocNote documents={p.documents} sellerType={p.sellerType} />
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/app/imovel/${p.id}/editar`}>
-                        <Pencil className="size-4" /> Editar
-                      </Link>
-                    </Button>
-                    <OwnerLinkButton propertyId={p.id} />
-                  </div>
-                  <ShareProperty
-                    propertyId={p.id}
-                    reference={p.reference}
-                    consultantId={agent.id}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-muted-foreground">Ainda sem imóveis.</p>
-          )}
+          <div className="mt-4"><PropertyPortfolio embedded /></div>
         </section>
 
         {/* Imóveis da agência — para ver o que os colegas têm em carteira, sem
@@ -485,18 +452,7 @@ export default async function AppPage() {
                 {agencyProps.filter((p) => p.agentId !== agent.id).length}
               </span>
             </div>
-            {agencyProps.filter((p) => p.agentId !== agent.id).length > 0 ? (
-              <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {agencyProps
-                  .filter((p) => p.agentId !== agent.id)
-                  .slice(0, 6)
-                  .map((p) => (
-                    <PropertyCard key={p.id} property={p} />
-                  ))}
-              </div>
-            ) : (
-              <p className="mt-4 text-muted-foreground">Sem outros imóveis publicados na agência.</p>
-            )}
+            <Link href="/app/imoveis?scope=agency" className="mt-4 inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold">Abrir carteira da agência em lista</Link>
           </section>
         )}
       </main>

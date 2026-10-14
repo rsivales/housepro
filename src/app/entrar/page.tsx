@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowRight, BarChart3, Eye, EyeOff, Home, KeyRound, Lock, Mail, Menu, Star, X,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { verifiedProfessionalDestination } from "@/lib/auth/navigation";
 import { Logo } from "@/components/brand/logo";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,6 @@ function BirdWatermark() {
 }
 
 export default function EntrarPage() {
-  const router = useRouter();
   const configured = isSupabaseConfigured();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -57,11 +56,14 @@ export default function EntrarPage() {
   // quando o profissional volta do website público com sessão ativa).
   React.useEffect(() => {
     if (!configured) return;
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) router.replace("/app");
-    });
-  }, [configured, router]);
+    const controller = new AbortController();
+    fetch("/api/auth/session", { cache: "no-store", signal: controller.signal })
+      .then(async response => {
+        const dest = verifiedProfessionalDestination(response.ok, await response.json());
+        if (dest && !controller.signal.aborted) window.location.replace(dest);
+      }).catch(() => { /* Keep the form editable if the session cannot be verified. */ });
+    return () => controller.abort();
+  }, [configured]);
 
   // Link de acesso expirado/inválido ou aberto noutro dispositivo.
   React.useEffect(() => {
@@ -84,9 +86,10 @@ export default function EntrarPage() {
   function readError(err: unknown): string {
     const e = err as { message?: string; name?: string; status?: number } | null;
     const msg = (e?.message ?? "").trim();
+    if (/invalid login credentials/i.test(msg)) return "Email ou palavra-passe incorretos.";
     if (msg && msg !== "{}" && msg !== "[object Object]") return msg;
     // Erro sem mensagem útil → quase sempre falha de ligação/configuração.
-    return "Não foi possível ligar ao servidor. Confirma no Vercel o NEXT_PUBLIC_SUPABASE_URL (não pode ser o de exemplo) e faz um Redeploy novo.";
+    return "Não foi possível confirmar o acesso. Tente novamente dentro de instantes.";
   }
 
   async function signInPassword(e: React.FormEvent) {
@@ -106,7 +109,8 @@ export default function EntrarPage() {
         console.error("Login error:", error);
         setError(readError(error));
       } else {
-        router.push("/app");
+        // Full navigation avoids a prefetched unauthenticated /app response.
+        window.location.assign("/app");
       }
     } catch (err) {
       console.error("Login exception:", err);
@@ -123,14 +127,16 @@ export default function EntrarPage() {
       return;
     }
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-    setLoading(false);
-    if (error) setError(readError(error));
-    else setSent(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) setError(readError(error));
+      else setSent(true);
+    } catch (err) { setError(readError(err)); }
+    finally { setLoading(false); }
   }
 
   async function sendPasswordReset() {
@@ -145,13 +151,15 @@ export default function EntrarPage() {
       return;
     }
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/entrar/nova-password`,
-    });
-    setLoading(false);
-    if (error) setError(readError(error));
-    else setResetSent(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/entrar/nova-password`,
+      });
+      if (error) setError(readError(error));
+      else setResetSent(true);
+    } catch (err) { setError(readError(err)); }
+    finally { setLoading(false); }
   }
 
   return (

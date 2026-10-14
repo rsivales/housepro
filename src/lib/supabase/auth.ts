@@ -79,13 +79,13 @@ export async function getSession(): Promise<Session | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, banner_url, accent, email, code, public_title")
+    .select("name, role, role_key, own_ami, agency, agency_id, whatsapp, photo_url, banner_url, accent, email, code, public_title, active")
     .eq("id", user.id)
     .single();
 
   // Sem perfil = não é profissional (ex.: comprador com conta de portal). A
   // área profissional (/app, /admin) não deve ficar acessível a estes users.
-  if (!profile) return null;
+  if (!profile || profile.active === false) return null;
 
   const realAgent = mapProfile(user.id, profile, user.email ?? "Consultor", user.email ?? undefined);
 

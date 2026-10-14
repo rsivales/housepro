@@ -4,6 +4,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { isSuperadminEmail } from "@/lib/auth/superadmin";
+import { safeAuthNext } from "@/lib/auth/navigation";
 
 /**
  * Conclui o magic link e encaminha conforme o tipo de conta: profissional (tem
@@ -17,8 +18,18 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const explicitNext = searchParams.get("next");
+  const rawNext = searchParams.get("next");
+  const explicitNext = rawNext ? safeAuthNext(rawNext) : null;
   const buyerFlow = explicitNext?.startsWith("/cliente") ?? false;
+
+  // Email links from the implicit flow carry tokens after '#', which servers
+  // cannot read. A dedicated browser landing establishes cookies first.
+  if (!code && !tokenHash) {
+    const dest = explicitNext ?? (type === "recovery" || type === "invite" ? "/entrar/nova-password" : "/app");
+    const response = NextResponse.redirect(`${origin}/auth/complete?next=${encodeURIComponent(dest)}`);
+    response.headers.set("cache-control", "private, no-store");
+    return response;
+  }
 
   const supabase = await createClient();
   let ok = false;
@@ -37,11 +48,13 @@ export async function GET(request: Request) {
   // Link inválido/expirado ou aberto noutro dispositivo → volta à entrada certa.
   if (!ok) {
     const back = buyerFlow ? "/cliente/entrar" : "/entrar";
-    return NextResponse.redirect(`${origin}${back}?erro=link`);
+    const response = NextResponse.redirect(`${origin}${back}?erro=link#`);
+    response.headers.set("cache-control", "private, no-store");
+    return response;
   }
 
-  let dest = explicitNext ?? "/app";
-  if (!explicitNext) {
+  let dest = explicitNext ?? (type === "recovery" || type === "invite" ? "/entrar/nova-password" : "/app");
+  if (!explicitNext && type !== "recovery" && type !== "invite") {
     // Sem destino explícito, decide pelo tipo de conta.
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -70,5 +83,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}${dest}`);
+  const response = NextResponse.redirect(`${origin}${dest}#`);
+  response.headers.set("cache-control", "private, no-store");
+  return response;
 }

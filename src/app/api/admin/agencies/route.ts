@@ -5,6 +5,7 @@ import { isBrandAdmin, isStaff } from "@/lib/data/roles";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { slugify, nextAgencyCode } from "@/lib/data/agencies";
 import { listAgenciesReal } from "@/lib/db/repo";
+import { isHouseProCodeAllowed } from "@/lib/codes";
 
 /**
  * Gestão de agências — tabela real `agencies` (fonte única de verdade, ver
@@ -84,6 +85,7 @@ export async function PATCH(request: Request) {
   if (typeof b.name === "string") patch.name = b.name.trim();
   if (typeof b.slug === "string") patch.slug = slugify(b.slug);
   if (typeof b.region === "string") patch.region = b.region.trim();
+  if (typeof b.code === "number" && !isHouseProCodeAllowed(b.code)) return NextResponse.json({error:"O código deve ser um número positivo e não pode terminar em 13."},{status:422});
   if (typeof b.code === "number") patch.code = b.code;
   if (typeof b.suspended === "boolean") patch.suspended = b.suspended;
   if (Array.isArray(b.services)) patch.services = b.services.filter((x): x is string => typeof x === "string");

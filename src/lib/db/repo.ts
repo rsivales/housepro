@@ -54,7 +54,7 @@ function mapAgent(a: Row | null | undefined): Agent | undefined {
 }
 
 const AGENCY_COLS =
-  "id, name, slug, region, code, suspended, services, show_active, show_sold, show_reserved, news, description, photos, prizes, ami_license, ami_expires, nipc, cae, legal_email, docs";
+  "id, name, slug, region, code, reference_city_code, suspended, services, show_active, show_sold, show_reserved, news, description, photos, prizes, ami_license, ami_expires, nipc, cae, legal_email, docs";
 
 function mapAgencyRow(r: Row): Agency {
   return {
@@ -63,6 +63,7 @@ function mapAgencyRow(r: Row): Agency {
     slug: String(r.slug ?? ""),
     region: String(r.region ?? ""),
     code: (r.code as number | null) ?? undefined,
+    referenceCityCode: (r.reference_city_code as number | null) ?? undefined,
     suspended: Boolean(r.suspended),
     services: (r.services as string[] | null) ?? [],
     showActive: r.show_active !== false,
@@ -87,6 +88,7 @@ function mapRow(r: Row): Property {
     slug: (r.slug as string) ?? undefined,
     reference: String(r.reference ?? ""),
     legacyReference: (r.legacy_reference as string | null) ?? undefined,
+    referenceAliases: Array.isArray(r.reference_aliases) ? r.reference_aliases as string[] : [],
     title: String(r.title ?? ""),
     operation: (r.operation as Property["operation"]) ?? "venda",
     businessType: (r.business_type as string) ?? undefined,
@@ -312,7 +314,7 @@ export async function listSignatureProperties(): Promise<Property[]> {
 
 export async function getSignaturePropertyBySlug(slug: string): Promise<Property | null> {
   const rows = await listSignatureProperties();
-  return rows.find((p) => p.id === slug || p.reference === slug || p.slug === slug) ?? null;
+  return rows.find((p) => p.id === slug || p.reference === slug || p.referenceAliases?.includes(slug) || p.slug === slug) ?? null;
 }
 
 export async function listPropertiesByAgency(agencyId: string): Promise<Property[]> {

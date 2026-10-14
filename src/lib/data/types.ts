@@ -49,6 +49,7 @@ export interface Agency {
   region: string;
   /** Código numérico da agência (2 dígitos) para as referências legíveis. */
   code?: number;
+  referenceCityCode?: number;
   /** Oculta a agência do site público (back office continua a vê-la). */
   suspended?: boolean;
   /** Serviços prestados pela agência, mostrados na ficha pública. */
@@ -128,12 +129,14 @@ export interface Property {
   id: string;
   /** Slug SEO opcional da ficha pública. */
   slug?: string;
-  /** Public listing reference, e.g. "HP1001-01" (agência 1 · agente 001 ·
+  /** Public listing reference, e.g. "HP1101-01" (agência 1 · cidade 1 · agente 01 ·
    *  1.º imóvel) — gerada sempre pelo servidor, nunca editável. */
   reference: string;
   /** ID antigo (outra agência/plataforma), só para imóveis migrados — nunca
    *  público, só de consulta interna no backoffice. */
   legacyReference?: string;
+  /** Previous references retained for existing public links. */
+  referenceAliases?: string[];
   title: string;
   operation: Operation;
   /** Tipo de negócio detalhado (venda, permuta, trespasse, arrendamento ao ano,

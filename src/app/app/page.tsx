@@ -109,7 +109,7 @@ export default async function AppPage() {
   // prefixo de exemplo (agentPrefixOf usa dados de demonstração e devolvia
   // sempre "1000000" para quem não existisse nesses dados).
   const myAgency = agent.agencyId ? await getAgencyById(agent.agencyId) : undefined;
-  const myCode = myAgency?.code != null && agent.code != null ? consultantCode(myAgency.code, agent.code) : null;
+  const myCode = myAgency?.code != null && agent.code != null ? consultantCode(myAgency.code, agent.code, myAgency.referenceCityCode ?? 1) : null;
 
   return (
     <div className="min-h-dvh bg-background">

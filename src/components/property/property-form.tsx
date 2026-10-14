@@ -1131,8 +1131,8 @@ export function PropertyForm({
             <Field label="Referência" hint="Atribuída automaticamente ao gravar — nunca editável, para nunca duplicar.">
               <Input value={isEdit ? d.reference : "Atribuída ao gravar"} readOnly disabled className="opacity-70" />
             </Field>
-            <Field label="ID antigo (opcional)" hint="Para imóveis migrados de outra agência/plataforma — ex.: CM12306. Só visível no backoffice.">
-              <Input value={d.legacyReference} onChange={(e) => patch({ legacyReference: e.target.value })} placeholder="ex.: CM12306" />
+            <Field label="Referência anterior / Idealista (opcional)" hint="Ao importar um imóvel, indique a referência original para a preservar. Para um imóvel novo, deixe vazio: a numeração é automática.">
+              <Input value={d.legacyReference} onChange={(e) => patch({ legacyReference: e.target.value })} placeholder="ex.: HP1101-403" />
             </Field>
             <Field label="Vista">
               <select value={d.vista} onChange={(e) => patch({ vista: e.target.value })} className={box}>

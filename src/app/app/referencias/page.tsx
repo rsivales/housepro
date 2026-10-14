@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Users } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
-import { referralsIncoming, referralsOutgoing } from "@/lib/data/referrals";
+import { listReferralsReal } from "@/lib/db/repo";
 import { ReferralsManager } from "@/components/referral/referrals-manager";
 import { NewReferralForm } from "@/components/referral/new-referral-form";
 
@@ -15,8 +15,9 @@ export default async function ReferenciasPage() {
   if (!session) redirect("/entrar");
   const { agent } = session;
 
-  const incoming = referralsIncoming(agent.id);
-  const outgoing = referralsOutgoing(agent.id);
+  const referrals = await listReferralsReal(agent.id);
+  const incoming = referrals.filter((r) => r.toId === agent.id);
+  const outgoing = referrals.filter((r) => r.fromId === agent.id);
 
   return (
     <div className="min-h-dvh bg-background">

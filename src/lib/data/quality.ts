@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * Módulo Qualidade — livro-razão de reputação do consultor com ESCADA DE
  * ESCALONAMENTO (do mais leve ao mais sério):
@@ -108,7 +109,7 @@ export interface QualityEvent {
 }
 
 /** Eventos demo (à volta do consultor "rui"). */
-export const demoQualityEvents: QualityEvent[] = [
+export const demoQualityEvents: QualityEvent[] = DEMO_DATA_ENABLED ? [
   { id: "q1", kind: "merito", agentId: "rui", points: 40, amount: 0, reason: "Avaliação 5 estrelas de um cliente", createdAt: "2026-07-22" },
   { id: "q2", kind: "merito", agentId: "rui", points: 60, amount: 0, reason: "Angariação exclusiva angariada", createdAt: "2026-07-15" },
   { id: "q5", kind: "reparo", agentId: "rui", category: "atraso", points: 0, amount: 0, reason: "Cliente reportou espera longa por resposta", status: "ativo", origin: "portal", submittedBy: "Cliente (portal)", createdAt: "2026-07-25" },
@@ -116,7 +117,7 @@ export const demoQualityEvents: QualityEvent[] = [
   { id: "q7", kind: "reparo", agentId: "rui", category: "atraso", points: 0, amount: 0, reason: "Sem retorno de chamada em 48h (portal)", status: "pendente", origin: "portal", submittedBy: "Ana (cliente)", createdAt: "2026-07-28" },
   { id: "q3", kind: "infracao", agentId: "rui", category: "atraso", severity: "leve", points: -20, amount: 0, reason: "Documento entregue fora do prazo", status: "proposta", createdAt: "2026-07-24" },
   { id: "q4", kind: "infracao", agentId: "rui", category: "documental", severity: "media", points: -50, amount: 100, reason: "Certificado energético em falta na escritura", status: "confirmada", createdAt: "2026-06-30" },
-];
+] : [];
 
 export interface QualityScore {
   /** Base de méritos (pontos positivos + gamificação). */

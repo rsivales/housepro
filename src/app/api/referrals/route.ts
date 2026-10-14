@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getAgentPublicById, getAgencyById, getPropertyById } from "@/lib/db/repo";
+import { getAgentPublicById, getAgencyById, getPropertyById, listAgenciesReal } from "@/lib/db/repo";
 import {
   MIN_CLIENTE_PCT,
   MIN_CONSULTOR_PCT,
@@ -61,6 +61,7 @@ export async function POST(request: Request) {
       // Destino: consultor indicado ou o angariador do imóvel.
       toId = body.toId ? String(body.toId) : property?.agentId;
       toName = toId ? (await getAgentPublicById(toId))?.name : undefined;
+      if (toId && !toName) return NextResponse.json({ error: "recipient_unavailable" }, { status: 400 });
     }
     if (!fromId || (!toId && !body.international)) {
       return NextResponse.json({ error: "missing_parties" }, { status: 400 });
@@ -70,8 +71,11 @@ export async function POST(request: Request) {
     fromId = "cliente";
     fromName = `Cliente: ${String(body.fromName ?? clientName)}`;
     const municipality = String(body.municipality ?? property?.municipality ?? "");
-    agencyId = String(body.agencyId ?? agencyForMunicipality(municipality));
-    agencyName = (await getAgencyById(agencyId))?.name;
+    const agencies = await listAgenciesReal();
+    agencyId = String(body.agencyId ?? agencyForMunicipality(municipality, agencies));
+    const agency = agencies.find((a) => a.id === agencyId);
+    if (!agency) return NextResponse.json({ error: "agency_unavailable" }, { status: 400 });
+    agencyName = agency.name;
   }
 
   const referral: Referral = {
@@ -103,7 +107,7 @@ export async function POST(request: Request) {
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
-      await supabase.from("referrals").insert({
+      const { error } = await supabase.from("referrals").insert({
         type: referral.type,
         property_id: referral.propertyId ?? null,
         from_id: referral.type === "consultor" ? referral.fromId : null,
@@ -115,8 +119,9 @@ export async function POST(request: Request) {
         note: referral.note ?? null,
         status: referral.status,
       });
+      if (error) return NextResponse.json({ error: "referral_save_failed" }, { status: 400 });
     } catch {
-      /* best-effort no protótipo */
+      return NextResponse.json({ error: "referral_save_failed" }, { status: 503 });
     }
   }
 

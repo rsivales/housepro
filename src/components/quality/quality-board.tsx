@@ -1,5 +1,7 @@
 "use client";
 
+import { useDirectory } from "@/lib/use-directory";
+
 import * as React from "react";
 import {
   AlertTriangle, Award, Check, Gavel, Inbox, MessageSquareWarning,
@@ -9,7 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatEuro } from "@/lib/format";
-import { agents } from "@/lib/data/mock";
+
 import {
   ABANDONO_RESIDUAL_PCT, CATEGORY_LABEL, KIND_LABEL, REFERRAL_STANDARD_PCT,
   SEVERITY, STATUS_LABEL, escalation, qualityScore,
@@ -29,6 +31,7 @@ export function QualityBoard({
   agentId: string;
   canManage: boolean;
 }) {
+  const { agents } = useDirectory();
   const [events, setEvents] = React.useState<QualityEvent[]>(initial);
   const [busy, setBusy] = React.useState<string | null>(null);
   const score = qualityScore(events, meritBase);
@@ -247,6 +250,7 @@ function EventRow({
   onContest: () => void; onConfirm: () => void; onCancel: () => void;
   onResolve: () => void; onReassign: (toAgentId: string) => void;
 }) {
+  const { agents } = useDirectory();
   const [reassignOpen, setReassignOpen] = React.useState(false);
   const [colega, setColega] = React.useState(agents.find((a) => a.id !== e.agentId)?.id ?? "");
   const merit = e.kind === "merito";
@@ -358,6 +362,7 @@ function RegistarForm({
   onCreated: (e: QualityEvent) => void;
   post: (p: Record<string, unknown>) => Promise<void>;
 }) {
+  const { agents } = useDirectory();
   const [kind, setKind] = React.useState<"reparo" | "infracao">("reparo");
   const [target, setTarget] = React.useState(agentId);
   const [severity, setSeverity] = React.useState<QualitySeverity>("leve");

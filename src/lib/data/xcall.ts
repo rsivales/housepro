@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * X Call — chamadas assistidas.
  *
@@ -214,7 +215,7 @@ export function nextTaskForResult(result: CallResult): { kind: "call" | "visit" 
 
 // ── Demo ─────────────────────────────────────────────────────────────────────
 
-export const demoCallLogs: CallLog[] = [
+export const demoCallLogs: CallLog[] = DEMO_DATA_ENABLED ? [
   {
     id: "cl-1",
     agentId: "carla",
@@ -244,7 +245,7 @@ export const demoCallLogs: CallLog[] = [
     nextTaskTitle: "Preparar visita",
     createdAt: "2026-08-18T10:00:00",
   },
-];
+] : [];
 
 export const callLogsByAgent = (agentId: string): CallLog[] =>
   demoCallLogs

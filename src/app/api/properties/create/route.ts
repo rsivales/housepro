@@ -3,8 +3,6 @@ import { NextResponse } from "next/server";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { buildPropertyReference } from "@/lib/codes";
 import { operationOf } from "@/lib/imovel/model";
 
 /** Cria um imóvel no Supabase, com o angariador = utilizador autenticado. */
@@ -21,22 +19,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  // Referência SEMPRE gerada no servidor — nunca aceite do cliente, para
-  // nunca duplicar e manter o método coerente (HP<agência><agente>-<seq>,
-  // ver buildPropertyReference). Fora do Supabase (modo demo) usa um
-  // marcador claramente temporário.
-  const supabaseCfg = isSupabaseConfigured();
-  let ref = `HP-DEMO-${Date.now().toString(36).toUpperCase()}`;
-  if (supabaseCfg) {
-    const sb = await createClient();
-    const { data: me } = await sb.from("profiles").select("agency_id, code").eq("id", session.agent.id).single();
-    const { data: ag } = me?.agency_id
-      ? await sb.from("agencies").select("code").eq("id", me.agency_id).single()
-      : { data: null };
-    const { data: seqRow, error: seqErr } = await sb.rpc("next_property_seq", { p_agent: session.agent.id });
-    if (seqErr) return NextResponse.json({ error: "reference_generation_failed" }, { status: 500 });
-    ref = buildPropertyReference(ag?.code ?? 0, me?.code ?? 0, Number(seqRow));
-  }
+  // The database assigns the canonical reference under the consultant row lock.
+  // Individual creation, historical imports and fraction batches share this rule.
   const legacyReference = typeof d.legacyReference === "string" && d.legacyReference.trim() ? d.legacyReference.trim() : null;
 
   const title =
@@ -57,7 +41,7 @@ export async function POST(request: Request) {
   const operation = operationOf(businessType);
 
   const row = {
-    reference: ref,
+    reference: null,
     legacy_reference: legacyReference,
     title,
     operation,
@@ -152,6 +136,7 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
+    if (/reference_already_exists|properties_reference_key/.test(error.message)) return NextResponse.json({error:"Esta referência já existe no Helix. Abra o imóvel existente para o editar."},{status:409});
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
   return NextResponse.json({ ok: true, id: data.id, reference: data.reference });

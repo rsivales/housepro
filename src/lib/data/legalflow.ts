@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * LegalFlow — plataforma jurídica comum a advogado, coordenação, consultor e
  * cliente. O advogado constrói o CPCV (ou arrendamento, procuração, etc.) online
@@ -145,7 +146,7 @@ export const LEGAL_NAV = [
 ] as const;
 
 /** Processos de exemplo (espelham o protótipo LegalFlow). */
-export const demoProcesses: LegalProcess[] = [
+export const demoProcesses: LegalProcess[] = DEMO_DATA_ENABLED ? [
   {
     id: "cpcv-2024-001",
     ref: "CPCV-2024-001",
@@ -235,7 +236,7 @@ export const demoProcesses: LegalProcess[] = [
     ],
     updatedAt: "2026-08-06T06:00:00",
   },
-];
+] : [];
 
 export function processById(id: string): LegalProcess | undefined {
   return demoProcesses.find((p) => p.id === id);

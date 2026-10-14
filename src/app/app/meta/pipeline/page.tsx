@@ -5,7 +5,7 @@ import { ArrowLeft, KanbanSquare } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listAllMetaLeads } from "@/lib/db/repo";
-import { agents } from "@/lib/data/mock";
+import { listAgentsReal } from "@/lib/db/repo";
 import { META_PIPELINES } from "@/lib/data/meta";
 import type { Lead } from "@/lib/data/leads";
 import { LeadKanban } from "@/components/meta/lead-kanban";
@@ -15,6 +15,7 @@ export const metadata: Metadata = { title: "Pipeline de leads — Meta CRM" };
 export default async function PipelinePage() {
   const session = await getSession();
   if (!session) redirect("/entrar");
+  const agents = await listAgentsReal();
 
   const all = await listAllMetaLeads();
 

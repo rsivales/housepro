@@ -1,5 +1,7 @@
 "use client";
 
+import { useDirectory } from "@/lib/use-directory";
+
 import * as React from "react";
 import { Check, Globe, Loader2, Percent, Send, Users } from "lucide-react";
 
@@ -7,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { agents } from "@/lib/data/mock";
+
 import { MIN_CONSULTOR_PCT } from "@/lib/data/referrals";
 
 const box =
@@ -16,10 +18,12 @@ const box =
 /** Formulário para o consultor SUBMETER uma nova referência (nacional ou
  *  internacional), podendo aumentar a % acima do mínimo. */
 export function NewReferralForm({ meId }: { meId: string }) {
+  const { agents } = useDirectory();
   const outros = agents.filter((a) => a.id !== meId);
 
   const [scope, setScope] = React.useState<"nacional" | "internacional">("nacional");
   const [toId, setToId] = React.useState(outros[0]?.id ?? "");
+  React.useEffect(() => { if (!toId && outros[0]) setToId(outros[0].id); }, [toId, outros]);
   const [toName, setToName] = React.useState("");
   const [country, setCountry] = React.useState("");
   const [clientName, setClientName] = React.useState("");
@@ -39,6 +43,10 @@ export function NewReferralForm({ meId }: { meId: string }) {
     setErr(null);
     if (!clientName.trim() || !clientContact.trim()) {
       setErr("Indique o nome e o contacto do cliente a referir.");
+      return;
+    }
+    if (!international && !outros.some((a) => a.id === toId)) {
+      setErr("Selecione um consultor real da lista.");
       return;
     }
     if (international && !toName.trim()) {

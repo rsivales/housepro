@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 export type LeadSource =
   | "site"
   | "whatsapp"
@@ -137,7 +138,7 @@ export interface Lead {
 }
 
 /** Leads de exemplo (modo demo, sem Supabase) — associadas ao consultor Rui. */
-export const mockLeads: Lead[] = [
+export const mockLeads: Lead[] = DEMO_DATA_ENABLED ? [
   {
     id: "l1",
     propertyId: "7",
@@ -202,7 +203,7 @@ export const mockLeads: Lead[] = [
     contactedAt: "2026-07-22T10:15:00",
     createdAt: "2026-07-22T08:00:00",
   },
-];
+] : [];
 
 /** Leads do agente: as suas + as de imóveis co-angariados (parceria). */
 export const leadsByOwner = (ownerId: string): Lead[] =>
@@ -229,7 +230,7 @@ export const LEAD_QUALIFICATION_LABEL: Record<LeadQualification, string> = {
  * Leads captadas via Meta (modo demo) — já normalizadas e atribuídas segundo
  * as regras das campanhas. Mostram o fluxo ponta-a-ponta sem credenciais reais.
  */
-export const mockMetaLeads: Lead[] = [
+export const mockMetaLeads: Lead[] = DEMO_DATA_ENABLED ? [
   {
     id: "ml-1",
     ownerId: "carla", // origem comercial (dono/responsável da campanha)
@@ -320,7 +321,7 @@ export const mockMetaLeads: Lead[] = [
     consent: { base: "consentimento", at: "2026-08-12T18:00:00" },
     createdAt: "2026-08-12T18:00:00",
   },
-];
+] : [];
 
 /** Leads Meta do agente (por responsável atual OU origem comercial). */
 export const metaLeadsByAgent = (agentId: string): Lead[] =>

@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * Contactos — a entidade CENTRAL de pessoa no Helix, partilhada por todos os
  * módulos (leads, chamadas, emails, visitas, negócios). Junto vem a CRONOLOGIA
@@ -170,7 +171,7 @@ export interface Visit {
 
 // ── Dados de exemplo (modo demo) ─────────────────────────────────────────────
 
-export const demoContacts: Contact[] = [
+export const demoContacts: Contact[] = DEMO_DATA_ENABLED ? [
   {
     id: "ct-1",
     name: "Helena Dias",
@@ -214,27 +215,27 @@ export const demoContacts: Contact[] = [
     createdAt: "2026-08-12T18:00:00",
     lastActivityAt: "2026-08-18T10:00:00",
   },
-];
+] : [];
 
-export const demoContactActivities: ContactActivity[] = [
+export const demoContactActivities: ContactActivity[] = DEMO_DATA_ENABLED ? [
   { id: "a1", contactId: "ct-1", type: "lead", title: "Lead recebida via Meta", body: "Compradores Algarve — Verão", leadId: "ml-1", at: "2026-08-15T10:00:00" },
   { id: "a2", contactId: "ct-1", type: "call", title: "Chamada de 1.º contacto", body: "Interessada em T2/T3, orçamento 250k–500k.", direction: "out", actorId: "carla", actorName: "Carla Sousa", at: "2026-08-15T16:30:00" },
   { id: "a3", contactId: "ct-1", type: "note", title: "Nota", body: "Prefere andar alto e vista mar.", actorId: "carla", actorName: "Carla Sousa", at: "2026-08-16T09:00:00" },
   { id: "a4", contactId: "ct-2", type: "lead", title: "Lead recebida via Meta", body: "Angariação Cascais", leadId: "ml-2", at: "2026-08-14T15:30:00" },
   { id: "a5", contactId: "ct-2", type: "visit", title: "Avaliação agendada", body: "Moradia T4 em Cascais.", at: "2026-08-17T11:20:00" },
   { id: "a6", contactId: "ct-3", type: "visit", title: "Visita à moradia HP-1048", propertyRef: "HP-1048", at: "2026-08-18T10:00:00" },
-];
+] : [];
 
-export const demoTasks: Task[] = [
+export const demoTasks: Task[] = DEMO_DATA_ENABLED ? [
   { id: "tk-1", ownerId: "carla", contactId: "ct-1", contactName: "Helena Dias", title: "Enviar 3 imóveis a Albufeira", kind: "followup", priority: "alta", dueAt: "2026-08-19T12:00:00", done: false, createdAt: "2026-08-16T09:05:00" },
   { id: "tk-2", ownerId: "rui", contactId: "ct-3", contactName: "Family Oliveira", title: "Confirmar visita de 22/08", kind: "visit", priority: "normal", dueAt: "2026-08-20T10:00:00", done: false, createdAt: "2026-08-18T10:05:00" },
   { id: "tk-3", ownerId: "sofia", contactId: "ct-2", contactName: "António Reis", title: "Preparar proposta de serviço", kind: "doc", priority: "normal", dueAt: "2026-08-21T09:00:00", done: false, createdAt: "2026-08-17T11:25:00" },
-];
+] : [];
 
-export const demoVisits: Visit[] = [
+export const demoVisits: Visit[] = DEMO_DATA_ENABLED ? [
   { id: "vs-1", ownerId: "rui", contactId: "ct-3", contactName: "Family Oliveira", propertyId: "7", propertyRef: "HP-1048", kind: "visita", at: "2026-08-22T11:00:00", durationMin: 45, status: "agendada" },
   { id: "vs-2", ownerId: "sofia", contactId: "ct-2", contactName: "António Reis", kind: "avaliacao", at: "2026-08-20T15:00:00", durationMin: 60, status: "agendada", note: "Avaliação da moradia para angariação." },
-];
+] : [];
 
 // Helpers de consulta (modo demo) -------------------------------------------
 

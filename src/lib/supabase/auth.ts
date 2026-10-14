@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 import { cookies } from "next/headers";
 
 import { isSupabaseConfigured } from "./env";
@@ -57,6 +58,7 @@ function mapProfile(id: string, profile: {
  */
 export async function getSession(): Promise<Session | null> {
   if (!isSupabaseConfigured()) {
+    if (!DEMO_DATA_ENABLED) return null;
     // Vista de supervisão: o Super Admin pode "ver como" qualquer papel.
     let viewAs = "rui";
     try {

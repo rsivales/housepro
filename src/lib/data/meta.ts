@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * Módulo CRM de Leads Meta (Facebook/Instagram) — modelo de dados.
  *
@@ -425,7 +426,7 @@ export const demoMetaConnection: MetaConnection = {
   status: "demo",
 };
 
-export const demoCampaigns: Campaign[] = [
+export const demoCampaigns: Campaign[] = DEMO_DATA_ENABLED ? [
   {
     id: "cmp-1",
     name: "Compradores Algarve — Verão",
@@ -482,13 +483,13 @@ export const demoCampaigns: Campaign[] = [
     status: "ativa",
     createdAt: "2026-05-20T09:00:00",
   },
-];
+] : [];
 
-export const demoCampaignProperties: CampaignProperty[] = [
+export const demoCampaignProperties: CampaignProperty[] = DEMO_DATA_ENABLED ? [
   { campaignId: "cmp-3", propertyId: "7", propertyRef: "HP-1048" },
-];
+] : [];
 
-export const demoLeadForms: LeadForm[] = [
+export const demoLeadForms: LeadForm[] = DEMO_DATA_ENABLED ? [
   {
     id: "form-1",
     metaFormId: "700000000000001",
@@ -550,9 +551,9 @@ export const demoLeadForms: LeadForm[] = [
       },
     ],
   },
-];
+] : [];
 
-export const demoFieldMappings: FieldMapping[] = [
+export const demoFieldMappings: FieldMapping[] = DEMO_DATA_ENABLED ? [
   {
     formId: "form-1",
     map: [
@@ -582,9 +583,9 @@ export const demoFieldMappings: FieldMapping[] = [
       { questionKey: "experience", leadField: "custom" },
     ],
   },
-];
+] : [];
 
-export const demoAssignmentRules: AssignmentRule[] = [
+export const demoAssignmentRules: AssignmentRule[] = DEMO_DATA_ENABLED ? [
   // Campanha de compradores: rotação entre Carla e Rui.
   {
     id: "rule-1",
@@ -621,7 +622,7 @@ export const demoAssignmentRules: AssignmentRule[] = [
     active: true,
     createdAt: "2026-05-20T09:10:00",
   },
-];
+] : [];
 
 // Helpers de consulta (modo demo) ------------------------------------------
 

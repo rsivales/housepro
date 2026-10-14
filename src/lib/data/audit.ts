@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * Histórico de rastreio (audit trail) dos imóveis — quem fez cada alteração e
  * quando. Cada edição regista o autor, a data e os campos alterados (de → para),
@@ -88,6 +89,7 @@ export function auditFieldLabel(f: string): string {
 
 /** Histórico de exemplo (modo demo). */
 export function demoAudit(propertyId: string): AuditEntry[] {
+  if (!DEMO_DATA_ENABLED) return [];
   return [
     {
       id: "au2", propertyId, actorId: "carla", actorName: "Carla Sousa", actorRole: "Diretora de agência",

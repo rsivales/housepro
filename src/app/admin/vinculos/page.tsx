@@ -1,5 +1,7 @@
 "use client";
 
+import { useDirectory } from "@/lib/use-directory";
+
 import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft, BadgeCheck, Building2, Check, FileText, ShieldCheck, Upload, X } from "lucide-react";
@@ -7,7 +9,7 @@ import { ArrowLeft, BadgeCheck, Building2, Check, FileText, ShieldCheck, Upload,
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
-import { agents } from "@/lib/data/mock";
+
 import {
   VINCULO_LABEL, COMPANY_DOCS, hasCompanyBenefit,
   demoVinculos, type VinculoStatus,
@@ -15,6 +17,10 @@ import {
 import { DEFAULT_PLAN } from "@/lib/commission/tiers";
 
 export default function VinculosPage() {
+  const { agents, agencies } = useDirectory();
+  const agencyById = (id: string) => agencies.find((a) => a.id === id);
+  const agentsByAgency = (id: string) => agents.filter((a) => a.agencyId === id);
+
   const [state, setState] = React.useState<Record<string, VinculoStatus>>(
     () => Object.fromEntries(agents.map((a) => [a.id, demoVinculos[a.id] ?? "recibos_verdes"]))
   );

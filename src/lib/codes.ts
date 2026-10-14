@@ -7,7 +7,7 @@
  *   [país:1][agência:2][agente:4]   ex.:  1 · 05 · 0012  →  "1050012"
  *
  * Referência de imóvel (formato próprio, ver buildPropertyReference):
- *   HP<agência><agente 3 díg.>-<sequência 2 díg.>   ex.: "HP1001-01"
+ *   HP<agência><cidade><agente 2 díg.>-<sequência 2+ díg.>   ex.: "HP1101-406"
  *
  * Código de afilhado (relativo ao agente-raiz):
  *   <prefixo>A<geração>G<posição>    ex.:  "1050012A1G3" (3.º afilhado direto)
@@ -29,36 +29,29 @@ export function agentPrefix(country: number, agencyCode: number, agentCode: numb
   return `${country}${agencyPart(agencyCode)}${agentPart(agentCode)}`;
 }
 
-/**
- * Referência de imóvel — HP<agência><agente 3 díg.>-<sequência 2 díg.>, ex.:
- * "HP1001-01" = 1.º imóvel do agente nº 1 da agência nº 1. Gerada SEMPRE no
- * servidor (ver /api/properties/create), nunca à mão: agencyCode e agentCode
- * vêm da BD (agencies.code / profiles.code) e seq vem de um contador
- * atómico e monótono (profiles.next_property_seq) — nunca duplica, mesmo
- * que um imóvel anterior tenha sido apagado.
+/** HousePro: agency + city + two-digit consultant, then a growing sequence.
+ * City 1 is Faro; imported references remain unchanged after reassignment.
+ * Allocation happens inside the database transaction, never in the browser.
  */
-export function buildPropertyReference(agencyCode: number, agentCode: number, seq: number): string {
-  return `HP${Math.max(0, agencyCode)}${String(Math.max(0, agentCode)).padStart(3, "0")}-${String(Math.max(0, seq)).padStart(2, "0")}`;
+export function buildPropertyReference(agencyCode: number, agentCode: number, seq: number, cityCode = 1): string {
+  if (!Number.isSafeInteger(seq) || seq < 1) throw new Error("Invalid property sequence");
+  return `${consultantCode(agencyCode, agentCode, cityCode)}-${String(seq).padStart(2, "0")}`;
 }
-
-/** Prefixo "HP<agência><agente 3 díg.>" (sem sequência) — o código do
- *  próprio consultor, mostrado no seu perfil/dashboard (ex.: "HP1101"). */
-export function consultantCode(agencyCode: number, agentCode: number): string {
-  return `HP${Math.max(0, agencyCode)}${String(Math.max(0, agentCode)).padStart(3, "0")}`;
+export function consultantCode(agencyCode: number, agentCode: number, cityCode = 1): string {
+  if (!Number.isInteger(agencyCode) || agencyCode < 1 || !Number.isInteger(cityCode) || cityCode < 1 || cityCode > 9 || !Number.isInteger(agentCode) || agentCode < 1 || agentCode > 99) throw new Error("Invalid HousePro reference codes");
+  return `HP${agencyCode}${cityCode}${String(agentCode).padStart(2, "0")}`;
 }
-
 export interface ParsedHPReference {
   agency: number;
+  city: number;
   agent: number;
   seq: number;
   reference: string;
 }
-
-/** Lê uma referência "HP<agência><agente 3 díg.>-<seq 2 díg.>". */
 export function parsePropertyReference(reference: string): ParsedHPReference | null {
-  const m = reference.match(/^HP(\d+)(\d{3})-(\d{2})$/);
-  if (!m) return null;
-  return { agency: +m[1], agent: +m[2], seq: +m[3], reference };
+  const m = reference.match(/^HP([1-9]\d*)([1-9])(\d{2})-(\d{2,})$/);
+  if (!m || Number(m[3]) < 1) return null;
+  return { agency: +m[1], city: +m[2], agent: +m[3], seq: +m[4], reference };
 }
 
 /** Código de um afilhado, relativo ao agente-raiz. */
@@ -98,7 +91,7 @@ export function describeCode(code: string): string {
   const aff = parseAffiliateCode(code);
   if (aff) return `Afilhado da ${aff.generation}.ª geração (nº ${aff.position}) do agente ${aff.agent} · agência ${aff.agency}`;
   const prop = parsePropertyReference(code);
-  if (prop) return `Imóvel nº ${prop.seq} do agente ${prop.agent} · agência ${prop.agency}`;
+  if (prop) return `Imóvel nº ${prop.seq} do agente ${prop.agent} · agência ${prop.agency} · cidade ${prop.city}`;
   const pre = parseAgentPrefix(code);
   if (pre) return `Agente ${pre.agent} · agência ${pre.agency} · país ${pre.country}`;
   return "Código não reconhecido";

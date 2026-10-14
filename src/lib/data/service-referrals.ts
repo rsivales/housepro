@@ -1,3 +1,4 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * Referências para serviços — contactos que o consultor encaminha para parceiros
  * (crédito, construção, jurídico, certificados…) a troco de uma referência.
@@ -65,7 +66,7 @@ export interface ServiceReferral {
 }
 
 /** Exemplos (modo demo). */
-export const demoServiceReferrals: ServiceReferral[] = [
+export const demoServiceReferrals: ServiceReferral[] = DEMO_DATA_ENABLED ? [
   {
     id: "sr-1",
     category: "credito",
@@ -102,4 +103,4 @@ export const demoServiceReferrals: ServiceReferral[] = [
     status: "enviado",
     createdAt: "2026-07-22T14:00:00",
   },
-];
+] : [];

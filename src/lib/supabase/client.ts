@@ -11,8 +11,11 @@ import { getSupabaseEnv } from "./env";
  * cookie persistente de 400 dias por defeito — a sessão termina quando o
  * navegador fecha, em vez de ficar guardada.
  */
-export function createClient(options?: { rememberMe?: boolean }) {
+export function createClient(options?: { rememberMe?: boolean; detectSessionInUrl?: boolean }) {
   const { url, anonKey } = getSupabaseEnv();
+  if (options?.detectSessionInUrl === false) {
+    return createBrowserClient(url, anonKey, { auth: { detectSessionInUrl: false }, isSingleton: false });
+  }
   if (options?.rememberMe === false) {
     return createBrowserClient(url, anonKey, { cookieOptions: { maxAge: undefined } });
   }

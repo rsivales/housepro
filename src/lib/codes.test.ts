@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPropertyReference, consultantCode, parsePropertyReference } from "./codes";
+import { buildPropertyReference, consultantCode, parsePropertyReference, nextAllowedHouseProCode, isHouseProCodeAllowed } from "./codes";
 describe("HousePro property references", () => {
   it("identifies agency, city and each consultant", () => {
     expect(buildPropertyReference(1,1,1)).toBe("HP1101-01");
@@ -20,8 +20,17 @@ describe("HousePro property references", () => {
   });
   it("rejects missing or ambiguous code configuration", () => {
     expect(()=>consultantCode(0,1)).toThrow();
-    expect(()=>consultantCode(1,102)).toThrow();
+    expect(()=>consultantCode(1,13)).toThrow();
     expect(parsePropertyReference("HP4053")).toBeNull();
     expect(parsePropertyReference("HP-1050")).toBeNull();
+  });
+  it("skips 13 and every later code ending in 13", () => {
+    expect(nextAllowedHouseProCode(13)).toBe(14);
+    expect(nextAllowedHouseProCode(113)).toBe(114);
+    expect(nextAllowedHouseProCode(213)).toBe(214);
+    expect(isHouseProCodeAllowed(113)).toBe(false);
+    expect(buildPropertyReference(1,14,1)).toBe("HP1114-01");
+    expect(buildPropertyReference(1,114,1)).toBe("HP11114-01");
+    expect(parsePropertyReference("HP11114-01",{agency:1,city:1})?.agent).toBe(114);
   });
 });

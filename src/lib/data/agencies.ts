@@ -5,6 +5,7 @@
  */
 
 import type { Agency } from "@/lib/data/types";
+import { nextAllowedHouseProCode } from "@/lib/codes";
 
 export function slugify(s: string): string {
   return s
@@ -18,7 +19,7 @@ export function slugify(s: string): string {
 /** Próximo código de agência livre (2 dígitos), evitando colisões. */
 export function nextAgencyCode(all: Agency[]): number {
   const used = new Set(all.map((a) => a.code ?? 0));
-  let n = 1;
-  while (used.has(n)) n += 1;
+  let n = nextAllowedHouseProCode(1);
+  while (used.has(n)) n = nextAllowedHouseProCode(n + 1);
   return n;
 }

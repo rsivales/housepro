@@ -17,6 +17,14 @@
 /** Índice de país (Portugal = 1; expansível para internacional). */
 export const COUNTRY = { PT: 1 } as const;
 
+export function isHouseProCodeAllowed(code: number): boolean {
+  return Number.isSafeInteger(code) && code > 0 && code % 100 !== 13;
+}
+export function nextAllowedHouseProCode(candidate: number): number {
+  const n = Math.max(1, Math.trunc(candidate));
+  return n % 100 === 13 ? n + 1 : n;
+}
+
 export function agencyPart(code: number): string {
   return String(Math.max(0, code)).padStart(2, "0").slice(-2);
 }
@@ -38,7 +46,7 @@ export function buildPropertyReference(agencyCode: number, agentCode: number, se
   return `${consultantCode(agencyCode, agentCode, cityCode)}-${String(seq).padStart(2, "0")}`;
 }
 export function consultantCode(agencyCode: number, agentCode: number, cityCode = 1): string {
-  if (!Number.isInteger(agencyCode) || agencyCode < 1 || !Number.isInteger(cityCode) || cityCode < 1 || cityCode > 9 || !Number.isInteger(agentCode) || agentCode < 1 || agentCode > 99) throw new Error("Invalid HousePro reference codes");
+  if (!isHouseProCodeAllowed(agencyCode) || !Number.isInteger(cityCode) || cityCode < 1 || cityCode > 9 || !isHouseProCodeAllowed(agentCode)) throw new Error("Invalid HousePro reference codes");
   return `HP${agencyCode}${cityCode}${String(agentCode).padStart(2, "0")}`;
 }
 export interface ParsedHPReference {
@@ -48,7 +56,13 @@ export interface ParsedHPReference {
   seq: number;
   reference: string;
 }
-export function parsePropertyReference(reference: string): ParsedHPReference | null {
+export function parsePropertyReference(reference: string, context?: {agency: number; city: number}): ParsedHPReference | null {
+  if (context) {
+    const prefix = `HP${context.agency}${context.city}`;
+    if (!reference.startsWith(prefix)) return null;
+    const match = reference.slice(prefix.length).match(/^(\d{2,})-(\d{2,})$/);
+    return match && Number(match[1])>0 ? {...context,agent:Number(match[1]),seq:Number(match[2]),reference} : null;
+  }
   const m = reference.match(/^HP([1-9]\d*)([1-9])(\d{2})-(\d{2,})$/);
   if (!m || Number(m[3]) < 1) return null;
   return { agency: +m[1], city: +m[2], agent: +m[3], seq: +m[4], reference };

@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
 import { isStaff } from "@/lib/data/roles";
-import { deleteDeal } from "@/lib/db/deals";
+import { dealTeamOrStaffAllowed } from "@/lib/db/deal-permissions";
+import { getDealGate, deleteDeal } from "@/lib/db/deals";
 
 /** Apaga um negócio — ex.: criado por engano, duplicado. Reservado a staff
  *  (coordenação/direção/admin); apaga em cascata o histórico de fases.
  *  POST { dealId } */
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session || session.demo) {
+  if (!session || session.demo || session.viewingAs) {
     return NextResponse.json({ error: "Sessão inválida." }, { status: 401 });
   }
   if (!isStaff(session.agent)) {
@@ -23,8 +24,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
   const dealId = String(body.dealId ?? "").trim();
-  if (!dealId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  if (!dealId)
+    return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
+  const gate = await getDealGate(dealId);
+  if (!gate) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (!dealTeamOrStaffAllowed(session.agent, gate))
+    return NextResponse.json({ error: "sem_permissao" }, { status: 403 });
   const res = await deleteDeal(dealId);
   if ("error" in res) return NextResponse.json(res, { status: 400 });
   return NextResponse.json(res);

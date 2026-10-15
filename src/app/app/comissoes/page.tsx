@@ -1,10 +1,11 @@
+import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Coins, Network, TrendingUp } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
-import { getAfilhadosTree } from "@/lib/db/repo";
+import { getAfilhadosTree, getAgentCompanyValidated } from "@/lib/db/repo";
 import { agentPrefixOf } from "@/lib/data/mock";
 import { affiliateCode } from "@/lib/codes";
 import { DEFAULT_SPLIT, maxOverrideDepth } from "@/lib/commission/split";
@@ -66,14 +67,14 @@ export default async function ComissoesPage() {
   // fecho de negócios). Cai no exemplo só enquanto não houver dados reais.
   const faturacaoReal = root.monthlyGross;
   const dadosReais = faturacaoReal > 0;
-  const faturacao = dadosReais ? faturacaoReal : DEMO_FATURACAO;
+  const faturacao = dadosReais ? faturacaoReal : DEMO_DATA_ENABLED ? DEMO_FATURACAO : 0;
 
   // Repartição pessoal (com empresa validada, para o exemplo).
   const leg = computeLeg({
     legCommission: faturacao,
     priorFaturacao: 0,
     priorAgencyTake: 0,
-    hasValidatedCompany: true,
+    hasValidatedCompany: await getAgentCompanyValidated(agent.id),
   });
 
   const byGen = Array.from({ length: maxOverrideDepth() }, (_, i) => {
@@ -102,7 +103,7 @@ export default async function ComissoesPage() {
             (dadosReais ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground")
           }
         >
-          {dadosReais ? "Dados reais (fecho de negócios)" : "Exemplo — sem faturação real ainda"}
+          {dadosReais ? "Dados reais (fecho de negócios)" : DEMO_DATA_ENABLED ? "Exemplo — sem faturação real ainda" : "Sem faturação registada"}
         </span>
 
         {/* Resumo pessoal */}

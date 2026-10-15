@@ -3,8 +3,22 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Home, Loader2, Plus, Trash2, TrendingUp, Undo2, X } from "lucide-react";
+import {
+  GripVertical,
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  Loader2,
+  Plus,
+  Trash2,
+  TrendingUp,
+  Undo2,
+  X,
+} from "lucide-react";
 
+import { DealCommission } from "./deal-commission";
+import { useDealDrag } from "./use-deal-drag";
+import type { DealStage } from "@/lib/data/deal";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +29,19 @@ import { STATUS_LABEL } from "@/lib/data/status";
 import type { PropertyStatus } from "@/lib/data/types";
 
 const ORDER = DEAL_STEPS.map((s) => s.stage);
-const ACCENT = ["bg-slate-400", "bg-sky-400", "bg-violet-400", "bg-amber-400", "bg-orange-400", "bg-emerald-500"];
+const ACCENT = [
+  "bg-slate-400",
+  "bg-sky-400",
+  "bg-violet-400",
+  "bg-amber-400",
+  "bg-orange-400",
+  "bg-emerald-500",
+];
 
-export interface CrmBoardOption { id: string; name: string }
+export interface CrmBoardOption {
+  id: string;
+  name: string;
+}
 
 interface PropertyMatch {
   id: string;
@@ -48,9 +72,17 @@ export interface CrmBoardPrefill {
 }
 
 const NEW_DEAL_FORM = {
-  propertyId: "", reference: "", buyerName: "", buyerContactId: "", sellerName: "", amount: "",
-  coBroker: false, coBrokerAgencyId: "",
-  coBrokerSplitType: "percent" as "percent" | "fixed", coBrokerSplitPct: "50", coBrokerSplitFixed: "",
+  propertyId: "",
+  reference: "",
+  buyerName: "",
+  buyerContactId: "",
+  sellerName: "",
+  amount: "",
+  coBroker: false,
+  coBrokerAgencyId: "",
+  coBrokerSplitType: "percent" as "percent" | "fixed",
+  coBrokerSplitPct: "50",
+  coBrokerSplitFixed: "",
 };
 
 function formFromPrefill(p?: CrmBoardPrefill): typeof NEW_DEAL_FORM {
@@ -82,12 +114,18 @@ export function CrmBoard({
   canManage?: boolean;
 }) {
   const router = useRouter();
+  const [deals, setDeals] = React.useState(initial);
+  React.useEffect(() => setDeals(initial), [initial]);
+  const saving = React.useRef(false);
+  const [moveNotice, setMoveNotice] = React.useState("");
   const [busy, setBusy] = React.useState<string | null>(null);
   const [showNew, setShowNew] = React.useState(Boolean(prefill));
   const [creating, setCreating] = React.useState(false);
   const [form, setForm] = React.useState(() => formFromPrefill(prefill));
   const [err, setErr] = React.useState<string | null>(null);
-  const [commissionPreview, setCommissionPreview] = React.useState(prefill?.commissionPreview ?? "");
+  const [commissionPreview, setCommissionPreview] = React.useState(
+    prefill?.commissionPreview ?? "",
+  );
 
   // Pesquisa de imóvel por referência/título/localidade — "detetar" o imóvel
   // ao escrever, em vez de exigir a referência exata de cor.
@@ -155,7 +193,7 @@ export function CrmBoard({
     setShowBuyerMatches(false);
   }
 
-  const total = initial.reduce((s, d) => s + d.amount, 0);
+  const total = deals.reduce((s, d) => s + d.amount, 0);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -177,10 +215,22 @@ export function CrmBoard({
           sellerName: form.sellerName,
           amount: form.amount ? Number(form.amount) : undefined,
           coBroker: form.coBroker,
-          coBrokerAgencyId: form.coBroker ? form.coBrokerAgencyId || undefined : undefined,
+          coBrokerAgencyId: form.coBroker
+            ? form.coBrokerAgencyId || undefined
+            : undefined,
           coBrokerSplitType: form.coBrokerSplitType,
-          coBrokerSplitPct: form.coBroker && form.coBrokerSplitType === "percent" && form.coBrokerSplitPct ? Number(form.coBrokerSplitPct) : undefined,
-          coBrokerSplitFixed: form.coBroker && form.coBrokerSplitType === "fixed" && form.coBrokerSplitFixed ? Number(form.coBrokerSplitFixed) : undefined,
+          coBrokerSplitPct:
+            form.coBroker &&
+            form.coBrokerSplitType === "percent" &&
+            form.coBrokerSplitPct
+              ? Number(form.coBrokerSplitPct)
+              : undefined,
+          coBrokerSplitFixed:
+            form.coBroker &&
+            form.coBrokerSplitType === "fixed" &&
+            form.coBrokerSplitFixed
+              ? Number(form.coBrokerSplitFixed)
+              : undefined,
         }),
       });
       const out = await res.json();
@@ -197,7 +247,7 @@ export function CrmBoard({
               ? "Sem permissão para criar negócio neste imóvel."
               : out.error === "agency_unknown"
                 ? "Não foi possível determinar a agência do imóvel/consultor."
-                : `Não foi possível criar o negócio${out.error ? ` (${out.error})` : ""}.`
+                : `Não foi possível criar o negócio${out.error ? ` (${out.error})` : ""}.`,
         );
       }
     } finally {
@@ -206,18 +256,56 @@ export function CrmBoard({
   }
 
   async function setStage(dealId: string, stage: string) {
+    const current = deals.find((d) => d.id === dealId);
+    if (saving.current || !current || current.stage === stage) return;
+    if (
+      stage === "cancelado" &&
+      !window.confirm(
+        "Marcar este negócio como perdido? Pode reabri-lo mais tarde.",
+      )
+    )
+      return;
+    saving.current = true;
     setBusy(dealId);
+    setErr(null);
+    setMoveNotice("");
     try {
       const res = await fetch("/api/deals/advance", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ dealId, stage }),
+        body: JSON.stringify({ dealId, stage, fromStage: current.stage }),
       });
-      if (res.ok) router.refresh();
+      const out = await res.json();
+      if (!res.ok)
+        throw new Error(
+          res.status === 409
+            ? "Este negócio foi alterado por outra pessoa. Atualize o quadro."
+            : res.status === 403
+              ? "Sem permissão para mover este negócio."
+              : "Não foi possível guardar a fase. O cartão manteve a posição anterior.",
+        );
+      setDeals((prev) =>
+        prev.map((d) =>
+          d.id === dealId ? { ...d, stage: stage as DealStage } : d,
+        ),
+      );
+      setMoveNotice(out.warning ?? "Fase guardada.");
+      router.refresh();
+    } catch (e) {
+      setErr(
+        e instanceof Error
+          ? e.message
+          : "Falha de ligação. O cartão manteve a posição anterior.",
+      );
     } finally {
+      saving.current = false;
       setBusy(null);
     }
   }
+  const dragging = useDealDrag(
+    (id, stage) => void setStage(id, stage),
+    busy !== null,
+  );
 
   function move(dealId: string, dir: 1 | -1, idx: number) {
     const to = ORDER[idx + dir];
@@ -225,12 +313,14 @@ export function CrmBoard({
   }
 
   function markLost(dealId: string) {
-    if (!window.confirm("Marcar este negócio como perdido? O imóvel não muda de estado — podes reabrir mais tarde.")) return;
     setStage(dealId, "cancelado");
   }
 
   async function removeDeal(dealId: string) {
-    if (!window.confirm("Apagar este negócio? Esta ação não pode ser desfeita.")) return;
+    if (
+      !window.confirm("Apagar este negócio? Esta ação não pode ser desfeita.")
+    )
+      return;
     setBusy(dealId);
     try {
       const res = await fetch("/api/deals/delete", {
@@ -241,7 +331,11 @@ export function CrmBoard({
       if (res.ok) router.refresh();
       else {
         const j = await res.json().catch(() => ({}));
-        window.alert(j.error === "sem_permissao" ? "Sem permissão para apagar este negócio." : "Não foi possível apagar o negócio.");
+        window.alert(
+          j.error === "sem_permissao"
+            ? "Sem permissão para apagar este negócio."
+            : "Não foi possível apagar o negócio.",
+        );
       }
     } finally {
       setBusy(null);
@@ -254,9 +348,12 @@ export function CrmBoard({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-primary">Área do consultor</p>
-          <h1 className="mt-1 font-display text-3xl sm:text-4xl">CRM · Negócios</h1>
+          <h1 className="mt-1 font-display text-3xl sm:text-4xl">
+            CRM · Negócios
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Ao avançar um negócio de fase, o <strong>estado do imóvel muda sozinho</strong>
+            Ao avançar um negócio de fase, o{" "}
+            <strong>estado do imóvel muda sozinho</strong>
             (reserva → reservado · CPCV → CPCV · escritura/concluído → vendido).
           </p>
         </div>
@@ -265,22 +362,35 @@ export function CrmBoard({
             <TrendingUp className="size-5 text-primary" />
             <div>
               <p className="text-xs text-muted-foreground">Valor em pipeline</p>
-              <p className="font-display text-xl leading-none">{formatEuro(total)}</p>
+              <p className="font-display text-xl leading-none">
+                {formatEuro(total)}
+              </p>
             </div>
           </div>
-          <Button onClick={() => setShowNew((s) => !s)}><Plus className="size-4" /> Novo negócio</Button>
+          <Button onClick={() => setShowNew((s) => !s)}>
+            <Plus className="size-4" /> Novo negócio
+          </Button>
         </div>
       </div>
 
       {/* Novo negócio */}
       {showNew && (
-        <form onSubmit={create} className="mt-4 rounded-2xl border bg-card p-4 shadow-sm">
+        <form
+          onSubmit={create}
+          className="mt-4 rounded-2xl border bg-card p-4 shadow-sm"
+        >
           {form.propertyId && (
             <p className="mb-2 flex items-center justify-between gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
-              <span>Ligado ao imóvel {form.reference} — valor, vendedor e comissão já vieram da ficha.</span>
+              <span>
+                Ligado ao imóvel {form.reference} — valor, vendedor e comissão
+                já vieram da ficha.
+              </span>
               <button
                 type="button"
-                onClick={() => { setForm((f) => ({ ...f, propertyId: "", reference: "" })); setCommissionPreview(""); }}
+                onClick={() => {
+                  setForm((f) => ({ ...f, propertyId: "", reference: "" }));
+                  setCommissionPreview("");
+                }}
                 className="shrink-0 underline-offset-2 hover:underline"
               >
                 Trocar
@@ -291,42 +401,68 @@ export function CrmBoard({
             <div className="relative">
               <Input
                 value={form.reference}
-                onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, reference: e.target.value }))
+                }
                 onFocus={() => setShowMatches(true)}
                 onBlur={() => setTimeout(() => setShowMatches(false), 150)}
                 placeholder="Escrever referência, título ou localidade…"
                 disabled={Boolean(form.propertyId)}
                 autoComplete="off"
               />
-              {!form.propertyId && showMatches && (searching || matches.length > 0) && (
-                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
-                  {searching ? (
-                    <p className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
-                      <Loader2 className="size-3.5 animate-spin" /> A procurar…
-                    </p>
-                  ) : (
-                    matches.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onMouseDown={() => pickProperty(p)}
-                        className="block w-full px-3 py-2 text-left text-xs hover:bg-secondary"
-                      >
-                        <span className="font-medium">{p.reference}</span> · {p.title || p.municipality}
-                        {p.price ? ` · ${formatEuro(p.price)}` : ""}
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
+              {!form.propertyId &&
+                showMatches &&
+                (searching || matches.length > 0) && (
+                  <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+                    {searching ? (
+                      <p className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+                        <Loader2 className="size-3.5 animate-spin" /> A
+                        procurar…
+                      </p>
+                    ) : (
+                      matches.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onMouseDown={() => pickProperty(p)}
+                          className="block w-full px-3 py-2 text-left text-xs hover:bg-secondary"
+                        >
+                          <span className="font-medium">{p.reference}</span> ·{" "}
+                          {p.title || p.municipality}
+                          {p.price ? ` · ${formatEuro(p.price)}` : ""}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
             </div>
-            <Input value={form.sellerName} onChange={(e) => setForm((f) => ({ ...f, sellerName: e.target.value }))} placeholder="Vendedor" />
-            <Input type="number" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="Valor (€)" />
+            <Input
+              value={form.sellerName}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, sellerName: e.target.value }))
+              }
+              placeholder="Vendedor"
+            />
+            <Input
+              type="number"
+              value={form.amount}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, amount: e.target.value }))
+              }
+              placeholder="Valor (€)"
+            />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            {commissionPreview
-              ? <>Comissão em vigor no imóvel: <strong className="text-foreground">{commissionPreview}</strong> — só precisas de indicar abaixo se há partilha com outra agência.</>
-              : "Escolhe o imóvel na lista para a comissão vir preenchida automaticamente — só precisas de indicar abaixo se há partilha com outra agência."}
+            {commissionPreview ? (
+              <>
+                Comissão em vigor no imóvel:{" "}
+                <strong className="text-foreground">{commissionPreview}</strong>{" "}
+                — só precisas de indicar abaixo se há partilha com outra
+                agência.
+              </>
+            ) : (
+              "Escolhe o imóvel na lista para a comissão vir preenchida automaticamente — só precisas de indicar abaixo se há partilha com outra agência."
+            )}
           </p>
 
           <div className="mt-2 grid gap-2 sm:grid-cols-4">
@@ -334,7 +470,15 @@ export function CrmBoard({
               <input
                 type="checkbox"
                 checked={form.coBroker}
-                onChange={(e) => setForm((f) => ({ ...f, coBroker: e.target.checked, coBrokerAgencyId: e.target.checked ? f.coBrokerAgencyId : "" }))}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    coBroker: e.target.checked,
+                    coBrokerAgencyId: e.target.checked
+                      ? f.coBrokerAgencyId
+                      : "",
+                  }))
+                }
                 className="size-4 accent-primary"
               />
               Partilha com outra agência
@@ -343,24 +487,57 @@ export function CrmBoard({
               <>
                 <select
                   value={form.coBrokerAgencyId}
-                  onChange={(e) => setForm((f) => ({ ...f, coBrokerAgencyId: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, coBrokerAgencyId: e.target.value }))
+                  }
                   className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
                 >
                   <option value="">Selecionar agência…</option>
-                  {agencies.map((ag) => <option key={ag.id} value={ag.id}>{ag.name}</option>)}
+                  {agencies.map((ag) => (
+                    <option key={ag.id} value={ag.id}>
+                      {ag.name}
+                    </option>
+                  ))}
                 </select>
                 <select
                   value={form.coBrokerSplitType}
-                  onChange={(e) => setForm((f) => ({ ...f, coBrokerSplitType: e.target.value as "percent" | "fixed" }))}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      coBrokerSplitType: e.target.value as "percent" | "fixed",
+                    }))
+                  }
                   className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
                 >
                   <option value="percent">Partilha em %</option>
                   <option value="fixed">Partilha fixa (€)</option>
                 </select>
                 {form.coBrokerSplitType === "percent" ? (
-                  <Input type="number" step="1" value={form.coBrokerSplitPct} onChange={(e) => setForm((f) => ({ ...f, coBrokerSplitPct: e.target.value }))} placeholder="% para a outra agência" />
+                  <Input
+                    type="number"
+                    step="1"
+                    value={form.coBrokerSplitPct}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        coBrokerSplitPct: e.target.value,
+                      }))
+                    }
+                    placeholder="% para a outra agência"
+                  />
                 ) : (
-                  <Input type="number" step="50" value={form.coBrokerSplitFixed} onChange={(e) => setForm((f) => ({ ...f, coBrokerSplitFixed: e.target.value }))} placeholder="€ para a outra agência" />
+                  <Input
+                    type="number"
+                    step="50"
+                    value={form.coBrokerSplitFixed}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        coBrokerSplitFixed: e.target.value,
+                      }))
+                    }
+                    placeholder="€ para a outra agência"
+                  />
                 )}
               </>
             )}
@@ -370,120 +547,243 @@ export function CrmBoard({
             <div className="relative">
               <Input
                 value={form.buyerName}
-                onChange={(e) => setForm((f) => ({ ...f, buyerName: e.target.value, buyerContactId: "" }))}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    buyerName: e.target.value,
+                    buyerContactId: "",
+                  }))
+                }
                 onFocus={() => setShowBuyerMatches(true)}
                 onBlur={() => setTimeout(() => setShowBuyerMatches(false), 150)}
                 placeholder="Comprador — nome, e-mail ou telefone"
                 autoComplete="off"
               />
-              {!form.buyerContactId && showBuyerMatches && (buyerSearching || buyerMatches.length > 0) && (
-                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
-                  {buyerSearching ? (
-                    <p className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
-                      <Loader2 className="size-3.5 animate-spin" /> A procurar…
-                    </p>
-                  ) : (
-                    buyerMatches.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onMouseDown={() => pickBuyer(c)}
-                        className="block w-full px-3 py-2 text-left text-xs hover:bg-secondary"
-                      >
-                        <span className="font-medium">{c.name}</span>
-                        {c.email ? ` · ${c.email}` : c.phone ? ` · ${c.phone}` : ""}
-                        {!c.claimed && <span className="ml-1.5 rounded-full bg-gold/15 px-1.5 py-0.5 text-[10px] font-medium text-gold-foreground">autorregisto</span>}
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
+              {!form.buyerContactId &&
+                showBuyerMatches &&
+                (buyerSearching || buyerMatches.length > 0) && (
+                  <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+                    {buyerSearching ? (
+                      <p className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+                        <Loader2 className="size-3.5 animate-spin" /> A
+                        procurar…
+                      </p>
+                    ) : (
+                      buyerMatches.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onMouseDown={() => pickBuyer(c)}
+                          className="block w-full px-3 py-2 text-left text-xs hover:bg-secondary"
+                        >
+                          <span className="font-medium">{c.name}</span>
+                          {c.email
+                            ? ` · ${c.email}`
+                            : c.phone
+                              ? ` · ${c.phone}`
+                              : ""}
+                          {!c.claimed && (
+                            <span className="ml-1.5 rounded-full bg-gold/15 px-1.5 py-0.5 text-[10px] font-medium text-gold-foreground">
+                              autorregisto
+                            </span>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
             </div>
             {form.buyerContactId ? (
               <p className="flex items-center gap-2 self-center text-xs text-muted-foreground">
                 Ligado ao contacto — favoritos e histórico já guardados.
-                <button type="button" onClick={() => setForm((f) => ({ ...f, buyerContactId: "", buyerName: "" }))} className="underline-offset-2 hover:underline">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      buyerContactId: "",
+                      buyerName: "",
+                    }))
+                  }
+                  className="underline-offset-2 hover:underline"
+                >
                   Trocar
                 </button>
               </p>
             ) : (
               <p className="self-center text-xs text-muted-foreground">
-                Escreve e escolhe da lista — encontra qualquer contacto, mesmo sem ser teu.
+                Escreve e escolhe da lista — encontra qualquer contacto, mesmo
+                sem ser teu.
               </p>
             )}
           </div>
 
           <div className="mt-3 flex items-center gap-3">
-            <Button type="submit" disabled={creating || (!form.propertyId && !form.reference.trim())}>
-              {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Criar
+            <Button
+              type="submit"
+              disabled={
+                creating || (!form.propertyId && !form.reference.trim())
+              }
+            >
+              {creating ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Plus className="size-4" />
+              )}{" "}
+              Criar
             </Button>
             {err && <span className="text-sm text-destructive">{err}</span>}
           </div>
         </form>
       )}
 
+      {err && (
+        <p
+          role="alert"
+          className="mt-4 rounded-lg border border-destructive/30 p-3 text-sm text-destructive"
+        >
+          {err}
+        </p>
+      )}
+      {moveNotice && (
+        <p role="status" className="mt-3 text-sm text-primary">
+          {moveNotice}
+        </p>
+      )}
+      <p className="mt-6 text-xs text-muted-foreground">
+        Arraste pela pega do cartão com rato ou dedo. Pode também usar as setas
+        ou selecionar a pega com o teclado.
+      </p>
+      <p role="status" aria-live="polite" className="sr-only">
+        {dragging.announcement}
+      </p>
+      {dragging.drag && !dragging.drag.keyboard && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-50 rounded-lg bg-primary px-3 py-2 text-xs text-primary-foreground shadow-lg"
+          style={{ left: dragging.drag.x + 14, top: dragging.drag.y + 14 }}
+        >
+          {[...DEAL_STEPS, { stage: "cancelado", label: "Perdidos" }].find(
+            (s) => s.stage === dragging.drag?.target,
+          )?.label ?? "Solte numa fase"}
+        </div>
+      )}
       {/* Quadro Kanban de negócios reais */}
-      <div className="mt-8 flex gap-4 overflow-x-auto pb-4">
+      <div
+        ref={dragging.board}
+        className="mt-3 flex gap-4 overflow-x-auto overscroll-x-contain pb-4"
+      >
         {DEAL_STEPS.map((step, i) => {
-          const cards = initial.filter((d) => d.stage === step.stage);
+          const cards = deals.filter((d) => d.stage === step.stage);
           const soma = cards.reduce((s, d) => s + d.amount, 0);
           return (
-            <div key={step.stage} className="w-72 shrink-0">
+            <div
+              key={step.stage}
+              data-deal-stage={step.stage}
+              className={cn(
+                "min-h-56 w-80 shrink-0 rounded-xl",
+                dragging.drag?.target === step.stage &&
+                  "bg-primary/5 ring-2 ring-primary/50",
+              )}
+            >
               <div className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <span className={cn("size-2.5 rounded-full", ACCENT[i] ?? "bg-slate-400")} />
+                  <span
+                    className={cn(
+                      "size-2.5 rounded-full",
+                      ACCENT[i] ?? "bg-slate-400",
+                    )}
+                  />
                   <span className="text-sm font-semibold">{step.label}</span>
-                  <span className="text-xs text-muted-foreground">({cards.length})</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({cards.length})
+                  </span>
                 </div>
-                <span className="text-xs text-muted-foreground">{formatEuro(soma)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatEuro(soma)}
+                </span>
               </div>
 
               <div className="mt-3 flex flex-col gap-3">
                 {cards.map((d) => {
                   const status = dealStageToStatus(d.stage);
                   return (
-                    <div key={d.id} className="rounded-2xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
+                    <div
+                      key={d.id}
+                      className={cn(
+                        "rounded-2xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md",
+                        (dragging.drag?.id === d.id || busy === d.id) &&
+                          "opacity-50",
+                      )}
+                    >
+                      <button
+                        type="button"
+                        {...dragging.handle(d.id, d.stage)}
+                        disabled={busy !== null}
+                        aria-label={`Arrastar negócio ${d.propertyRef} para outra fase`}
+                        aria-pressed={dragging.drag?.id === d.id}
+                        title="Arrastar para mudar de fase"
+                        className="mb-2 flex min-h-10 w-full touch-none cursor-grab items-center justify-end gap-1 rounded-lg px-2 text-xs text-muted-foreground active:cursor-grabbing hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary"
+                      >
+                        <GripVertical className="size-4" /> Arrastar
+                      </button>
                       <Link href={`/app/crm/${d.id}`} className="block">
                         <div className="flex items-start gap-2.5">
                           {/* Thumbnail da foto de capa — identificar o imóvel de relance. */}
                           <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-secondary">
                             {d.propertyImage ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={d.propertyImage} alt="" className="size-full object-cover" />
+                              <img
+                                src={d.propertyImage}
+                                alt=""
+                                className="size-full object-cover"
+                              />
                             ) : (
-                              <div className="grid size-full place-items-center text-muted-foreground"><Home className="size-4" /></div>
+                              <div className="grid size-full place-items-center text-muted-foreground">
+                                <Home className="size-4" />
+                              </div>
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">
-                              <p className="font-medium leading-tight">{d.buyerName || "Comprador"}</p>
+                              <p className="font-medium leading-tight">
+                                {d.buyerName || "Comprador"}
+                              </p>
                               {status && (
                                 <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                                   {STATUS_LABEL[status as PropertyStatus]}
                                 </span>
                               )}
                             </div>
-                            <p className="mt-0.5 truncate text-sm text-muted-foreground">{d.propertyTitle || d.propertyRef}</p>
+                            <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                              {d.propertyTitle || d.propertyRef}
+                            </p>
                           </div>
                         </div>
                       </Link>
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="font-display text-base">{d.amount ? formatEuro(d.amount) : "—"}</span>
+                        <span className="font-display text-base">
+                          {d.amount ? formatEuro(d.amount) : "—"}
+                        </span>
                         {d.propertyId ? (
-                          <Link href={`/imovel/${d.propertyId}`} className="text-[11px] text-primary hover:underline">Ref. {d.propertyRef}</Link>
+                          <Link
+                            href={`/imovel/${d.propertyId}`}
+                            className="text-[11px] text-primary hover:underline"
+                          >
+                            Ref. {d.propertyRef}
+                          </Link>
                         ) : (
-                          <span className="text-[11px] text-muted-foreground">Ref. {d.propertyRef}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            Ref. {d.propertyRef}
+                          </span>
                         )}
                       </div>
-                      {(d.commissionEstimate != null || d.coBroker) && (
-                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                          {d.commissionEstimate != null && <span>Comissão est.: {formatEuro(d.commissionEstimate)}</span>}
-                          {d.coBroker && <span className="rounded-full bg-gold/15 px-2 py-0.5 font-medium text-gold-foreground">Partilha</span>}
-                        </div>
-                      )}
+                      <DealCommission estimate={d.financials} compact />
                       <div className="mt-3 flex items-center justify-between gap-1 border-t pt-2">
                         <div className="flex items-center gap-1">
-                          {busy === d.id && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+                          {busy === d.id && (
+                            <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                          )}
                           {canManage && (
                             <button
                               onClick={() => removeDeal(d.id)}
@@ -506,10 +806,20 @@ export function CrmBoard({
                           </button>
                         </div>
                         <div className="flex items-center gap-1">
-                          <button onClick={() => move(d.id, -1, i)} disabled={i === 0 || busy === d.id} aria-label="Recuar fase" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30">
+                          <button
+                            onClick={() => move(d.id, -1, i)}
+                            disabled={i === 0 || busy !== null}
+                            aria-label="Recuar fase"
+                            className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+                          >
                             <ChevronLeft className="size-4" />
                           </button>
-                          <button onClick={() => move(d.id, 1, i)} disabled={i === ORDER.length - 1 || busy === d.id} aria-label="Avançar fase" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30">
+                          <button
+                            onClick={() => move(d.id, 1, i)}
+                            disabled={i === ORDER.length - 1 || busy !== null}
+                            aria-label="Avançar fase"
+                            className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+                          >
                             <ChevronRight className="size-4" />
                           </button>
                         </div>
@@ -518,7 +828,9 @@ export function CrmBoard({
                   );
                 })}
                 {cards.length === 0 && (
-                  <p className="rounded-2xl border border-dashed py-6 text-center text-xs text-muted-foreground">Sem negócios</p>
+                  <p className="rounded-2xl border border-dashed py-6 text-center text-xs text-muted-foreground">
+                    Sem negócios
+                  </p>
                 )}
               </div>
             </div>
@@ -528,26 +840,52 @@ export function CrmBoard({
         {/* Perdidos — negócios marcados como cancelados; ficam aqui em vez de
             desaparecerem, para se poder reabrir ou (staff) apagar. */}
         {(() => {
-          const lost = initial.filter((d) => d.stage === "cancelado");
-          if (lost.length === 0) return null;
+          const lost = deals.filter((d) => d.stage === "cancelado");
           return (
-            <div className="w-72 shrink-0">
+            <div
+              data-deal-stage="cancelado"
+              className={cn(
+                "min-h-56 w-80 shrink-0 rounded-xl",
+                dragging.drag?.target === "cancelado" &&
+                  "bg-destructive/5 ring-2 ring-destructive/40",
+              )}
+            >
               <div className="flex items-center justify-between rounded-xl bg-destructive/10 px-3 py-2">
                 <div className="flex items-center gap-2">
                   <span className="size-2.5 rounded-full bg-destructive/60" />
                   <span className="text-sm font-semibold">Perdidos</span>
-                  <span className="text-xs text-muted-foreground">({lost.length})</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({lost.length})
+                  </span>
                 </div>
               </div>
               <div className="mt-3 flex flex-col gap-3">
                 {lost.map((d) => (
-                  <div key={d.id} className="rounded-2xl border border-destructive/30 bg-card p-3 opacity-80 shadow-sm">
+                  <div
+                    key={d.id}
+                    className="rounded-2xl border border-destructive/30 bg-card p-3 opacity-80 shadow-sm"
+                  >
+                    <button
+                      type="button"
+                      {...dragging.handle(d.id, d.stage)}
+                      disabled={busy !== null}
+                      aria-label={`Arrastar negócio ${d.propertyRef} para outra fase`}
+                      className="mb-2 flex min-h-10 w-full touch-none cursor-grab items-center justify-end gap-1 rounded-lg text-xs text-muted-foreground"
+                    >
+                      <GripVertical className="size-4" /> Arrastar
+                    </button>
                     <Link href={`/app/crm/${d.id}`} className="block">
-                      <p className="font-medium leading-tight">{d.buyerName || "Comprador"}</p>
-                      <p className="mt-0.5 truncate text-sm text-muted-foreground">{d.propertyTitle || d.propertyRef}</p>
+                      <p className="font-medium leading-tight">
+                        {d.buyerName || "Comprador"}
+                      </p>
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                        {d.propertyTitle || d.propertyRef}
+                      </p>
                     </Link>
                     <div className="mt-3 flex items-center justify-end gap-1 border-t pt-2">
-                      {busy === d.id && <Loader2 className="mr-auto size-3.5 animate-spin text-muted-foreground" />}
+                      {busy === d.id && (
+                        <Loader2 className="mr-auto size-3.5 animate-spin text-muted-foreground" />
+                      )}
                       <button
                         onClick={() => setStage(d.id, "proposta_enviada")}
                         disabled={busy === d.id}
@@ -573,9 +911,10 @@ export function CrmBoard({
         })()}
       </div>
 
-      {initial.length === 0 && (
+      {deals.length === 0 && (
         <p className="mt-2 text-sm text-muted-foreground">
-          Ainda não há negócios. Clica em <strong>Novo negócio</strong> e usa a referência de um imóvel (ex.: HP-1049).
+          Ainda não há negócios. Clica em <strong>Novo negócio</strong> e usa a
+          referência de um imóvel (ex.: HP-1049).
         </p>
       )}
     </div>

@@ -6,6 +6,7 @@ import {
   getAgencyById,
 } from "@/lib/db/repo";
 import { quoteTextOfDay } from "@/lib/data/quotes";
+import { getCurrentTemperature } from "@/lib/weather";
 
 import { perfSummary } from "@/lib/data/property-perf";
 import type { Agent } from "@/lib/data/types";
@@ -43,11 +44,13 @@ function capitalize(s: string): string {
 export async function ConsultantHome({ agent, demo }: { agent: Agent; demo: boolean }) {
   const now = new Date();
   const agency = agent.agencyId ? await getAgencyById(agent.agencyId) : undefined;
-  const [leads, agencyProps, visits, quotesExtra] = await Promise.all([
+  const location = agency?.region ?? agent.agency;
+  const [leads, agencyProps, visits, quotesExtra, temperature] = await Promise.all([
     listLeadsByAgent(agent.id),
     agent.agencyId ? listPropertiesByAgency(agent.agencyId) : Promise.resolve([]),
     listVisitsByOwner(agent.id),
     getQuotesConfig(),
+    getCurrentTemperature(location),
   ]);
 
   // Leads por origem + total de novas.
@@ -117,8 +120,8 @@ export async function ConsultantHome({ agent, demo }: { agent: Agent; demo: bool
   const data: DashboardData = {
     firstName: agent.name.split(" ")[0] ?? agent.name,
     dateLabel: capitalize(now.toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" })),
-    location: agency?.region ?? agent.agency,
-    temperature: demo ? "26°" : undefined,
+    location,
+    temperature: demo ? "26°" : temperature,
     quote: quoteTextOfDay(now, quotesExtra),
     // Estatísticas motivacionais (fixtures em demo — claramente separadas).
     faturacaoPct: 68,

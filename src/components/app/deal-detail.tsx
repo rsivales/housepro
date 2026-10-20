@@ -1,9 +1,21 @@
 "use client";
+import { DealCommission } from "./deal-commission";
 
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ChevronLeft, ChevronRight, Loader2, Mail, Pencil, Phone, Trash2, Undo2, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Mail,
+  Pencil,
+  Phone,
+  Trash2,
+  Undo2,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +27,10 @@ import type { DealDetail, CommissionType as SplitType } from "@/lib/db/deals";
 
 const STAGE_ORDER = DEAL_STEPS.map((s) => s.stage);
 
-export interface DealOption { id: string; name: string }
+export interface DealOption {
+  id: string;
+  name: string;
+}
 
 export function DealDetailView({
   deal,
@@ -34,7 +49,9 @@ export function DealDetailView({
   const [deleting, setDeleting] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
 
-  const [buyerContactId, setBuyerContactId] = React.useState(deal.buyerContactId ?? "");
+  const [buyerContactId, setBuyerContactId] = React.useState(
+    deal.buyerContactId ?? "",
+  );
   const [buyerName, setBuyerName] = React.useState(deal.buyerName);
   const [buyerMatches, setBuyerMatches] = React.useState<DealOption[]>([]);
   const [buyerSearching, setBuyerSearching] = React.useState(false);
@@ -60,10 +77,18 @@ export function DealDetailView({
   const [sellerName, setSellerName] = React.useState(deal.sellerName);
   const [amount, setAmount] = React.useState(String(deal.amount || ""));
   const [coBroker, setCoBroker] = React.useState(deal.coBroker);
-  const [coBrokerAgencyId, setCoBrokerAgencyId] = React.useState(deal.coBrokerAgencyId ?? "");
-  const [splitType, setSplitType] = React.useState<SplitType>(deal.coBrokerSplitType);
-  const [splitPct, setSplitPct] = React.useState(deal.coBrokerSplitPct != null ? String(deal.coBrokerSplitPct) : "50");
-  const [splitFixed, setSplitFixed] = React.useState(deal.coBrokerSplitFixed != null ? String(deal.coBrokerSplitFixed) : "");
+  const [coBrokerAgencyId, setCoBrokerAgencyId] = React.useState(
+    deal.coBrokerAgencyId ?? "",
+  );
+  const [splitType, setSplitType] = React.useState<SplitType>(
+    deal.coBrokerSplitType,
+  );
+  const [splitPct, setSplitPct] = React.useState(
+    deal.coBrokerSplitPct != null ? String(deal.coBrokerSplitPct) : "50",
+  );
+  const [splitFixed, setSplitFixed] = React.useState(
+    deal.coBrokerSplitFixed != null ? String(deal.coBrokerSplitFixed) : "",
+  );
 
   const stepIdx = DEAL_STEPS.findIndex((s) => s.stage === deal.stage);
   const isLost = deal.stage === "cancelado";
@@ -79,10 +104,18 @@ export function DealDetailView({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setErr(j.error === "sem_permissao" ? "Sem permissão para mover este negócio de fase." : "Não foi possível avançar o negócio.");
+        setErr(
+          j.error === "sem_permissao"
+            ? "Sem permissão para mover este negócio de fase."
+            : "Não foi possível avançar o negócio.",
+        );
         return;
       }
+      const out = await res.json();
+      if (out.warning) setErr(out.warning);
       router.refresh();
+    } catch {
+      setErr("Não foi possível guardar a fase. Tente novamente.");
     } finally {
       setAdvancing(false);
     }
@@ -94,11 +127,19 @@ export function DealDetailView({
   }
 
   function markLost() {
-    if (window.confirm("Marcar este negócio como perdido? O imóvel não muda de estado — podes reabrir mais tarde.")) setStage("cancelado");
+    if (
+      window.confirm(
+        "Marcar este negócio como perdido? O imóvel não muda de estado — podes reabrir mais tarde.",
+      )
+    )
+      setStage("cancelado");
   }
 
   async function removeDeal() {
-    if (!window.confirm("Apagar este negócio? Esta ação não pode ser desfeita.")) return;
+    if (
+      !window.confirm("Apagar este negócio? Esta ação não pode ser desfeita.")
+    )
+      return;
     setDeleting(true);
     setErr(null);
     try {
@@ -109,7 +150,11 @@ export function DealDetailView({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setErr(j.error === "sem_permissao" ? "Sem permissão para apagar este negócio." : "Não foi possível apagar o negócio.");
+        setErr(
+          j.error === "sem_permissao"
+            ? "Sem permissão para apagar este negócio."
+            : "Não foi possível apagar o negócio.",
+        );
         return;
       }
       router.push("/app/crm");
@@ -135,13 +180,23 @@ export function DealDetailView({
           coBroker,
           coBrokerAgencyId: coBroker ? coBrokerAgencyId || null : null,
           coBrokerSplitType: splitType,
-          coBrokerSplitPct: coBroker && splitType === "percent" && splitPct ? Number(splitPct) : null,
-          coBrokerSplitFixed: coBroker && splitType === "fixed" && splitFixed ? Number(splitFixed) : null,
+          coBrokerSplitPct:
+            coBroker && splitType === "percent" && splitPct
+              ? Number(splitPct)
+              : null,
+          coBrokerSplitFixed:
+            coBroker && splitType === "fixed" && splitFixed
+              ? Number(splitFixed)
+              : null,
         }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setErr(j.error === "sem_permissao" ? "Sem permissão para editar este negócio." : "Não foi possível guardar.");
+        setErr(
+          j.error === "sem_permissao"
+            ? "Sem permissão para editar este negócio."
+            : "Não foi possível guardar.",
+        );
         return;
       }
       setEditing(false);
@@ -157,9 +212,13 @@ export function DealDetailView({
     deal.commissionEstimate == null
       ? null
       : splitType === "fixed"
-        ? (splitFixed ? Number(splitFixed) : null)
+        ? splitFixed
+          ? Number(splitFixed)
+          : null
         : splitPct
-          ? Math.round(deal.commissionEstimate * (Number(splitPct) / 100) * 100) / 100
+          ? Math.round(
+              deal.commissionEstimate * (Number(splitPct) / 100) * 100,
+            ) / 100
           : null;
 
   return (
@@ -168,12 +227,19 @@ export function DealDetailView({
         <div>
           <p className="text-xs text-muted-foreground">
             {deal.propertyId ? (
-              <Link href={`/imovel/${deal.propertyId}`} className="text-primary hover:underline">Ref. {deal.propertyRef}</Link>
+              <Link
+                href={`/imovel/${deal.propertyId}`}
+                className="text-primary hover:underline"
+              >
+                Ref. {deal.propertyRef}
+              </Link>
             ) : (
               <>Ref. {deal.propertyRef}</>
             )}
           </p>
-          <h1 className="mt-0.5 font-display text-2xl">{deal.propertyTitle || "Negócio"}</h1>
+          <h1 className="mt-0.5 font-display text-2xl">
+            {deal.propertyTitle || "Negócio"}
+          </h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {!editing && (
@@ -190,7 +256,12 @@ export function DealDetailView({
               disabled={deleting}
               className="inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
             >
-              {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Apagar
+              {deleting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}{" "}
+              Apagar
             </button>
           )}
         </div>
@@ -210,7 +281,12 @@ export function DealDetailView({
             disabled={advancing}
             className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium hover:bg-secondary disabled:opacity-50"
           >
-            {advancing ? <Loader2 className="size-4 animate-spin" /> : <Undo2 className="size-4" />} Reabrir negócio
+            {advancing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Undo2 className="size-4" />
+            )}{" "}
+            Reabrir negócio
           </button>
         </div>
       ) : (
@@ -230,12 +306,16 @@ export function DealDetailView({
                 <div key={s.stage} className="flex items-center gap-1">
                   <span
                     className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                      i <= stepIdx ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                      i <= stepIdx
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground"
                     }`}
                   >
                     {s.label}
                   </span>
-                  {i < DEAL_STEPS.length - 1 && <span className="h-px w-3 bg-border" />}
+                  {i < DEAL_STEPS.length - 1 && (
+                    <span className="h-px w-3 bg-border" />
+                  )}
                 </div>
               ))}
             </div>
@@ -271,26 +351,44 @@ export function DealDetailView({
         {deal.buyerContactId ? (
           <BuyerLinkButton contactId={deal.buyerContactId} />
         ) : (
-          <span className="text-xs text-muted-foreground">Liga um comprador dos teus contactos para poderes partilhar o portal com ele.</span>
+          <span className="text-xs text-muted-foreground">
+            Liga um comprador dos teus contactos para poderes partilhar o portal
+            com ele.
+          </span>
         )}
         {deal.propertyId && <OwnerLinkButton propertyId={deal.propertyId} />}
       </div>
+
+      <DealCommission estimate={deal.financials} />
 
       {!editing ? (
         <dl className="mt-6 divide-y divide-[var(--hx-border)]">
           <Row label="Comprador">
             <div>
-              <p className="font-medium">{deal.buyerContact?.name || deal.buyerName || "—"}</p>
+              <p className="font-medium">
+                {deal.buyerContact?.name || deal.buyerName || "—"}
+              </p>
               {deal.buyerContact && (
                 <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                  {deal.buyerContact.phone && <span className="inline-flex items-center gap-1"><Phone className="size-3" /> {deal.buyerContact.phone}</span>}
-                  {deal.buyerContact.email && <span className="inline-flex items-center gap-1"><Mail className="size-3" /> {deal.buyerContact.email}</span>}
+                  {deal.buyerContact.phone && (
+                    <span className="inline-flex items-center gap-1">
+                      <Phone className="size-3" /> {deal.buyerContact.phone}
+                    </span>
+                  )}
+                  {deal.buyerContact.email && (
+                    <span className="inline-flex items-center gap-1">
+                      <Mail className="size-3" /> {deal.buyerContact.email}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
           </Row>
           <Row label="Vendedor" value={deal.sellerName || "—"} />
-          <Row label="Valor do negócio" value={deal.amount ? formatEuro(deal.amount) : "—"} />
+          <Row
+            label="Valor do negócio"
+            value={deal.amount ? formatEuro(deal.amount) : "—"}
+          />
           <Row
             label="Comissão estimada"
             value={
@@ -314,60 +412,94 @@ export function DealDetailView({
             <div className="relative">
               <Input
                 value={buyerName}
-                onChange={(e) => { setBuyerName(e.target.value); setBuyerContactId(""); }}
+                onChange={(e) => {
+                  setBuyerName(e.target.value);
+                  setBuyerContactId("");
+                }}
                 onFocus={() => setShowBuyerMatches(true)}
                 onBlur={() => setTimeout(() => setShowBuyerMatches(false), 150)}
                 placeholder="Comprador — nome, e-mail ou telefone"
                 autoComplete="off"
               />
-              {!buyerContactId && showBuyerMatches && (buyerSearching || buyerMatches.length > 0) && (
-                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
-                  {buyerSearching ? (
-                    <p className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
-                      <Loader2 className="size-3.5 animate-spin" /> A procurar…
-                    </p>
-                  ) : (
-                    buyerMatches.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onMouseDown={() => { setBuyerContactId(c.id); setBuyerName(c.name); setBuyerMatches([]); setShowBuyerMatches(false); }}
-                        className="block w-full px-3 py-2 text-left text-xs hover:bg-secondary"
-                      >
-                        {c.name}
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
+              {!buyerContactId &&
+                showBuyerMatches &&
+                (buyerSearching || buyerMatches.length > 0) && (
+                  <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+                    {buyerSearching ? (
+                      <p className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+                        <Loader2 className="size-3.5 animate-spin" /> A
+                        procurar…
+                      </p>
+                    ) : (
+                      buyerMatches.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onMouseDown={() => {
+                            setBuyerContactId(c.id);
+                            setBuyerName(c.name);
+                            setBuyerMatches([]);
+                            setShowBuyerMatches(false);
+                          }}
+                          className="block w-full px-3 py-2 text-left text-xs hover:bg-secondary"
+                        >
+                          {c.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
             </div>
             {buyerContactId ? (
               <p className="flex items-center gap-2 self-center text-xs text-muted-foreground">
                 Ligado ao contacto.
-                <button type="button" onClick={() => { setBuyerContactId(""); setBuyerName(""); }} className="underline-offset-2 hover:underline">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBuyerContactId("");
+                    setBuyerName("");
+                  }}
+                  className="underline-offset-2 hover:underline"
+                >
                   Trocar
                 </button>
               </p>
             ) : (
-              <p className="self-center text-xs text-muted-foreground">Escreve e escolhe da lista.</p>
+              <p className="self-center text-xs text-muted-foreground">
+                Escreve e escolhe da lista.
+              </p>
             )}
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            <Input value={sellerName} onChange={(e) => setSellerName(e.target.value)} placeholder="Vendedor" />
-            <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Valor (€)" />
+            <Input
+              value={sellerName}
+              onChange={(e) => setSellerName(e.target.value)}
+              placeholder="Vendedor"
+            />
+            <Input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Valor (€)"
+            />
           </div>
           <p className="text-xs text-muted-foreground">
             Comissão (do imóvel):{" "}
             <strong className="text-foreground">
-              {deal.commissionEstimate != null ? formatEuro(deal.commissionEstimate) : "não definida"}
-            </strong>
-            {" "}— só se edita na ficha do imóvel.
+              {deal.commissionEstimate != null
+                ? formatEuro(deal.commissionEstimate)
+                : "não definida"}
+            </strong>{" "}
+            — só se edita na ficha do imóvel.
           </p>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={coBroker}
-              onChange={(e) => { setCoBroker(e.target.checked); if (!e.target.checked) setCoBrokerAgencyId(""); }}
+              onChange={(e) => {
+                setCoBroker(e.target.checked);
+                if (!e.target.checked) setCoBrokerAgencyId("");
+              }}
               className="size-4 accent-primary"
             />
             Partilha com outra agência
@@ -380,7 +512,11 @@ export function DealDetailView({
                 className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
               >
                 <option value="">Selecionar agência…</option>
-                {agencies.map((ag) => <option key={ag.id} value={ag.id}>{ag.name}</option>)}
+                {agencies.map((ag) => (
+                  <option key={ag.id} value={ag.id}>
+                    {ag.name}
+                  </option>
+                ))}
               </select>
               <div className="grid gap-2 sm:grid-cols-2">
                 <select
@@ -392,13 +528,30 @@ export function DealDetailView({
                   <option value="fixed">Partilha fixa (€)</option>
                 </select>
                 {splitType === "percent" ? (
-                  <Input type="number" step="1" value={splitPct} onChange={(e) => setSplitPct(e.target.value)} placeholder="% para a outra agência" />
+                  <Input
+                    type="number"
+                    step="1"
+                    value={splitPct}
+                    onChange={(e) => setSplitPct(e.target.value)}
+                    placeholder="% para a outra agência"
+                  />
                 ) : (
-                  <Input type="number" step="50" value={splitFixed} onChange={(e) => setSplitFixed(e.target.value)} placeholder="€ para a outra agência" />
+                  <Input
+                    type="number"
+                    step="50"
+                    value={splitFixed}
+                    onChange={(e) => setSplitFixed(e.target.value)}
+                    placeholder="€ para a outra agência"
+                  />
                 )}
               </div>
               {splitAmount != null && (
-                <p className="text-xs text-muted-foreground">Fica com a outra agência: <strong className="text-foreground">{formatEuro(splitAmount)}</strong></p>
+                <p className="text-xs text-muted-foreground">
+                  Fica com a outra agência:{" "}
+                  <strong className="text-foreground">
+                    {formatEuro(splitAmount)}
+                  </strong>
+                </p>
               )}
             </>
           )}
@@ -407,7 +560,12 @@ export function DealDetailView({
 
           <div className="flex items-center gap-2">
             <Button onClick={save} disabled={busy}>
-              {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Guardar
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Check className="size-4" />
+              )}{" "}
+              Guardar
             </Button>
             <button
               onClick={() => setEditing(false)}
@@ -423,7 +581,15 @@ export function DealDetailView({
   );
 }
 
-function Row({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
+function Row({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="flex items-start gap-3 py-3 text-sm">
       <dt className="w-44 shrink-0 text-muted-foreground">{label}</dt>

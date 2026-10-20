@@ -78,7 +78,7 @@ export async function GET(request: Request) {
   }
 
   const [{ data: profiles }, { data: agencies }] = await Promise.all([
-    admin.from("profiles").select("id, name, email, role, role_key, agency_id, whatsapp, active, sponsor_id, code, public_title").order("name"),
+    admin.from("profiles").select("id, name, email, role, role_key, agency_id, whatsapp, active, sponsor_id, code, public_title, company_validated").order("name"),
     admin.from("agencies").select("id, name, region").order("name"),
   ]);
   return NextResponse.json({ ok: true, consultores: profiles ?? [], agencies: agencies ?? [] });
@@ -163,7 +163,7 @@ export async function PATCH(request: Request) {
 
   const { data: before } = await admin
     .from("profiles")
-    .select("name, email, whatsapp, agency_id, role_key, active, sponsor_id, public_title")
+    .select("name, email, whatsapp, agency_id, role_key, active, sponsor_id, public_title, company_validated")
     .eq("id", id)
     .maybeSingle();
 
@@ -179,6 +179,7 @@ export async function PATCH(request: Request) {
   if (typeof b.agencyId === "string") patch.agency_id = b.agencyId || null;
   if (typeof b.roleKey === "string") { patch.role_key = b.roleKey; patch.role = toEnumRole(b.roleKey); }
   if (typeof b.active === "boolean") patch.active = b.active;
+  if (typeof b.companyValidated === "boolean") patch.company_validated = b.companyValidated;
   if ("sponsorId" in b) {
     const sponsorId = b.sponsorId ? String(b.sponsorId) : null;
     if (sponsorId === id) return NextResponse.json({ error: "sponsor_cannot_be_self" }, { status: 422 });
@@ -206,6 +207,7 @@ export async function PATCH(request: Request) {
   if ("role_key" in patch && patch.role_key !== before?.role_key) changes.push({ field: "Papel", from: roleLabel(before?.role_key), to: roleLabel(String(patch.role_key)) });
   if ("sponsor_id" in patch && patch.sponsor_id !== before?.sponsor_id) changes.push({ field: "Padrinho", from: before?.sponsor_id ?? "—", to: String(patch.sponsor_id ?? "—") });
   if ("active" in patch && patch.active !== before?.active) changes.push({ field: "Estado", from: before?.active === false ? "Suspenso" : "Ativo", to: patch.active ? "Ativo" : "Suspenso" });
+  if ("company_validated" in patch && patch.company_validated !== before?.company_validated) changes.push({ field: "Comissionamento", from: before?.company_validated ? "Com empresa" : "Individual (recibos verdes)", to: patch.company_validated ? "Com empresa" : "Individual (recibos verdes)" });
 
   if (changes.length > 0) {
     const action = changes.length === 1 && changes[0].field === "Estado" ? (patch.active ? "reativou" : "suspendeu") : "editou";

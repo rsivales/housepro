@@ -17,7 +17,7 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
   if (!session) redirect("/entrar");
 
   const staff = isStaff(session.agent);
-  const deal = await getDeal(id, session.agent.id, staff);
+  const deal = await getDeal(id, session.agent.id, staff, {agencyId:session.agent.agencyId,global:["superadmin","admin"].includes(session.agent.roleKey??"")});
   if (!deal) notFound();
 
   const agencyList = await listAgenciesReal();

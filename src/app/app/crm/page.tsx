@@ -19,7 +19,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   const { propertyId } = await searchParams;
 
   const [deals, leadRows, agencyList, prefillProperty] = await Promise.all([
-    listDeals(session.agent.id, staff),
+    listDeals(session.agent.id, staff, {agencyId:session.agent.agencyId,global:["superadmin","admin"].includes(session.agent.roleKey??"")}),
     listLeadsByAgent(session.agent.id),
     listAgenciesReal(),
     propertyId ? getPropertyById(propertyId) : Promise.resolve(undefined),

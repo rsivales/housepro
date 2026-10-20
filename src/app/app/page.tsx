@@ -44,7 +44,7 @@ import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNo
 import { demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
 import { quoteTextOfDay } from "@/lib/data/quotes";
 import { getQuotesConfig } from "@/lib/db/repo";
-import { ConsultantHome } from "@/components/helix/consultant-home";
+import { ConsultantHome, ConsultantBannerOnly } from "@/components/helix/consultant-home";
 import { PhraseOfTheDay, LastAngariadoBanner, NotificationsInbox, ActivitiesBoard } from "@/components/consultant/dashboard-extras";
 import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
 import { referralsIncoming } from "@/lib/data/referrals";
@@ -151,7 +151,12 @@ export default async function AppPage() {
           </div>
         )}
 
-        <h1 className="font-display text-2xl sm:text-3xl">
+        {/* Administração/direção/coordenação que também atua como consultor
+            vê o mesmo banner panorâmico (foto, frase do dia, local/tempo) —
+            o painel de gestão continua por baixo, sem substituir nada. */}
+        <ConsultantBannerOnly agent={agent} demo={demo} />
+
+        <h1 className="mt-6 font-display text-2xl sm:text-3xl">
           Olá, {agent.name.split(" ")[0]} 👋
         </h1>
 

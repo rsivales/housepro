@@ -13,6 +13,7 @@ import type { Agent } from "@/lib/data/types";
 import type { Lead } from "@/lib/data/leads";
 
 import { ConsultantDashboard, type DashboardData } from "./consultant-dashboard";
+import { PersonalMotivationBanner } from "./personal-banner";
 import type { ActionItem } from "./action-center";
 import type { LatestProperty } from "./dashboard-cards";
 
@@ -144,4 +145,34 @@ export async function ConsultantHome({ agent, demo }: { agent: Agent; demo: bool
   };
 
   return <ConsultantDashboard data={data} />;
+}
+
+/**
+ * Só o banner panorâmico (foto, frase do dia, local/tempo, metas) — para
+ * administração/direção/coordenação que também atuam como consultor: o
+ * painel de gestão clássico continua por baixo, sem duplicar as consultas
+ * mais pesadas (leads, visitas, imóveis) que só o dashboard completo usa.
+ */
+export async function ConsultantBannerOnly({ agent, demo }: { agent: Agent; demo: boolean }) {
+  const now = new Date();
+  const [agency, quotesExtra] = await Promise.all([
+    agent.agencyId ? getAgencyById(agent.agencyId) : Promise.resolve(undefined),
+    getQuotesConfig(),
+  ]);
+  const location = agency?.region ?? agent.agency;
+  const temperature = demo ? "26°" : await getCurrentTemperature(location);
+
+  return (
+    <div className="helix">
+      <PersonalMotivationBanner
+        firstName={agent.name.split(" ")[0] ?? agent.name}
+        dateLabel={capitalize(now.toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" }))}
+        location={location}
+        temperature={temperature}
+        quote={quoteTextOfDay(now, quotesExtra)}
+        faturacaoPct={68}
+        angariacoes={{ done: 3, total: 5 }}
+      />
+    </div>
+  );
 }

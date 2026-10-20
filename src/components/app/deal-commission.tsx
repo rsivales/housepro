@@ -37,11 +37,14 @@ export function DealCommission({
       ) : (
         estimate.producers.map((p) => (
           <div key={p.id} className="space-y-1.5 border-t pt-2">
-            <p className="font-medium">
+            <p className="flex flex-wrap items-center gap-2 font-medium">
               {p.name}
               {estimate.producers.length > 1
                 ? ` · ${p.allocationPct}% da comissão interna`
                 : ""}
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                Patamar {p.agentSplitPct.toFixed(0)}% · {p.companyValidated ? "com empresa" : "individual"}
+              </span>
             </p>
             <dl className="space-y-1">
               <Line label="Comissão bruta do consultor" amount={p.agentGross} />

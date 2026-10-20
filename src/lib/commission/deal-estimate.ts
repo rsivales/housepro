@@ -15,6 +15,7 @@ export interface ProducerEstimate {
   pension: number;
   agentNet: number;
   agentSplitPct: number;
+  companyValidated: boolean;
 }
 export interface DealCommissionEstimate {
   status: "ready" | "missing";
@@ -125,6 +126,7 @@ export function estimateDealCommission(
       pension,
       agentNet: cents(agentGross - royalties - pension),
       agentSplitPct: leg.agentSplitPct,
+      companyValidated: p.companyValidated,
     };
   });
   if (producers.some((p) => p === null))

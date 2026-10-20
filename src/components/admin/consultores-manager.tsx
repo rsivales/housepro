@@ -9,7 +9,7 @@ import type { RoleKey } from "@/lib/data/types";
 interface Consultor {
   id: string; name: string; email?: string | null; role?: string; role_key?: string;
   agency_id?: string | null; whatsapp?: string | null; active?: boolean;
-  sponsor_id?: string | null; code?: number | null;
+  sponsor_id?: string | null; code?: number | null; company_validated?: boolean;
 }
 interface Agency { id: string; name: string; region?: string }
 interface AuditEntry {
@@ -186,6 +186,12 @@ export function ConsultoresManager() {
                     {list.filter((p) => p.id !== c.id).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </label>
+                <label className="block"><span className="text-xs font-medium">Comissionamento</span>
+                  <select id={`cv-${c.id}`} defaultValue={c.company_validated ? "1" : "0"} className={field}>
+                    <option value="0">Individual (recibos verdes)</option>
+                    <option value="1">Com empresa própria validada (+10 p.p.)</option>
+                  </select>
+                </label>
                 <div className="flex gap-2 sm:col-span-2">
                   <button disabled={busy} onClick={() => patch(c.id, {
                     name: (document.getElementById(`n-${c.id}`) as HTMLInputElement).value,
@@ -194,6 +200,7 @@ export function ConsultoresManager() {
                     agencyId: (document.getElementById(`a-${c.id}`) as HTMLSelectElement).value,
                     whatsapp: (document.getElementById(`w-${c.id}`) as HTMLInputElement).value,
                     sponsorId: (document.getElementById(`s-${c.id}`) as HTMLSelectElement).value,
+                    companyValidated: (document.getElementById(`cv-${c.id}`) as HTMLSelectElement).value === "1",
                   })} className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-60"><Check className="size-4" /> Guardar</button>
                   <button onClick={() => setEditing(null)} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm"><X className="size-4" /> Cancelar</button>
                 </div>
@@ -205,6 +212,9 @@ export function ConsultoresManager() {
                     {c.name}
                     <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">{ROLE_LABEL[(c.role_key as RoleKey)] ?? c.role ?? "agente"}</span>
                     {c.code != null && <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-mono">#{c.code}</span>}
+                    <span className={`rounded-full px-2 py-0.5 text-xs ${c.company_validated ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                      {c.company_validated ? "Com empresa" : "Individual"}
+                    </span>
                     {c.active === false && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">Suspenso</span>}
                   </p>
                   <p className="text-xs text-muted-foreground">

@@ -106,6 +106,15 @@ export async function POST(request: Request) {
   if (error || !created?.user) {
     return NextResponse.json({ error: error?.message ?? "create_failed" }, { status: 400 });
   }
+  // Reforço: passar password + email_confirm ao mesmo tempo no createUser por
+  // vezes não fica mesmo aplicado do lado da Supabase (sucesso reportado, mas
+  // o login com essa password falha depois) — um updateUserById explícito a
+  // seguir garante que fica mesmo definida.
+  const { error: pwSetErr } = await admin.auth.admin.updateUserById(created.user.id, { password: pass });
+  if (pwSetErr) {
+    await admin.auth.admin.deleteUser(created.user.id);
+    return NextResponse.json({ error: pwSetErr.message }, { status: 400 });
+  }
   // Código sequencial por agência — base da referência dos imóveis
   // (HP<agência><agente>-<seq>). Atribuído por um contador atómico e
   // monótono (nunca reutiliza um número, mesmo que um consultor seja

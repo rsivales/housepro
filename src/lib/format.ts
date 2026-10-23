@@ -1,3 +1,4 @@
+import { isCompleted, publicPriceHidden } from "./data/completion";
 import type { Property } from "./data/types";
 
 const eur = new Intl.NumberFormat("pt-PT", {
@@ -88,4 +89,10 @@ export function initials(name: string) {
     .slice(0, 2)
     .map((n) => n[0]?.toUpperCase())
     .join("");
+}
+
+/** Public display only: final listings never disclose their old asking price. */
+export function publicPriceLabel(property: Pick<Property, "price" | "operation" | "status" | "priceVisible">) {
+  if (isCompleted(property.status)) return "";
+  return publicPriceHidden(property) ? "Preço sob consulta" : formatPrice(property);
 }

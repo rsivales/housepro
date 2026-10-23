@@ -73,6 +73,7 @@ export function PropertyStage({
   municipality,
   price,
   status,
+  completion,
   isSignature,
   operation,
   stats,
@@ -89,6 +90,7 @@ export function PropertyStage({
   municipality: string;
   price: string;
   status?: PropertyStatus | null;
+  completion?: string | null;
   isSignature?: boolean;
   operation: string;
   stats: HeroStat[];
@@ -163,6 +165,7 @@ export function PropertyStage({
             <MapPin className="size-4 shrink-0 text-[var(--hp-red)]" /> {parish}, {municipality}
           </p>
           <p className="text-2xl font-semibold tracking-tight text-[var(--hp-navy)] sm:text-3xl">{price}</p>
+          {completion && <p className="text-sm font-semibold">{completion}</p>}
         </div>
       </div>
 
@@ -182,7 +185,7 @@ export function PropertyStage({
                 src={cover}
                 alt={title}
                 fetchPriority="high"
-                className="size-full cursor-zoom-in object-cover"
+                className={cn("size-full cursor-zoom-in object-cover", (status === "vendido" || status === "arrendado") && "grayscale")}
                 style={{ objectPosition }}
                 onClick={() => { setLightbox(photoIndex); track("pdp_gallery_open"); }}
               />
@@ -415,7 +418,7 @@ export function PropertyStage({
                 )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" className="size-full object-cover" />
+                <img src={src} alt="" className={cn("size-full object-cover", (status === "vendido" || status === "arrendado") && "grayscale")} />
               </button>
             ))}
           </div>

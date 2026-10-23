@@ -1,3 +1,4 @@
+import { completionLabel } from "@/lib/data/completion";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -26,7 +27,7 @@ import { autoTagsFromStatus } from "@/lib/data/status";
 import { getAgentRequestStatus } from "@/lib/db/agent-requests";
 import { AgentRequestButton } from "@/components/property/agent-request-button";
 import { OwnerLinkButton } from "@/components/property/owner-link-button";
-import { formatArea, formatEuro, formatPhone, formatPrice, smsLink, telLink, whatsappLink } from "@/lib/format";
+import { formatArea, formatEuro, formatPhone, publicPriceLabel, smsLink, telLink, whatsappLink } from "@/lib/format";
 import { site, postalAddressJsonLd } from "@/lib/site";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
@@ -42,7 +43,7 @@ export async function generateMetadata({
   const canonical = `${SITE_URL}/imovel/${p.id}`;
   const description =
     p.shortDescription ??
-    `${p.type}${p.typology ? " " + p.typology : ""} em ${p.parish}, ${p.municipality}. ${formatPrice(p)} · Ref. ${p.reference}. Acompanhamento HousePro do primeiro contacto à escritura.`;
+    `${p.type}${p.typology ? " " + p.typology : ""} em ${p.parish}, ${p.municipality}. ${publicPriceLabel(p)} · Ref. ${p.reference}. Acompanhamento HousePro do primeiro contacto à escritura.`;
   // Pendente de aprovação/publicação: acessível por link direto (partilha
   // privada com cliente/proprietário), mas nunca indexado nem em pesquisas.
   const indexable = !p.offMarket && (p.listingState ?? "activo") === "activo" && p.approval === "aprovado";
@@ -159,7 +160,7 @@ export default async function ImovelPage({
   // Preço oculto: por opção do consultor OU automaticamente quando vendido/CPCV.
   const priceHidden =
     property.priceVisible === false || property.status === "vendido" || property.status === "arrendado" || property.status === "cpcv";
-  const priceLabel = priceHidden ? "Preço sob consulta" : formatPrice(property);
+  const priceLabel = publicPriceLabel(property);
   const businessLabel = businessTypeLabel(property.businessType ?? property.operation);
   // Etiquetas públicas: automáticas (do estado) + manuais, sem duplicar.
   const publicTags = [...new Set([...autoTagsFromStatus(property.status), ...(property.tags ?? [])])];
@@ -248,6 +249,7 @@ export default async function ImovelPage({
             municipality={property.municipality}
             price={priceLabel}
             status={property.status}
+            completion={completionLabel(property)}
             isSignature={property.isSignature}
             operation={businessLabel}
             stats={heroStats}
@@ -361,12 +363,12 @@ export default async function ImovelPage({
               privacy={property.locationPrivacy}
             />
 
-            <FinancingPanel
+            {!priceHidden && <FinancingPanel
               price={property.price}
               propertyId={property.id}
               reference={property.reference}
               referrerId={ref}
-            />
+            />}
 
             <VisitRequest propertyId={property.id} reference={property.reference} referrerId={ref} />
 

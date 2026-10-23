@@ -444,7 +444,7 @@ export const isPublished = (p: Property): boolean =>
 /** Available = publicáveis, usados nas montras públicas. */
 export const availableProperties = properties.filter(isPublished);
 
-export const soldProperties = properties.filter((p) => p.status === "vendido");
+export const soldProperties = properties.filter((p) => (p.status === "vendido" || p.status === "arrendado") && (p.approval == null || p.approval === "aprovado") && !p.offMarket && (p.listingState ?? "activo") === "activo");
 
 export const featuredProperties = availableProperties;
 

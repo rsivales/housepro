@@ -1,11 +1,14 @@
 "use client";
 
+import { isCompleted } from "@/lib/data/completion";
+import { CompletionLabel } from "@/components/property/completion-label";
+
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { BedDouble, Bath, MapPin, Maximize2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { formatArea, formatPrice, whatsappLink } from "@/lib/format";
+import { formatArea, publicPriceLabel, whatsappLink } from "@/lib/format";
 import { agentById } from "@/lib/data/mock";
 import { PropertyBadges } from "@/components/property/property-badges";
 import type { Agent, Property } from "@/lib/data/types";
@@ -48,7 +51,7 @@ export function PropertyCard({
           <img
             src={property.image}
             alt={`${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}`}
-            className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
+            className={cn("size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]", isCompleted(property.status) && "grayscale")}
             loading="lazy"
           />
         </Link>
@@ -67,8 +70,9 @@ export function PropertyCard({
       <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
         <div className="flex items-baseline justify-between gap-3">
           <p className="text-xl font-semibold tracking-tight">
-            {formatPrice(property)}
+            {publicPriceLabel(property)}
           </p>
+          <CompletionLabel property={property} />
           <span className="shrink-0 text-xs font-medium text-muted-foreground">
             Ref. {property.reference}
           </span>

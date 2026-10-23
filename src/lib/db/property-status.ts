@@ -7,14 +7,14 @@ export async function syncPropertyStatusFromDeal(
   propertyId: string,
   stage: DealStage,
 ): Promise<boolean> {
-  const status = dealStageToStatus(stage);
+  let status: string | null = dealStageToStatus(stage);
   if (!status || !propertyId || !hasServiceRole()) return false;
   try {
     const sb = createAdminClient();
+    const { data: property, error: readError } = await sb.from("properties").select("operation").eq("id", propertyId).maybeSingle();
+    if (readError || !property) return false;
+    if (status === "vendido" && property.operation === "arrendamento") status = "arrendado";
     const patch: Record<string, unknown> = { status };
-    if (status === "vendido")
-      patch.sold_at = new Date().toISOString().slice(0, 10);
-    if (status !== "vendido") patch.sold_at = null;
     const { data, error } = await sb
       .from("properties")
       .update(patch)

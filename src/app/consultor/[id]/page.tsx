@@ -9,11 +9,14 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { ConsultantPropertyGrid } from "@/components/property/consultant-property-grid";
 import styles from "./profile.module.css";
 import type { Property } from "@/lib/data/types";
+import { isCompleted } from "@/lib/data/completion";
+import { PropertyBadges } from "@/components/property/property-badges";
+import { CompletionLabel } from "@/components/property/completion-label";
 import { STATUS_LABEL } from "@/lib/data/status";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { publicRoleLabel } from "@/lib/data/roles";
-import { formatPrice, initials } from "@/lib/format";
+import { publicPriceLabel, initials } from "@/lib/format";
 import { getAgencyById, getAgentPublicById, listProperties } from "@/lib/db/repo";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +34,10 @@ export default async function ConsultorPage({ params }: { params: Promise<{ id: 
   if (!agent) notFound();
   // Use the public catalogue even for signed-in staff: private/draft/off-market
   // listings must never leak through the consultant's public profile.
-  const [catalogue, agency] = await Promise.all([listProperties(), getAgencyById(agent.agencyId)]);
-  const mine = catalogue.filter((p) => p.agentId === agent.id);
-  const others = catalogue.filter((p) => p.agentId !== agent.id).slice(0, 3);
+  const [catalogue, agency] = await Promise.all([listProperties(true), getAgencyById(agent.agencyId)]);
+  const completed = catalogue.filter((p) => p.agentId === agent.id && isCompleted(p.status)).sort((a,b)=>(b.soldAt ?? "").localeCompare(a.soldAt ?? ""));
+  const mine = catalogue.filter((p) => p.agentId === agent.id && !isCompleted(p.status));
+  const others = catalogue.filter((p) => p.agentId !== agent.id && !isCompleted(p.status)).slice(0, 3);
   const agencyName = agency?.name || agent.agency || "HousePro";
   const phone = agent.whatsapp.replace(/\D/g, "");
   const whatsapp = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(`Olá ${agent.name.split(" ")[0]}, gostaria de falar sobre comprar ou vender um imóvel.`)}` : undefined;
@@ -45,13 +49,15 @@ export default async function ConsultorPage({ params }: { params: Promise<{ id: 
   const contactProps = { href: primaryContact || "#contacto", target: whatsapp ? "_blank" : undefined, rel: whatsapp ? "noopener noreferrer" : undefined };
   function propertyStrip(p: Property) {
     return <Link key={p.id} href={`/imovel/${p.id}?ref=${agent!.id}`} className={styles.property} aria-label={`Conhecer imóvel: ${p.title}`}>
-      <Image src={p.image} alt={p.title} fill unoptimized sizes="(min-width: 1200px) 553px, (min-width: 640px) 50vw, 100vw" className={styles.propertyImage} />
+      <Image src={p.image} alt={p.title} fill unoptimized sizes="(min-width: 1200px) 553px, (min-width: 640px) 50vw, 100vw" className={`${styles.propertyImage} ${isCompleted(p.status) ? "grayscale" : ""}`} />
       <div className={styles.propertyShade} />
+      {isCompleted(p.status) && <PropertyBadges status={p.status} className="absolute left-4 top-4" />}
       <div className={styles.propertyInfo}>
         <p className={styles.propertyMeta}>{p.status ? `${STATUS_LABEL[p.status]} · ` : ""}Ref. {p.reference}</p>
         <h3>{p.type}{p.typology ? ` ${p.typology}` : ""} · {p.municipality}</h3>
         <p className={styles.propertyTitle}>{p.title}</p>
-        {p.priceVisible !== false && <p className={styles.propertyPrice}>{formatPrice(p)}</p>}
+        {publicPriceLabel(p) && <p className={styles.propertyPrice}>{publicPriceLabel(p)}</p>}
+        <CompletionLabel property={p} />
       </div>
       <span className={styles.propertyButton}>Conhecer imóvel <ChevronRight size={18} /></span>
     </Link>;
@@ -90,6 +96,7 @@ export default async function ConsultorPage({ params }: { params: Promise<{ id: 
         <h2>Imóveis com {firstName}</h2><div className={styles.accent} />
         {mine.length ? <ConsultantPropertyGrid>{mine.map(propertyStrip)}</ConsultantPropertyGrid> : <p className={styles.empty}>Neste momento não tenho imóveis publicados nesta seleção.{primaryContact && <a {...contactProps}> Fale comigo sobre o que procura.</a>}</p>}
       </section>
+      {completed.length > 0 && <section id="vendidos" className={`${styles.container} ${styles.listings}`}><h2>Vendidos e arrendados</h2><p className={styles.introText}>Resultados que falam por si.</p><ConsultantPropertyGrid>{completed.map(propertyStrip)}</ConsultantPropertyGrid></section>}
       {others.length > 0 && <section className={`${styles.container} ${styles.listings}`}><h2>Mais oportunidades HousePro</h2><p className={styles.introText}>Outros imóveis da rede que posso apresentar-lhe.</p><ConsultantPropertyGrid>{others.map(propertyStrip)}</ConsultantPropertyGrid></section>}
       <section id="contacto" className={styles.contact}>
         <Image src={banner} alt="" fill unoptimized sizes="100vw" className={styles.backdrop} /><div className={styles.contactShade} />

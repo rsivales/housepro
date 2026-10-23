@@ -1,10 +1,13 @@
 "use client";
 
+import { isCompleted } from "@/lib/data/completion";
+import { CompletionLabel } from "@/components/property/completion-label";
+
 import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, BedDouble, Bath, Maximize2, MapPin } from "lucide-react";
 
-import { formatPrice, formatArea } from "@/lib/format";
+import { publicPriceLabel, formatArea } from "@/lib/format";
 import { PropertyBadges } from "@/components/property/property-badges";
 import type { Property } from "@/lib/data/types";
 import { SafeImage } from "@/components/home/safe-image";
@@ -32,7 +35,7 @@ function FeaturedCard({ property }: { property: Property }) {
           src={isRealPhoto(property.image) ? property.image : PROPERTY_FALLBACK}
           fallback={PROPERTY_FALLBACK}
           alt={`${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}`}
-          className="size-full object-cover"
+          className={`size-full object-cover ${isCompleted(property.status) ? "grayscale" : ""}`}
         />
         <PropertyBadges status={property.status} isSignature={property.isSignature} className="absolute left-3 top-3 max-w-[calc(100%-4.5rem)]" />
         <div className="absolute right-3 top-3">
@@ -42,7 +45,7 @@ function FeaturedCard({ property }: { property: Property }) {
 
       <div className="flex flex-1 flex-col gap-1.5 p-4 sm:p-5">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="font-display text-xl leading-none sm:text-2xl">{formatPrice(property)}</p>
+          <p className="font-display text-xl leading-none sm:text-2xl">{publicPriceLabel(property)}</p><CompletionLabel property={property}/>
           <span className="shrink-0 text-[0.7rem] text-muted-foreground">Ref. {property.reference}</span>
         </div>
         <h3 className="line-clamp-1 font-display text-base leading-snug sm:text-lg">

@@ -1,3 +1,6 @@
+import { isCompleted } from "@/lib/data/completion";
+import { CompletionLabel } from "@/components/property/completion-label";
+import { PropertyBadges } from "@/components/property/property-badges";
 import { PdpView } from "@/components/property/pdp-view";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,7 +15,7 @@ import { HeroShareButton } from "@/components/property/hero-share-button";
 import { getSignaturePropertyBySlug } from "@/lib/db/repo";
 import { getSignatureCollection } from "@/lib/signature/collections";
 import { signatureImageSources, signaturePropertyHref } from "@/lib/signature/media";
-import { formatArea, formatPrice } from "@/lib/format";
+import { formatArea, publicPriceLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 const siteUrl = "https://housepro.pt";
@@ -34,12 +37,12 @@ export default async function SignatureProperty({ params }: Props) {
     <nav className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-1 px-5 py-5 text-xs text-black/60 sm:px-8" aria-label="Localização na página"><Link href="/">Início</Link><ChevronRight className="size-3"/><Link href="/signature">Signature</Link><ChevronRight className="size-3"/>{collection && <><Link href={`/signature/colecoes/${collection.slug}`}>{collection.label}</Link><ChevronRight className="size-3"/></>}<span>{p.reference}</span></nav>
     <section className="mx-auto w-full min-w-0 max-w-7xl px-5 sm:px-8">
       <div className="mb-7 flex min-w-0 items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-semibold tracking-[.2em] text-[#856a39]">HOUSEPRO SIGNATURE</p><h1 className="mt-3 max-w-4xl break-words font-serif text-[clamp(1.75rem,4vw,3.5rem)] leading-[1.1] [overflow-wrap:anywhere]">{title}</h1><p className="mt-4 flex items-start gap-2 text-sm text-black/60"><MapPin className="size-4 shrink-0"/>{[p.parish, p.municipality].filter(Boolean).join(", ")}</p></div><div className="flex shrink-0 flex-col gap-2 sm:flex-row"><FavoriteButton propertyId={p.id} variant="icon"/><HeroShareButton title={title}/></div></div>
-      <SignatureGallery images={gallery} title={title}/>
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-black/15 py-6"><span className="font-serif text-2xl sm:text-3xl">{p.signaturePriceVisible === false || p.priceVisible === false ? "Preço sob consulta" : formatPrice(p)}</span><div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-black/65">{stats.map(s => <span key={String(s)}>{s}</span>)}</div></div>
+      <div className="relative"><div className={isCompleted(p.status) ? "grayscale" : undefined}><SignatureGallery images={gallery} title={title}/></div><PropertyBadges status={p.status} className="absolute left-4 top-4"/></div>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-black/15 py-6"><span className="font-serif text-2xl sm:text-3xl">{isCompleted(p.status) ? "" : p.signaturePriceVisible === false ? "Preço sob consulta" : publicPriceLabel(p)}</span><CompletionLabel property={p}/><div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-black/65">{stats.map(s => <span key={String(s)}>{s}</span>)}</div></div>
     </section>
     <section className="mx-auto grid w-full min-w-0 max-w-7xl gap-10 px-5 py-12 sm:px-8 md:py-16 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)] lg:gap-16">
       <div className="min-w-0"><p className="text-[10px] font-semibold tracking-[.2em] text-[#856a39]">A PROPRIEDADE</p><h2 className="mt-4 font-serif text-3xl leading-tight sm:text-4xl">Uma propriedade desenhada pelo lugar.</h2>{(p.signatureEditorialIntro?.trim() || p.shortDescription?.trim()) && <p className="mt-6 text-lg leading-8 text-black/70 [overflow-wrap:anywhere]">{p.signatureEditorialIntro?.trim() || p.shortDescription}</p>}<p className="mt-8 whitespace-pre-line text-base leading-8 text-black/70 [overflow-wrap:anywhere]">{p.description || "Informação detalhada disponível mediante apresentação privada."}</p>{collection && <Link href={`/signature/colecoes/${collection.slug}`} className="mt-8 inline-flex items-center gap-3 border-b border-[#9c7e48] pb-3 text-sm text-[#856a39]">Explorar a coleção {collection.label.toLowerCase()} <ArrowRight className="size-4 shrink-0"/></Link>}</div>
-      <aside className="min-w-0 self-start bg-[#112331] p-6 text-[#f3efe7] sm:p-8"><p className="text-[10px] font-semibold tracking-[.2em] text-[#d1b784]">VISITA PRIVADA</p><h2 className="mt-4 font-serif text-3xl leading-tight">O seu próximo lugar merece uma conversa.</h2><p className="mb-6 mt-4 text-sm leading-7 text-white/65">Solicite apresentação, documentação ou uma visita privada a esta propriedade.</p><SignatureLeadForm kind="property" propertyId={p.id} compact/>{p.agent && <Link href={`/consultor/${p.agent.id}#imoveis`} className="mt-7 flex min-h-11 items-center justify-between gap-3 border-t border-white/20 pt-5 text-sm text-[#e5c993]"><span>Ver mais imóveis de {p.agent.name}</span><ArrowRight className="size-4 shrink-0"/></Link>}</aside>
+      <aside className="min-w-0 self-start bg-[#112331] p-6 text-[#f3efe7] sm:p-8"><p className="text-[10px] font-semibold tracking-[.2em] text-[#d1b784]">{isCompleted(p.status) ? "NEGÓCIO CONCLUÍDO" : "VISITA PRIVADA"}</p><h2 className="mt-4 font-serif text-3xl leading-tight">O seu próximo lugar merece uma conversa.</h2><p className="mb-6 mt-4 text-sm leading-7 text-white/65">{isCompleted(p.status) ? "Este imóvel já foi negociado. Fale connosco para encontrar outras oportunidades." : "Solicite apresentação, documentação ou uma visita privada a esta propriedade."}</p><SignatureLeadForm kind="property" propertyId={p.id} compact/>{p.agent && <Link href={`/consultor/${p.agent.id}#imoveis`} className="mt-7 flex min-h-11 items-center justify-between gap-3 border-t border-white/20 pt-5 text-sm text-[#e5c993]"><span>Ver mais imóveis de {p.agent.name}</span><ArrowRight className="size-4 shrink-0"/></Link>}</aside>
     </section>
   </main><SiteFooter/></div>;
 }

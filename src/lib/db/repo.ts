@@ -242,19 +242,19 @@ export async function getPropertiesByIds(ids: string[]): Promise<Property[]> {
   return (data ?? []).map(mapRow);
 }
 
-export async function listProperties(): Promise<Property[]> {
-  if (!isSupabaseConfigured()) return availableProperties;
+export async function listProperties(includeCompleted = false): Promise<Property[]> {
+  if (!isSupabaseConfigured()) return includeCompleted ? allMockProperties.filter((p) => (p.approval == null || p.approval === "aprovado") && !p.offMarket && (p.listingState ?? "activo") === "activo") : availableProperties;
 
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("properties")
     .select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
-    .neq("status", "vendido")
-    .neq("status", "arrendado")
     .eq("approval", "aprovado")
     .eq("listing_state", "activo")
     .eq("off_market", false)
     .order("listed_at", { ascending: false });
+  if (!includeCompleted) query = query.or("status.is.null,status.not.in.(vendido,arrendado)");
+  const { data } = await query;
   return (data ?? []).map(mapRow);
 }
 
@@ -307,8 +307,7 @@ export async function listSignatureProperties(): Promise<Property[]> {
   const { data } = await supabase.from("properties").select(`*, agent:profiles!agent_id(${AGENT_COLS})`)
     .eq("is_signature", true).eq("signature_status", "approved").eq("signature_visibility", "public")
     .eq("approval", "aprovado").eq("listing_state", "activo").eq("off_market", false)
-    .neq("status", "vendido")
-    .neq("status", "arrendado").order("signature_order", { ascending: true, nullsFirst: false });
+    .order("signature_order", { ascending: true, nullsFirst: false });
   return (data ?? []).map(mapRow);
 }
 
@@ -342,7 +341,10 @@ export async function listSoldByAgency(agencyId: string): Promise<Property[]> {
     .from("properties")
     .select(`*, profiles!inner(${AGENT_COLS})`)
     .eq("profiles.agency_id", agencyId)
-    .eq("status", "vendido")
+    .in("status", ["vendido", "arrendado"])
+    .eq("approval", "aprovado")
+    .eq("listing_state", "activo")
+    .eq("off_market", false)
     .order("sold_at", { ascending: false });
   return (data ?? []).map(mapRow);
 }

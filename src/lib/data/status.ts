@@ -28,8 +28,8 @@ export const STATUS_STYLE: Record<PropertyStatus, string> = {
   oportunidade: "bg-[#A31621]/70 text-white",
   reservado: "bg-[#2563EB]/70 text-white",
   cpcv: "bg-violet-800/70 text-white",
-  vendido: "bg-slate-800/70 text-white",
-  arrendado: "bg-teal-800/70 text-white",
+  vendido: "bg-[#E00018] text-white",
+  arrendado: "bg-[#E00018] text-white",
 };
 
 /** Etiquetas AUTOMÁTICAS derivadas do estado comercial (aparecem no site sem

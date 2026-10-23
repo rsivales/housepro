@@ -139,7 +139,7 @@ export default async function AgenciaPage({
         {showSold && sold.length > 0 && (
           <section className="border-t bg-secondary/40 py-14">
             <div className="mx-auto max-w-6xl px-4 sm:px-6">
-              <h2 className="font-display text-2xl sm:text-3xl">Últimos vendidos</h2>
+              <h2 className="font-display text-2xl sm:text-3xl">Vendidos e arrendados</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Resultados que falam por si.
               </p>

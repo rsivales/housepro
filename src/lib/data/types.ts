@@ -315,6 +315,6 @@ export interface Property {
   interest?: number;
   /** ISO date the listing went live, for recency ranking. */
   listedAt?: string;
-  /** ISO date sold — present only when status is "vendido". */
+  /** ISO completion date for sold or rented listings; fixed when the status changes. */
   soldAt?: string;
 }

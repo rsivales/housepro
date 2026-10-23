@@ -322,8 +322,8 @@ export async function listPropertiesByAgency(agencyId: string): Promise<Property
   const supabase = await createClient();
   const { data } = await supabase
     .from("properties")
-    .select(`*, profiles!inner(${AGENT_COLS})`)
-    .eq("profiles.agency_id", agencyId)
+    .select(`*, agent:profiles!agent_id!inner(${AGENT_COLS})`)
+    .eq("agent.agency_id", agencyId)
     .neq("status", "vendido")
     .neq("status", "arrendado")
     .eq("approval", "aprovado")
@@ -339,8 +339,8 @@ export async function listSoldByAgency(agencyId: string): Promise<Property[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("properties")
-    .select(`*, profiles!inner(${AGENT_COLS})`)
-    .eq("profiles.agency_id", agencyId)
+    .select(`*, agent:profiles!agent_id!inner(${AGENT_COLS})`)
+    .eq("agent.agency_id", agencyId)
     .in("status", ["vendido", "arrendado"])
     .eq("approval", "aprovado")
     .eq("listing_state", "activo")

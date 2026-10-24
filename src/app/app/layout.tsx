@@ -1,3 +1,6 @@
+import {WorkspaceSwitch} from "@/components/helix/workspace-switch";
+import {agencyWorkspaces} from "@/lib/db/agency-finance";
+import {isCommercialAgent} from "@/lib/data/agent-directory";
 import { getSession } from "@/lib/supabase/auth";
 import { listNotifications } from "@/lib/db/repo";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -36,6 +39,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ? (await listNotifications(agent.id)).some((n) => !n.read)
     : false;
 
+  const hasBrokerWorkspace = !session.demo && (await agencyWorkspaces(session.agent)).some(a=>a.brokerId===session.agent.id || (session.agent.roleKey==="diretor" && a.id===session.agent.agencyId));
   return (
     <div className="helix min-h-dvh">
       {!demo && (
@@ -56,7 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
       <HelixSidebar superadmin={superadmin} />
       <div className="lg:pl-[76px]">
-        <div className="pb-24 lg:pb-8">{children}</div>
+        <div className="pb-24 lg:pb-8"><WorkspaceSwitch consultant={isCommercialAgent(agent)} broker={hasBrokerWorkspace} admin={superadmin || ["admin","diretor","coordenador"].includes(agent.roleKey??"")} />{children}</div>
       </div>
       <MobileBottomNavigation superadmin={superadmin} />
       <ReleaseNotice />

@@ -13,7 +13,7 @@ import {
 } from "@/lib/data/payments";
 
 const ROLE_ICON: Record<string, React.ElementType> = {
-  producao: Wallet, override: Coins, royalties: Coins, pensao: PiggyBank,
+  producao: Wallet, override: Coins, royalties: Coins, pensao: PiggyBank, pensao_broker: PiggyBank,
 };
 
 export function PaymentsBoard({ initial, canManage, canManageRoyalties=false, demo }: { initial: Payout[]; canManage: boolean; canManageRoyalties?: boolean; demo?: boolean }) {

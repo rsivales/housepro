@@ -1,3 +1,6 @@
+import {WorkspaceSwitch} from "@/components/helix/workspace-switch";
+import {agencyWorkspaces} from "@/lib/db/agency-finance";
+import {isCommercialAgent} from "@/lib/data/agent-directory";
 import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/supabase/auth";
@@ -22,6 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const roleLabel = (session.agent.roleKey && ROLE_LABEL[session.agent.roleKey]) || session.agent.role || "Consultor";
   const canSwitch = isSuperadmin(session.realAgent ?? session.agent);
 
+  const hasBrokerWorkspace = !session.demo && (await agencyWorkspaces(session.agent)).some(a=>a.brokerId===session.agent.id || (session.agent.roleKey==="diretor" && a.id===session.agent.agencyId));
   return (
     <div className="helix min-h-dvh">
       {!session.demo && (
@@ -33,6 +37,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           realName={session.realAgent?.name}
         />
       )}
+      <WorkspaceSwitch consultant={isCommercialAgent(session.agent)} broker={hasBrokerWorkspace} admin={true} />
       {children}
     </div>
   );

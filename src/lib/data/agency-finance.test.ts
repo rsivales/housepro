@@ -1,0 +1,15 @@
+import {describe,it,expect} from "vitest";
+import type {Agent} from "./types";
+import {canReadAgencyFinance,agencyPeriod,dayInLisbon,agencyTotals,type AgencyClosure,type AgencyCash} from "./agency-finance";
+const agent={id:"person",agencyId:"own",roleKey:"agente",role:"agente"} as Agent;
+const closure={id:"closure",deal_id:"deal",agency_id:"own",property_reference:"TEST",closed_at:"2026-07-01T12:00:00Z",gross:1000,retained:1000,royalties_agent:12,royalties_agency:18,pension_total:8,broker_pension_total:0,agency_net:582,snapshot:{financials:{producers:[{id:"person",name:"Consultor",commissionBase:1000,agentGross:400,agencyGross:600,royalties:12,royaltiesAgency:18,pension:8,agentNet:380}]}}} satisfies AgencyClosure;
+const cash=[{id:"income",kind:"income",entry_date:"2026-07-01",category:"commission",description:"Recebimento",amount:200,deal_id:"deal",voided_at:null,created_at:"2026-07-01T12:00:00Z"},{id:"expense",kind:"expense",entry_date:"2026-07-01",category:"software",description:"Despesa",amount:50,deal_id:null,voided_at:null,created_at:"2026-07-01T12:00:00Z"}] satisfies AgencyCash[];
+describe("agency management",()=>{
+ it("supports an agent who is also the designated broker, without changing their role",()=>{expect(canReadAgencyFinance(agent,"own",agent.id)).toBe(true);expect(canReadAgencyFinance(agent,"other","another-broker")).toBe(false);expect(agent.roleKey).toBe("agente");});
+ it("keeps director access inside their agency and gives Brand its requested supervision",()=>{expect(canReadAgencyFinance({...agent,roleKey:"diretor"},"own",null)).toBe(true);expect(canReadAgencyFinance({...agent,roleKey:"diretor"},"other",null)).toBe(false);expect(canReadAgencyFinance({...agent,roleKey:"superadmin"},"other",null)).toBe(true);});
+ it("separates contracted production, broker adjustment, actual receipts and expenses",()=>{const t=agencyTotals([closure],[{closure_id:"closure",amount:12}],cash,[{amount:20,status:"pago"},{amount:99,status:"pendente"}]);expect(t).toMatchObject({gross:1000,agencyGross:600,royaltiesAgency:18,pensionBroker:12,pensionAgent:8,agencyNet:570,expense:50,income:200,paid:20,result:520,cashFlow:130});});
+ it("does not deduct broker pension twice for a new closure",()=>{const current={...closure,broker_pension_total:12,agency_net:570};expect(agencyTotals([current],[],cash,[])).toMatchObject({pensionBroker:12,agencyNet:570,result:520});});
+ it("preserves voided expense history without counting it",()=>{const rows=cash.map(c=>c.kind==="expense"?{...c,voided_at:"2026-07-02T12:00:00Z"}:c);expect(agencyTotals([closure],[],rows,[])).toMatchObject({expense:0,income:200});expect(rows).toHaveLength(2);});
+ it("uses Lisbon calendar dates across summer and winter time",()=>{expect(dayInLisbon("2026-07-10T23:30:00Z")).toBe("2026-07-11");expect(dayInLisbon("2026-12-10T23:30:00Z")).toBe("2026-12-10");});
+ it("rejects invalid or inverted date ranges",()=>{expect(()=>agencyPeriod("2026-02-30","2026-03-01")).toThrow();expect(()=>agencyPeriod("2026-07-02","2026-07-01")).toThrow();});
+});

@@ -21,6 +21,8 @@ export const COMMISSION = {
   royaltiesPct: 3,
   /** Fundo de pensão do agente (%), retirado à cabeça. */
   pensionPct: 2,
+  /** Contribuição do broker sobre a parcela bruta da agência (%). */
+  brokerPensionPct: 2,
   /** Override de rede por nível (padrinho direto → cima). Soma = pool de rede. */
   overrideTiers: [5, 3, 1, 1] as number[],
   /** Escada de produtividade (faturação acumulada → % do agente). */

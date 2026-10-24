@@ -9,7 +9,7 @@ begin
  perform helix_private.post_deal_finances(c.deal_id);
  select count(*) into count_after from public.payouts;
  if count_before<>count_after then raise exception 'Repeated completion duplicated payouts'; end if;
- if exists(select 1 from public.deal_financial_closures f where f.status='posted' and f.retained<>(f.agency_net+(select coalesce(sum(amount),0) from public.payouts p where p.closure_id=f.id))) then raise exception 'Financial entries do not conserve retained commission'; end if;
+ if exists(select 1 from public.deal_financial_closures f where f.status='posted' and f.retained<>(f.agency_net-coalesce((select amount from public.agency_financial_adjustments a where a.closure_id=f.id),0)+(select coalesce(sum(amount),0) from public.payouts p where p.closure_id=f.id))) then raise exception 'Financial entries do not conserve retained commission'; end if;
  got:=false;
  begin update public.deals set amount=amount+1 where id=c.deal_id;
  exception when others then if SQLERRM like 'Reabra o negócio%' then got:=true;else raise;end if; end;

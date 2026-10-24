@@ -1,0 +1,6 @@
+import Link from "next/link";
+import {redirect} from "next/navigation";
+import {getSession} from "@/lib/supabase/auth";
+import {agencyWorkspaces} from "@/lib/db/agency-finance";
+export const metadata={title:"Gestão financeira de agências — Helix"};
+export default async function AgencyManagement(){const s=await getSession();if(!s)redirect("/entrar");if(s.demo)redirect("/app");const agencies=await agencyWorkspaces(s.agent);return <main className="mx-auto max-w-5xl px-4 py-8"><Link href="/admin" className="text-sm text-primary">← Administração</Link><h1 className="mt-4 font-display text-3xl">Gestão de agências</h1><p className="mt-2 text-sm text-muted-foreground">Abra a área de broker para acompanhar produção, receitas, despesas e deduções da agência na mesma sessão.</p><div className="mt-6 grid gap-4 sm:grid-cols-2">{agencies.map(a=><Link key={a.id} href={`/app/broker?agency=${a.id}`} className="rounded-2xl border bg-card p-6 hover:border-primary"><h2 className="font-display text-xl">{a.name}</h2><p className="mt-2 text-sm text-muted-foreground">Broker: {a.brokerName||"Por definir"}{a.suspended?" · Agência suspensa":""}</p><span className="mt-4 inline-block text-sm font-semibold text-primary">Abrir área de broker →</span></Link>)}</div>{!agencies.length&&<p className="mt-6">Não existem agências disponíveis para esta conta.</p>}</main>;}

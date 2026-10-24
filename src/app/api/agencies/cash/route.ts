@@ -1,0 +1,17 @@
+import {NextResponse} from "next/server";
+import {getSession} from "@/lib/supabase/auth";
+import {authorizedAgency} from "@/lib/db/agency-finance";
+import {createAdminClient} from "@/lib/supabase/admin";
+import {CASH_CATEGORIES,agencyPeriod} from "@/lib/data/agency-finance";
+const uuid=(s:unknown)=>typeof s==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+export async function POST(request:Request){const s=await getSession();if(!s||s.demo||s.viewingAs)return NextResponse.json({error:"Sessão inválida para registar movimentos."},{status:401});const b=await request.json().catch(()=>null);if(!b||!uuid(b.agencyId))return NextResponse.json({error:"Agência inválida."},{status:400});try{await authorizedAgency(s.agent,b.agencyId);}catch{return NextResponse.json({error:"Sem acesso à gestão desta agência."},{status:403});}
+ const sb=createAdminClient();
+ if(["void","restore"].includes(b.action)) {if(!uuid(b.entryId))return NextResponse.json({error:"Movimento inválido."},{status:400});const {data,error}=await sb.from("agency_cash_entries").update({voided_at:b.action==="void"?new Date().toISOString():null,voided_by:b.action==="void"?s.agent.id:null,updated_by:s.agent.id,updated_at:new Date().toISOString()}).eq("id",b.entryId).eq("agency_id",b.agencyId).select("id").maybeSingle();if(error||!data)return NextResponse.json({error:"Não foi possível atualizar o movimento."},{status:400});return NextResponse.json({ok:true});}
+ const amount=Number(String(b.amount??"").replace(",","."));const description=String(b.description??"").trim();
+ if(!["income","expense"].includes(b.kind)||!Number.isFinite(amount)||amount<=0||amount>1e9||Math.abs(amount*100-Math.round(amount*100))>0.000001||description.length<3||description.length>500||!uuid(b.requestId)||!Object.hasOwn(CASH_CATEGORIES,b.category)||((b.kind==="income")!==["commission","other_income"].includes(b.category)))return NextResponse.json({error:"Indique o tipo, categoria, descrição e um valor positivo com até duas casas decimais."},{status:422});
+ try{if(typeof b.date!=="string")throw new Error();agencyPeriod(b.date,b.date);}catch{return NextResponse.json({error:"Data inválida."},{status:422});}
+ if(b.dealId){if(!uuid(b.dealId))return NextResponse.json({error:"Negócio inválido."},{status:422});const {data}=await sb.from("deals").select("id").eq("id",b.dealId).eq("agency_id",b.agencyId).maybeSingle();if(!data)return NextResponse.json({error:"Selecione um negócio desta agência."},{status:422});}
+ const row={agency_id:b.agencyId,kind:b.kind,entry_date:b.date,category:b.category,description,amount,deal_id:b.dealId||null,request_id:b.requestId,created_by:s.agent.id};
+ const {data,error}=await sb.from("agency_cash_entries").insert(row).select("id").single();
+ if(error?.code==="23505"){const {data:existing}=await sb.from("agency_cash_entries").select("id,kind,entry_date,category,description,amount,deal_id").eq("agency_id",b.agencyId).eq("request_id",b.requestId).maybeSingle();if(existing&&existing.kind===row.kind&&existing.entry_date===row.entry_date&&existing.category===row.category&&existing.description===row.description&&Number(existing.amount)===amount&&existing.deal_id===row.deal_id)return NextResponse.json({ok:true,id:existing.id,duplicate:true});return NextResponse.json({error:"Este pedido já foi usado. Atualize a página antes de registar outro movimento."},{status:409});}
+ if(error||!data)return NextResponse.json({error:"Não foi possível guardar o movimento."},{status:503});return NextResponse.json({ok:true,id:data.id});}

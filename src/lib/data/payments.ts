@@ -8,14 +8,15 @@ import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
  * estado (pendente → processado → pago) e alimenta o dashboard do fundo.
  */
 
-export type PayoutRole = "producao" | "override" | "royalties" | "pensao";
+export type PayoutRole = "producao" | "override" | "royalties" | "pensao" | "pensao_broker";
 export type PayoutStatus = "pendente" | "processado" | "pago";
 
 export const ROLE_LABEL: Record<PayoutRole, string> = {
   producao: "Produção (consultor)",
   override: "Override de rede",
   royalties: "Royalties da agência",
-  pensao: "Fundo de pensão (2%)",
+  pensao: "Pensão do consultor (2%)",
+  pensao_broker: "Pensão do broker (2% da agência)",
 };
 
 export const STATUS_LABEL: Record<PayoutStatus, { label: string; badge: string }> = {
@@ -72,7 +73,7 @@ export function payoutTotals(list: Payout[]) {
   for (const p of list) {
     t.total += p.amount;
     t[p.status] += p.amount;
-    if (p.role === "pensao") t.pensao += p.amount;
+    if (p.role === "pensao" || p.role === "pensao_broker") t.pensao += p.amount;
   }
   return t;
 }

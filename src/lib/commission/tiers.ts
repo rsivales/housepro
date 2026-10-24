@@ -32,6 +32,7 @@ export interface CommissionPlan {
   royaltiesAgentPct: number;
   royaltiesAgencyPct: number;
   pensionPct: number;
+  brokerPensionPct: number;
   /** Pool de rede (% da comissão da perna), financiado pela agência. */
   networkPoolPct: number;
 }
@@ -43,6 +44,7 @@ export const DEFAULT_PLAN: CommissionPlan = {
   royaltiesAgentPct: COMMISSION.royaltiesPct,
   royaltiesAgencyPct: COMMISSION.royaltiesPct,
   pensionPct: COMMISSION.pensionPct,
+  brokerPensionPct: COMMISSION.brokerPensionPct,
   networkPoolPct: NETWORK_POOL_PCT,
 };
 
@@ -70,6 +72,7 @@ export interface LegBreakdown {
   royaltiesAgent: number;
   royaltiesAgency: number;
   pension: number;
+  brokerPension: number;
   /** Teto do pool de rede disponível (financiado pela agência) (€). */
   networkPoolMax: number;
   /** Líquido do agente (produção pessoal) após deduções (€). */
@@ -128,13 +131,14 @@ export function computeLeg(input: LegInput, plan: CommissionPlan = DEFAULT_PLAN)
   const royaltiesAgent = (agentGross * plan.royaltiesAgentPct) / 100;
   const pension = (agentGross * plan.pensionPct) / 100;
   const royaltiesAgency = (agencyGross * plan.royaltiesAgencyPct) / 100;
+  const brokerPension = (agencyGross * plan.brokerPensionPct) / 100;
   const agentNet = agentGross - royaltiesAgent - pension;
 
   // Pool de rede: financiado pela agência, até networkPoolPct da perna, nunca
   // acima do que resta à agência depois dos seus royalties.
   const networkPoolMax = Math.min(
     (leg * plan.networkPoolPct) / 100,
-    Math.max(0, agencyGross - royaltiesAgency)
+    Math.max(0, agencyGross - royaltiesAgency - brokerPension)
   );
 
   return {
@@ -146,6 +150,7 @@ export function computeLeg(input: LegInput, plan: CommissionPlan = DEFAULT_PLAN)
     royaltiesAgent,
     royaltiesAgency,
     pension,
+    brokerPension,
     networkPoolMax,
     agentNet,
     newFaturacao: input.priorFaturacao + leg,

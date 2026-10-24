@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { toPublicCapitalGainsResult, type PublicCapitalGainsResult } from "@/lib/tools/mais-valias-public-result";
 
 import { createLead, getAgentPublicById } from "@/lib/db/repo";
 import { notifyGeneric, notifyLead } from "@/lib/notify";
@@ -15,7 +16,7 @@ import {
  * e-mail e criação da lead no Helix. NUNCA devolve valores ao cliente.
  */
 const RATE = new Map<string, { n: number; t: number }>();
-const RECENT = new Map<string, { time: number; id: string; emailStatus: string; needsAnalysis: boolean }>();
+const RECENT = new Map<string, { time: number; id: string; emailStatus: string; needsAnalysis: boolean; simulation: PublicCapitalGainsResult }>();
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 5;
 const DEDUPE_MS = 5 * 60_000;
@@ -49,10 +50,11 @@ export async function POST(request: Request) {
   const key = dedupeKey(s);
   const now = Date.now();
   const last = RECENT.get(key);
-  if (last && now - last.time < DEDUPE_MS) return NextResponse.json({ ok: true, id: last.id, emailStatus: last.emailStatus, needsAnalysis: last.needsAnalysis, duplicate: true });
+  if (last && now - last.time < DEDUPE_MS) return NextResponse.json({ ok: true, id: last.id, emailStatus: last.emailStatus, needsAnalysis: last.needsAnalysis, duplicate: true, simulation: last.simulation });
 
   // Simulação (servidor) — os valores NUNCA são devolvidos ao cliente.
   const result = runSimulation(s);
+  const simulation = toPublicCapitalGainsResult(s, result);
 
   // Save the complete report BEFORE attempting delivery. The consultant can
   // answer even when the email provider is unavailable.
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
     await createAdminClient().from("leads").update({ email_status: emailStatus }).eq("id", lead.id);
   }
   for (const [cacheKey, cached] of RECENT) if (now - cached.time >= DEDUPE_MS) RECENT.delete(cacheKey);
-  RECENT.set(key, { time: now, id: lead.id, emailStatus, needsAnalysis: result.needsAnalysis });
+  RECENT.set(key, { time: now, id: lead.id, emailStatus, needsAnalysis: result.needsAnalysis, simulation });
 
   // Notifica o consultor atribuído (best-effort).
   const owner = lead.ownerId ? await getAgentPublicById(lead.ownerId) : undefined;
@@ -84,5 +86,5 @@ export async function POST(request: Request) {
   } catch { /* best-effort */ }
 
   // Só estado — nunca valores.
-  return NextResponse.json({ ok: true, id: lead.id, emailStatus, needsAnalysis: result.needsAnalysis });
+  return NextResponse.json({ ok: true, id: lead.id, emailStatus, needsAnalysis: result.needsAnalysis, simulation });
 }

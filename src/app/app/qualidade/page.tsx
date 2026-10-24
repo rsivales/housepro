@@ -18,13 +18,13 @@ export default async function QualidadePage() {
   const { agent } = session;
 
   const real = await listQualityEvents(agent.id);
-  const events: QualityEvent[] = real.length
-    ? real
-    : demoQualityEvents.map((e) => ({ ...e, agentId: agent.id }));
+  const events: QualityEvent[] = session.demo
+    ? demoQualityEvents.map((e) => ({ ...e, agentId: agent.id }))
+    : real;
 
   // Base de méritos: gamificação já conquistada conta como reputação positiva.
   const faturacao = await getMonthlyGross(agent.id);
-  const meritBase = earnedPrizes(faturacao || 42000, "faturacao").length * 25;
+  const meritBase = earnedPrizes(session.demo ? 42000 : faturacao, "faturacao").length * 25;
 
   const roleKey = agent.roleKey ?? "";
   const canManage = ["coordenador", "diretor", "admin"].includes(roleKey) || agent.role === "admin";

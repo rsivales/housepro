@@ -36,13 +36,14 @@ export function ActionCenter({ items }: { items: ActionItem[] }) {
       <div className="hx-card mt-3 divide-y divide-[var(--hx-border)]">
         {items.slice(0, 5).map((it) => {
           const Icon = ICON[it.icon];
-          const Row = (
+          return (
+            <div key={it.id}>
             <div className="flex items-center gap-3 p-3.5">
               <span className="grid size-10 shrink-0 place-items-center rounded-full" style={{ background: "var(--hx-surface-blue)", color: "var(--hx-blue)" }}>
                 <Icon className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{it.title}</p>
+                <p className="truncate font-semibold">{it.href ? <Link href={it.href} className="hover:underline">{it.title} <ChevronRight className="inline size-3.5" /></Link> : it.title}</p>
                 {it.subtitle && <p className="truncate text-sm hx-muted">{it.subtitle}</p>}
               </div>
               {it.phone ? (
@@ -53,13 +54,7 @@ export function ActionCenter({ items }: { items: ActionItem[] }) {
                 <StatusBadge tone={it.badge.tone}>{it.badge.label}</StatusBadge>
               ) : null}
             </div>
-          );
-          return it.href ? (
-            <Link key={it.id} href={it.href} className="block transition-colors hover:bg-[var(--hx-surface-blue)]/60">
-              {Row}
-            </Link>
-          ) : (
-            <div key={it.id}>{Row}</div>
+            </div>
           );
         })}
         {items.length === 0 && <p className="p-6 text-center text-sm hx-muted">Sem prioridades por agora. 🎉</p>}

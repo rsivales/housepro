@@ -1319,6 +1319,7 @@ export function PropertyForm({
               </select>
             </Field>
           </div>
+          {operationOf(d.businessType) === "venda" && <div className="mb-4 max-w-sm"><Field label="Data do CPCV" hint="Data de assinatura. O tempo de venda conta desde a publicação até esta data."><Input aria-label="Data do CPCV" type="date" value={d.cpcvAt} onChange={(e) => patch({ cpcvAt: e.target.value })} /></Field></div>}
           {/* Etiquetas manuais */}
           <p className="text-sm font-medium">Etiquetas</p>
           <p className="mb-2 text-xs text-muted-foreground">
@@ -1791,6 +1792,7 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     priceVisible: d.priceVisible,
     locationPrivacy: d.locationPrivacy,
     status: d.status,
+    cpcvAt: d.cpcvAt || null,
     area: d.area,
     areaUtil: d.areaUtil ?? null,
     landArea: d.landArea ?? null,

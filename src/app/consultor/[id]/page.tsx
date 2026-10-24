@@ -57,7 +57,7 @@ export default async function ConsultorPage({ params }: { params: Promise<{ id: 
         <h3>{p.type}{p.typology ? ` ${p.typology}` : ""} · {p.municipality}</h3>
         <p className={styles.propertyTitle}>{p.title}</p>
         {publicPriceLabel(p) && <p className={styles.propertyPrice}>{publicPriceLabel(p)}</p>}
-        <CompletionLabel property={p} />
+        <CompletionLabel property={p} className="bg-white" />
       </div>
       <span className={styles.propertyButton}>Conhecer imóvel <ChevronRight size={18} /></span>
     </Link>;

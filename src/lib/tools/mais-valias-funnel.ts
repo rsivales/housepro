@@ -119,7 +119,7 @@ const eur = (n: number) => new Intl.NumberFormat("pt-PT", { style: "currency", c
  */
 export function summarizeForLead(s: MvSubmission, r: MaisValiasResult): string {
   return [
-    "Simulação de mais-valias (estimativa enviada por e-mail)",
+    "Simulação de mais-valias — pedido de análise",
     `Aquisição: ${s.aquisicao ?? "—"} · Venda prevista: ${s.anoVenda ?? "—"}`,
     `Resultado: ${r.menosValia ? "menos-valia" : "mais-valia estimada"}`,
     `Reinvestimento: ${s.reinvestimento ? "sim" : "não"} · Residência: ${s.residencia ?? "residente"}`,
@@ -166,6 +166,7 @@ export function buildLead(s: MvSubmission, r: MaisValiasResult, emailStatus: str
 /** Relatório por e-mail — os valores aparecem SÓ aqui (nunca no website). */
 export function buildEmailReport(s: MvSubmission, r: MaisValiasResult): { subject: string; text: string } {
   const nome = (s.name ?? "").trim() || "Olá";
+  const input = toEngineInput(s);
   const linhas: string[] = [
     `Olá ${nome},`,
     "",
@@ -173,6 +174,12 @@ export function buildEmailReport(s: MvSubmission, r: MaisValiasResult): { subjec
     "",
     "RESUMO DOS DADOS",
     `• Forma de aquisição: ${s.aquisicao ?? "—"}`,
+    `• Valor de aquisição: ${eur(input.valorAquisicao)} · Valor de venda: ${eur(input.valorVenda)}`,
+    ...input.despesas.map(d => `• ${d.label}: ${eur(d.amount)}`),
+    `• Habitação própria e permanente: ${s.hpp ? "sim" : "não"}`,
+    `• Reinvestimento: ${s.reinvestimento ? "sim" : "não"} · Valor: ${eur(num(s.valorReinvestido))}`,
+    `• Dívida: ${eur(num(s.divida))}`,
+    `• Taxa marginal indicada: ${input.taxaMarginalEstimada != null ? `${input.taxaMarginalEstimada * 100}%` : "não indicada"}`,
     `• Ano de aquisição: ${s.anoAquisicao ?? "—"} · Ano de venda: ${s.anoVenda ?? "—"}`,
     `• Percentagem de propriedade: ${s.quota ?? "100"}%`,
     `• Residência fiscal: ${s.residencia ?? "residente"}`,

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { createLead, getAgentPublicById } from "@/lib/db/repo";
 import { notifyGeneric, notifyLead } from "@/lib/notify";
 import { agentEmail } from "@/lib/format";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import {
   validateSubmission, runSimulation, buildLead, buildEmailReport, dedupeKey,
   type MvSubmission,
@@ -13,7 +15,7 @@ import {
  * e-mail e criação da lead no Helix. NUNCA devolve valores ao cliente.
  */
 const RATE = new Map<string, { n: number; t: number }>();
-const RECENT = new Map<string, number>();
+const RECENT = new Map<string, { time: number; id: string; emailStatus: string; needsAnalysis: boolean }>();
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 5;
 const DEDUPE_MS = 5 * 60_000;
@@ -47,33 +49,36 @@ export async function POST(request: Request) {
   const key = dedupeKey(s);
   const now = Date.now();
   const last = RECENT.get(key);
-  if (last && now - last < DEDUPE_MS) return NextResponse.json({ ok: true, duplicate: true });
+  if (last && now - last.time < DEDUPE_MS) return NextResponse.json({ ok: true, id: last.id, emailStatus: last.emailStatus, needsAnalysis: last.needsAnalysis, duplicate: true });
 
   // Simulação (servidor) — os valores NUNCA são devolvidos ao cliente.
   const result = runSimulation(s);
 
-  // Envio do relatório por e-mail (Resend, se configurado). Best-effort.
+  // Save the complete report BEFORE attempting delivery. The consultant can
+  // answer even when the email provider is unavailable.
   const report = buildEmailReport(s, result);
-  let emailChannels: string[] = [];
-  try {
-    emailChannels = await notifyGeneric({ subject: report.subject, text: report.text, to: [s.email] });
-  } catch {
-    /* best-effort */
-  }
-  const emailStatus = emailChannels.includes("email") ? "enviado" : "pendente";
-
-  // Lead no Helix (sem valores financeiros; guarda estado do envio).
-  const newLead = buildLead(s, result, emailStatus);
+  const newLead = buildLead(s, result, "pendente");
+  if (s.ref) { newLead.ownerId = s.ref; newLead.assignedAgentId = s.ref; }
+  newLead.message = `${newLead.message}\n\n${report.text}`;
   let lead;
   try {
     lead = await createLead(newLead);
   } catch {
     return NextResponse.json({ error: "persist_failed", retry: true }, { status: 503 });
   }
-  RECENT.set(key, now);
+  let emailChannels: string[] = [];
+  try {
+    emailChannels = await notifyGeneric({ subject: report.subject, text: report.text, to: [s.email] });
+  } catch { /* saved for manual follow-up */ }
+  const emailStatus = emailChannels.includes("email") ? "enviado" : "pendente";
+  if (isSupabaseConfigured()) {
+    await createAdminClient().from("leads").update({ email_status: emailStatus }).eq("id", lead.id);
+  }
+  for (const [cacheKey, cached] of RECENT) if (now - cached.time >= DEDUPE_MS) RECENT.delete(cacheKey);
+  RECENT.set(key, { time: now, id: lead.id, emailStatus, needsAnalysis: result.needsAnalysis });
 
   // Notifica o consultor atribuído (best-effort).
-  const owner = newLead.assignedAgentId ? await getAgentPublicById(newLead.assignedAgentId) : undefined;
+  const owner = lead.ownerId ? await getAgentPublicById(lead.ownerId) : undefined;
   try {
     await notifyLead(lead, { agentName: owner?.name, agentEmail: owner ? agentEmail(owner) : undefined, channel: "Calculadora mais-valias" });
   } catch { /* best-effort */ }

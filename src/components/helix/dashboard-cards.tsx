@@ -16,7 +16,7 @@ export function LeadSummary({
     Website: "hx-chip-navy",
   };
   return (
-    <Link href="/app/contactos" className="hx-card block p-4 transition-shadow hover:shadow-md">
+    <Link href="/app/leads" className="hx-card block p-4 transition-shadow hover:shadow-md">
       <div className="flex items-center gap-2.5">
         <span className="grid size-9 place-items-center rounded-full" style={{ background: "var(--hx-surface-blue)", color: "var(--hx-blue)" }}>
           <Users className="size-5" />

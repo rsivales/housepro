@@ -64,6 +64,8 @@ export function MvForm() {
   }
   function back() { setErrors({}); setStep((s) => Math.max(0, s - 1)); }
 
+  const [emailSent, setEmailSent] = React.useState(false);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (status === "loading") return;
@@ -75,6 +77,7 @@ export function MvForm() {
       const res = await fetch("/api/mais-valias", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(d) });
       if (res.ok) {
         const j = await res.json();
+        setEmailSent(j.emailStatus === "enviado");
         setStatus(j.duplicate ? "duplicate" : "success");
         track(j.emailStatus === "enviado" ? "mv_email_sent" : "mv_email_failed");
         try { sessionStorage.removeItem(KEY); } catch { /* ignore */ }
@@ -85,7 +88,7 @@ export function MvForm() {
   }
 
   if (status === "success" || status === "duplicate") {
-    return <SuccessState email={d.email} onEditEmail={() => { setStatus("idle"); setStep(3); }} onResend={() => submit(new Event("submit") as unknown as React.FormEvent)} />;
+    return <SuccessState emailSent={emailSent} email={d.email} onEditEmail={() => { setStatus("idle"); setStep(3); }} onResend={() => submit(new Event("submit") as unknown as React.FormEvent)} />;
   }
 
   const ACQ: { key: NonNullable<MvSubmission["aquisicao"]>; label: string; icon: React.ElementType }[] = [
@@ -266,21 +269,21 @@ export function MvForm() {
   );
 }
 
-function SuccessState({ email, onEditEmail, onResend }: { email?: string; onEditEmail: () => void; onResend: () => void }) {
+function SuccessState({ emailSent, email, onEditEmail, onResend }: { emailSent: boolean; email?: string; onEditEmail: () => void; onResend: () => void }) {
   const [resent, setResent] = React.useState(false);
   return (
     <div className="rounded-2xl border bg-[var(--card)] p-6 text-center shadow-sm sm:p-8" style={bs}>
       <div className="mx-auto grid size-14 place-items-center rounded-full" style={{ background: "color-mix(in srgb, var(--success) 16%, transparent)", color: "var(--success)" }}><Mail className="size-7" /></div>
-      <h2 className="mt-4 font-display text-2xl">Simulação enviada. Consulte o seu e-mail.</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">Enviámos a estimativa para <strong className="text-foreground">{email}</strong>. Um consultor HousePro poderá contactá-lo para ajudar a interpretar o resultado e esclarecer o seu caso.</p>
-      <p className="mt-2 text-xs text-muted-foreground">Não recebeu? Verifique a pasta de spam.</p>
+      <h2 className="mt-4 font-display text-2xl">{emailSent ? "Simulação enviada. Consulte o seu e-mail." : "Pedido registado. Um consultor irá acompanhar a sua simulação."}</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{emailSent ? "Enviámos a estimativa para" : "O envio automático está pendente para"} <strong className="text-foreground">{email}</strong>. Um consultor HousePro poderá contactá-lo para ajudar a interpretar o resultado e esclarecer o seu caso.</p>
+      <p className="mt-2 text-xs text-muted-foreground">{emailSent ? "Não recebeu? Verifique a pasta de spam." : "O relatório está guardado no seu pedido para resposta pela equipa HousePro."}</p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <Link href="/" className="hp-btn-red inline-flex min-h-[44px] items-center gap-2 rounded-full px-6 text-sm font-semibold">Voltar à página inicial</Link>
         <Link href="/avaliacao-imovel#comecar" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border px-5 text-sm font-semibold" style={bs}>Falar com um consultor</Link>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm">
         <button onClick={onEditEmail} className="font-medium" style={{ color: "var(--hp-navy)" }}>Corrigir o e-mail</button>
-        <button onClick={() => { setResent(true); onResend(); }} disabled={resent} className="text-muted-foreground hover:underline disabled:opacity-60">{resent ? "Reenviado" : "Reenviar relatório"}</button>
+        <button onClick={() => { setResent(true); onResend(); }} disabled={resent} className="text-muted-foreground hover:underline disabled:opacity-60">{resent ? "Pedido de reenvio registado" : "Reenviar relatório"}</button>
       </div>
     </div>
   );

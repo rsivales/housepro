@@ -62,7 +62,9 @@ export async function POST(request: Request) {
         ? "telefone"
         : undefined;
 
-  const lead = await createLead({
+  let lead;
+  try {
+  lead = await createLead({
     propertyId,
     propertyRef: property?.reference,
     ownerId: owner?.id ?? ownerId,
@@ -83,6 +85,10 @@ export async function POST(request: Request) {
     language: body.language ? String(body.language) : "pt",
     consent: { base: "consentimento", at: new Date().toISOString() },
   });
+
+  } catch {
+    return NextResponse.json({ error: "persist_failed", retry: true }, { status: 503 });
+  }
 
   // Notifica o consultor (best-effort; não bloqueia a resposta em caso de falha).
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";

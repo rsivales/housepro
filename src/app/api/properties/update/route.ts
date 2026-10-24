@@ -30,6 +30,7 @@ const FIELDS: Record<string, string> = {
   district: "district",
   energy: "energy",
   status: "status",
+  cpcvAt: "cpcv_at",
   shortDescription: "short_description",
   description: "description",
   seoDescription: "seo_description",
@@ -129,6 +130,7 @@ export async function POST(request: Request) {
     let value: unknown = patch[field];
     if (NUMERIC.has(field)) value = value === "" || value == null ? null : Number(value);
     else if (BOOLEAN.has(field)) value = Boolean(value);
+    else if (field === "cpcvAt") value = value || null;
     const before = (current as unknown as Record<string, unknown>)[field];
     const same = String(before ?? "") === String(value ?? "");
     if (same) continue;

@@ -65,6 +65,7 @@ export async function POST(request: Request) {
     development_stage: d.developmentStage ? String(d.developmentStage) : null,
     development_units: d.developmentUnits != null ? Number(d.developmentUnits) : null,
     energy: d.energy ? String(d.energy) : "C",
+    cpcv_at: d.cpcvAt ? String(d.cpcvAt) : null,
     status: typeof d.status === "string" && d.status ? String(d.status) : "novo",
     cover_url: d.coverUrl ? String(d.coverUrl) : null,
     gallery: Array.isArray(d.gallery) && d.gallery.length ? d.gallery : null,

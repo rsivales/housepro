@@ -181,6 +181,7 @@ function mapRow(r: Row): Property {
     interest: r.interest != null ? Number(r.interest) : undefined,
     listedAt: (r.listed_at as string) ?? undefined,
     soldAt: (r.sold_at as string) ?? undefined,
+    cpcvAt: (r.cpcv_at as string) ?? undefined,
   };
 }
 
@@ -552,7 +553,7 @@ export async function listNotifications(userId: string, limit = 20): Promise<Not
     title: String(r.title ?? ""),
     body: (r.body as string) ?? undefined,
     amount: r.amount != null ? Number(r.amount) : undefined,
-    href: (r.href as string) ?? undefined,
+    href: r.type === "qualidade" && /contacto/i.test(String(r.title)) && ["/app", "/app/qualidade", "/app/crm"].includes(String(r.href)) ? "/app/leads" : (r.href as string) ?? undefined,
     read: Boolean(r.read),
     createdAt: String(r.created_at ?? new Date().toISOString()),
   }));
@@ -983,55 +984,48 @@ export interface NewLead extends Partial<Omit<Lead, "id" | "status" | "createdAt
 /** Regista uma lead. Grava no Supabase quando configurado; caso contrário
  *  devolve-a (modo demo) para o fluxo poder ser testado ponta a ponta. */
 export async function createLead(input: NewLead): Promise<Lead> {
-  const lead: Lead = {
-    id: `l-${Date.now()}`,
-    status: "novo",
-    source: input.source ?? "site",
-    createdAt: new Date().toISOString(),
-    ...input,
+  if (!isSupabaseConfigured()) return {
+    id: `l-${Date.now()}`, status: "novo", source: input.source ?? "site",
+    createdAt: new Date().toISOString(), ...input,
   };
-
-  if (!isSupabaseConfigured()) return lead;
-
-  const supabase = await createClient();
-  // Colunas garantidas (existem desde o esquema base).
-  const base = {
-    property_id: input.propertyId ?? null,
-    owner_id: input.ownerId,
-    referrer_id: input.referrerId ?? null,
-    name: input.name,
-    contact: input.contact,
-    message: input.message ?? null,
-    source: input.source ?? "site",
-  };
-  // Metadados de funil — persistem quando a migração 'lead_funnel_fields' foi
-  // aplicada. Se as colunas ainda não existirem, o insert é repetido só com as
-  // colunas base para NUNCA perder o pedido.
-  const extra = {
-    sub_source: input.subSource ?? null,
-    page_url: input.pageUrl ?? null,
-    referrer_url: input.referrerUrl ?? null,
-    utm: input.utm ?? null,
-    contact_preference: input.contactPreference ?? null,
-    marketing_consent: input.marketingConsent ?? null,
-    email_status: input.emailStatus ?? null,
-    email: input.email ?? null,
-    pipeline: input.pipeline ?? null,
-    qualification: input.qualification ?? "novo",
-    unassigned: input.unassigned ?? !input.ownerId,
-    campaign_id: input.campaignId ?? null,
-    form_id: input.formId ?? null,
-    zone: input.zone ?? null,
-    budget: input.budget ?? null,
-    consent: input.consent ?? null,
-  };
-
-  let res = await supabase.from("leads").insert({ ...base, ...extra }).select("id, created_at").single();
-  if (res.error) {
-    // Provável coluna em falta → grava o essencial para não perder a lead.
-    res = await supabase.from("leads").insert(base).select("id, created_at").single();
+  if (!hasServiceRole()) throw new Error("lead_intake_not_configured");
+  // This is a write-only public intake. Never widen anonymous SELECT policies.
+  const sb = createAdminClient();
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const requested = input.assignedAgentId || input.ownerId;
+  let owner: { id: string; agency_id: string | null } | null = null;
+  if (uuid.test(requested)) {
+    const result = await sb.from("profiles").select("id,agency_id").eq("id", requested).eq("active", true).maybeSingle();
+    owner = result.data;
   }
-  return { ...lead, id: res.data ? String(res.data.id) : lead.id };
+  if (!owner) {
+    const { data: agency } = await sb.from("agencies").select("id").eq("slug", "housepro").maybeSingle();
+    if (!agency) throw new Error("lead_agency_unavailable");
+    const { data: staff } = await sb.from("profiles").select("id,agency_id")
+      .eq("agency_id", agency.id).eq("active", true)
+      .in("role_key", ["diretor", "admin", "superadmin", "coordenador"])
+      .order("created_at").limit(1).maybeSingle();
+    owner = staff;
+  }
+  if (!owner) throw new Error("lead_owner_unavailable");
+  const { data, error } = await sb.from("leads").insert({
+    property_id: input.propertyId ?? null, owner_id: owner.id,
+    assigned_agent_id: owner.id, agency_id: owner.agency_id,
+    referrer_id: requested === owner.id && input.referrerId === owner.id ? owner.id : null,
+    name: input.name, contact: input.contact, email: input.email ?? null,
+    message: input.message ?? null, intent: input.intent, source: input.source ?? "site",
+    sub_source: input.subSource ?? null, page_url: input.pageUrl ?? null,
+    referrer_url: input.referrerUrl ?? null, utm: input.utm ?? null,
+    contact_preference: input.contactPreference ?? null, best_time: input.bestTime ?? null,
+    marketing_consent: input.marketingConsent ?? false, email_status: input.emailStatus ?? null,
+    form_version: input.formVersion ?? null, fiscal_year: input.fiscalYear ?? null,
+    pipeline: input.pipeline ?? null, stage: input.stage ?? 0,
+    qualification: input.qualification ?? "novo", unassigned: false,
+    zone: input.zone ?? null, budget: input.budget ?? null, consent: input.consent ?? null,
+    preferred_at: input.preferredAt ?? null,
+  }).select("*").single();
+  if (error || !data) throw new Error("lead_persist_failed");
+  return mapLeadRow(data);
 }
 
 export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
@@ -1040,7 +1034,7 @@ export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("leads")
-    .select("*, property:properties!property_id(cover_url)")
+    .select("*, property:properties!property_id(cover_url,reference)")
     .eq("owner_id", agentId)
     .order("created_at", { ascending: false });
   return (data ?? []).map(mapLeadRow);
@@ -1049,12 +1043,12 @@ export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
 /** Mapeia uma linha da tabela `leads` para o modelo Lead (inclui campos Meta). */
 function mapLeadRow(r: Row): Lead {
   const propJoin = (Array.isArray(r.property) ? r.property[0] : r.property) as
-    | { cover_url?: string }
+    | { cover_url?: string; reference?: string }
     | undefined;
   return {
     id: String(r.id),
     propertyId: (r.property_id as string) ?? undefined,
-    propertyRef: (r.property_ref as string) ?? undefined,
+    propertyRef: (r.property_ref as string) ?? propJoin?.reference ?? undefined,
     propertyImage: propJoin?.cover_url || undefined,
     ownerId: String(r.owner_id ?? ""),
     referrerId: (r.referrer_id as string) ?? undefined,
@@ -1067,6 +1061,16 @@ function mapLeadRow(r: Row): Lead {
     source: (r.source as Lead["source"]) ?? "site",
     status: (r.status as Lead["status"]) ?? "novo",
     createdAt: String(r.created_at ?? new Date().toISOString()),
+    coOwnerIds: (r.co_owner_ids as string[]) ?? [],
+    contactedAt: (r.contacted_at as string) ?? undefined,
+    contactedBy: (r.contacted_by as string) ?? undefined,
+    subSource: (r.sub_source as string) ?? undefined,
+    formVersion: (r.form_version as string) ?? undefined,
+    fiscalYear: r.fiscal_year != null ? Number(r.fiscal_year) : undefined,
+    emailStatus: (r.email_status as string) ?? undefined,
+    bestTime: (r.best_time as string) ?? undefined,
+    contactPreference: (r.contact_preference as Lead["contactPreference"]) ?? undefined,
+    pageUrl: (r.page_url as string) ?? undefined,
     campaignId: (r.campaign_id as string) ?? undefined,
     formId: (r.form_id as string) ?? undefined,
     commercialOriginId: (r.commercial_origin_id as string) ?? undefined,

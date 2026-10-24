@@ -123,6 +123,7 @@ export interface ImovelDraft {
   /** Estado comercial (etiqueta pública): "" | novo | destaque | reduzido |
    *  oportunidade | reservado | cpcv | vendido | arrendado. Algumas geram etiqueta automática. */
   status: string;
+  cpcvAt: string;
   /** Privacidade da morada no mapa público. */
   locationPrivacy: "exact" | "approx" | "locality" | "hidden";
   /** Base da comissão: percentagem ou valor fixo. */
@@ -363,6 +364,7 @@ export function blankImovel(id: string): ImovelDraft {
     priceVisible: true,
     locationPrivacy: "approx",
     status: "",
+    cpcvAt: "",
     comissaoTipo: "percent",
     comissao: 5,
     comissaoFixo: 0,
@@ -445,6 +447,7 @@ export function draftFromProperty(p: Property): ImovelDraft {
     priceVisible: p.priceVisible ?? true,
     locationPrivacy: p.locationPrivacy ?? "approx",
     status: p.status ?? "",
+    cpcvAt: p.cpcvAt ?? "",
     comissaoTipo: p.commissionType ?? "percent",
     comissao: p.commissionPct ?? 0,
     comissaoFixo: p.commissionFixed ?? 0,

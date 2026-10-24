@@ -70,9 +70,10 @@ export async function ConsultantHome({ agent, demo }: { agent: Agent; demo: bool
     actions.push({
       id: `lead-${newest.id}`,
       icon: "lead",
-      title: "Nova lead",
-      subtitle: `${SOURCE_LABEL[newest.source] ?? "Lead"} · ${ago(newest.createdAt, now)}`,
-      phone: newest.contact,
+      title: `Nova lead · ${newest.name}`,
+      subtitle: `${newest.subSource ?? SOURCE_LABEL[newest.source] ?? "Lead"} · ${newest.contact} · ${ago(newest.createdAt, now)}`,
+      href: `/app/leads/${newest.id}`,
+      phone: /^[+\d\s().-]{7,}$/.test(newest.contact) ? newest.contact : undefined,
     });
   }
   const nextVisit = [...visits].filter((v) => v.status === "agendada").sort((a, b) => a.at.localeCompare(b.at))[0];

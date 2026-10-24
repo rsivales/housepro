@@ -317,4 +317,6 @@ export interface Property {
   listedAt?: string;
   /** ISO completion date for sold or rented listings; fixed when the status changes. */
   soldAt?: string;
+  /** Actual CPCV signing date; sale speed ends here, not at the deed. */
+  cpcvAt?: string;
 }

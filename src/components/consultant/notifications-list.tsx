@@ -102,7 +102,7 @@ function NotificationCard({
         <p className="text-sm font-medium">{n.title}</p>
         {!n.read && <span className="mt-1 size-2 shrink-0 rounded-full bg-primary" />}
       </div>
-      {n.body && <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>}
+      {n.body && <p className="mt-0.5 whitespace-pre-line text-sm text-muted-foreground">{n.body}</p>}
       <p className="mt-1 text-xs text-muted-foreground">
         {new Date(n.createdAt).toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" })}
         {n.amount ? ` · ${formatEuro(n.amount)}` : ""}
@@ -116,6 +116,7 @@ function NotificationCard({
         {n.href ? (
           <Link href={n.href} className="block">
             {body}
+            <span className="mt-3 block text-sm font-semibold text-primary">{n.href === "/app/leads" ? "Ver pedidos e contactos registados →" : "Abrir detalhe →"}</span>
           </Link>
         ) : (
           body

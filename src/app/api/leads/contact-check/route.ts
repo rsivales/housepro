@@ -48,6 +48,7 @@ export async function POST(request: Request) {
   const nextWarned: Record<string, string> = { ...warnedAt };
 
   for (const lead of leads) {
+    if (!lead.email && !/^[+\d\s().-]{7,}$/.test(lead.contact) && !lead.contact.includes("@")) continue;
     const contacted = lead.status !== "novo" || Boolean(lead.contactedAt);
     if (contacted) { delete nextWarned[lead.id]; continue; }
 
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
         const msg = agentWarningMessage(lead.name, lead.propertyRef);
         await insertNotifications([{
           userId: agent.id, type: "qualidade", title: "Contacto por atender há +48h",
-          body: `${lead.name}: 2.º aviso em 24h reatribui a outro consultor.`, href: "/app/qualidade",
+          body: `${lead.name} · ${lead.contact}${lead.propertyRef ? ` · ${lead.propertyRef}` : ""}: contacto por atender. 2.º aviso em 24h.`, href: `/app/leads/${lead.id}`,
         }]);
         await notifyGeneric({ subject: msg.subject, text: msg.text });
       }
@@ -101,9 +102,9 @@ export async function POST(request: Request) {
 
       await insertNotifications([
         { userId: agent.id, type: "qualidade", title: "Contacto reatribuído por ausência",
-          body: `${lead.name} passou para ${target.name}. Se fechar, recebes ${residual}% residual.`, href: "/app/qualidade" },
+          body: `${lead.name} (${lead.contact}) passou para ${target.name}. Se fechar, recebes ${residual}% residual.`, href: `/app/leads/${lead.id}` },
         { userId: target.id, type: "qualidade", title: "Recebeste um contacto reatribuído",
-          body: `${lead.name} foi-te atribuído por ausência de contacto do consultor anterior.`, href: "/app" },
+          body: `${lead.name} (${lead.contact}) foi-te atribuído por ausência de contacto do consultor anterior.`, href: `/app/leads/${lead.id}` },
       ]);
       await notifyGeneric({
         subject: `HousePro — reatribuição automática por ausência de contacto: ${lead.name}`,

@@ -165,7 +165,7 @@ export function PropertyStage({
             <MapPin className="size-4 shrink-0 text-[var(--hp-red)]" /> {parish}, {municipality}
           </p>
           <p className="text-2xl font-semibold tracking-tight text-[var(--hp-navy)] sm:text-3xl">{price}</p>
-          {completion && <p className="text-sm font-semibold">{completion}</p>}
+          {completion && <p className="inline-flex w-fit items-center rounded-[8px] border border-[#E00018]/20 bg-[#E00018]/10 px-2.5 py-1 text-sm font-bold text-[#E00018]">{completion}</p>}
         </div>
       </div>
 

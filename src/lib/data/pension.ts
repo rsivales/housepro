@@ -28,21 +28,6 @@ export interface PensionFund {
   contributions: PensionContribution[];
 }
 
-export const demoPensionFund: PensionFund = {
-  openedAt: "2023-02-01",
-  minYears: 5,
-  annualRatePct: 3.5,
-  dividendsAccrued: 640,
-  beneficiary: undefined,
-  contributions: [
-    { id: "pc-1", date: "2026-07-24", dealRef: "NEG-2041", amount: 166 },
-    { id: "pc-2", date: "2026-06-30", dealRef: "NEG-2038", amount: 90 },
-    { id: "pc-3", date: "2026-05-18", dealRef: "NEG-2032", amount: 220 },
-    { id: "pc-4", date: "2026-04-02", dealRef: "NEG-2027", amount: 130 },
-    { id: "pc-5", date: "2026-02-14", dealRef: "NEG-2019", amount: 300 },
-  ],
-};
-
 export function totalContributed(f: PensionFund): number {
   return f.contributions.reduce((s, c) => s + c.amount, 0);
 }

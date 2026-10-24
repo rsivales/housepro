@@ -240,6 +240,7 @@ function LeadDetail({ lead, onClose }: { lead: LeadCard; onClose: () => void }) 
               <span className="font-medium">Pedido:</span> {INTENT_LABEL[lead.intent] ?? lead.intent}
             </p>
           )}
+          <Link href={`/app/leads/${lead.id}`} className="mt-3 block font-semibold text-primary">Abrir pedido completo e acompanhamento →</Link>
           {lead.message && <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{lead.message}</p>}
           {!lead.message && !lead.intent && <p className="text-muted-foreground">Sem respostas registadas no formulário.</p>}
         </div>

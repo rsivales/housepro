@@ -26,6 +26,7 @@ export interface AuditEntry {
 
 export const AUDIT_FIELD_LABEL: Record<string, string> = {
   title: "Título",
+  cpcvAt: "Data do CPCV",
   legacyReference: "ID antigo (migração)",
   price: "Preço",
   typology: "Tipologia",

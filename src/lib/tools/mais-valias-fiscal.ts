@@ -18,9 +18,9 @@
  * substituídos pelos valores da Portaria em vigor (ver `COEFICIENTES.source`).
  */
 
-export const FISCAL_YEAR = 2025;
-export const ENGINE_VERSION = "mv-fiscal-2025.1";
-export const LAST_REVIEWED = "2026-08-21";
+export const FISCAL_YEAR = 2026;
+export const ENGINE_VERSION = "mv-fiscal-2026.2";
+export const LAST_REVIEWED = "2026-10-24";
 
 export const SOURCES = [
   "Código do IRS (CIRS) — art. 9.º, 10.º, 43.º, 44.º, 50.º e 51.º",
@@ -87,14 +87,14 @@ export interface MaisValiasResult {
  * CONJUNTO INDICATIVO — substituir pela Portaria em vigor antes de produção.
  */
 export const COEFICIENTES: { source: string; needsVerification: boolean; byYear: Record<number, number> } = {
-  source: "Portaria dos coeficientes de desvalorização da moeda (a confirmar)",
-  needsVerification: true,
+  source: "Portaria n.º 457/2026/1, de 15 de outubro (alienações em 2026)",
+  needsVerification: false,
   byYear: {
-    2000: 1.44, 2001: 1.34, 2002: 1.29, 2003: 1.26, 2004: 1.24,
-    2005: 1.22, 2006: 1.19, 2007: 1.16, 2008: 1.12, 2009: 1.13,
-    2010: 1.12, 2011: 1.06, 2012: 1.04, 2013: 1.03, 2014: 1.04,
-    2015: 1.04, 2016: 1.03, 2017: 1.01, 2018: 0.99, 2019: 0.98,
-    2020: 0.97, 2021: 0.96, 2022: 0.91, 2023: 0.85, 2024: 0.83,
+    2000:1.71,2001:1.58,2002:1.52,2003:1.48,2004:1.46,
+    2005:1.43,2006:1.37,2007:1.35,2008:1.31,2009:1.33,
+    2010:1.31,2011:1.27,2012:1.23,2013:1.23,2014:1.23,2015:1.23,
+    2016:1.22,2017:1.21,2018:1.20,2019:1.20,2020:1.20,
+    2021:1.19,2022:1.08,2023:1.04,2024:1.02,2025:1.00,2026:1.00,
   },
 };
 
@@ -122,7 +122,11 @@ export function calcularMaisValias(input: MaisValiasInput): MaisValiasResult {
   let needsAnalysis = false;
 
   const quota = Math.min(1, Math.max(0, (input.quota || 100) / 100));
-  const coeficiente = coeficienteFor(input.anoAquisicao, input.anoVenda, notes);
+  if (input.anoVenda !== FISCAL_YEAR) { needsAnalysis = true; notes.push("Tabela de coeficientes validada apenas para vendas em 2026. Ano de venda diferente: requer análise fiscal."); }
+  if (input.anoAquisicao < 2000) { needsAnalysis = true; notes.push("Aquisições anteriores a 2000 exigem consulta da tabela integral da Portaria."); }
+  if (input.anoVenda - input.anoAquisicao === 2) { needsAnalysis = true; notes.push("Confirmar datas exatas: o coeficiente só se aplica após mais de 24 meses."); }
+  if (input.despesas.some(d => !d.hasProof)) { needsAnalysis = true; notes.push("Despesas sem comprovativos confirmados: dedutibilidade sujeita a validação."); }
+  const coeficiente = input.anoVenda === FISCAL_YEAR ? coeficienteFor(input.anoAquisicao, input.anoVenda, notes) : 1;
 
   // Valor de aquisição: em herança/doação usa-se o valor considerado para
   // efeitos de Imposto do Selo (VPT) — o utilizador introduz esse valor.
@@ -169,7 +173,7 @@ export function calcularMaisValias(input: MaisValiasInput): MaisValiasResult {
 
   // Imposto só quando residente + taxa marginal fornecida.
   let impostoEstimado: number | null = null;
-  if (!menosValia && input.residencia === "residente" && typeof input.taxaMarginalEstimada === "number") {
+  if (!menosValia && !needsAnalysis && input.residencia === "residente" && typeof input.taxaMarginalEstimada === "number") {
     impostoEstimado = round2(baseTributavel * input.taxaMarginalEstimada);
   } else if (!menosValia) {
     notes.push("Imposto final não estimado: depende dos restantes rendimentos, agregado familiar e regras aplicáveis ao seu caso.");

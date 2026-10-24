@@ -105,6 +105,8 @@ export async function notifyLead(
 export async function notifyGeneric(opts: {
   subject: string;
   text: string;
+  html?: string;
+  attachments?: { filename: string; content: string }[];
   to?: (string | undefined)[];
 }): Promise<string[]> {
   const channels: string[] = [];
@@ -136,7 +138,7 @@ export async function notifyGeneric(opts: {
           authorization: `Bearer ${resendKey}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ from, reply_to: delivery.notifyEmail, to, subject: opts.subject, text: opts.text }),
+        body: JSON.stringify({ from, reply_to: delivery.notifyEmail, to, subject: opts.subject, text: opts.text, ...(opts.html ? { html: opts.html } : {}), ...(opts.attachments ? { attachments: opts.attachments } : {}) }),
         signal: AbortSignal.timeout(8000),
       });
       if (res.ok) channels.push("email");

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { buildMaisValiasHtml } from "@/lib/tools/mais-valias-report-html";
+import { generateMaisValiasPdf } from "@/lib/tools/mais-valias-report-pdf";
 
 import { createLead, getAgentPublicById } from "@/lib/db/repo";
 import { notifyGeneric, notifyLead } from "@/lib/notify";
@@ -59,16 +61,21 @@ export async function POST(request: Request) {
   const report = buildEmailReport(s, result);
   const newLead = buildLead(s, result, "pendente");
   if (s.ref) { newLead.ownerId = s.ref; newLead.assignedAgentId = s.ref; }
-  newLead.message = `${newLead.message}\n\n${report.text}`;
+  // Keep CRM message concise; do not dump the entire report into the lead.
   let lead;
   try {
     lead = await createLead(newLead);
   } catch {
     return NextResponse.json({ error: "persist_failed", retry: true }, { status: 503 });
   }
+  // Persist a private snapshot so the consultant can regenerate/send the same PDF.
+  if (isSupabaseConfigured()) {
+    const { error: snapshotError } = await createAdminClient().from("mais_valias_reports").upsert({ lead_id: lead.id, submission: s, calculation: result }, { onConflict: "lead_id" });
+    if (snapshotError) console.error("[mais-valias] report snapshot failed", snapshotError.code);
+  }
   let emailChannels: string[] = [];
   try {
-    emailChannels = await notifyGeneric({ subject: report.subject, text: report.text, to: [s.email] });
+    emailChannels = await notifyGeneric({ subject: report.subject, text: report.text, html: buildMaisValiasHtml(s, result), attachments: [{ filename: "HousePro-Mais-Valias.pdf", content: Buffer.from(generateMaisValiasPdf(s, result)).toString("base64") }], to: [s.email] });
   } catch { /* saved for manual follow-up */ }
   const emailStatus = emailChannels.includes("email") ? "enviado" : "pendente";
   if (isSupabaseConfigured()) {

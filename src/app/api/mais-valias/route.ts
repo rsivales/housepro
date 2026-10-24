@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildMaisValiasHtml } from "@/lib/tools/mais-valias-report-html";
 
 import { createLead, getAgentPublicById } from "@/lib/db/repo";
 import { notifyGeneric, notifyLead } from "@/lib/notify";
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
   const report = buildEmailReport(s, result);
   const newLead = buildLead(s, result, "pendente");
   if (s.ref) { newLead.ownerId = s.ref; newLead.assignedAgentId = s.ref; }
-  newLead.message = `${newLead.message}\n\n${report.text}`;
+  // Keep CRM message concise; do not dump the entire report into the lead.
   let lead;
   try {
     lead = await createLead(newLead);
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
   }
   let emailChannels: string[] = [];
   try {
-    emailChannels = await notifyGeneric({ subject: report.subject, text: report.text, to: [s.email] });
+    emailChannels = await notifyGeneric({ subject: report.subject, text: report.text, html: buildMaisValiasHtml(s, result), to: [s.email] });
   } catch { /* saved for manual follow-up */ }
   const emailStatus = emailChannels.includes("email") ? "enviado" : "pendente";
   if (isSupabaseConfigured()) {

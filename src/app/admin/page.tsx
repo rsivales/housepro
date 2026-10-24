@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandRoyaltiesCard } from "@/components/admin/royalties-card";
 import { useDirectory } from "@/lib/use-directory";
 
 import * as React from "react";
@@ -36,12 +37,14 @@ export default function AdminPage() {
   React.useEffect(()=>{void fetch("/api/properties/portfolio?scope=agency",{cache:"no-store"}).then(async r=>{if(r.ok)setPortfolio(await r.json());}).catch(()=>{});},[]);
   const [rule, setRule] = React.useState<OrderingRule>(siteConfig.homeMoreRule);
   const [wm, setWm] = React.useState<WatermarkConfig>(defaultWatermark);
+  const [canManageFinance, setCanManageFinance] = React.useState(false);
   const [canManageWebsite, setCanManageWebsite] = React.useState(false);
   const [canManageSignature, setCanManageSignature] = React.useState(false);
 
   React.useEffect(() => {
     fetch("/api/me/role").then((r) => r.json()).then((data) => {
       setCanManageWebsite(data?.superadmin === true);
+      setCanManageFinance(data?.networkFinanceAdmin === true);
       setCanManageSignature(data?.brandAdmin === true);
     }).catch(() => {});
     const stored = localStorage.getItem(HOME_RULE_KEY) as OrderingRule | null;
@@ -222,6 +225,8 @@ export default function AdminPage() {
           ))}
         </section>
 
+        {canManageFinance && <BrandRoyaltiesCard />}
+
         {/* Alerta vermelho + atalhos de gestão */}
         {(pendentes.length > 0 || docMissingCount > 0) && (
           <div className="mt-6 rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
@@ -247,6 +252,8 @@ export default function AdminPage() {
         )}
 
         <section className="mt-6 grid gap-4 sm:grid-cols-3">
+          {canManageFinance && <NavCard href="/admin/email" icon={Settings} title="Envio de e-mails" note="Remetente, chave e teste de envio" />}
+          {canManageFinance && <NavCard href="/admin/royalties" icon={TrendingUp} title="Royalties Brand" note="Acumulado por agência e negócio" />}
           <NavCard href="/admin/aprovacoes" icon={ShieldCheck} title="Aprovações" note={`${pendentes.length} pendente(s) · SLA 24–48h`} alert={pendentes.length > 0} />
           <NavCard href="/admin/permissoes" icon={ShieldHalf} title="Permissões" note="Hierarquia · quem aprova/vê" />
           <NavCard href="/admin/exportacoes" icon={Rss} title="Exportações & portais" note="Contratos e estado por imóvel" />

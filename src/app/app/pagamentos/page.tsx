@@ -5,6 +5,8 @@ import { ArrowLeft, Wallet } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { isStaff } from "@/lib/data/roles";
+import { listFinancialPayouts, mapFinancialPayout } from "@/lib/db/finance";
+import { isNetworkFinanceAdmin } from "@/lib/data/finance-access";
 import { demoPayouts } from "@/lib/data/payments";
 import { PaymentsBoard } from "@/components/consultant/payments-board";
 
@@ -14,10 +16,10 @@ export default async function PagamentosPage() {
   const session = await getSession();
   if (!session) redirect("/entrar");
   const { agent } = session;
-  const canManage = isStaff(agent);
+  const canManage = isStaff(agent) && !session.viewingAs;
 
-  const all = demoPayouts();
-  const list = canManage ? all : all.filter((p) => p.beneficiaryId === agent.id);
+  const all = session.demo ? demoPayouts() : (await listFinancialPayouts(agent)).map(mapFinancialPayout);
+  const list = all;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -31,11 +33,11 @@ export default async function PagamentosPage() {
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           Cada fecho de negócio gera linhas de pagamento por beneficiário — produção,
-          override de rede, royalties da agência e os 2% do fundo de pensão. Acompanha o
+          override de rede, royalties da marca e os 2% do fundo de pensão. Acompanha o
           estado de cada uma, do processamento ao pagamento.
         </p>
 
-        <PaymentsBoard initial={list} canManage={canManage} demo={session.demo} />
+        <PaymentsBoard canManageRoyalties={isNetworkFinanceAdmin(agent)} initial={list} canManage={canManage} demo={session.demo} />
       </div>
     </div>
   );

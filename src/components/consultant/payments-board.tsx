@@ -6,7 +6,7 @@ import { ArrowRight, Check, Coins, PiggyBank, Wallet } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { formatEuro } from "@/lib/format";
+import { formatMoney as formatEuro } from "@/lib/data/finance-access";
 import {
   ROLE_LABEL, STATUS_LABEL, STATUS_FLOW, payoutTotals,
   type Payout, type PayoutStatus,
@@ -16,9 +16,10 @@ const ROLE_ICON: Record<string, React.ElementType> = {
   producao: Wallet, override: Coins, royalties: Coins, pensao: PiggyBank,
 };
 
-export function PaymentsBoard({ initial, canManage, demo }: { initial: Payout[]; canManage: boolean; demo?: boolean }) {
+export function PaymentsBoard({ initial, canManage, canManageRoyalties=false, demo }: { initial: Payout[]; canManage: boolean; canManageRoyalties?: boolean; demo?: boolean }) {
   const [payouts, setPayouts] = React.useState<Payout[]>(initial);
   const [busy, setBusy] = React.useState<string | null>(null);
+  const [error,setError] = React.useState("");
   const t = payoutTotals(payouts);
 
   async function advance(p: Payout) {
@@ -26,19 +27,22 @@ export function PaymentsBoard({ initial, canManage, demo }: { initial: Payout[];
     if (idx >= STATUS_FLOW.length - 1) return;
     const next = STATUS_FLOW[idx + 1] as PayoutStatus;
     setBusy(p.id);
-    setPayouts((prev) => prev.map((x) => (x.id === p.id ? { ...x, status: next, paidAt: next === "pago" ? new Date().toISOString() : x.paidAt } : x)));
+    setError("");
     try {
-      await fetch("/api/payments/status", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
+      const res = await fetch("/api/payments/status", {
+        method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ id: p.id, status: next }),
       });
-    } catch {/* best-effort — estado local já atualizado */}
-    setBusy(null);
+      const data=await res.json();
+      if(!res.ok)throw new Error(data.error||"Não foi possível guardar.");
+      setPayouts(prev=>prev.map(x=>x.id===p.id?{...x,status:next,paidAt:next==="pago"?new Date().toISOString():x.paidAt}:x));
+    } catch(e) {setError(e instanceof Error?e.message:"Não foi possível guardar.");}
+    finally{setBusy(null);}
   }
 
   return (
     <div className="mt-6 space-y-6">
+      {error&&<p role="alert" className="rounded-xl border border-destructive p-3 text-sm">{error}</p>}
       {/* Totais */}
       <div className="grid gap-3 sm:grid-cols-4">
         <Card label="Total" value={formatEuro(t.total)} tone="primary" />
@@ -82,9 +86,9 @@ export function PaymentsBoard({ initial, canManage, demo }: { initial: Payout[];
                 </p>
               </div>
               <span className="shrink-0 font-display text-lg tabular-nums">{formatEuro(p.amount)}</span>
-              {canManage && !last && (
+              {canManage && (p.role!=="royalties"||canManageRoyalties) && !last && (
                 <Button size="sm" variant="outline" disabled={busy === p.id} onClick={() => advance(p)}>
-                  <Check className="size-3.5" /> {p.status === "pendente" ? "Processar" : "Pagar"}
+                  <Check className="size-3.5" /> {p.status === "pendente" ? "Processar" : "Confirmar pagamento"}
                 </Button>
               )}
             </div>
@@ -95,7 +99,7 @@ export function PaymentsBoard({ initial, canManage, demo }: { initial: Payout[];
       <p className="rounded-lg bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
         {demo ? "Modo demo: exemplos de pagamentos. " : ""}
         Com o Supabase ligado, cada fecho de negócio cria estas linhas automaticamente e o
-        estado sincroniza com a contabilidade. Os 2% alimentam o fundo de pensão do consultor.
+        estado só passa a pago após confirmação nesta área. Os 2% alimentam o fundo de pensão do consultor.
       </p>
     </div>
   );

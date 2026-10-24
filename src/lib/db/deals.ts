@@ -527,12 +527,19 @@ async function enrichFinancials(
           companyValidated: p.company_validated === true,
         });
   }
+  const snapshots = new Map<string, DealCommissionEstimate>();
+  const closedIds = rows.filter(row => row.stage === "concluido").map(row => row.id);
+  if (closedIds.length) {
+    const { data, error } = await sb.from("deal_financial_closures").select("deal_id,snapshot").eq("status", "posted").in("deal_id", closedIds);
+    if (error) throw new Error("financial_snapshot_unavailable");
+    for (const c of data ?? []) snapshots.set(c.deal_id, c.snapshot.financials as DealCommissionEstimate);
+  }
   return rows.map((row) => {
     const deal = mapDeal(row),
       p = Array.isArray(row.property) ? row.property[0] : row.property;
     return {
       ...deal,
-      financials: estimateDealCommission(
+      financials: snapshots.get(row.id) ?? estimateDealCommission(
         {
           gross: deal.commissionEstimate,
           externalShare: deal.coBrokerSplitAmount,

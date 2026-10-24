@@ -1,0 +1,7 @@
+import Link from "next/link";
+import {redirect} from "next/navigation";
+import {getSession} from "@/lib/supabase/auth";
+import {isNetworkFinanceAdmin} from "@/lib/data/finance-access";
+import {EmailSettings} from "@/components/admin/email-settings";
+export const metadata={title:"Envio de e-mails — Helix"};
+export default async function EmailPage(){const session=await getSession();if(!session)redirect("/entrar");if(session.demo||!isNetworkFinanceAdmin(session.agent))redirect("/app");return <main className="mx-auto max-w-3xl px-4 py-8"><Link href="/admin" className="text-sm text-primary">← Administração</Link><h1 className="mt-4 font-display text-3xl">Envio de e-mails</h1><p className="mt-2 text-sm text-muted-foreground">Configure aqui o envio dos relatórios e dos avisos do Helix.</p><ol className="mt-6 list-decimal space-y-3 pl-5 text-sm"><li>Na sua conta Resend, adicione e valide o domínio remetente, por exemplo housepro.pt. A validação exige os registos DNS indicados pelo Resend.</li><li>Crie uma chave com permissão de envio e introduza-a abaixo. O remetente deve usar esse domínio; endereços Gmail não servem como domínio remetente nesta integração.</li><li>Guarde, ative o envio e envie um teste para a sua conta.</li></ol><p className="mt-4 text-sm"><a href="https://resend.com/domains" target="_blank" rel="noreferrer" className="text-primary underline">Domínios no Resend</a> · <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer" className="text-primary underline">Chaves de envio</a></p><EmailSettings/></main>;}

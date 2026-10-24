@@ -1,3 +1,4 @@
+import { emailDeliveryCredentials } from "@/lib/email-delivery";
 import type { Lead } from "@/lib/data/leads";
 
 /**
@@ -60,11 +61,12 @@ export async function notifyLead(
   }
 
   // 2) Email via Resend
-  const resendKey = process.env.RESEND_API_KEY;
-  const to = [ctx.agentEmail, process.env.LEAD_NOTIFY_EMAIL].filter(
+  const delivery = await emailDeliveryCredentials();
+  const resendKey = delivery.enabled ? delivery.apiKey : undefined;
+  const to = [ctx.agentEmail, delivery.notifyEmail].filter(
     Boolean
   ) as string[];
-  const from = process.env.LEAD_FROM_EMAIL;
+  const from = delivery.sender;
   if (resendKey && to.length && from) {
     try {
       const res = await fetch("https://api.resend.com/emails", {
@@ -75,6 +77,7 @@ export async function notifyLead(
         },
         body: JSON.stringify({
           from,
+          reply_to: delivery.notifyEmail,
           to,
           subject: `${title}${ctx.propertyRef ? ` · ${ctx.propertyRef}` : ""}`,
           text,
@@ -89,7 +92,7 @@ export async function notifyLead(
 
   if (channels.length === 0) {
     // Modo demo / sem canais configurados.
-    console.info("[lead] nova lead (sem canais de notificação):", text);
+    console.info("[lead] pedido guardado; envio externo pendente:", lead.id);
   }
   return channels;
 }
@@ -121,9 +124,10 @@ export async function notifyGeneric(opts: {
     }
   }
 
-  const resendKey = process.env.RESEND_API_KEY;
-  const to = (opts.to ?? [process.env.LEAD_NOTIFY_EMAIL]).filter(Boolean) as string[];
-  const from = process.env.LEAD_FROM_EMAIL;
+  const delivery = await emailDeliveryCredentials();
+  const resendKey = delivery.enabled ? delivery.apiKey : undefined;
+  const to = (opts.to ?? [delivery.notifyEmail]).filter(Boolean) as string[];
+  const from = delivery.sender;
   if (resendKey && to.length && from) {
     try {
       const res = await fetch("https://api.resend.com/emails", {
@@ -132,7 +136,7 @@ export async function notifyGeneric(opts: {
           authorization: `Bearer ${resendKey}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ from, to, subject: opts.subject, text: opts.text }),
+        body: JSON.stringify({ from, reply_to: delivery.notifyEmail, to, subject: opts.subject, text: opts.text }),
         signal: AbortSignal.timeout(8000),
       });
       if (res.ok) channels.push("email");
@@ -142,7 +146,7 @@ export async function notifyGeneric(opts: {
   }
 
   if (channels.length === 0) {
-    console.info("[notify]", opts.subject, "\n" + opts.text);
+    console.info("[notify] envio externo pendente");
   }
   return channels;
 }

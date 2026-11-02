@@ -162,6 +162,7 @@ export interface Visit {
   contactName?: string;
   propertyId?: string;
   propertyRef?: string;
+  location?: string;
   kind: VisitKind;
   at: string;
   durationMin?: number;

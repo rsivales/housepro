@@ -655,6 +655,8 @@ export async function listPropertyAudit(propertyId: string): Promise<AuditEntry[
       id: String(r.id),
       propertyId: String(r.property_id ?? propertyId),
       propertyRef: (r.property_ref as string) ?? undefined,
+      contactName: (r.contact_name as string) ?? undefined,
+      location: (r.location as string) ?? undefined,
       actorId: String(r.actor_id ?? ""),
       actorName: String(r.actor_name ?? "—"),
       actorRole: (r.actor_role as string) ?? undefined,
@@ -2181,13 +2183,13 @@ export async function setTaskDone(id: string, done: boolean): Promise<boolean> {
 /** Agenda do consultor (visitas/eventos, por data). */
 export async function listVisitsByOwner(ownerId: string): Promise<Visit[]> {
   if (!isSupabaseConfigured()) return demoVisitsByOwner(ownerId);
-  try {
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("visits")
       .select("*")
       .eq("owner_id", ownerId)
       .order("at", { ascending: true });
+    if (error) throw error;
     return (data ?? []).map((r: Row) => ({
       id: String(r.id),
       ownerId: String(r.owner_id ?? ownerId),
@@ -2200,9 +2202,6 @@ export async function listVisitsByOwner(ownerId: string): Promise<Visit[]> {
       status: (r.status as Visit["status"]) ?? "agendada",
       note: (r.note as string) ?? undefined,
     }));
-  } catch {
-    return demoVisitsByOwner(ownerId);
-  }
 }
 
 /** Cria uma visita/evento na agenda (dual). */
@@ -2212,6 +2211,7 @@ export async function createVisit(input: {
   contactName?: string;
   propertyId?: string;
   propertyRef?: string;
+  location?: string;
   kind: Visit["kind"];
   at: string;
   durationMin?: number;
@@ -2223,15 +2223,16 @@ export async function createVisit(input: {
     ...input,
   };
   if (!isSupabaseConfigured()) return visit;
-  try {
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("visits")
       .insert({
         owner_id: input.ownerId,
         contact_id: input.contactId ?? null,
         property_id: input.propertyId ?? null,
         property_ref: input.propertyRef ?? null,
+        contact_name: input.contactName ?? null,
+        location: input.location ?? null,
         kind: input.kind,
         at: input.at,
         duration_min: input.durationMin ?? null,
@@ -2239,10 +2240,28 @@ export async function createVisit(input: {
       })
       .select("id")
       .single();
-    return { ...visit, id: data ? String(data.id) : visit.id };
-  } catch {
-    return visit;
-  }
+    if (error || !data) throw error ?? new Error("visit_create_failed");
+    return { ...visit, id: String(data.id) };
+}
+
+/** Edita apenas eventos pertencentes ao consultor autenticado. */
+export async function updateVisit(ownerId: string, id: string, patch: Pick<Visit,"kind"|"at"|"contactName"|"propertyRef"|"location"|"durationMin"|"note">): Promise<Visit | null> {
+  if (!isSupabaseConfigured()) return { id, ownerId, status:"agendada", ...patch };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("visits").update({
+    kind:patch.kind, at:patch.at, contact_name:patch.contactName ?? null,
+    property_ref:patch.propertyRef ?? null, location:patch.location ?? null,
+    duration_min:patch.durationMin ?? null, note:patch.note ?? null,
+  }).eq("id",id).eq("owner_id",ownerId).select("*").maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id:String(data.id),ownerId:String(data.owner_id),contactId:data.contact_id ?? undefined,
+    contactName:data.contact_name ?? undefined,propertyId:data.property_id ?? undefined,
+    propertyRef:data.property_ref ?? undefined,location:data.location ?? undefined,
+    kind:data.kind,at:data.at,durationMin:data.duration_min ?? undefined,
+    status:data.status,note:data.note ?? undefined,
+  };
 }
 
 // --- X Call (chamadas assistidas, F3) --------------------------------------

@@ -12,11 +12,14 @@ export async function agencyDashboard(agent:Agent,id:string,period:AgencyPeriod)
  sb.from("payouts").select("amount,status,paid_at").eq("agency_id",id).eq("status","pago"),
  sb.from("deals").select("id,stage,property:properties!property_id(reference)").eq("agency_id",id),
  sb.from("profiles").select("id,name,role_key,public_title").eq("agency_id",id).eq("active",true).order("name"),
+ sb.from("consultant_other_income").select("status,gross_amount,consultant_amount,agency_amount").eq("agency_id",id).gte("earned_on",period.from).lte("earned_on",period.to),
+ sb.from("consultant_other_income").select("consultant_amount,decided_at").eq("agency_id",id).eq("status","pago"),
 ]);if(results.some(r=>r.error))throw new Error("agency_report_unavailable");
  const closures=((results[0].data??[]) as unknown as AgencyClosure[]).filter(c=>{const day=dayInLisbon(c.closed_at);return day>=period.from&&day<=period.to;});
  const cash=(results[2].data??[]).map(c=>({...c,createdBy:(Array.isArray(c.creator)?c.creator[0]:c.creator)?.name||"—"})) as AgencyCash[];
  const payments=(results[3].data??[]).filter(p=>p.paid_at&&dayInLisbon(p.paid_at)>=period.from&&dayInLisbon(p.paid_at)<=period.to);
- const totals=agencyTotals(closures,results[1].data??[],cash,payments);
+ const otherPaid=(results[7].data??[]).filter(r=>r.decided_at&&dayInLisbon(r.decided_at)>=period.from&&dayInLisbon(r.decided_at)<=period.to);
+ const totals=agencyTotals(closures,results[1].data??[],cash,payments,results[6].data??[],otherPaid);
  const production=new Map<string,AgencyClosure["snapshot"]["financials"]["producers"][number]&{count:number}>();
  for(const c of closures)for(const p of c.snapshot.financials.producers){const current=production.get(p.id);if(!current)production.set(p.id,{...p,count:1});else{current.count++;for(const key of ["commissionBase","agentGross","agencyGross","royalties","royaltiesAgency","pension","agentNet"] as const)current[key]+=Number(p[key]);}}
  const adjustments=new Map((results[1].data??[]).map(a=>[a.closure_id,Number(a.amount)]));

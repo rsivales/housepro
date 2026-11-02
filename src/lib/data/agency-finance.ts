@@ -8,7 +8,7 @@ export const CASH_CATEGORIES={commission:"Recebimento de comissão",other_income
 export interface AgencyProducer{id:string;name:string;commissionBase:number;agentGross:number;agencyGross:number;royalties:number;royaltiesAgency:number;pension:number;agentNet:number;}
 export interface AgencyClosure{id:string;deal_id:string;agency_id:string;property_reference:string;closed_at:string;gross:number;retained:number;royalties_agent:number;royalties_agency:number;pension_total:number;broker_pension_total:number;agency_net:number;snapshot:{financials:{producers:AgencyProducer[]};overrides?:{amount:number}[]};}
 export interface AgencyCash{id:string;kind:"income"|"expense";entry_date:string;category:string;description:string;amount:number;deal_id:string|null;voided_at:string|null;created_at:string;createdBy?:string;}
-export function agencyTotals(closures:AgencyClosure[],adjustments:{closure_id:string;amount:number}[],cash:AgencyCash[],payments:{amount:number;status:string}[]){
+export function agencyTotals(closures:AgencyClosure[],adjustments:{closure_id:string;amount:number}[],cash:AgencyCash[],payments:{amount:number;status:string}[],otherIncome:{status:string;gross_amount:number;consultant_amount:number|null;agency_amount:number|null}[]=[],paidOtherIncome:{consultant_amount:number|null}[]=[]){
  const cents=(n:number)=>Math.round((n+Number.EPSILON)*100)/100;
  const adjustment=new Map(adjustments.map(a=>[a.closure_id,Number(a.amount)]));
  const producerRows=closures.flatMap(c=>c.snapshot.financials.producers);
@@ -16,5 +16,10 @@ export function agencyTotals(closures:AgencyClosure[],adjustments:{closure_id:st
  const income=cents(cash.filter(c=>c.kind==="income"&&!c.voided_at).reduce((n,c)=>n+Number(c.amount),0));
  const agencyNet=cents(closures.reduce((n,c)=>n+Number(c.agency_net)-(adjustment.get(c.id)||0),0));
  const paid=cents(payments.filter(p=>p.status==="pago").reduce((n,p)=>n+Number(p.amount),0));
- return {deals:closures.length,gross:cents(closures.reduce((n,c)=>n+Number(c.gross),0)),agencyGross:cents(producerRows.reduce((n,p)=>n+Number(p.agencyGross),0)),royaltiesAgency:cents(closures.reduce((n,c)=>n+Number(c.royalties_agency),0)),pensionAgent:cents(closures.reduce((n,c)=>n+Number(c.pension_total),0)),pensionBroker:cents(closures.reduce((n,c)=>n+Number(c.broker_pension_total)+(adjustment.get(c.id)||0),0)),agencyNet,expense,income,paid,result:cents(agencyNet-expense),cashFlow:cents(income-expense-paid)};
+ const validated=otherIncome.filter(r=>r.status==="aprovado"||r.status==="pago");
+ const otherGross=cents(validated.reduce((n,r)=>n+Number(r.gross_amount),0));
+ const otherConsultant=cents(validated.reduce((n,r)=>n+Number(r.consultant_amount),0));
+ const otherAgency=cents(validated.reduce((n,r)=>n+Number(r.agency_amount),0));
+ const otherPaid=cents(paidOtherIncome.reduce((n,r)=>n+Number(r.consultant_amount),0));
+ return {deals:closures.length,gross:cents(closures.reduce((n,c)=>n+Number(c.gross),0)),agencyGross:cents(producerRows.reduce((n,p)=>n+Number(p.agencyGross),0)),royaltiesAgency:cents(closures.reduce((n,c)=>n+Number(c.royalties_agency),0)),pensionAgent:cents(closures.reduce((n,c)=>n+Number(c.pension_total),0)),pensionBroker:cents(closures.reduce((n,c)=>n+Number(c.broker_pension_total)+(adjustment.get(c.id)||0),0)),agencyNet,otherGross,otherConsultant,otherAgency,otherPaid,expense,income,paid,result:cents(agencyNet+otherAgency-expense),cashFlow:cents(income-expense-paid-otherPaid)};
 }

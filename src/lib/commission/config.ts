@@ -1,10 +1,9 @@
 /**
  * ────────────────────────────────────────────────────────────────────────────
- * FONTE ÚNICA DE VERDADE das percentagens de comissão da HousePro.
+ * Regime de referência da HousePro, usado antes de uma agência configurar o seu.
  * ────────────────────────────────────────────────────────────────────────────
- * Todos os motores (escada em `tiers.ts`, override em `split.ts`/`override-chain`)
- * e todos os ecrãs LEEM daqui — muda-se num único sítio e "bate tudo certo",
- * sem margem para discrepâncias.
+ * Os fechos reais leem o regime versionado da agência e guardam-no no snapshot;
+ * estes valores são o padrão e o fallback para estimativas sem configuração.
  *
  * Modelo (por perna de comissão — angariação e/ou venda, tratadas em separado):
  *  1. Royalties da marca: `royaltiesPct` de CADA lado (agente e agência).

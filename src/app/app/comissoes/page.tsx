@@ -8,8 +8,9 @@ import { getSession } from "@/lib/supabase/auth";
 import { getAfilhadosTree, getAgentCompanyValidated } from "@/lib/db/repo";
 import { agentPrefixOf } from "@/lib/data/mock";
 import { affiliateCode } from "@/lib/codes";
-import { DEFAULT_SPLIT, maxOverrideDepth } from "@/lib/commission/split";
 import { computeLeg, currentTierLabel } from "@/lib/commission/tiers";
+import { readCommissionRegime } from "@/lib/db/commission-regime";
+import { DEFAULT_REGIME, regimeForCalculator } from "@/lib/data/commission-regime";
 import { formatEuro } from "@/lib/format";
 import type { AfilhadoNode } from "@/lib/data/afilhados";
 
@@ -26,13 +27,13 @@ interface Linha {
 }
 
 /** Percorre a árvore por gerações e produz uma linha por afilhado, com código. */
-function linhas(root: AfilhadoNode, prefix: string, maxDepth: number): Linha[] {
+function linhas(root: AfilhadoNode, prefix: string, tiers: number[]): Linha[] {
   const out: Linha[] = [];
   let frontier = root.children;
   let level = 1;
-  while (frontier.length && level <= maxDepth) {
+  while (frontier.length && level <= tiers.length) {
     frontier.forEach((node, i) => {
-      const pct = DEFAULT_SPLIT.overrideTiers[level - 1] ?? 0;
+      const pct = tiers[level - 1] ?? 0;
       const override = node.active && !node.inactive ? (node.monthlyGross * pct) / 100 : 0;
       out.push({
         code: affiliateCode(prefix, level, i + 1),
@@ -57,10 +58,12 @@ export default async function ComissoesPage() {
   const session = await getSession();
   if (!session) redirect("/entrar");
   const { agent } = session;
+  const regime = !session.demo && agent.agencyId ? (await readCommissionRegime(agent.agencyId)).plan : DEFAULT_REGIME;
+  const calculatorPlan = regimeForCalculator(regime);
 
   const prefix = agentPrefixOf(agent.id);
   const root = await getAfilhadosTree(agent.id, agent.name);
-  const rows = linhas(root, prefix, maxOverrideDepth());
+  const rows = linhas(root, prefix, regime.overrideTiers);
   const overrideTotal = rows.reduce((s, r) => s + r.override, 0);
 
   // Faturação REAL do ciclo = monthly_gross do próprio agente (creditado pelo
@@ -75,12 +78,12 @@ export default async function ComissoesPage() {
     priorFaturacao: 0,
     priorAgencyTake: 0,
     hasValidatedCompany: await getAgentCompanyValidated(agent.id),
-  });
+  }, calculatorPlan);
 
-  const byGen = Array.from({ length: maxOverrideDepth() }, (_, i) => {
+  const byGen = Array.from({ length: regime.overrideTiers.length }, (_, i) => {
     const gen = i + 1;
     const gr = rows.filter((r) => r.generation === gen);
-    return { gen, pct: DEFAULT_SPLIT.overrideTiers[i] ?? 0, count: gr.length, total: gr.reduce((s, r) => s + r.override, 0) };
+    return { gen, pct: regime.overrideTiers[i] ?? 0, count: gr.length, total: gr.reduce((s, r) => s + r.override, 0) };
   });
 
   return (
@@ -94,7 +97,7 @@ export default async function ComissoesPage() {
           <Coins className="size-7 text-primary" /> Comissões
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Faturação e override organizados pelos códigos legíveis — fácil de conferir e auditar.
+          Faturação registada e simulação de override segundo o regime atual da agência.
           O teu código: <span className="font-mono text-foreground">{prefix}</span>
         </p>
         <span
@@ -113,7 +116,7 @@ export default async function ComissoesPage() {
               <TrendingUp className="size-3.5" /> Faturação (ciclo)
             </p>
             <p className="mt-1 font-display text-2xl tabular-nums">{formatEuro(faturacao)}</p>
-            <p className="text-xs text-muted-foreground">Patamar {currentTierLabel(faturacao)}</p>
+            <p className="text-xs text-muted-foreground">Patamar {currentTierLabel(faturacao, calculatorPlan)}</p>
           </div>
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Líquido pessoal (est.)</p>
@@ -122,7 +125,7 @@ export default async function ComissoesPage() {
           </div>
           <div className="rounded-2xl border bg-primary p-5 text-primary-foreground shadow-sm">
             <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-primary-foreground/80">
-              <Network className="size-3.5" /> Override da rede / mês
+              <Network className="size-3.5" /> Override estimado (regime atual)
             </p>
             <p className="mt-1 font-display text-2xl tabular-nums">{formatEuro(overrideTotal)}</p>
             <p className="text-xs text-primary-foreground/80">{rows.length} afilhados</p>
@@ -130,7 +133,7 @@ export default async function ComissoesPage() {
         </div>
 
         {/* Por geração */}
-        <h2 className="mt-8 font-display text-xl">Override por geração</h2>
+        <h2 className="mt-8 font-display text-xl">Simulação por geração</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-4">
           {byGen.map((g) => (
             <div key={g.gen} className="rounded-2xl border bg-card p-4 shadow-sm">
@@ -167,7 +170,7 @@ export default async function ComissoesPage() {
                 </tr>
               ))}
               <tr className="bg-secondary/40 font-medium">
-                <td className="px-4 py-3" colSpan={5}>Total override / mês</td>
+                <td className="px-4 py-3" colSpan={5}>Total estimado</td>
                 <td className="px-4 py-3 text-right font-display tabular-nums">{formatEuro(overrideTotal)}</td>
               </tr>
             </tbody>

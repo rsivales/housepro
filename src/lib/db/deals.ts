@@ -6,6 +6,7 @@ import {
 import { effectiveCommission } from "@/lib/data/commission";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { syncPropertyStatusFromDeal } from "@/lib/db/property-status";
+import { DEFAULT_REGIME, regimeForCalculator, type CommissionRegime } from "@/lib/data/commission-regime";
 import type { DealStage } from "@/lib/data/deal";
 
 export type CommissionType = "percent" | "fixed";
@@ -528,6 +529,13 @@ async function enrichFinancials(
         });
   }
   const snapshots = new Map<string, DealCommissionEstimate>();
+  const agencyIds = [...new Set(rows.map(row => row.agency_id).filter((id): id is string => Boolean(id)))];
+  const regimes = new Map<string, CommissionRegime>();
+  if (agencyIds.length) {
+    const { data, error } = await sb.from("agency_finance_settings").select("agency_id,commission_regime").in("agency_id", agencyIds);
+    if (error) throw new Error("commission_regime_unavailable");
+    for (const setting of data ?? []) regimes.set(setting.agency_id, setting.commission_regime ?? DEFAULT_REGIME);
+  }
   const closedIds = rows.filter(row => row.stage === "concluido").map(row => row.id);
   if (closedIds.length) {
     const { data, error } = await sb.from("deal_financial_closures").select("deal_id,snapshot").eq("status", "posted").in("deal_id", closedIds);
@@ -549,6 +557,7 @@ async function enrichFinancials(
           allocations: p?.commission_split,
         },
         profiles,
+        regimeForCalculator(regimes.get(row.agency_id ?? "") ?? DEFAULT_REGIME),
       ),
     };
   });

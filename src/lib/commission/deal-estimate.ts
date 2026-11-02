@@ -1,4 +1,4 @@
-import { computeLeg } from "./tiers";
+import { computeLeg, DEFAULT_PLAN, type CommissionPlan } from "./tiers";
 export interface ProducerContext {
   id: string;
   name: string;
@@ -38,6 +38,7 @@ const cents = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 export function estimateDealCommission(
   input: DealEstimateInput,
   profiles: Map<string, ProducerContext>,
+  plan: CommissionPlan = DEFAULT_PLAN,
 ): DealCommissionEstimate {
   const missing = (reason: string): DealCommissionEstimate => ({
     status: "missing",
@@ -106,13 +107,13 @@ export function estimateDealCommission(
       priorFaturacao: 0,
       priorAgencyTake: 0,
       hasValidatedCompany: p.companyValidated,
-    });
+    }, plan);
     const leg = computeLeg({
       legCommission: commissionBase,
       priorFaturacao: prior,
       priorAgencyTake: priorLeg.agencyGross,
       hasValidatedCompany: p.companyValidated,
-    });
+    }, plan);
     const agentGross = cents(leg.agentGross),
       royalties = cents(leg.royaltiesAgent),
       pension = cents(leg.pension);

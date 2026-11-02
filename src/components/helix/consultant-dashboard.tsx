@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 
 import { PersonalMotivationBanner } from "./personal-banner";
 import { ActionCenter, type ActionItem } from "./action-center";
@@ -39,6 +40,8 @@ export function ConsultantDashboard({ data }: { data: DashboardData }) {
       />
 
       <ActionCenter items={data.actions} />
+
+      <Link href="/app/rendimentos" className="block rounded-2xl border bg-card p-5 text-sm font-semibold text-primary">Gerir créditos, certificados e outros rendimentos →</Link>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <LeadSummary total={data.leads.total} bySource={data.leads.bySource} />

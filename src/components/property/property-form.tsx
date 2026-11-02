@@ -197,7 +197,7 @@ function BAUpload({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={value} alt={label} className="aspect-[4/3] w-full rounded-lg border object-cover" />
       ) : (
-        <span className="flex aspect-[4/3] w-full items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground">
+        <span className="flex aspect-[4/3] w-full items-center justify-center rounded-lg border border-dashed border-[#0D3B66] bg-[#0D3B66] text-xs font-semibold text-white hover:bg-[#092d4c]">
           <ImagePlus className="mr-1.5 size-4" /> Escolher imagem
         </span>
       )}
@@ -801,11 +801,11 @@ export function PropertyForm({
         {/* Fotos + marca de água */}
         <Card title="Fotografias">
           <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[#0D3B66] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#092d4c] focus-within:ring-2 focus-within:ring-[#0D3B66] focus-within:ring-offset-2">
               <ImagePlus className="size-4" /> Adicionar fotos
               <input type="file" accept="image/*" multiple onChange={onPhotos} className="hidden" />
             </label>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[#0D3B66] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#092d4c] focus-within:ring-2 focus-within:ring-[#0D3B66] focus-within:ring-offset-2">
               <Camera className="size-4" /> Tirar foto
               <input type="file" accept="image/*" capture="environment" onChange={onPhotos} className="hidden" />
             </label>
@@ -842,7 +842,7 @@ export function PropertyForm({
               />
               <Button
                 type="button"
-                variant="outline"
+                className="bg-[#0D3B66] text-white hover:bg-[#092d4c]"
                 onClick={importFromLink}
                 disabled={Boolean(importing) || !driveUrl.trim()}
               >
@@ -889,7 +889,7 @@ export function PropertyForm({
             Carregue a planta (ou plantas) do imóvel — imagem ou PDF. Aparecem no separador próprio da
             página pública — essencial para o comprador perceber a distribuição das divisões.
           </p>
-          <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
+          <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md bg-[#0D3B66] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#092d4c] focus-within:ring-2 focus-within:ring-[#0D3B66] focus-within:ring-offset-2">
             <ImagePlus className="size-4" /> Adicionar plantas
             <input type="file" accept="image/*,application/pdf" multiple onChange={onPlans} className="hidden" />
           </label>
@@ -1579,7 +1579,7 @@ export function PropertyForm({
             cada um a seguir</strong>, no menu de cada linha.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[#0D3B66] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#092d4c] focus-within:ring-2 focus-within:ring-[#0D3B66] focus-within:ring-offset-2">
               <Camera className="size-4" /> Tirar foto ao documento
               <input
                 type="file"
@@ -1589,7 +1589,7 @@ export function PropertyForm({
                 onChange={onDocs}
               />
             </label>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-secondary">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[#0D3B66] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#092d4c] focus-within:ring-2 focus-within:ring-[#0D3B66] focus-within:ring-offset-2">
               <Upload className="size-4" /> Carregar ficheiros (PDF/imagem)
               <input
                 type="file"

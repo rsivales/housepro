@@ -152,6 +152,9 @@ export interface ImovelDraft {
   baths: number;
   parish: string;
   municipality: string;
+  streetName: string;
+  streetNumber: string;
+  postalCode: string;
   /** Coordenadas geocodificadas automaticamente a partir da morada. */
   lat?: number;
   lng?: number;
@@ -377,6 +380,9 @@ export function blankImovel(id: string): ImovelDraft {
     baths: 1,
     parish: "",
     municipality: "",
+    streetName: "",
+    streetNumber: "",
+    postalCode: "",
     energy: "C",
     anoConstrucao: "",
     elevador: false,
@@ -468,6 +474,9 @@ export function draftFromProperty(p: Property): ImovelDraft {
     baths: p.baths,
     parish: p.parish,
     municipality: p.municipality,
+    streetName: p.streetName ?? "",
+    streetNumber: p.streetNumber ?? "",
+    postalCode: p.postalCode ?? "",
     lat: p.lat,
     lng: p.lng,
     energy: p.energy ?? "C",

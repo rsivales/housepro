@@ -15,6 +15,27 @@ describe("idealista JSON V6 — official schemas and mass-feed semantics",()=>{
  it("never repairs missing areas or bathrooms with fictional values",()=>{
   const feed=buildFeed([{...p,area:0,baths:0}],cfg);expect(feed.problems[0].errors).toContain("Área construída em falta (m² inteiros)");expect(feed.payload.customerProperties).toEqual([]);
  });
+ it("exports full street and precise coordinates only when exact visibility is enabled",()=>{
+  const exact={...p,location_privacy:"exact",street_name:"Rua de Portugal",street_number:"31",postal_code:"8000-281"};
+  const address=buildFeed([exact],cfg).payload.customerProperties[0].propertyAddress;
+  expect(address.addressVisibility).toBe("full");
+  expect(address.addressCoordinatesPrecision).toBe("exact");
+  expect(address.addressStreetName).toBe("Rua de Portugal");
+  expect(address.addressStreetNumber).toBe("31");
+  expect(address.addressPostalCode).toBe("8000-281");
+ });
+ it("keeps street address out of approximate portal exports",()=>{
+  const address=buildFeed([{...p,location_privacy:"approx",street_name:"Rua de Portugal",street_number:"31",postal_code:"8000-281"}],cfg).payload.customerProperties[0].propertyAddress;
+  expect(address.addressVisibility).toBe("hidden");
+  expect(address.addressCoordinatesPrecision).toBe("moved");
+  expect(address).not.toHaveProperty("addressStreetName");
+  expect(address).not.toHaveProperty("addressPostalCode");
+ });
+ it("blocks exact-address export when required address data is missing",()=>{
+  const result=buildFeed([{...p,location_privacy:"exact",street_name:"Rua de Portugal"}],cfg);
+  expect(result.count).toBe(0);
+  expect(result.problems[0].errors[0]).toContain("Morada exata");
+ });
  it("allows an explicit verified area override without changing the listing",()=>{const feed=buildFeed([{...p,area:0}],{...cfg,overrides:{[p.id]:{area:105}}});expect(feed.problems).toEqual([]);expect(feed.payload.customerProperties[0].propertyFeatures.featuresAreaConstructed).toBe(105);});
  it("supports new developments only with the corresponding service, without invented units",()=>{
   const dev={...p,is_development:true,development_name:"Jardins",development_stage:"construcao"};

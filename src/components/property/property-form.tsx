@@ -354,8 +354,10 @@ export function PropertyForm({
 
   // Geocodificação automática da morada → coordenadas do mapa.
   const [geo, setGeo] = React.useState<"idle" | "loading" | "ok" | "none" | "error">("idle");
-  const geocode = React.useCallback(async (parish: string, municipality: string) => {
-    const q = [parish, municipality].filter(Boolean).join(", ");
+  const geocode = React.useCallback(async (streetName: string, streetNumber: string, postalCode: string, parish: string, municipality: string) => {
+    const street = [streetName, streetNumber].filter(Boolean).join(" ");
+    const exactQuery = [street, postalCode, parish, municipality].filter(Boolean).join(", ");
+    const q = streetName.trim() && postalCode.trim() ? exactQuery : [parish, municipality].filter(Boolean).join(", ");
     if (!q) return;
     setGeo("loading");
     try {
@@ -371,12 +373,12 @@ export function PropertyForm({
       setGeo("error");
     }
   }, []);
-  // Corre automaticamente quando freguesia e concelho estão preenchidos.
+  // Prioriza a morada completa; sem ela, centra na freguesia/concelho.
   React.useEffect(() => {
     if (!d.parish.trim() || !d.municipality.trim()) return;
-    const t = setTimeout(() => geocode(d.parish, d.municipality), 800);
+    const t = setTimeout(() => geocode(d.streetName, d.streetNumber, d.postalCode, d.parish, d.municipality), 900);
     return () => clearTimeout(t);
-  }, [d.parish, d.municipality, geocode]);
+  }, [d.streetName, d.streetNumber, d.postalCode, d.parish, d.municipality, geocode]);
 
   // Aplica/atualiza a marca de água nas fotos NOVAS quando são adicionadas ou
   // quando o estilo global muda. As remotas (já publicadas) ficam intactas.
@@ -1119,7 +1121,16 @@ export function PropertyForm({
                 {freguesiasDoConcelho(d.distrito ?? "", d.municipality).map((x) => <option key={x} value={x}>{x}</option>)}
               </select>
             </Field>
-            <Field label="Privacidade da morada" hint="Controla o que o mapa público mostra.">
+            <Field label="Nome da rua / morada" hint="Necessário para revelar o endereço exato.">
+              <Input value={d.streetName} onChange={(e) => patch({ streetName: e.target.value })} placeholder="Rua, avenida, caminho…" autoComplete="street-address" />
+            </Field>
+            <Field label="Número de porta (opcional)">
+              <Input value={d.streetNumber} onChange={(e) => patch({ streetNumber: e.target.value })} placeholder="Ex.: 12, 12 A" autoComplete="address-line2" />
+            </Field>
+            <Field label="Código postal" hint="Formato português: 8000-281.">
+              <Input value={d.postalCode} onChange={(e) => patch({ postalCode: e.target.value })} placeholder="0000-000" autoComplete="postal-code" inputMode="numeric" />
+            </Field>
+            <Field label="Privacidade da morada" hint="Endereço e pin exatos só ficam públicos na opção “Morada exata”.">
               <select
                 value={d.locationPrivacy}
                 onChange={(e) => patch({ locationPrivacy: e.target.value as ImovelDraft["locationPrivacy"] })}
@@ -1128,6 +1139,16 @@ export function PropertyForm({
                 {LOCATION_PRIVACY.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
+            {d.locationPrivacy === "exact" && (
+              <>
+                <Field label="Latitude" hint="Pode ajustar manualmente o pin. Coordenadas decimais.">
+                  <Input type="number" step="any" value={d.lat ?? ""} onChange={(e) => patch({ lat: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="37.0194" />
+                </Field>
+                <Field label="Longitude" hint="Confirme o ponto exato no mapa antes de publicar.">
+                  <Input type="number" step="any" value={d.lng ?? ""} onChange={(e) => patch({ lng: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="-7.9304" />
+                </Field>
+              </>
+            )}
             <Field label="Referência" hint="Atribuída automaticamente ao gravar — nunca editável, para nunca duplicar.">
               <Input value={isEdit ? d.reference : "Atribuída ao gravar"} readOnly disabled className="opacity-70" />
             </Field>
@@ -1800,6 +1821,9 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     baths: d.baths,
     parish: d.parish,
     municipality: d.municipality,
+    streetName: d.streetName.trim(),
+    streetNumber: d.streetNumber.trim(),
+    postalCode: d.postalCode.trim(),
     district: d.distrito ?? "",
     energy: d.energy,
     commissionType: d.comissaoTipo,

@@ -18,7 +18,17 @@ export async function readListings(agencyId:string): Promise<Listing[]> {
   const {data,error} = await db.from("properties").select(columns).eq("agent.agency_id",agencyId).order("id").range(start,start+499);
   if(error) throw new Error("Não foi possível ler todos os imóveis. O envio foi interrompido.");
   all.push(...(data as unknown as Listing[]));
-  if((data ?? []).length < 500) return all;
+  if((data ?? []).length < 500) {
+   const addresses = new Map<string, {street_name?: string | null; street_number?: string | null; postal_code?: string | null}>();
+   for(let offset=0;offset<all.length;offset+=500) {
+    const ids=all.slice(offset,offset+500).map(item=>item.id);
+    if(!ids.length) continue;
+    const result=await db.from("property_addresses").select("property_id,street_name,street_number,postal_code").in("property_id",ids);
+    if(result.error) throw new Error("Não foi possível ler as moradas para exportação. O envio foi interrompido.");
+    for(const address of result.data ?? []) addresses.set(String(address.property_id),address);
+   }
+   return all.map(item=>({...item,...(addresses.get(item.id) ?? {})}));
+  }
  }
 }
 export function ftpConfigured() { return Boolean(process.env.IDEALISTA_FTP_HOST && process.env.IDEALISTA_FTP_USER && process.env.IDEALISTA_FTP_PASSWORD); }

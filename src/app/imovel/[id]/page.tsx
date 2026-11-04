@@ -360,6 +360,9 @@ export default async function ImovelPage({
               municipality={property.municipality}
               lat={property.lat}
               lng={property.lng}
+              streetName={property.streetName}
+              streetNumber={property.streetNumber}
+              postalCode={property.postalCode}
               privacy={property.locationPrivacy}
             />
 

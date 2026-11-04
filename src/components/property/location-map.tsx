@@ -14,6 +14,7 @@ export function LocationMap({
   lat,
   lng,
   approximate = true,
+  exactAddress = false,
   onOpen,
 }: {
   parish: string;
@@ -22,6 +23,8 @@ export function LocationMap({
   lng?: number;
   /** Mostra o aviso "Localização aproximada" quando a morada exata não é revelada. */
   approximate?: boolean;
+  /** Mostra o pin exato apenas com morada autorizada. */
+  exactAddress?: boolean;
   /** Chamado quando o mapa é apresentado (para analytics). */
   onOpen?: () => void;
 }) {
@@ -47,10 +50,13 @@ export function LocationMap({
   // `query` não é suportado e resultava num mapa-múndi. Por isso só carregamos
   // o mapa interativo quando temos coordenadas. Em modo aproximado alargamos a
   // caixa e omitimos o marcador para não apontar a morada exata.
-  const d = approximate ? 0.035 : 0.008;
-  const marker = hasCoords && !approximate ? `&marker=${lat}%2C${lng}` : "";
+  // Em modo aproximado, arredondamos o centro a cerca de 1 km e não
+  // desenhamos o pin. Assim, o próprio enquadramento não revela a morada.
+  const mapLat = hasCoords ? (approximate ? Math.round(lat! * 100) / 100 : lat!) : 0;
+  const mapLng = hasCoords ? (approximate ? Math.round(lng! * 100) / 100 : lng!) : 0;
+  const d = approximate ? 0.035 : 0.0018;
   const osm = hasCoords
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${lng! - d}%2C${lat! - d}%2C${lng! + d}%2C${lat! + d}&layer=mapnik${marker}`
+    ? `https://www.openstreetmap.org/export/embed.html?bbox=${mapLng - d}%2C${mapLat - d}%2C${mapLng + d}%2C${mapLat + d}&layer=mapnik`
     : null;
 
   return (
@@ -101,6 +107,13 @@ export function LocationMap({
               </span>
             </span>
           </a>
+        )}
+        {osm && exactAddress && (
+          <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 grid size-11 -translate-x-1/2 -translate-y-[calc(100%-5px)] place-items-center rounded-full border-2 border-white bg-white shadow-lg" role="img" aria-label="Localização exata do imóvel" title="Localização exata">
+            {/* Logótipo oficial HousePro usado como marcador da morada. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/watermark-bird.webp" alt="" className="size-8 object-contain" />
+          </span>
         )}
       </div>
 

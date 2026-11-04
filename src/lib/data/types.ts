@@ -154,6 +154,10 @@ export interface Property {
   baths: number;
   parish: string;
   municipality: string;
+  /** Morada exata, apenas pública quando locationPrivacy é "exact". */
+  streetName?: string;
+  streetNumber?: string;
+  postalCode?: string;
   /** Distrito — indexação em portais e organização por zona. */
   district?: string;
   /** Empreendimento novo (nova construção): categoria própria na montra e

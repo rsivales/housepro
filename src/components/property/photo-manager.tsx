@@ -12,9 +12,12 @@ export interface Photo {
   /** URL pronto a usar: URL remoto (já publicado) ou data URL (já com marca de
    *  água) para as fotos novas. */
   url: string;
-  /** Data URL original (sem marca de água) — só nas fotos novas, para
-   *  reprocessar quando o estilo da marca muda. */
+  /** Data URL original (sem marca de água), enquanto a foto ainda não foi publicada. */
   raw?: string;
+  /** URL persistente do original sem marca, usada para regenerar a versão pública. */
+  originalUrl?: string;
+  /** Versão da configuração usada para criar a imagem pública. */
+  watermarkVersion?: string;
   /** Divisão/etiqueta da fotografia (Sala, Cozinha, Quarto…). */
   division?: string;
 }

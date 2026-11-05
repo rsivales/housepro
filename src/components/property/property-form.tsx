@@ -62,10 +62,11 @@ import { PhotoManager, type Photo } from "@/components/property/photo-manager";
 const box =
   "w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
-function readFile(file: File): Promise<string> {
-  return new Promise((resolve) => {
+function readFile(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
     const fr = new FileReader();
     fr.onload = () => resolve(String(fr.result));
+    fr.onerror = () => reject(fr.error ?? new Error("Não foi possível ler a imagem."));
     fr.readAsDataURL(file);
   });
 }
@@ -126,11 +127,12 @@ async function downscale(dataUrl: string, maxDim = 2000): Promise<string> {
 /** Envia um data URL (JPEG) para o Storage e devolve o URL público. */
 async function uploadDataUrl(
   supabase: ReturnType<typeof createClient>,
-  dataUrl: string
+  dataUrl: string,
+  folder = "props"
 ): Promise<string | null> {
   try {
     const blob = await (await fetch(dataUrl)).blob();
-    const path = `props/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
     const up = await supabase.storage
       .from("property-media")
       .upload(path, blob, { contentType: "image/jpeg", upsert: true });
@@ -286,6 +288,24 @@ async function watermark(dataUrl: string, cfg: WatermarkConfig): Promise<string>
   return encodeUnder(c);
 }
 
+function watermarkVersion(cfg: WatermarkConfig, enabled: boolean): string {
+  if (!enabled) return "none";
+  const value = JSON.stringify({
+    mode: cfg.mode,
+    label: cfg.label,
+    logo: cfg.logo ?? "",
+    size: cfg.size,
+    position: cfg.position,
+    opacity: cfg.opacity,
+  });
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `wm-${(hash >>> 0).toString(36)}`;
+}
+
 export interface PropertyFormProps {
   /** "create" carrega um imóvel novo; "edit" edita um existente. */
   mode?: "create" | "edit";
@@ -293,8 +313,13 @@ export interface PropertyFormProps {
   initial?: ImovelDraft;
   /** Fotos já publicadas (URLs remotos, já com marca de água) — só em edição. */
   initialPhotos?: string[];
-  /** Divisão de cada foto publicada, alinhada por índice com initialPhotos. */
-  initialDivisions?: string[];
+  /** Metadados das fotos publicadas, incluindo o original limpo quando existe. */
+  initialPhotoMeta?: {
+    url: string;
+    division?: string;
+    originalUrl?: string;
+    watermarkVersion?: string;
+  }[];
   /** Plantas já publicadas (URLs remotos) — só em edição. */
   initialPlans?: string[];
   /** Id do imóvel em edição (para o endpoint de atualização e o link de volta). */
@@ -308,7 +333,7 @@ export function PropertyForm({
   mode = "create",
   initial,
   initialPhotos = [],
-  initialDivisions = [],
+  initialPhotoMeta = [],
   initialPlans = [],
   propertyId,
   audit = [],
@@ -317,9 +342,20 @@ export function PropertyForm({
   const isEdit = mode === "edit";
   const [d, setD] = React.useState<ImovelDraft>(() => initial ?? blankImovel("novo"));
   /** Lista ordenada de fotografias (remotas já publicadas + novas). A 1.ª é a capa. */
-  const [photos, setPhotos] = React.useState<Photo[]>(() =>
-    initialPhotos.map((u, i) => ({ id: `r${i}-${u.slice(-10)}`, kind: "remote" as const, url: u, division: initialDivisions[i] ?? "" }))
-  );
+  const [photos, setPhotos] = React.useState<Photo[]>(() => {
+    const metaByUrl = new Map(initialPhotoMeta.map((meta) => [meta.url, meta]));
+    return initialPhotos.map((url, i) => {
+      const meta = metaByUrl.get(url);
+      return {
+        id: `r${i}-${url.slice(-10)}`,
+        kind: "remote" as const,
+        url,
+        division: meta?.division ?? "",
+        originalUrl: meta?.originalUrl,
+        watermarkVersion: meta?.watermarkVersion,
+      };
+    });
+  });
   /** Plantas do imóvel (imagens) — URLs remotos (já publicados) ou data URLs
    *  (novos, ainda por subir). Sem marca de água. */
   const [plans, setPlans] = React.useState<string[]>(initialPlans);
@@ -583,33 +619,67 @@ export function PropertyForm({
     setErrMsg(null);
     try {
       const supabase = createClient();
-      // Percorre as fotos PELA ORDEM definida. As remotas (URL) mantêm-se; as
-      // novas (data URL) sobem para o Storage. Guarda também a divisão de cada.
+      // Guarda sempre duas camadas nas fotos novas: o original limpo e a versão
+      // pública. Assim, mudar/desligar a marca de água deixa de exigir novo upload.
+      // Fotos antigas não têm original; ao guardar são reprocessadas a partir da
+      // melhor versão disponível e passam a usar a configuração global atual.
       const gallery: string[] = [];
-      const galleryMeta: { url: string; division?: string }[] = [];
+      const galleryMeta: {
+        url: string;
+        division?: string;
+        originalUrl?: string;
+        watermarkVersion?: string;
+      }[] = [];
       const erros: string[] = [];
       let newTotal = 0;
       let newOk = 0;
+      const targetWatermarkVersion = watermarkVersion(wm, d.watermark);
+
       for (const foto of photos.slice(0, 40)) {
         let url = foto.url;
-        if (url.startsWith("data:")) {
-          newTotal++;
-          try {
-            const blob = await (await fetch(url)).blob();
-            const path = `props/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-            const up = await supabase.storage
-              .from("property-media")
-              .upload(path, blob, { contentType: "image/jpeg", upsert: true });
-            if (up.error) { erros.push(up.error.message); continue; }
-            url = supabase.storage.from("property-media").getPublicUrl(path).data.publicUrl;
-            newOk++;
-          } catch (e) {
-            erros.push(e instanceof Error ? e.message : String(e));
-            continue;
+        let raw = foto.raw;
+        let originalUrl = foto.originalUrl;
+        let appliedVersion = foto.watermarkVersion;
+        const canRemoveWatermark = Boolean(raw || originalUrl);
+        const needsReprocess =
+          foto.kind === "remote" &&
+          foto.watermarkVersion !== targetWatermarkVersion &&
+          (d.watermark || canRemoveWatermark);
+
+        try {
+          if (needsReprocess) {
+            const sourceUrl = originalUrl ?? foto.url;
+            const sourceBlob = await (await fetch(sourceUrl, { cache: "no-store" })).blob();
+            raw = await downscale(await readFile(sourceBlob));
+            url = d.watermark ? await watermark(raw, wm) : raw;
           }
+
+          if (raw && !originalUrl) {
+            originalUrl = await uploadDataUrl(supabase, raw, "originals") ?? undefined;
+            if (!originalUrl) throw new Error("Não foi possível guardar o original da fotografia.");
+          }
+
+          if (url.startsWith("data:")) {
+            newTotal++;
+            const uploaded = await uploadDataUrl(supabase, url, "props");
+            if (!uploaded) throw new Error("Não foi possível guardar a fotografia processada.");
+            url = uploaded;
+            newOk++;
+          }
+
+          // Sem original não é possível remover uma marca antiga já incorporada.
+          // Mantém a versão desconhecida até ser substituída/coberta pela atual.
+          if (d.watermark || canRemoveWatermark) appliedVersion = targetWatermarkVersion;
+          gallery.push(url);
+          galleryMeta.push({
+            url,
+            division: foto.division || undefined,
+            originalUrl,
+            watermarkVersion: appliedVersion,
+          });
+        } catch (e) {
+          erros.push(e instanceof Error ? e.message : String(e));
         }
-        gallery.push(url);
-        galleryMeta.push({ url, division: foto.division || undefined });
       }
       if (newTotal > 0 && newOk === 0) {
         alert(
@@ -677,7 +747,14 @@ export function PropertyForm({
         } else if (res.ok && (out.entry || out.ok)) {
           if (out.entry) setHistory((h) => [out.entry, ...h]);
           // As fotos novas passaram a publicadas: reconstrói a lista pela ordem.
-          setPhotos(gallery.map((u, i) => ({ id: `r${i}-${u.slice(-10)}`, kind: "remote" as const, url: u, division: galleryMeta[i]?.division ?? "" })));
+          setPhotos(gallery.map((url, i) => ({
+            id: `r${i}-${url.slice(-10)}`,
+            kind: "remote" as const,
+            url,
+            division: galleryMeta[i]?.division ?? "",
+            originalUrl: galleryMeta[i]?.originalUrl,
+            watermarkVersion: galleryMeta[i]?.watermarkVersion,
+          })));
           setPlans(planUrls);
           patch({ documentos: finalDocs });
           setSavedMsg("ok");
@@ -879,8 +956,10 @@ export function PropertyForm({
           <PhotoManager value={photos} onChange={setPhotos} processing={processing} />
 
           <p className="mt-3 text-xs text-muted-foreground">
-            A marca de água é aplicada automaticamente a cada foto. Arraste (ou use as setas) para
-            ordenar — a <strong>1.ª é a capa</strong> — e escolha a <strong>divisão</strong> de cada foto.
+            A marca de água é aplicada automaticamente a cada foto. Ao guardar, as fotografias
+            publicadas com uma configuração anterior são atualizadas sem novo carregamento. Arraste
+            (ou use as setas) para ordenar — a <strong>1.ª é a capa</strong> — e escolha a{" "}
+            <strong>divisão</strong> de cada foto.
           </p>
         </Card>
 

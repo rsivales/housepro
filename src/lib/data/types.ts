@@ -212,8 +212,13 @@ export interface Property {
   image: string;
   /** Optional gallery (real photos); cover first. */
   gallery?: string[];
-  /** Metadados por foto (alinhados com gallery): divisão/etiqueta. */
-  galleryMeta?: { url: string; division?: string }[];
+  /** Metadados por foto. O original sem marca permite regenerar a versão pública. */
+  galleryMeta?: {
+    url: string;
+    division?: string;
+    originalUrl?: string;
+    watermarkVersion?: string;
+  }[];
   /** Link de vídeo (YouTube, Vimeo, etc.). */
   videoUrl?: string;
   /** Link do tour virtual 3D (Matterport, etc.). */

@@ -53,8 +53,16 @@ export default async function EditarImovelPage({ params }: { params: Promise<{ i
   const audit = session.demo ? demoAudit(id) : real;
 
   const initialPhotos = property.gallery ?? (property.image ? [property.image] : []);
-  const divByUrl = new Map((property.galleryMeta ?? []).map((m) => [m.url, m.division ?? ""]));
-  const initialDivisions = initialPhotos.map((u) => divByUrl.get(u) ?? "");
+  const metaByUrl = new Map((property.galleryMeta ?? []).map((m) => [m.url, m]));
+  const initialPhotoMeta = initialPhotos.map((url) => {
+    const meta = metaByUrl.get(url);
+    return {
+      url,
+      division: meta?.division ?? "",
+      originalUrl: meta?.originalUrl,
+      watermarkVersion: meta?.watermarkVersion,
+    };
+  });
 
   return (
     <PropertyForm
@@ -62,7 +70,7 @@ export default async function EditarImovelPage({ params }: { params: Promise<{ i
       propertyId={id}
       initial={draftFromProperty(property)}
       initialPhotos={initialPhotos}
-      initialDivisions={initialDivisions}
+      initialPhotoMeta={initialPhotoMeta}
       initialPlans={property.plans ?? []}
       audit={audit}
       demo={session.demo}

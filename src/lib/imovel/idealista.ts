@@ -61,6 +61,7 @@ export function toIdealistaXML(d: ImovelDraft): string {
     <accessible>${d.rampa ? "true" : "false"}</accessible>
     <view>${esc(d.vista)}</view>
     <address>
+      ${d.locationPrivacy === "exact" && d.streetName ? `<street>${esc(d.streetName)}</street>\n      <number>${esc(d.streetNumber)}</number>\n      <postalCode>${esc(d.postalCode)}</postalCode>` : ""}
       <parish>${esc(d.parish)}</parish>
       <municipality>${esc(d.municipality)}</municipality>
       <country>PT</country>${

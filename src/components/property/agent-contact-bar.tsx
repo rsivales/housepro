@@ -4,6 +4,7 @@ import { Phone, MessageSquare } from "lucide-react";
 
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
+import { CallCaptureButton } from "@/components/property/call-capture-button";
 import { recordEngagement } from "@/lib/portfolio/engagement";
 import { notifyContact } from "@/lib/contact-notify";
 import { track, type AnalyticsEvent } from "@/lib/analytics";
@@ -46,27 +47,31 @@ export function AgentContactBar({
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] shadow-[0_-6px_24px_rgba(0,0,0,0.10)] backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-6xl items-center gap-3">
-        <a
-          href={telHref}
-          onClick={() => notify("Chamada")}
-          aria-label={`Ligar a ${agent.name}`}
+        <CallCaptureButton
+          telHref={telHref}
+          agentName={agent.name}
+          propertyId={propertyId}
+          refId={refId}
+          ariaLabel={`Ligar a ${agent.name}`}
           className="relative shrink-0"
         >
           <AgentAvatar agent={agent} className="size-11 ring-2 ring-primary/40" />
           <span className="absolute -bottom-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-primary text-primary-foreground ring-2 ring-background">
             <Phone className="size-2.5" />
           </span>
-        </a>
+        </CallCaptureButton>
 
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate text-sm font-medium">{agent.name}</p>
-          <a
-            href={telHref}
-            onClick={() => notify("Chamada")}
+          <CallCaptureButton
+            telHref={telHref}
+            agentName={agent.name}
+            propertyId={propertyId}
+            refId={refId}
             className="truncate text-xs text-muted-foreground hover:text-foreground"
           >
             {phone}
-          </a>
+          </CallCaptureButton>
         </div>
 
         <a
@@ -79,14 +84,16 @@ export function AgentContactBar({
         >
           <WhatsappIcon className="size-5" />
         </a>
-        <a
-          href={telHref}
-          onClick={() => notify("Chamada")}
-          aria-label="Ligar"
+        <CallCaptureButton
+          telHref={telHref}
+          agentName={agent.name}
+          propertyId={propertyId}
+          refId={refId}
+          ariaLabel="Ligar"
           className="grid size-10 shrink-0 place-items-center rounded-full border text-foreground transition-colors hover:bg-secondary"
         >
           <Phone className="size-4" />
-        </a>
+        </CallCaptureButton>
         <a
           href={smsHref}
           onClick={() => notify("SMS")}

@@ -5,6 +5,7 @@ import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
 import { ContactLink } from "@/components/property/contact-link";
+import { CallCaptureButton } from "@/components/property/call-capture-button";
 import type { Agent } from "@/lib/data/types";
 
 /**
@@ -66,15 +67,15 @@ export function ConsultantPanel({
         >
           <WhatsappIcon className="size-4" /> Falar por WhatsApp
         </ContactLink>
-        <ContactLink
-          href={telHref}
-          channel="Chamada"
+        <CallCaptureButton
+          telHref={telHref}
+          agentName={agent.name}
           propertyId={propertyId}
           refId={refId}
           className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium text-[var(--hp-navy)] transition-colors hover:bg-black/[0.03]"
         >
           <Phone className="size-4" /> {phone}
-        </ContactLink>
+        </CallCaptureButton>
         <p className="mt-1.5 text-center text-xs text-[var(--hp-text-2)]">
           <PhoneNote />
         </p>

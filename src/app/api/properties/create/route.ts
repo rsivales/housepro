@@ -40,6 +40,17 @@ export async function POST(request: Request) {
   const businessType = typeof d.businessType === "string" && d.businessType ? d.businessType : (d.operation === "arrendamento" ? "arrendamento" : "venda");
   const operation = operationOf(businessType);
 
+  const exactAddress = d.locationPrivacy === "exact";
+  const streetName = typeof d.streetName === "string" ? d.streetName.trim().slice(0, 200) : "";
+  const streetNumber = typeof d.streetNumber === "string" ? d.streetNumber.trim().slice(0, 20) : "";
+  const postalCode = typeof d.postalCode === "string" ? d.postalCode.trim().replace(/^(\d{4})(\d{3})$/, "$1-$2").slice(0, 8) : "";
+  const validPostalCode = /^\d{4}-\d{3}$/.test(postalCode);
+  const latitude = d.lat == null ? null : Number(d.lat);
+  const longitude = d.lng == null ? null : Number(d.lng);
+  if (exactAddress && (!streetName || !validPostalCode || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude!) > 90 || Math.abs(longitude!) > 180)) {
+    return NextResponse.json({ error: "Para publicar a morada exata, indique rua, código postal português válido e confirme latitude/longitude." }, { status: 400 });
+  }
+
   const row = {
     reference: null,
     legacy_reference: legacyReference,
@@ -81,8 +92,8 @@ export async function POST(request: Request) {
     approval: isAdminOrAmi ? "aprovado" : "pendente",
     submitted_at: new Date().toISOString(),
     listed_at: new Date().toISOString().slice(0, 10),
-    latitude: d.lat != null ? Number(d.lat) : null,
-    longitude: d.lng != null ? Number(d.lng) : null,
+    latitude,
+    longitude,
     seller_type: d.sellerType === "empresa" ? "empresa" : "particular",
     cmi_exclusive: d.cmiExclusive === false ? false : true,
     cmi_renewable: Boolean(d.cmiRenewable),
@@ -139,6 +150,20 @@ export async function POST(request: Request) {
   if (error) {
     if (/reference_already_exists|properties_reference_key/.test(error.message)) return NextResponse.json({error:"Esta referência já existe no Helix. Abra o imóvel existente para o editar."},{status:409});
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+  if (streetName || streetNumber || postalCode) {
+    const admin = createAdminClient();
+    const { error: addressError } = await admin.from("property_addresses").insert({
+      property_id: data.id,
+      street_name: streetName || null,
+      street_number: streetNumber || null,
+      postal_code: postalCode || null,
+    });
+    if (addressError) {
+      await admin.from("properties").delete().eq("id", data.id);
+      console.error("[properties/create] exact address persistence failed", addressError);
+      return NextResponse.json({ error: "Não foi possível guardar a morada. Tente novamente." }, { status: 500 });
+    }
   }
   return NextResponse.json({ ok: true, id: data.id, reference: data.reference });
 }

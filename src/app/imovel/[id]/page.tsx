@@ -185,7 +185,18 @@ export default async function ImovelPage({
         numberOfRoomsTotal: property.beds,
         numberOfBathroomsTotal: property.baths,
         floorSize: { "@type": "QuantitativeValue", value: property.area, unitCode: "MTK" },
-        address: { "@type": "PostalAddress", addressLocality: property.municipality, addressRegion: property.district, addressCountry: "PT" },
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: property.municipality,
+          addressRegion: property.district,
+          addressCountry: "PT",
+          ...(property.locationPrivacy === "exact" && property.streetName
+            ? {
+                streetAddress: [property.streetName, property.streetNumber].filter(Boolean).join(", "),
+                postalCode: property.postalCode,
+              }
+            : {}),
+        },
         ...(property.image ? { image: property.image.startsWith("http") ? property.image : `${SITE_URL}${property.image}` } : {}),
         offers: {
           "@type": "Offer",
@@ -360,6 +371,9 @@ export default async function ImovelPage({
               municipality={property.municipality}
               lat={property.lat}
               lng={property.lng}
+              streetName={property.streetName}
+              streetNumber={property.streetNumber}
+              postalCode={property.postalCode}
               privacy={property.locationPrivacy}
             />
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getPropertyById } from "@/lib/db/repo";
 import { auditFieldLabel, type AuditChange, type AuditEntry } from "@/lib/data/audit";
@@ -122,6 +123,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "sem_permissao" }, { status: 403 });
   }
 
+  const nextPrivacy = typeof patch.locationPrivacy === "string" ? patch.locationPrivacy : current.locationPrivacy;
+  const nextStreet = (typeof patch.streetName === "string" ? patch.streetName : current.streetName ?? "").trim().slice(0, 200);
+  const nextStreetNumber = (typeof patch.streetNumber === "string" ? patch.streetNumber : current.streetNumber ?? "").trim().slice(0, 20);
+  const nextPostalCode = (typeof patch.postalCode === "string" ? patch.postalCode : current.postalCode ?? "").trim().replace(/^(\d{4})(\d{3})$/, "$1-$2").slice(0, 8);
+  if (nextPrivacy === "exact") {
+    const lat = "lat" in patch ? (patch.lat == null ? undefined : Number(patch.lat)) : current.lat;
+    const lng = "lng" in patch ? (patch.lng == null ? undefined : Number(patch.lng)) : current.lng;
+    if (!nextStreet || !/^\d{4}-\d{3}$/.test(nextPostalCode) || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat!) > 90 || Math.abs(lng!) > 180) {
+      return NextResponse.json({ error: "Para publicar a morada exata, indique rua, código postal português válido e confirme latitude/longitude." }, { status: 400 });
+    }
+  }
+
+  // A morada fica numa tabela privada e só é gravada depois de validada.
+  if (["streetName", "streetNumber", "postalCode"].some((field) => field in patch)) {
+    if (!hasServiceRole()) return NextResponse.json({ error: "Serviço seguro de moradas indisponível." }, { status: 503 });
+    const address = {
+      property_id: id,
+      street_name: nextStreet || null,
+      street_number: nextStreetNumber || null,
+      postal_code: nextPostalCode || null,
+      updated_at: new Date().toISOString(),
+    };
+    const admin = createAdminClient();
+    const addressResult = address.street_name || address.street_number || address.postal_code
+      ? await admin.from("property_addresses").upsert(address, { onConflict: "property_id" })
+      : await admin.from("property_addresses").delete().eq("property_id", id);
+    if (addressResult.error) {
+      console.error("[properties/update] private address persistence failed", addressResult.error);
+      return NextResponse.json({ error: "Não foi possível guardar a morada." }, { status: 500 });
+    }
+  }
+
   // Diferenças (para o histórico).
   const changes: AuditChange[] = [];
   const dbPatch: Record<string, unknown> = {};
@@ -139,8 +172,8 @@ export async function POST(request: Request) {
   }
 
   // Coordenadas — atualizadas em silêncio (sem linha de histórico ruidosa).
-  if ("lat" in patch && patch.lat != null) dbPatch.latitude = Number(patch.lat);
-  if ("lng" in patch && patch.lng != null) dbPatch.longitude = Number(patch.lng);
+  if ("lat" in patch) dbPatch.latitude = patch.lat == null ? null : Number(patch.lat);
+  if ("lng" in patch) dbPatch.longitude = patch.lng == null ? null : Number(patch.lng);
 
   // Media (arrays) — só regista alteração quando o conteúdo muda de facto.
   if ("gallery" in patch && Array.isArray(patch.gallery)) {

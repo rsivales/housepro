@@ -11,6 +11,9 @@ export function notifyContact(
   channel: string,
   opts: { propertyId?: string; ref?: string }
 ) {
+  // Um clique num link tel: não revela o número de quem liga. As chamadas são
+  // registadas pelo CallCaptureButton, depois de o visitante se identificar.
+  if (channel === "Chamada") return;
   let conta: Conta = {};
   try {
     conta = JSON.parse(localStorage.getItem(CONTA_KEY) || "{}") as Conta;

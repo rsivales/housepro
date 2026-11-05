@@ -8,9 +8,9 @@ export type Listing = {
  typology?: string | null; beds: number; baths: number; latitude: number | null; longitude: number | null;
  approval: string; listing_state: string; off_market: boolean; status: string | null;
  energy: string; description: string | null; cover_url: string | null; gallery: string[] | null;
- municipality: string; is_development: boolean; development_name?: string | null; development_stage?: string | null;
+ municipality: string; street_name?: string | null; street_number?: string | null; postal_code?: string | null; location_privacy?: string | null; is_development: boolean; development_name?: string | null; development_stage?: string | null;
  garage?: boolean | null; elevator?: boolean | null; accessible?: boolean | null; construction_year?: number | null;
- equipment?: string[] | null; amenities?: string[] | null; location_privacy?: string | null;
+ equipment?: string[] | null; amenities?: string[] | null;
  agent?: {name: string; email?: string | null; whatsapp?: string | null; agency_id: string} | null;
 };
 export type Override = { reference?: string; area?: number; bedrooms?: number; propertyCode?: string };
@@ -42,6 +42,7 @@ export function listingProblems(p: Listing, override: Override = {}): string[] {
  }
  if (type === "garage") errors.push("Garagem: é necessário mapear a capacidade no formato do idealista antes de exportar");
  if (!p.description?.trim()) errors.push("Descrição em falta");
+ if (p.location_privacy === "exact" && (!p.street_name?.trim() || !p.postal_code?.trim() || !/^\d{4}-?\d{3}$/.test(p.postal_code.trim()))) errors.push("Morada exata: nome da rua e código postal português válidos são obrigatórios");
  if (!photos(p).length) errors.push("Sem fotografias JPG/PNG/GIF públicas");
  if (p.is_development && !p.development_name?.trim()) errors.push("Nome do empreendimento em falta");
  if (p.is_development && !["flat","house","premises","office"].includes(type)) errors.push("Tipologia do empreendimento não suportada");
@@ -93,7 +94,19 @@ function mapListing(p: Listing, override: Override = {}) {
   propertyReference: override.reference || p.legacy_reference || p.reference,
   propertyVisibility:"idealista",
   propertyUrl:`https://housepro.pt/imovel/${encodeURIComponent(p.id)}`,
-  propertyAddress:{ addressCountry:"Portugal", addressTown:p.municipality.slice(0,50), addressVisibility:"hidden", addressCoordinatesPrecision:"moved", addressCoordinatesLatitude:p.latitude, addressCoordinatesLongitude:p.longitude },
+  propertyAddress:{
+   addressCountry:"Portugal",
+   addressTown:p.municipality.slice(0,50),
+   addressVisibility:p.location_privacy === "exact" ? "full" : "hidden",
+   addressCoordinatesPrecision:p.location_privacy === "exact" ? "exact" : "moved",
+   addressCoordinatesLatitude:p.latitude,
+   addressCoordinatesLongitude:p.longitude,
+   ...(p.location_privacy === "exact" ? {
+     addressStreetName:p.street_name!.trim().slice(0,200),
+     ...(p.street_number?.trim() ? {addressStreetNumber:p.street_number.trim().slice(0,10)} : {}),
+     addressPostalCode:p.postal_code!.trim(),
+   } : {}),
+  },
   propertyOperation:{ operationType:p.operation === "arrendamento" ? "rent" : "sale", operationPrice:Number(p.price) },
   propertyFeatures:features,
   ...(Object.keys(contact).length ? {propertyContact:contact} : {}),

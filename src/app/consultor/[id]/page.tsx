@@ -15,6 +15,7 @@ import { CompletionLabel } from "@/components/property/completion-label";
 import { STATUS_LABEL } from "@/lib/data/status";
 import { WhatsappIcon } from "@/components/icons/whatsapp";
 import { PhoneNote } from "@/components/legal/phone-note";
+import { CallCaptureButton } from "@/components/property/call-capture-button";
 import { publicRoleLabel } from "@/lib/data/roles";
 import { publicPriceLabel, initials } from "@/lib/format";
 import { getAgencyById, getAgentPublicById, listProperties } from "@/lib/db/repo";
@@ -105,6 +106,6 @@ export default async function ConsultorPage({ params }: { params: Promise<{ id: 
       {phone && <div className={`${styles.container} ${styles.phoneNote}`}><PhoneNote /></div>}
     </main>
     <SiteFooter />
-    {(phone || email) && <div className={styles.mobileContact}>{primaryContact && <a {...contactProps} className={styles.whatsappButton}>{whatsapp ? <WhatsappIcon /> : <Mail />}{whatsapp ? "WhatsApp" : "E-mail"}</a>}{phone && <a href={`tel:+${phone}`} className={styles.callButton}><Phone />Ligar</a>}</div>}
+    {(phone || email) && <div className={styles.mobileContact}>{primaryContact && <a {...contactProps} className={styles.whatsappButton}>{whatsapp ? <WhatsappIcon /> : <Mail />}{whatsapp ? "WhatsApp" : "E-mail"}</a>}{phone && <CallCaptureButton telHref={`tel:+${phone}`} agentName={agent.name} refId={agent.id} className={styles.callButton}><Phone />Ligar</CallCaptureButton>}</div>}
   </div>;
 }

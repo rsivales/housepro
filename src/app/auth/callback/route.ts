@@ -22,6 +22,14 @@ export async function GET(request: Request) {
   const explicitNext = rawNext ? safeAuthNext(rawNext) : null;
   const buyerFlow = explicitNext?.startsWith("/cliente") ?? false;
 
+  // O Google pode devolver o erro na query string, antes de existir um código.
+  if (searchParams.has("error")) {
+    const back = buyerFlow ? "/cliente/entrar?erro=google" : "/entrar?erro=link";
+    const response = NextResponse.redirect(`${origin}${back}#`);
+    response.headers.set("cache-control", "private, no-store");
+    return response;
+  }
+
   // Email links from the implicit flow carry tokens after '#', which servers
   // cannot read. A dedicated browser landing establishes cookies first.
   if (!code && !tokenHash) {
@@ -54,6 +62,15 @@ export async function GET(request: Request) {
   }
 
   let dest = explicitNext ?? (type === "recovery" || type === "invite" ? "/entrar/nova-password" : "/app");
+  // Um consultor que escolhe por engano a entrada pública continua no Helix;
+  // a existência de um perfil ativo é confirmada na base de dados.
+  if (buyerFlow) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("id,active").eq("id", user.id).maybeSingle();
+      if (profile && profile.active !== false) dest = "/app";
+    }
+  }
   if (!explicitNext && type !== "recovery" && type !== "invite") {
     // Sem destino explícito, decide pelo tipo de conta.
     try {

@@ -34,17 +34,17 @@ export default function CompradorIndexPage() {
 
         <section className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
           <p className="flex items-center gap-2 font-medium text-[var(--hp-navy)]">
-            <Mail className="size-5 text-[var(--hp-red)]" /> Entre com o seu e-mail
+            <Mail className="size-5 text-[var(--hp-red)]" /> Entre com Google ou e-mail
           </p>
           <p className="mt-2 text-sm leading-6 text-[var(--hp-text-2)]">
-            Não precisa de esperar por nenhum link — entre agora com o seu e-mail. A sua página fica pronta de
-            imediato, e assim que o seu consultor HousePro associar o processo, aparece aqui automaticamente.
+            Entre com a sua conta Google em poucos passos ou peça um link por e-mail. A sua página fica pronta
+            assim que entrar; quando o consultor HousePro associar o processo, ele aparece aqui automaticamente.
           </p>
           <Link
             href="/cliente/entrar"
             className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--hp-red)] px-5 py-2.5 text-sm font-medium text-white"
           >
-            <Mail className="size-4" /> Entrar com o meu e-mail
+            <Mail className="size-4" /> Entrar na minha conta
           </Link>
         </section>
       </main>

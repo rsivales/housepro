@@ -679,7 +679,23 @@ export function PropertyForm({
           });
         } catch (e) {
           erros.push(e instanceof Error ? e.message : String(e));
+          // Uma falha de reprocessamento nunca pode apagar uma foto já publicada.
+          if (foto.kind === "remote") {
+            gallery.push(foto.url);
+            galleryMeta.push({
+              url: foto.url,
+              division: foto.division || undefined,
+              originalUrl: foto.originalUrl,
+              watermarkVersion: foto.watermarkVersion,
+            });
+          }
         }
+      }
+      if (erros.length && !(newTotal > 0 && newOk === 0)) {
+        alert(
+          "Algumas fotografias não puderam ser atualizadas e foram mantidas como estavam:\n" +
+            erros.slice(0, 3).join("\n")
+        );
       }
       if (newTotal > 0 && newOk === 0) {
         alert(

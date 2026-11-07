@@ -61,6 +61,7 @@ function pick(fields: FieldDatum[], keys: string[]): string | undefined {
 }
 
 export async function POST(request: Request) {
+  if (process.env.META_AGENT_CUTOVER === "1") return new Response(null, { status: 410 });
   let body: FbBody;
   try {
     body = (await request.json()) as FbBody;

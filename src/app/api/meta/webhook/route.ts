@@ -68,6 +68,7 @@ interface WebhookEntry {
 }
 
 export async function POST(request: Request) {
+  if (process.env.META_AGENT_CUTOVER === "1") return new Response(null, { status: 410 });
   const raw = await request.text();
   const signature = request.headers.get("x-hub-signature-256");
 

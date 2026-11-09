@@ -60,6 +60,7 @@ export default async function EditarImovelPage({ params }: { params: Promise<{ i
       url,
       division: meta?.division ?? "",
       originalUrl: meta?.originalUrl,
+      originalClean: meta?.originalClean,
       watermarkVersion: meta?.watermarkVersion,
     };
   });

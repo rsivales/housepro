@@ -318,6 +318,7 @@ export interface PropertyFormProps {
     url: string;
     division?: string;
     originalUrl?: string;
+    originalClean?: boolean;
     watermarkVersion?: string;
   }[];
   /** Plantas já publicadas (URLs remotos) — só em edição. */
@@ -352,6 +353,7 @@ export function PropertyForm({
         url,
         division: meta?.division ?? "",
         originalUrl: meta?.originalUrl,
+        originalClean: meta?.originalClean,
         watermarkVersion: meta?.watermarkVersion,
       };
     });
@@ -621,13 +623,14 @@ export function PropertyForm({
       const supabase = createClient();
       // Guarda sempre duas camadas nas fotos novas: o original limpo e a versão
       // pública. Assim, mudar/desligar a marca de água deixa de exigir novo upload.
-      // Fotos antigas não têm original; ao guardar são reprocessadas a partir da
-      // melhor versão disponível e passam a usar a configuração global atual.
+      // Fotos antigas não têm original limpo. Nunca usar uma versão pública
+      // marcada como origem para outra marca de água.
       const gallery: string[] = [];
       const galleryMeta: {
         url: string;
         division?: string;
         originalUrl?: string;
+        originalClean?: boolean;
         watermarkVersion?: string;
       }[] = [];
       const erros: string[] = [];
@@ -639,16 +642,17 @@ export function PropertyForm({
         let url = foto.url;
         let raw = foto.raw;
         let originalUrl = foto.originalUrl;
+        let originalClean = foto.originalClean === true;
         let appliedVersion = foto.watermarkVersion;
-        const canRemoveWatermark = Boolean(raw || originalUrl);
+        const canRemoveWatermark = Boolean(raw || (originalUrl && originalClean));
         const needsReprocess =
           foto.kind === "remote" &&
           foto.watermarkVersion !== targetWatermarkVersion &&
-          (d.watermark || canRemoveWatermark);
+          canRemoveWatermark;
 
         try {
           if (needsReprocess) {
-            const sourceUrl = originalUrl ?? foto.url;
+            const sourceUrl = originalUrl!;
             const sourceBlob = await (await fetch(sourceUrl, { cache: "no-store" })).blob();
             raw = await downscale(await readFile(sourceBlob));
             url = d.watermark ? await watermark(raw, wm) : raw;
@@ -657,6 +661,7 @@ export function PropertyForm({
           if (raw && !originalUrl) {
             originalUrl = await uploadDataUrl(supabase, raw, "originals") ?? undefined;
             if (!originalUrl) throw new Error("Não foi possível guardar o original da fotografia.");
+            originalClean = foto.kind === "new";
           }
 
           if (url.startsWith("data:")) {
@@ -669,12 +674,13 @@ export function PropertyForm({
 
           // Sem original não é possível remover uma marca antiga já incorporada.
           // Mantém a versão desconhecida até ser substituída/coberta pela atual.
-          if (d.watermark || canRemoveWatermark) appliedVersion = targetWatermarkVersion;
+          if (canRemoveWatermark || foto.kind === "new") appliedVersion = targetWatermarkVersion;
           gallery.push(url);
           galleryMeta.push({
             url,
             division: foto.division || undefined,
             originalUrl,
+            originalClean,
             watermarkVersion: appliedVersion,
           });
         } catch (e) {
@@ -686,6 +692,7 @@ export function PropertyForm({
               url: foto.url,
               division: foto.division || undefined,
               originalUrl: foto.originalUrl,
+              originalClean: foto.originalClean,
               watermarkVersion: foto.watermarkVersion,
             });
           }
@@ -769,6 +776,7 @@ export function PropertyForm({
             url,
             division: galleryMeta[i]?.division ?? "",
             originalUrl: galleryMeta[i]?.originalUrl,
+            originalClean: galleryMeta[i]?.originalClean,
             watermarkVersion: galleryMeta[i]?.watermarkVersion,
           })));
           setPlans(planUrls);
@@ -972,8 +980,10 @@ export function PropertyForm({
           <PhotoManager value={photos} onChange={setPhotos} processing={processing} />
 
           <p className="mt-3 text-xs text-muted-foreground">
-            A marca de água é aplicada automaticamente a cada foto. Ao guardar, as fotografias
-            publicadas com uma configuração anterior são atualizadas sem novo carregamento. Arraste
+            A marca de água é aplicada automaticamente a cada foto nova. As fotos publicadas
+            que têm original limpo podem ser atualizadas sem novo carregamento. As fotos antigas
+            sem original limpo mantêm a marca que já está gravada na imagem, mesmo que desligue
+            esta opção. Arraste
             (ou use as setas) para ordenar — a <strong>1.ª é a capa</strong> — e escolha a{" "}
             <strong>divisão</strong> de cada foto.
           </p>

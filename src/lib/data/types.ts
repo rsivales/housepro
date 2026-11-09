@@ -217,6 +217,7 @@ export interface Property {
     url: string;
     division?: string;
     originalUrl?: string;
+    originalClean?: boolean;
     watermarkVersion?: string;
   }[];
   /** Link de vídeo (YouTube, Vimeo, etc.). */

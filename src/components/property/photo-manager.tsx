@@ -16,6 +16,8 @@ export interface Photo {
   raw?: string;
   /** URL persistente do original sem marca, usada para regenerar a versão pública. */
   originalUrl?: string;
+  /** True only when the original was saved from a new, unmarked upload. */
+  originalClean?: boolean;
   /** Versão da configuração usada para criar a imagem pública. */
   watermarkVersion?: string;
   /** Divisão/etiqueta da fotografia (Sala, Cozinha, Quarto…). */

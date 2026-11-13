@@ -1,3 +1,4 @@
+import { leadAccessScope } from "@/lib/data/lead-access";
 import { isCommercialAgent } from "@/lib/data/agent-directory";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -1697,21 +1698,24 @@ export async function updateLeadStage(input: {
   leadId: string;
   stage: number;
   pipeline?: string;
-  actorId?: string;
+  actor: Agent;
   actorName?: string;
 }): Promise<boolean> {
   if (!isSupabaseConfigured()) return true; // demo: assume aplicado
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const patch: Record<string, unknown> = { stage: input.stage };
     if (input.pipeline) patch.pipeline = input.pipeline;
-    await supabase.from("leads").update(patch).eq("id", input.leadId);
+    const { data, error } = await supabase.from("leads").update(patch)
+      .eq("id", input.leadId).or(leadAccessScope(input.actor)).select("id").maybeSingle();
+    if (error || !data) return false;
     await supabase.from("lead_activities").insert({
       lead_id: input.leadId,
       type: "stage",
-      actor_id: input.actorId ?? null,
+      actor_id: input.actor.id,
       actor_name: input.actorName ?? null,
       to_val: String(input.stage),
+      note: input.pipeline ? `Pipeline: ${input.pipeline}` : null,
     });
     return true;
   } catch {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
+import { META_PIPELINES } from "@/lib/data/meta";
 import { updateLeadStage } from "@/lib/db/repo";
 
 /**
@@ -20,15 +21,22 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
-  if (!body.leadId || typeof body.stage !== "number") {
+  const pipeline = META_PIPELINES.find((p) => p.key === body?.pipeline);
+  const stage = body?.stage;
+  if (!body?.leadId || typeof stage !== "number" || !Number.isInteger(stage) ||
+      stage < 0 || stage >= (pipeline?.stages.length ?? 11) ||
+      (body.pipeline !== undefined && !pipeline) ||
+      (!session.demo && !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(body.leadId))) {
     return NextResponse.json({ error: "Faltam leadId ou stage." }, { status: 400 });
   }
 
+  if (session.demo) return NextResponse.json({ ok: true, demo: true });
+
   const ok = await updateLeadStage({
     leadId: String(body.leadId),
-    stage: body.stage,
+    stage,
     pipeline: body.pipeline,
-    actorId: session.demo ? undefined : session.agent.id,
+    actor: session.agent,
     actorName: session.agent.name,
   });
   if (!ok) return NextResponse.json({ error: "save_failed" }, { status: 500 });

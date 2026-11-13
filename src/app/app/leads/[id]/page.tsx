@@ -5,7 +5,8 @@ import { readLeadAnswers, visibleLeadRows } from "@/lib/db/lead-access";
 import { LeadContactAction } from "@/components/consultant/lead-contact-action";
 import { MarkLeadRead } from "@/components/consultant/lead-inbox-view";
 import { LeadPipelineAction } from "@/components/consultant/lead-pipeline-action";
-import { LEAD_PIPELINES } from "@/lib/data/lead-pipelines";
+import { hasPipelinePhone } from "@/lib/data/lead-pipelines";
+import { crmLeadPipelines } from "@/lib/db/crm-lead-pipelines";
 import { contactWait, valuationAnswers, websiteForm } from "@/lib/data/lead-answers";
 export const metadata = { title: "Detalhe do pedido — Helix" };
 export default async function LeadDetail({ params }: { params: Promise<{id:string}> }) {
@@ -15,11 +16,11 @@ export default async function LeadDetail({ params }: { params: Promise<{id:strin
   if (!/^[0-9a-f-]{36}$/i.test(id) || session.demo) notFound();
   const [lead] = await visibleLeadRows(session.agent, id);
   if (!lead) notFound();
-  const { answers, unavailable } = await readLeadAnswers(id);
+  const [{ answers, unavailable }, pipelines] = await Promise.all([readLeadAnswers(id), crmLeadPipelines(session.agent, session.demo)]);
   const fields = answers.length
     ? answers.map((answer) => ({ label: answer.label || answer.question_key.replace(/_/g, " "), value: answer.value }))
     : valuationAnswers(lead.message ?? "");
-  const pipeline = LEAD_PIPELINES.find((p) => p.key === lead.pipeline);
+  const pipeline = pipelines.find((p) => p.key === lead.pipeline);
   const wait = contactWait(lead.created_at);
   const form = websiteForm(lead.source, lead.sub_source, lead.message);
   const phone = /^[+\d\s().-]{7,}$/.test(lead.contact) ? lead.contact.replace(/[^+\d]/g, "") : null;
@@ -73,7 +74,7 @@ export default async function LeadDetail({ params }: { params: Promise<{id:strin
     <section className="mt-4 rounded-2xl border bg-card p-5">
       <h2 className="font-semibold">Pipeline</h2>
       <p className="mt-2 text-sm text-muted-foreground">Atual: {pipeline?.label ?? lead.pipeline ?? "Por classificar"}{pipeline && pipeline.stages[lead.stage] ? ` · ${pipeline.stages[lead.stage]}` : ""}</p>
-      <LeadPipelineAction leadId={id} current={lead.pipeline ?? undefined} />
+      {hasPipelinePhone(lead.contact) ? <LeadPipelineAction leadId={id} current={lead.pipeline ?? undefined} pipelines={pipelines} /> : <p className="my-3 text-sm text-muted-foreground">É necessário um telefone válido para colocar este pedido num pipeline.</p>}
       <Link href="/app/crm" className="text-sm text-primary hover:underline">Ver pipelines do CRM →</Link>
     </section>
   </main>;

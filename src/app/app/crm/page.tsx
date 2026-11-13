@@ -9,6 +9,9 @@ import { commissionLabel } from "@/lib/data/commission";
 import { CrmTabs } from "@/components/app/crm-tabs";
 import type { LeadCard } from "@/components/app/leads-board";
 
+import { crmLeadPipelines } from "@/lib/db/crm-lead-pipelines";
+import { hasPipelinePhone } from "@/lib/data/lead-pipelines";
+
 export const metadata: Metadata = { title: "CRM · Pipelines" };
 
 export default async function CrmPage({ searchParams }: { searchParams: Promise<{ propertyId?: string }> }) {
@@ -18,11 +21,12 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   const staff = isStaff(session.agent);
   const { propertyId } = await searchParams;
 
-  const [deals, leadRows, agencyList, prefillProperty] = await Promise.all([
+  const [deals, leadRows, agencyList, prefillProperty, pipelines] = await Promise.all([
     listDeals(session.agent.id, staff, {agencyId:session.agent.agencyId,global:["superadmin","admin"].includes(session.agent.roleKey??"")}),
     listLeadsByAgent(session.agent.id),
     listAgenciesReal(),
     propertyId ? getPropertyById(propertyId) : Promise.resolve(undefined),
+    crmLeadPipelines(session.agent, session.demo),
   ]);
   // Outras agências (para "partilha com outra agência") — exclui a própria.
   const agencies = agencyList
@@ -47,8 +51,9 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
       }
     : undefined;
 
-  const leads: LeadCard[] = leadRows.map((l) => ({
+  const leads: LeadCard[] = leadRows.filter((lead) => hasPipelinePhone(lead.contact)).map((l) => ({
     id: l.id,
+    archived: Boolean(l.crmArchivedAt),
     name: l.name,
     contact: l.contact,
     email: l.email,
@@ -71,7 +76,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <CrmTabs deals={deals} leads={leads} agencies={agencies} prefill={prefill} canManage={staff} />
+      <CrmTabs deals={deals} leads={leads} pipelines={pipelines} agencies={agencies} prefill={prefill} canManage={staff} />
     </div>
   );
 }

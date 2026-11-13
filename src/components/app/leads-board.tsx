@@ -3,12 +3,15 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Home, Loader2, Phone, X, Mail, MapPin, Wallet, Calendar, Tag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home, Loader2, Phone, X, Mail, MapPin, Wallet, Calendar, Tag, GripVertical, Trash2, RotateCcw } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { LEAD_PIPELINES, type LeadPipeline } from "@/lib/data/lead-pipelines";
+import { hasPipelinePhone, LEAD_PIPELINES, type LeadPipeline } from "@/lib/data/lead-pipelines";
+
+import { useBoardDrag } from "./use-deal-drag";
 
 export interface LeadCard {
+  archived?: boolean;
   id: string;
   name: string;
   contact: string;
@@ -56,35 +59,61 @@ const ACCENT = ["bg-slate-400", "bg-sky-400", "bg-violet-400", "bg-amber-400", "
 
 /** Kanban de LEADS de um pipeline (compradores/proprietários). Separado dos
  *  negócios: as leads entram e classificam-se aqui, com fases próprias. */
-export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads: LeadCard[] }) {
+export function LeadsBoard({ pipeline, leads, pipelines }: { pipeline: LeadPipeline; leads: LeadCard[]; pipelines: LeadPipeline[] }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<LeadCard | null>(null);
 
-  // Leads deste pipeline; as por classificar (sem pipeline) caem no 1.º pipeline.
+  const [showArchived, setShowArchived] = React.useState(false);
+  const [feedback, setFeedback] = React.useState("");
+  const [updated, setUpdated] = React.useState<Record<string, Partial<LeadCard>>>({});
   const isDefault = pipeline.key === LEAD_PIPELINES[0].key;
-  const mine = leads.filter((l) => l.pipeline === pipeline.key || (isDefault && !l.pipeline));
+  const all = leads.map((lead) => ({ ...lead, ...updated[lead.id] })).filter(
+    (l) => hasPipelinePhone(l.contact) && (l.pipeline === pipeline.key || (isDefault && !l.pipeline)),
+  );
+  const archived = all.filter((l) => l.archived);
+  const mine = all.filter((l) => !l.archived);
+  const stages = pipeline.stages.map((label, i) => ({ stage: String(i), label }));
 
-  async function post(leadId: string, stage: number, pipe?: string) {
+  async function save(leadId: string, change: { stage: number; pipeline: string } | { archived: boolean }) {
+    if (busy) return;
     setBusy(leadId);
+    setFeedback("");
     try {
-      const res = await fetch("/api/leads/stage", {
+      const res = await fetch("/api/leads/board", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ leadId, stage, pipeline: pipe ?? pipeline.key }),
+        body: JSON.stringify({ leadId, ...change }),
       });
-      if (res.ok) router.refresh();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setUpdated((previous) => ({ ...previous, [leadId]: { ...previous[leadId], ...change } }));
+      if (!data.demo) router.refresh();
+      setFeedback("Alteração guardada.");
+    } catch (error) {
+      setFeedback(error instanceof Error && error.message ? error.message : "Não foi possível guardar a alteração.");
     } finally {
       setBusy(null);
     }
   }
 
+  function post(leadId: string, stage: number, pipe = pipeline.key) {
+    void save(leadId, { stage, pipeline: pipe });
+  }
+  const dragging = useBoardDrag((id, stage) => post(id, Number(stage)), busy !== null, stages, "data-lead-stage");
+
   return (
-    <div className="mt-6 flex gap-4 overflow-x-auto pb-4">
+    <>
+    <p className="sr-only" role="status">{dragging.announcement}</p>
+    <p className="mt-2 text-sm text-muted-foreground" role="status">{feedback}</p>
+    {dragging.drag && !dragging.drag.keyboard && <div className="pointer-events-none fixed z-50 rounded-lg border bg-card px-3 py-2 text-sm shadow-lg" style={{ left: dragging.drag.x + 14, top: dragging.drag.y + 14 }}>
+      {mine.find((l) => l.id === dragging.drag?.id)?.name}
+    </div>}
+    <div ref={dragging.board} className="mt-6 flex gap-4 overflow-x-auto pb-4">
       {pipeline.stages.map((label, i) => {
-        const cards = mine.filter((l) => (l.stage ?? 0) === i);
+        const cards = mine.filter((l) => Math.max(0, Math.min(l.stage ?? 0, pipeline.stages.length - 1)) === i);
         return (
-          <div key={label} className="w-72 shrink-0">
+          <div key={i} data-lead-stage={String(i)} className={cn("w-72 shrink-0 rounded-xl", dragging.drag?.target === String(i) && "bg-primary/10 ring-2 ring-inset ring-primary/30")}>
             <div className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2">
               <div className="flex items-center gap-2">
                 <span className={cn("size-2.5 rounded-full", ACCENT[i] ?? "bg-slate-400")} />
@@ -96,11 +125,7 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
               {cards.map((l) => (
                 <div
                   key={l.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelected(l)}
-                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSelected(l)}
-                  className="cursor-pointer rounded-2xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md"
+                  className={cn("rounded-2xl border bg-card p-3 shadow-sm", dragging.drag?.id === l.id && "opacity-50")}
                 >
                   <div className="flex items-start gap-2.5">
                     {l.propertyRef && (
@@ -116,7 +141,7 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium leading-tight">{l.name}</p>
+                        <button type="button" onClick={() => setSelected(l)} className="text-left font-medium leading-tight hover:underline">{l.name}</button>
                         {l.source && (
                           <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium capitalize text-muted-foreground">{l.source}</span>
                         )}
@@ -138,17 +163,28 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
                       value={l.pipeline ?? (isDefault ? pipeline.key : "")}
                       onChange={(e) => post(l.id, 0, e.target.value)}
                       aria-label="Classificar pipeline"
+                      disabled={busy !== null}
                       className="w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs outline-none focus-visible:border-ring"
                     >
-                      {LEAD_PIPELINES.map((p) => (
+                      {pipelines.map((p) => (
                         <option key={p.key} value={p.key}>Pipeline: {p.label}</option>
                       ))}
                     </select>
                   </div>
 
                   <div className="mt-2 flex items-center justify-end gap-1 border-t pt-2" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" {...dragging.handle(l.id, String(i))}
+                      disabled={busy !== null} aria-label={`Arrastar ${l.name}`} aria-pressed={dragging.drag?.id === l.id}
+                      className="mr-auto grid size-8 touch-none cursor-grab place-items-center rounded-full text-muted-foreground hover:bg-secondary">
+                      <GripVertical className="size-4" />
+                    </button>
+                    <button type="button" disabled={busy !== null} aria-label={`Remover ${l.name} do pipeline`} title="Remover do pipeline"
+                      className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary"
+                      onClick={() => { if (window.confirm("Remover esta lead do quadro? A ficha fica disponível em Pedidos e leads.")) void save(l.id, { archived: true }); }}>
+                      <Trash2 className="size-4" />
+                    </button>
                     {busy === l.id && <Loader2 className="mr-auto size-3.5 animate-spin text-muted-foreground" />}
-                    <a href={`tel:${l.contact.replace(/\s/g, "")}`} aria-label="Contactar" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground">
+                    <a href={`tel:${l.contact.replace(/[^+\d]/g, "")}`} aria-label="Contactar" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground">
                       <Phone className="size-3.5" />
                     </a>
                     <button onClick={() => post(l.id, i - 1)} disabled={i === 0 || busy === l.id} aria-label="Recuar fase" className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30">
@@ -168,8 +204,20 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
         );
       })}
 
-      {selected && <LeadDetail lead={selected} onClose={() => setSelected(null)} />}
     </div>
+    {archived.length > 0 && <div className="mt-3">
+      <button type="button" className="text-sm text-primary hover:underline" aria-expanded={showArchived} onClick={() => setShowArchived(!showArchived)}>
+        {showArchived ? "Ocultar removidas" : `Ver removidas (${archived.length})`}
+      </button>
+      {showArchived && <ul className="mt-3 space-y-2">{archived.map((l) => <li key={l.id} className="flex items-center gap-3 text-sm">
+        <Link href={`/app/leads/${l.id}`}>{l.name}</Link>
+        <button type="button" disabled={busy !== null} onClick={() => void save(l.id, { archived: false })} className="inline-flex items-center gap-1 text-primary">
+          <RotateCcw className="size-4" /> Repor
+        </button>
+      </li>)}</ul>}
+    </div>}
+    {selected && <LeadDetail lead={selected} onClose={() => setSelected(null)} />}
+    </>
   );
 }
 

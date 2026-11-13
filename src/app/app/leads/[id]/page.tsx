@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/supabase/auth";
-import { visibleLeadRows } from "@/lib/db/lead-access";
+import { readLeadAnswers, visibleLeadRows } from "@/lib/db/lead-access";
 import { LeadContactAction } from "@/components/consultant/lead-contact-action";
+import { MarkLeadRead } from "@/components/consultant/lead-inbox-view";
+import { LeadPipelineAction } from "@/components/consultant/lead-pipeline-action";
+import { LEAD_PIPELINES } from "@/lib/data/lead-pipelines";
+import { contactWait, valuationAnswers, websiteForm } from "@/lib/data/lead-answers";
 export const metadata = { title: "Detalhe do pedido — Helix" };
 export default async function LeadDetail({ params }: { params: Promise<{id:string}> }) {
   const session = await getSession();
@@ -11,12 +15,30 @@ export default async function LeadDetail({ params }: { params: Promise<{id:strin
   if (!/^[0-9a-f-]{36}$/i.test(id) || session.demo) notFound();
   const [lead] = await visibleLeadRows(session.agent, id);
   if (!lead) notFound();
+  const { answers, unavailable } = await readLeadAnswers(id);
+  const fields = answers.length
+    ? answers.map((answer) => ({ label: answer.label || answer.question_key.replace(/_/g, " "), value: answer.value }))
+    : valuationAnswers(lead.message ?? "");
+  const pipeline = LEAD_PIPELINES.find((p) => p.key === lead.pipeline);
+  const wait = contactWait(lead.created_at);
+  const form = websiteForm(lead.source, lead.sub_source, lead.message);
   const phone = /^[+\d\s().-]{7,}$/.test(lead.contact) ? lead.contact.replace(/[^+\d]/g, "") : null;
   const email = lead.email || (lead.contact.includes("@") ? lead.contact : null);
   return <main className="mx-auto max-w-3xl px-4 py-8">
-    <Link href="/app/leads" className="text-sm text-primary">← Pedidos e leads</Link>
+    <MarkLeadRead agentId={session.agent.id} leadId={id} />
+    <nav className="flex flex-wrap gap-4 text-sm text-primary">
+      <Link href="/app">← Início</Link>
+      <Link href="/app/leads">Pedidos e leads</Link>
+    </nav>
     <h1 className="mt-4 font-display text-3xl">{lead.name}</h1>
     <p className="mt-2 text-sm text-muted-foreground">Recebido a {new Date(lead.created_at).toLocaleString("pt-PT",{timeZone:"Europe/Lisbon"})} · {lead.sub_source || lead.source}</p>
+    <p className="mt-2 text-sm font-medium">
+      {lead.contacted_at
+        ? `Contactada a ${new Date(lead.contacted_at).toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" })}`
+        : lead.status === "novo" && (phone || email) && wait
+          ? `Aguarda contacto há ${wait}`
+          : "Sem primeiro contacto registado"}
+    </p>
     <section className="mt-6 rounded-2xl border bg-card p-5"><h2 className="font-semibold">Contacto e acompanhamento</h2>
       <p className="mt-3">{lead.contact}</p>{email && email !== lead.contact && <p>{email}</p>}
       {!phone && !email && <p className="mt-2 text-sm text-muted-foreground">Este registo assinala um clique em chamada ou WhatsApp. O visitante não deixou nome nem contacto; não é possível identificá-lo a partir deste clique.</p>}
@@ -26,6 +48,33 @@ export default async function LeadDetail({ params }: { params: Promise<{id:strin
       {lead.contact_id && <Link className="mt-3 block text-sm text-primary" href={`/app/contactos/${lead.contact_id}`}>Abrir ficha do contacto →</Link>}
     </section>
     <section className="mt-4 rounded-2xl border bg-card p-5"><h2 className="font-semibold">Pedido e relatório</h2><p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">{lead.message || "Sem mensagem adicional."}</p></section>
-    {lead.page_url && <p className="mt-4 break-all text-xs text-muted-foreground">Página de origem: {lead.page_url}</p>}
+    <section className="mt-4 rounded-2xl border bg-card p-5">
+      <h2 className="font-semibold">Perguntas e respostas</h2>
+      {fields.length > 0 ? <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+        {fields.map(({ label, value }, i) => <div key={i} className="rounded-xl bg-secondary/50 p-3">
+          <dt className="text-muted-foreground">{label}</dt>
+          <dd className="mt-1 whitespace-pre-wrap break-words font-medium">{value}</dd>
+        </div>)}
+      </dl> : <p className="mt-3 text-sm text-muted-foreground">{unavailable ? "Não foi possível carregar as respostas." : "Não foram guardadas respostas individuais para este pedido."}</p>}
+    </section>
+    <section className="mt-4 rounded-2xl border bg-card p-5">
+      <h2 className="font-semibold">Origem da lead</h2>
+      <dl className="mt-3 grid gap-3 break-words text-sm sm:grid-cols-2">
+        {[
+          ["Canal", lead.source], ["Origem específica", lead.sub_source],
+          ["Página de origem", lead.page_url], ["Campanha", lead.campaign_id],
+          ["Formulário do website", lead.source === "site" ? form ?? "Não registado" : null], ["ID do formulário", lead.form_id], ["Versão do formulário", lead.form_version],
+          ["Referência externa", lead.external_id],
+        ].filter(([, value]) => value).map(([label, value]) => <div key={label}>
+          <dt className="text-muted-foreground">{label}</dt><dd>{value}</dd>
+        </div>)}
+      </dl>
+    </section>
+    <section className="mt-4 rounded-2xl border bg-card p-5">
+      <h2 className="font-semibold">Pipeline</h2>
+      <p className="mt-2 text-sm text-muted-foreground">Atual: {pipeline?.label ?? lead.pipeline ?? "Por classificar"}{pipeline && pipeline.stages[lead.stage] ? ` · ${pipeline.stages[lead.stage]}` : ""}</p>
+      <LeadPipelineAction leadId={id} current={lead.pipeline ?? undefined} />
+      <Link href="/app/crm" className="text-sm text-primary hover:underline">Ver pipelines do CRM →</Link>
+    </section>
   </main>;
 }

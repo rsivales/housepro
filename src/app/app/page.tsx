@@ -46,6 +46,7 @@ import { quoteTextOfDay } from "@/lib/data/quotes";
 import { getQuotesConfig } from "@/lib/db/repo";
 import { ConsultantHome, ConsultantBannerOnly } from "@/components/helix/consultant-home";
 import { PhraseOfTheDay, LastAngariadoBanner, NotificationsInbox, ActivitiesBoard } from "@/components/consultant/dashboard-extras";
+import { contactWait, websiteForm } from "@/lib/data/lead-answers";
 import { LEAD_STATUS_LABEL } from "@/lib/data/leads";
 import { referralsIncoming } from "@/lib/data/referrals";
 import { ClientModeToggle } from "@/components/consultant/client-mode-toggle";
@@ -56,6 +57,7 @@ import { consultantCode } from "@/lib/codes";
 import { formatPhone } from "@/lib/format";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { PadrinhoAutoRedeem } from "@/components/afilhados/padrinho-auto-redeem";
+import { LeadInboxView } from "@/components/consultant/lead-inbox-view";
 import { ContactSlaWatcher } from "@/components/consultant/contact-sla-watcher";
 import { PropertyPortfolio } from "@/components/portfolio/property-portfolio";
 import { Button } from "@/components/ui/button";
@@ -86,6 +88,7 @@ export default async function AppPage() {
 
   const mine = await listPropertiesByAgent(agent.id);
   const leads = await listLeadsByAgent(agent.id);
+  const now = Date.now();
   const novas = leads.filter((l) => l.status === "novo").length;
   const refsNovas = referralsIncoming(agent.id).filter((r) => r.status === "pendente").length;
 
@@ -260,13 +263,9 @@ export default async function AppPage() {
 
           <ContactSlaWatcher agentId={agent.id} demo={demo} />
 
-          {leads.length > 0 ? (
-            <ul className="mt-4 space-y-3">
-              {leads.map((l) => (
-                <li
-                  key={l.id}
-                  className="rounded-2xl border bg-card p-4 shadow-sm"
-                >
+          <LeadInboxView agentId={agent.id} cards={leads.map((l) => ({
+              id: l.id,
+              content: <>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
                       <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
@@ -279,7 +278,7 @@ export default async function AppPage() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium leading-none">{l.name}</p>
+                        <Link prefetch={false} href={`/app/leads/${l.id}`} className="font-medium leading-none hover:underline">{l.name}</Link>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {(() => {
                             const isEmail = l.contact.includes("@");
@@ -355,11 +354,7 @@ export default async function AppPage() {
 
                   <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>
-                      {l.intent === "visita"
-                        ? "Pedido de visita"
-                        : l.intent === "custos"
-                          ? "Pedido de valor com despesas"
-                          : "Mensagem"}
+                      {websiteForm(l.source, l.subSource, l.message) ?? (l.intent === "visita" ? "Pedido de visita" : l.intent === "custos" ? "Pedido de valor com despesas" : "Mensagem")}
                     </span>
                     {l.preferredAt && (
                       <span>
@@ -393,22 +388,24 @@ export default async function AppPage() {
                           ` · ${new Date(l.contactedAt).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
                       </span>
                     )}
+                    {l.status === "novo" && !l.contactedAt && (isValidPhone(l.contact) || l.contact.includes("@") || l.email) && contactWait(l.createdAt, now) && (
+                      <span>Aguarda contacto há {contactWait(l.createdAt, now)}</span>
+                    )}
                     <span className="ml-auto">
-                      {new Date(l.createdAt).toLocaleDateString("pt-PT", {
+                      {new Date(l.createdAt).toLocaleString("pt-PT", {
                         day: "2-digit",
                         month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "Europe/Lisbon",
                       })}
                     </span>
                   </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-4 rounded-2xl border bg-card p-6 text-center text-sm text-muted-foreground">
-              Ainda sem contactos. Partilhe a sua montra para começar a receber
-              mensagens e pedidos de visita.
-            </p>
-          )}
+                  <Link prefetch={false} href={`/app/leads/${l.id}`} className="mt-3 inline-flex text-sm font-semibold text-primary hover:underline">
+                    Abrir lead <ArrowRight className="ml-1 size-4" />
+                  </Link>
+              </>,
+          }))} />
         </section>
 
         {/* Objetivos — ligam à página de Prémios, onde se vê o detalhe e a escada. */}

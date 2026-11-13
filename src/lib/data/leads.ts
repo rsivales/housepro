@@ -27,6 +27,7 @@ export interface LeadConsent {
 }
 
 export interface Lead {
+  crmArchivedAt?: string;
   id: string;
   propertyId?: string;
   propertyRef?: string;

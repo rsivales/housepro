@@ -1070,6 +1070,7 @@ function mapLeadRow(r: Row): Lead {
     | undefined;
   return {
     id: String(r.id),
+    crmArchivedAt: (r.crm_archived_at as string) ?? undefined,
     propertyId: (r.property_id as string) ?? undefined,
     propertyRef: (r.property_ref as string) ?? propJoin?.reference ?? undefined,
     propertyImage: propJoin?.cover_url || undefined,

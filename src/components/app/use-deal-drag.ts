@@ -1,24 +1,26 @@
 "use client";
 import * as React from "react";
 import { DEAL_STEPS, type DealStage } from "@/lib/data/deal";
-interface Drag {
+interface Drag<S extends string> {
   id: string;
-  stage: DealStage;
-  target: DealStage | null;
+  stage: S;
+  target: S | null;
   x: number;
   y: number;
   keyboard: boolean;
 }
 /** Pointer capture supports mouse, pen and touch without disabling board scrolling. */
-export function useDealDrag(
-  onDrop: (id: string, stage: DealStage) => void,
+export function useBoardDrag<S extends string>(
+  onDrop: (id: string, stage: S) => void,
   disabled: boolean,
+  stages: readonly { stage: S; label: string }[],
+  attribute: "data-deal-stage" | "data-lead-stage",
 ) {
-  const [drag, setDrag] = React.useState<Drag | null>(null),
-    ref = React.useRef<Drag | null>(null),
+  const [drag, setDrag] = React.useState<Drag<S> | null>(null),
+    ref = React.useRef<Drag<S> | null>(null),
     board = React.useRef<HTMLDivElement>(null);
   const [announcement, setAnnouncement] = React.useState("");
-  function update(next: Drag | null) {
+  function update(next: Drag<S> | null) {
     ref.current = next;
     setDrag(next);
   }
@@ -37,16 +39,15 @@ export function useDealDrag(
         else if (d.x > r.right - edge) el.scrollLeft += 14;
         const target = document
           .elementFromPoint(d.x, d.y)
-          ?.closest<HTMLElement>("[data-deal-stage]")?.dataset.dealStage as
-          DealStage | undefined;
+          ?.closest<HTMLElement>(`[${attribute}]`)?.getAttribute(attribute) as S | null | undefined;
         if (target !== d.target) update({ ...d, target: target ?? null });
       }
       frame = requestAnimationFrame(scroll);
     }
     frame = requestAnimationFrame(scroll);
     return () => cancelAnimationFrame(frame);
-  }, [pointerDragging]);
-  const handle = (id: string, stage: DealStage) => ({
+  }, [pointerDragging, attribute]);
+  const handle = (id: string, stage: S) => ({
     onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
       if (disabled || e.button !== 0) return;
       e.preventDefault();
@@ -66,8 +67,7 @@ export function useDealDrag(
       if (!d || d.id !== id || d.keyboard) return;
       const target = document
         .elementFromPoint(e.clientX, e.clientY)
-        ?.closest<HTMLElement>("[data-deal-stage]")?.dataset.dealStage as
-        DealStage | undefined;
+        ?.closest<HTMLElement>(`[${attribute}]`)?.getAttribute(attribute) as S | null | undefined;
       update({ ...d, x: e.clientX, y: e.clientY, target: target ?? null });
     },
     onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -116,11 +116,7 @@ export function useDealDrag(
         ["ArrowLeft", "ArrowRight"].includes(e.key)
       ) {
         e.preventDefault();
-        const stages = [
-            ...DEAL_STEPS,
-            { stage: "cancelado" as const, label: "Perdidos" },
-          ],
-          idx = stages.findIndex((s) => s.stage === d.target),
+        const idx = stages.findIndex((s) => s.stage === d.target),
           next =
             stages[
               Math.max(
@@ -137,4 +133,9 @@ export function useDealDrag(
     },
   });
   return { drag, board, handle, announcement };
+}
+
+const DEAL_DRAG_STEPS = [...DEAL_STEPS, { stage: "cancelado" as const, label: "Perdidos" }];
+export function useDealDrag(onDrop: (id: string, stage: DealStage) => void, disabled: boolean) {
+  return useBoardDrag(onDrop, disabled, DEAL_DRAG_STEPS, "data-deal-stage");
 }

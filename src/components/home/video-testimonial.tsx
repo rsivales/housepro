@@ -24,8 +24,8 @@ export interface Testimonial {
  * clique. Capa (poster), legendas e transcrição para acessibilidade.
  * Consentimento e privacidade geridos no admin (registo de consentimentos).
  */
-export function VideoTestimonial({ t }: { t: Testimonial }) {
-  const [playing, setPlaying] = React.useState(false);
+export function VideoTestimonial({ t, autoStart = false }: { t: Testimonial; autoStart?: boolean }) {
+  const [playing, setPlaying] = React.useState(autoStart && Boolean(t.videoSrc));
   const [showTranscript, setShowTranscript] = React.useState(false);
   // Links do YouTube tocam no leitor do YouTube (iframe); ficheiros de vídeo no <video>.
   const ytId = youTubeId(t.videoSrc);

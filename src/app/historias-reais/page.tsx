@@ -4,8 +4,7 @@ import { ArrowRight } from "lucide-react";
 
 import { PublicHeader } from "@/components/home/public-header";
 import { PublicFooter } from "@/components/home/public-footer";
-import { StoriesGrid } from "@/components/home/stories-grid";
-import { publishedStories } from "@/lib/data/stories";
+import { StoriesSection } from "@/components/home/stories-section";
 
 export const metadata: Metadata = {
   title: "Histórias reais — HousePro",
@@ -15,7 +14,6 @@ export const metadata: Metadata = {
 };
 
 export default function HistoriasReaisPage() {
-  const stories = publishedStories();
   return (
     <div className="hp min-h-dvh bg-background">
       <PublicHeader />
@@ -35,23 +33,7 @@ export default function HistoriasReaisPage() {
 
         {/* Grelha com filtros — ou estado de preparação, sem conteúdos fictícios */}
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          {stories.length > 0 ? (
-            <>
-              <StoriesGrid stories={stories} />
-              <p className="mt-8 text-xs text-muted-foreground">
-                Respeitamos a privacidade: não são apresentados documentos, valores não autorizados,
-                moradas completas ou imagens sem consentimento.
-              </p>
-            </>
-          ) : (
-            <div className="rounded-3xl border bg-card p-8 text-center shadow-sm sm:p-12">
-              <h2 className="font-display text-xl sm:text-2xl">Histórias reais, em preparação</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                Estamos a reunir testemunhos verdadeiros, com autorização de quem os viveu. Não
-                publicamos histórias, nomes ou fotografias fictícias.
-              </p>
-            </div>
-          )}
+          <StoriesSection />
         </section>
 
         {/* CTA */}

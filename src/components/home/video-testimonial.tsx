@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Play } from "lucide-react";
 
+import { youTubeEmbedUrl, youTubeId, youTubePoster } from "@/lib/video";
+
 export interface Testimonial {
   quote: string;
   name: string;
@@ -25,14 +27,26 @@ export interface Testimonial {
 export function VideoTestimonial({ t }: { t: Testimonial }) {
   const [playing, setPlaying] = React.useState(false);
   const [showTranscript, setShowTranscript] = React.useState(false);
+  // Links do YouTube tocam no leitor do YouTube (iframe); ficheiros de vídeo no <video>.
+  const ytId = youTubeId(t.videoSrc);
+  const poster = t.poster || (ytId ? youTubePoster(ytId) : undefined);
 
   return (
     <figure className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="relative aspect-video">
-        {t.videoSrc && playing ? (
+        {ytId && playing ? (
+          <iframe
+            src={youTubeEmbedUrl(ytId)}
+            title={`Testemunho de ${t.name}`}
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+            className="absolute inset-0 size-full border-0"
+          />
+        ) : t.videoSrc && playing ? (
           <video
             src={t.videoSrc}
-            poster={t.poster}
+            poster={poster}
             controls
             autoPlay
             playsInline
@@ -44,8 +58,8 @@ export function VideoTestimonial({ t }: { t: Testimonial }) {
           <div
             className="absolute inset-0"
             style={{
-              background: t.poster
-                ? `url(${t.poster}) center/cover`
+              background: poster
+                ? `url(${poster}) center/cover`
                 : "linear-gradient(120deg, #244765 0%, #0B1F3A 70%)",
             }}
           >

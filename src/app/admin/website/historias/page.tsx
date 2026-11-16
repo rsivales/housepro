@@ -134,7 +134,7 @@ export default function HistoriasAdminPage() {
                   </label>
                   <label className="block">
                     <span className="text-sm font-medium">Vídeo (URL, opcional)</span>
-                    <input className={field} value={s.videoSrc ?? ""} onChange={(e) => patch(s.id, { videoSrc: e.target.value || undefined })} placeholder="https://…/testemunho.mp4" />
+                    <input className={field} value={s.videoSrc ?? ""} onChange={(e) => patch(s.id, { videoSrc: e.target.value || undefined })} placeholder="Link do YouTube ou https://…/testemunho.mp4" />
                   </label>
                   <div className="sm:col-span-2">
                     <span className="text-sm font-medium">Fotografia / capa do vídeo</span>

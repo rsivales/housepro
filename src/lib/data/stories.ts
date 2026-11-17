@@ -26,6 +26,7 @@ export interface Story {
   videoSrc?: string;
   poster?: string;
   transcript?: string;
+  publishedAt?: string;
   /** Gerido no admin: publicado no website. */
   published?: boolean;
   /** Gerido no admin: consentimento válido + autorização de uso no site. */
@@ -51,3 +52,12 @@ export function publishedStories(all: Story[] = STORIES): Story[] {
 }
 
 export const STORY_OPERATIONS: StoryOperation[] = ["Compra", "Venda", "Arrendamento", "Investimento"];
+
+export function shuffleStories(stories: Story[]): Story[] {
+  const shuffled = [...stories];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}

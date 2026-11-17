@@ -157,6 +157,14 @@ let serverCache: Promise<ServerContent> | null = null;
  * componentes públicos usam isto e caem para o localStorage/defaults quando a
  * secção ainda não foi publicada (ou em modo demo).
  */
+export async function loadStoriesForEditor(): Promise<Story[]> {
+  const response = await fetch("/api/brand/site-content?editor=stories");
+  if (!response.ok) throw new Error("stories_load_failed");
+  const result = await response.json() as { content?: ServerContent; persisted?: boolean };
+  if (!result.persisted && isSupabaseConfigured()) throw new Error("stories_load_failed");
+  return result.content?.stories ?? (result.persisted ? [] : readStories());
+}
+
 export function loadSiteContent(fresh = false): Promise<ServerContent> {
   if (typeof window === "undefined") return Promise.resolve({});
   if (fresh) serverCache = null;
@@ -244,7 +252,7 @@ async function compressImage(file: File): Promise<Blob> {
 /** Comprime, envia para o Storage e só devolve depois de existir um URL público. */
 export async function uploadSiteImage(
   file: File,
-  area: "banners" | "articles" | "stories" | "brand" | "landing-pages" | "profile",
+  area: "banners" | "articles" | "stories" | "international" | "brand" | "landing-pages" | "profile",
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("invalid_image");

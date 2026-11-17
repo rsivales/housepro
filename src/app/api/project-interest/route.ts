@@ -10,10 +10,18 @@ export async function POST(request: Request) {
   if (!kind || !id || !name || !email) return NextResponse.json({ error: "Dados incompletos." }, { status: 400 });
   if (!hasServiceRole()) return NextResponse.json({ error: "Serviço de encaminhamento indisponível." }, { status: 503 });
   const sb = createAdminClient();
+  let projectTitle = String(body?.projectName ?? "Projeto");
   let recipientEmail: string | null = null; let recipientName = "responsável";
   if (kind === "international") {
-    const { data: project } = await sb.from("international_projects").select("title, published, partnership_id").eq("id", id).maybeSingle();
-    if (project) {
+    const { data: catalogProject } = await sb.from("international_catalog").select("project, published").eq("id", id).maybeSingle();
+    const { data: project } = catalogProject ? { data: null } :
+      await sb.from("international_projects").select("title, published, partnership_id").eq("id", id).maybeSingle();
+    if (catalogProject) {
+      if (!catalogProject.published) return NextResponse.json({ error: "Projeto indisponível." }, { status: 404 });
+      projectTitle = catalogProject.project.title;
+      recipientEmail = process.env.LEAD_NOTIFY_EMAIL ?? null;
+      recipientName = "equipa internacional HousePro";
+    } else if (project) {
       if (!project.published) return NextResponse.json({ error: "Projeto indisponível." }, { status: 404 });
       const { data: partnership } = await sb.from("international_partnerships").select("status, correspondent_name, correspondent_email").eq("id", project.partnership_id).maybeSingle();
       if (partnership?.status !== "active" || !partnership.correspondent_email) return NextResponse.json({ error: "Parceria ainda não está disponível para contactos." }, { status: 409 });
@@ -34,7 +42,7 @@ export async function POST(request: Request) {
     }
   }
   if (!recipientEmail) return NextResponse.json({ error: "Não foi possível determinar o responsável." }, { status: 409 });
-  const projectName = String(body?.projectName ?? "Projeto");
+  const projectName = projectTitle;
   const { data: fallbackOwner } = await sb.from("profiles").select("id").eq("role_key", "superadmin").limit(1).maybeSingle();
   const ownerId = kind === "development" && (await sb.from("properties").select("agent_id").eq("id", id).maybeSingle()).data?.agent_id || fallbackOwner?.id;
   if (ownerId) await createLead({

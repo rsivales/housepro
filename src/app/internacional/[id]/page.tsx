@@ -1,28 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Building2, Check, Globe2, Handshake, Info, MapPin } from "lucide-react";
+import { ArrowLeft, Check, Globe2, Handshake, Info, MapPin } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { internationalById, internationalProjects } from "@/lib/data/international";
+import { publicInternationalProjects } from "@/lib/db/international";
+import { ProjectFacts, ProjectImage } from "@/components/international/project-facts";
 import { InterestForm } from "@/components/projects/interest-form";
 
-const eur = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-
-export function generateStaticParams() {
-  return internationalProjects.map((p) => ({ id: p.id }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const p = internationalById(id);
+  const p = (await publicInternationalProjects()).find((project) => project.id === id);
   return { title: p ? `${p.title} — Internacional` : "Projeto internacional" };
 }
 
 export default async function ProjetoInternacional({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const p = internationalById(id);
+  const p = (await publicInternationalProjects()).find((project) => project.id === id);
   if (!p) notFound();
 
   return (
@@ -33,23 +30,18 @@ export default async function ProjetoInternacional({ params }: { params: Promise
           <ArrowLeft className="size-4" /> HousePro Internacional
         </Link>
 
-        <div className={`mt-4 flex aspect-[21/9] items-end rounded-2xl bg-gradient-to-br ${p.tint} p-6`}>
-          <div>
-            <p className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-              <MapPin className="size-4" /> {p.city}, {p.country} <span className="text-2xl">{p.flag}</span>
-            </p>
-            <h1 className="mt-1 font-display text-3xl sm:text-4xl">{p.title}</h1>
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-          <span className="font-display text-2xl">{eur.format(p.priceFrom)}<span className="text-sm font-normal text-muted-foreground"> · desde</span></span>
-          <span className="flex items-center gap-1.5 text-muted-foreground"><Building2 className="size-4" /> {p.typologies}</span>
-          {p.deliveryYear && <span className="text-muted-foreground">Entrega {p.deliveryYear}</span>}
-        </div>
+        <header className="mt-6">
+          <ProjectImage project={p} className="mb-6 max-h-[560px] w-full object-cover" eager />
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><MapPin className="size-4" /> {p.city}, {p.country}</p>
+          <h1 className="mt-2 font-display text-4xl sm:text-5xl">{p.title}</h1>
+          {p.developer && <p className="mt-2 text-sm text-muted-foreground">{p.developer}</p>}
+        </header>
+        <div className="mt-6"><ProjectFacts project={p} all /></div>
+        {p.brochure && <a href={p.brochure} className="mt-4 inline-block text-sm font-medium underline">Consultar brochura</a>}
 
         <p className="mt-5 text-muted-foreground">{p.description}</p>
 
+        {!!p.highlights.length && <>
         <h2 className="mt-8 font-display text-xl">Destaques</h2>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {p.highlights.map((h) => (
@@ -58,14 +50,15 @@ export default async function ProjetoInternacional({ params }: { params: Promise
             </li>
           ))}
         </ul>
+        </>}
 
-        <div className="mt-6 flex items-start gap-2 rounded-2xl border bg-card p-4">
+        {p.partner && <div className="mt-6 flex items-start gap-2 rounded-2xl border bg-card p-4">
           <Handshake className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
             <p className="text-sm font-medium">Divulgação autorizada</p>
             <p className="text-sm text-muted-foreground">{p.partner}</p>
           </div>
-        </div>
+        </div>}
 
         {p.taxNote && (
           <div className="mt-4 flex items-start gap-2 rounded-2xl border bg-secondary/40 p-4">

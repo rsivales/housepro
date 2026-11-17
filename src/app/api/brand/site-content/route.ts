@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { publishedStories, type Story } from "@/lib/data/stories";
 import { isSuperadmin } from "@/lib/data/roles";
 
 /**
@@ -27,7 +28,7 @@ const SECTIONS = {
 } as const;
 type Section = keyof typeof SECTIONS;
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!isSupabaseConfigured())
     return NextResponse.json({ content: {}, persisted: false });
   try {
@@ -40,7 +41,13 @@ export async function GET() {
     const content: Record<string, unknown> = {};
     for (const [section, key] of Object.entries(SECTIONS))
       if (byKey[key] != null) content[section] = byKey[key];
-    return NextResponse.json({ content, persisted: true });
+    if (Array.isArray(content.stories)) {
+      const admin = new URL(request.url).searchParams.get("editor") === "stories" ? await getSession() : null;
+      if (!admin || admin.demo || !isSuperadmin(admin.agent)) {
+        content.stories = publishedStories(content.stories as Story[]);
+      }
+    }
+    return NextResponse.json({ content, persisted: true }, { headers: { "Cache-Control": "private, no-store" } });
   } catch {
     return NextResponse.json({ content: {}, persisted: false });
   }

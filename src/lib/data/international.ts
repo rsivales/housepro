@@ -9,8 +9,6 @@ export interface InternationalProject {
   id: string;
   title: string;
   country: string;
-  /** Emoji da bandeira (evita imagens externas). */
-  flag: string;
   city: string;
   /** Parceiro que autoriza a divulgação. */
   partner: string;
@@ -26,8 +24,15 @@ export interface InternationalProject {
   highlights: string[];
   /** Nota fiscal/legal relevante para o investidor português. */
   taxNote?: string;
-  /** Gradiente do cartão (sem depender de imagens externas). */
-  tint: string;
+  photo?: string;
+  photoAlt?: string;
+  brochure?: string;
+  developer?: string;
+  amenities?: string[];
+  units?: { type: string; price: number | null }[];
+  rates?: { eur: number; usd: number; date: string };
+  availability?: string;
+  featured?: boolean;
 }
 
 export const internationalProjects: InternationalProject[] = [
@@ -35,7 +40,6 @@ export const internationalProjects: InternationalProject[] = [
     id: "dubai-marina-heights",
     title: "Marina Heights Residences",
     country: "Emirados Árabes Unidos",
-    flag: "🇦🇪",
     city: "Dubai Marina",
     partner: "Parceria HousePro × developer local (autorizada)",
     priceFrom: 320000,
@@ -53,13 +57,12 @@ export const internationalProjects: InternationalProject[] = [
     ],
     taxNote:
       "Investidores residentes em Portugal devem declarar rendimentos e mais-valias em Portugal; existe convenção para evitar dupla tributação com os EAU. Aconselhamento fiscal individual recomendado.",
-    tint: "from-amber-500/25 via-primary/15 to-transparent",
+    amenities: ["Gestão de arrendamento"],
   },
   {
     id: "dubai-downtown-skyline",
     title: "Downtown Skyline",
     country: "Emirados Árabes Unidos",
-    flag: "🇦🇪",
     city: "Downtown Dubai",
     partner: "Parceria HousePro × developer local (autorizada)",
     priceFrom: 480000,
@@ -76,10 +79,24 @@ export const internationalProjects: InternationalProject[] = [
     ],
     taxNote:
       "A aquisição pode dar acesso a vistos de residência nos EAU consoante o valor. Verifique implicações fiscais em Portugal antes de investir.",
-    tint: "from-sky-500/25 via-primary/15 to-transparent",
+    amenities: ["Concierge", "Spa", "Serviços de hotel"],
   },
 ];
 
 export function internationalById(id: string): InternationalProject | undefined {
   return internationalProjects.find((p) => p.id === id);
+}
+
+export const currencyPartnerKey = "hp_international_currency_partner";
+
+export function formatProjectPrice(project: InternationalProject, amount: number) {
+  const format = (currency: string, value: number) =>
+    new Intl.NumberFormat("pt-PT", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+  const original = format(project.currency, amount);
+  if (!project.rates) return original;
+
+  const euros = format("EUR", amount * project.rates.eur);
+  const dollars = format("USD", amount * project.rates.usd);
+  const base = project.currency === "EUR" || project.currency === "USD" ? "" : ` · ${original}`;
+  return `${euros} · ${dollars}${base}`;
 }

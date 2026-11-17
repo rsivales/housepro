@@ -16,7 +16,7 @@ function put(body: unknown): Request {
 
 describe("/api/brand/site-content — modo demo", () => {
   it("GET devolve content vazio e persisted false", async () => {
-    const res = await GET();
+    const res = await GET(new Request("http://localhost/api/brand/site-content"));
     const json = await res.json();
     expect(res.status).toBe(200);
     expect(json.persisted).toBe(false);

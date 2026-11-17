@@ -6,7 +6,7 @@ import { ArrowRight, Play } from "lucide-react";
 
 import { VideoTestimonial } from "@/components/home/video-testimonial";
 import { youTubeId, youTubePoster } from "@/lib/video";
-import { publishedStories, type Story } from "@/lib/data/stories";
+import { publishedStories, shuffleStories, type Story } from "@/lib/data/stories";
 import { readStories, loadSiteContent } from "@/lib/data/site-content";
 
 /**
@@ -22,7 +22,7 @@ export function RealStories() {
   const [autoStart, setAutoStart] = React.useState(false);
 
   React.useEffect(() => {
-    loadSiteContent().then((c) => setStories(publishedStories(c.stories ?? readStories())));
+    loadSiteContent().then((c) => setStories(shuffleStories(publishedStories(c.stories ?? readStories()))));
   }, []);
 
   if (stories.length === 0) return null;

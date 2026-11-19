@@ -99,16 +99,16 @@ describe("Deal commission projection", () => {
       ).status,
     ).toBe("missing");
   });
-  it("respects the registered accumulated cycle and agency cap", () => {
+  it("respects the 70% upper tier without returning the agency cap", () => {
     const result = estimateDealCommission(
       { ...input, gross: 10000 },
       new Map([["r", { ...profiles.get("r")!, monthlyGross: 400000 }]]),
     );
     expect(result.producers[0]).toMatchObject({
-      agentGross: 10000,
-      royalties: 300,
-      pension: 200,
-      agentNet: 9500,
+      agentGross: 7000,
+      royalties: 210,
+      pension: 140,
+      agentNet: 6650,
     });
   });
   it("conserves cents across many allocation shares without negative last shares", () => {

@@ -1,5 +1,17 @@
 export const RELEASES = [
   {
+    id: "2026.11.19-inbox-commission-fees",
+    version: "2026.11.19",
+    title: "Caixa de entrada e gestão financeira",
+    date: "19 de novembro de 2026",
+    items: [
+      { type: "feature", text: "O início mostra até cinco pedidos por ler, com contador e acesso à gestão completa." },
+      { type: "feature", text: "Comissões: 50%/40%, 60%/50% e 80%/70%. Propostas Pro Producer sujeitas à aprovação da Marca." },
+      { type: "feature", text: "Registo mensal de fees Pro Producer e tecnológicos, com valores tecnológicos definidos pela Marca." },
+      { type: "bugfix", text: "Novidades do sistema atualizadas e disponíveis numa página de histórico." },
+    ],
+  },
+  {
     id: "2026.09.09-website-governance",
     version: "2026.09.09",
     title: "Gestão do website e supervisão",

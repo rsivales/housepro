@@ -1,5 +1,6 @@
 import { computeLeg, DEFAULT_PLAN, type CommissionPlan } from "./tiers";
 export interface ProducerContext {
+  proProducer?: boolean;
   id: string;
   name: string;
   monthlyGross: number;
@@ -108,12 +109,13 @@ export function estimateDealCommission(
       priorAgencyTake: 0,
       hasValidatedCompany: p.companyValidated,
     }, plan);
+    const producerPlan = p.proProducer ? { ...plan, agencyCapEnabled: false, ladder: [{ upTo: Infinity, withCompany: 80, withoutCompany: 80 }] } : plan;
     const leg = computeLeg({
       legCommission: commissionBase,
       priorFaturacao: prior,
       priorAgencyTake: priorLeg.agencyGross,
       hasValidatedCompany: p.companyValidated,
-    }, plan);
+    }, producerPlan);
     const agentGross = cents(leg.agentGross),
       royalties = cents(leg.royaltiesAgent),
       pension = cents(leg.pension);

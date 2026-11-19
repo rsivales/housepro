@@ -548,26 +548,26 @@ export async function insertNotifications(
  *  Sem `ids`, marca todas as não lidas — usado por "marcar todas como lidas". */
 export async function markNotificationsRead(userId: string, ids?: string[]): Promise<void> {
   if (!isSupabaseConfigured()) return;
-  try {
-    const supabase = await createClient();
-    let q = supabase.from("notifications").update({ read: true }).eq("user_id", userId);
-    q = ids && ids.length > 0 ? q.in("id", ids) : q.eq("read", false);
-    await q;
-  } catch {
-    /* best-effort */
-  }
+  const supabase = await createClient();
+  let q = supabase.from("notifications").update({ read: true }).eq("user_id", userId);
+  q = ids ? q.in("id", ids) : q.eq("read", false);
+  const { error } = await q;
+  if (error) throw new Error("notifications_update_failed");
 }
 
 /** Notificações do consultor (mais recentes primeiro). */
-export async function listNotifications(userId: string, limit = 20): Promise<Notification[]> {
+export async function listNotifications(userId: string, limit = 20, page = 0, unreadOnly = false): Promise<Notification[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("notifications")
     .select("*")
     .eq("user_id", userId)
+    .is("dismissed_at", null)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .range(page * limit, (page + 1) * limit - 1);
+  if (unreadOnly) query = query.eq("read", false);
+  const { data } = await query;
   return (data ?? []).map((r: Row) => ({
     id: String(r.id),
     type: String(r.type ?? "info"),
@@ -2858,4 +2858,15 @@ export async function listLeadActivity(leadId: string): Promise<LeadActivity[]> 
   } catch {
     return [];
   }
+}
+
+
+export async function notificationCounts(userId: string) {
+  if (!isSupabaseConfigured()) return { unread: 0, total: 0 };
+  const sb = await createClient();
+  const [all, unread] = await Promise.all([
+    sb.from("notifications").select("id", { head: true, count: "exact" }).eq("user_id", userId).is("dismissed_at", null),
+    sb.from("notifications").select("id", { head: true, count: "exact" }).eq("user_id", userId).is("dismissed_at", null).eq("read", false),
+  ]);
+  return { total: all.count ?? 0, unread: unread.count ?? 0 };
 }

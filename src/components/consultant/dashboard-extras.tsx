@@ -52,9 +52,10 @@ export function LastAngariadoBanner({ property, agentName }: { property: Propert
 }
 
 /** Caixa de notificações — mostra a mais recente e salta para a lista ao clicar. */
-export function NotificationsInbox({ items }: { items: Notification[] }) {
-  const latest = items[0];
-  const unread = items.filter((n) => !n.read).length;
+export function NotificationsInbox({ items, unreadCount }: { items: Notification[]; unreadCount?: number }) {
+  const pending = items.filter((n) => !n.read).slice(0, 5);
+  const latest = pending[0];
+  const unread = unreadCount ?? pending.length;
   return (
     <Link
       href="/app/notificacoes"
@@ -72,8 +73,7 @@ export function NotificationsInbox({ items }: { items: Notification[] }) {
       </div>
       {latest ? (
         <div className="mt-2 min-w-0">
-          <p className="truncate text-sm font-medium">{latest.title}</p>
-          {latest.body && <p className="line-clamp-2 text-xs text-muted-foreground">{latest.body}</p>}
+          {pending.map(n => <div key={n.id} className="border-t py-2"><p className="truncate text-sm font-medium">{n.title}</p>{n.body && <p className="line-clamp-2 text-xs text-muted-foreground">{n.body}</p>}</div>)}
         </div>
       ) : (
         <p className="mt-2 text-xs text-muted-foreground">Sem notificações.</p>

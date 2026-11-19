@@ -1,6 +1,7 @@
 import { COMMISSION } from "@/lib/commission/config";
 
 export interface CommissionRegime {
+  agencyCapEnabled?: boolean;
   agencyCap: number;
   ladder: { upTo: number | null; withCompany: number; withoutCompany: number }[];
   overrideTiers: number[];
@@ -20,6 +21,7 @@ export type OtherIncomeCategory = keyof typeof OTHER_INCOME_CATEGORIES;
 
 export const DEFAULT_REGIME: CommissionRegime = {
   agencyCap: COMMISSION.agencyCap,
+  agencyCapEnabled: false,
   ladder: COMMISSION.ladder.map(b => ({ upTo: Number.isFinite(b.upTo) ? b.upTo : null, withCompany: b.withCompany, withoutCompany: b.withoutCompany })),
   overrideTiers: [...COMMISSION.overrideTiers],
   otherIncomeShares: { credito: 50, certificado: 50, parceria: 50, outros: 50 },
@@ -35,6 +37,10 @@ export function validateRegime(input: unknown): input is CommissionRegime {
   if (p.royaltiesPct !== 3 || p.pensionPct !== 2 || p.brokerPensionPct !== 2) return false;
   if (typeof p.agencyCap !== "number" || !Number.isInteger(p.agencyCap) || p.agencyCap < 1000 || p.agencyCap > 10000000) return false;
   if (!Array.isArray(p.ladder) || p.ladder.length !== 3 || !Array.isArray(p.overrideTiers) || p.overrideTiers.length !== 4) return false;
+  if (p.agencyCapEnabled !== false || p.ladder.some((band, i) =>
+    band.upTo !== DEFAULT_REGIME.ladder[i].upTo ||
+    band.withCompany !== DEFAULT_REGIME.ladder[i].withCompany ||
+    band.withoutCompany !== DEFAULT_REGIME.ladder[i].withoutCompany)) return false;
   const [first, second, last] = p.ladder;
   if (!Number.isInteger(first?.upTo) || !Number.isInteger(second?.upTo) || (first.upTo as number) < 1000 || (second.upTo as number) <= (first.upTo as number) || (second.upTo as number) > 100000000 || last?.upTo !== null) return false;
   if (p.ladder.some(b => !pct(b.withCompany) || !pct(b.withoutCompany) || b.withCompany < b.withoutCompany)) return false;
@@ -44,8 +50,13 @@ export function validateRegime(input: unknown): input is CommissionRegime {
   return Object.values(shares).every(pct);
 }
 
-export function regimeForCalculator(p: CommissionRegime) {
+export function enforceBrandRegime(p: CommissionRegime): CommissionRegime {
+  return { ...p, ladder: DEFAULT_REGIME.ladder.map((b) => ({ ...b })), agencyCapEnabled: false };
+}
+export function regimeForCalculator(saved: CommissionRegime) {
+  const p = enforceBrandRegime(saved);
   return {
+    agencyCapEnabled: false,
     ladder: p.ladder.map(b => ({ ...b, upTo: b.upTo ?? Infinity })), agencyCap: p.agencyCap,
     royaltiesAgentPct: p.royaltiesPct, royaltiesAgencyPct: p.royaltiesPct,
     pensionPct: p.pensionPct, brokerPensionPct: p.brokerPensionPct,

@@ -2,7 +2,7 @@ import {WorkspaceSwitch} from "@/components/helix/workspace-switch";
 import {agencyWorkspaces} from "@/lib/db/agency-finance";
 import {isCommercialAgent} from "@/lib/data/agent-directory";
 import { getSession } from "@/lib/supabase/auth";
-import { listNotifications } from "@/lib/db/repo";
+import { notificationCounts } from "@/lib/db/repo";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { RoleSwitcher } from "@/components/admin/role-switcher";
 import { RoleStatusBar } from "@/components/admin/role-status-bar";
@@ -35,9 +35,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const canSwitch = isSuperadmin(session.realAgent ?? agent);
   // Indicador de não lidas: reflete notificações reais; nunca aceso por
   // omissão (evita sugerir contactos fictícios por atender).
-  const hasUnread = isSupabaseConfigured()
-    ? (await listNotifications(agent.id)).some((n) => !n.read)
-    : false;
+  const unreadCount = isSupabaseConfigured() ? (await notificationCounts(agent.id)).unread : 0;
+  const hasUnread = unreadCount > 0;
 
   const hasBrokerWorkspace = !session.demo && (await agencyWorkspaces(session.agent)).some(a=>a.brokerId===session.agent.id || (session.agent.roleKey==="diretor" && a.id===session.agent.agencyId));
   return (
@@ -57,13 +56,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         agency={agent.agency}
         code={agent.code != null ? `#${agent.code}` : agencyById(agent.agencyId)?.region}
         hasUnread={hasUnread}
+        unreadCount={unreadCount}
       />
       <HelixSidebar superadmin={superadmin} />
       <div className="lg:pl-[76px]">
         <div className="pb-24 lg:pb-8"><WorkspaceSwitch consultant={isCommercialAgent(agent)} broker={hasBrokerWorkspace} admin={superadmin || ["admin","diretor","coordenador"].includes(agent.roleKey??"")} />{children}</div>
       </div>
       <MobileBottomNavigation superadmin={superadmin} />
-      <ReleaseNotice />
+      <ReleaseNotice revision={process.env.VERCEL_GIT_COMMIT_SHA} />
       {demo && <RoleSwitcher currentId={agent.id} />}
     </div>
   );

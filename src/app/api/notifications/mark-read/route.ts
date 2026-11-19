@@ -12,10 +12,14 @@ export async function POST(request: Request) {
   let body: { ids?: string[] } = {};
   try {
     body = await request.json();
-  } catch {
-    body = {};
-  }
+  } catch { return NextResponse.json({ error: "Pedido inválido." }, { status: 400 }); }
 
-  await markNotificationsRead(session.agent.id, body.ids);
+  if (!body || (body.ids !== undefined && (!Array.isArray(body.ids) || !body.ids.length || body.ids.length > 100 ||
+    body.ids.some((id) => typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id))))) {
+    return NextResponse.json({ error: "Notificações inválidas." }, { status: 400 });
+  }
+  if (session.viewingAs) return NextResponse.json({ error: "Termine a supervisão para alterar notificações." }, { status: 403 });
+  try { await markNotificationsRead(session.agent.id, body.ids); }
+  catch { return NextResponse.json({ error: "Não foi possível guardar." }, { status: 503 }); }
   return NextResponse.json({ ok: true });
 }

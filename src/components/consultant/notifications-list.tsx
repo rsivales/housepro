@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Check, CheckCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, CheckCheck, Trash2 } from "lucide-react";
 
 import { formatEuro } from "@/lib/format";
 
@@ -22,30 +23,51 @@ export interface NotificationItem {
  *  para "Histórico", tal como as alterações aos imóveis ficam registadas em
  *  vez de desaparecerem. */
 export function NotificationsList({ initial }: { initial: NotificationItem[] }) {
+  const router = useRouter();
   const [items, setItems] = React.useState(initial);
   const [busy, setBusy] = React.useState<string | "all" | null>(null);
+
+  const [error, setError] = React.useState("");
 
   const unread = items.filter((n) => !n.read);
   const read = items.filter((n) => n.read);
 
   async function markRead(ids?: string[]) {
     setBusy(ids ? ids[0] : "all");
-    setItems((cur) => cur.map((n) => (!ids || ids.includes(n.id) ? { ...n, read: true } : n)));
+    setError("");
     try {
-      await fetch("/api/notifications/mark-read", {
+      const response = await fetch("/api/notifications/mark-read", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(ids ? { ids } : {}),
       });
+      if (!response.ok) throw new Error();
+      setItems((cur) => cur.map((n) => (!ids || ids.includes(n.id) ? { ...n, read: true } : n)));
+      router.refresh();
     } catch {
-      /* otimista — se falhar, a próxima visita à página volta a mostrar como não lida */
+      setError("Não foi possível marcar como lida.");
     } finally {
       setBusy(null);
     }
   }
 
+  async function dismiss(id: string) {
+    setBusy(id); setError("");
+    try {
+      const response = await fetch("/api/notifications/dismiss", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id] }),
+      });
+      if (!response.ok) throw new Error();
+      setItems((cur) => cur.filter((n) => n.id !== id));
+      router.refresh();
+    } catch { setError("Não foi possível remover a notificação."); }
+    finally { setBusy(null); }
+  }
+
   return (
     <>
+      {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
       {unread.length > 0 && (
         <div className="mt-6 flex items-center justify-between">
           <p className="text-sm font-medium text-muted-foreground">
@@ -64,7 +86,7 @@ export function NotificationsList({ initial }: { initial: NotificationItem[] }) 
 
       <ul className="mt-3 space-y-2.5">
         {unread.map((n) => (
-          <NotificationCard key={n.id} n={n} busy={busy === n.id} onMarkRead={() => markRead([n.id])} />
+          <NotificationCard key={n.id} n={n} busy={busy === n.id} onMarkRead={() => markRead([n.id])} onDismiss={() => dismiss(n.id)} />
         ))}
         {unread.length === 0 && read.length === 0 && (
           <li className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
@@ -78,7 +100,7 @@ export function NotificationsList({ initial }: { initial: NotificationItem[] }) 
           <h2 className="mt-8 text-sm font-medium text-muted-foreground">Histórico</h2>
           <ul className="mt-3 space-y-2.5">
             {read.map((n) => (
-              <NotificationCard key={n.id} n={n} />
+              <NotificationCard key={n.id} n={n} busy={busy === n.id} onDismiss={() => dismiss(n.id)} />
             ))}
           </ul>
         </>
@@ -91,10 +113,12 @@ function NotificationCard({
   n,
   busy,
   onMarkRead,
+  onDismiss,
 }: {
   n: NotificationItem;
   busy?: boolean;
   onMarkRead?: () => void;
+  onDismiss?: () => void;
 }) {
   const body = (
     <div className={n.read ? "opacity-70" : ""}>
@@ -122,6 +146,7 @@ function NotificationCard({
           body
         )}
       </div>
+      {onDismiss && <button type="button" onClick={onDismiss} disabled={busy} aria-label="Remover notificação" className="rounded-full border p-2 text-muted-foreground disabled:opacity-50"><Trash2 className="size-4" /></button>}
       {!n.read && onMarkRead && (
         <button
           type="button"

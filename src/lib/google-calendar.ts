@@ -1,13 +1,17 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient,hasServiceRole } from "@/lib/supabase/admin";
 
 export const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.events.owned https://www.googleapis.com/auth/calendar.calendarlist.readonly";
-export function googleConfig() {
- const id=process.env.GOOGLE_CALENDAR_CLIENT_ID;
- const secret=process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
- const redirect=process.env.GOOGLE_CALENDAR_REDIRECT_URI;
- if(!id||!secret||!redirect||!redirect.startsWith("https://"))return null;
- return {id,secret,redirect};
+export const GOOGLE_CALLBACK="https://housepro.pt/api/calendar/google/callback";
+export async function googleConfig():Promise<{id:string;secret:string;redirect:string;source:"stored"|"environment"}|null> {
+ if(hasServiceRole()){
+  const {data,error}=await createAdminClient().rpc("get_google_calendar_app_credentials");
+  if(error)throw new Error("google_configuration_unavailable");
+  if(data?.id&&data?.secret&&data?.redirect===GOOGLE_CALLBACK)return {id:data.id,secret:data.secret,redirect:data.redirect,source:"stored"};
+ }
+ const id=process.env.GOOGLE_CALENDAR_CLIENT_ID,secret=process.env.GOOGLE_CALENDAR_CLIENT_SECRET,redirect=process.env.GOOGLE_CALENDAR_REDIRECT_URI;
+ if(!id||!secret||redirect!==GOOGLE_CALLBACK)return null;
+ return {id,secret,redirect,source:"environment"};
 }
 export async function tokenRequest(params:URLSearchParams) {
  const response=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:params.toString(),cache:"no-store"});
@@ -15,7 +19,7 @@ export async function tokenRequest(params:URLSearchParams) {
  return await response.json() as {access_token:string;refresh_token?:string;scope?:string};
 }
 export async function googleAccess(profileId:string) {
- const cfg=googleConfig();if(!cfg)throw new Error("google_not_configured");
+ const cfg=await googleConfig();if(!cfg)throw new Error("google_not_configured");
  const sb=createAdminClient();
  const {data:connection,error}=await sb.from("agent_google_calendar_connections").select("calendar_id,calendar_label").eq("profile_id",profileId).maybeSingle();
  if(error||!connection)throw new Error("google_not_connected");

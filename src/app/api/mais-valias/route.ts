@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   if (Object.keys(errors).length > 0) return NextResponse.json({ error: "validation", fields: errors }, { status: 422 });
 
   // Dedup curto-prazo (pedido de reenvio controlado)
-  const key = dedupeKey(s);
+  const key = `${s.ref??"public"}:${dedupeKey(s)}`;
   const now = Date.now();
   const last = RECENT.get(key);
   if (last && now - last.time < DEDUPE_MS) return NextResponse.json({ ok: true, id: last.id, emailStatus: last.emailStatus, needsAnalysis: last.needsAnalysis, duplicate: true });

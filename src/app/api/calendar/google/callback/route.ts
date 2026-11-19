@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { googleConfig, tokenRequest, writableCalendars, GOOGLE_SCOPE } from "@/lib/google-calendar";
 
 export async function GET(request:NextRequest) {
- const cfg=googleConfig();const success=new URL("/app/agenda?google=connected",cfg?.redirect||"https://housepro.pt");
+ const cfg=await googleConfig();const success=new URL("/app/agenda?google=connected",cfg?.redirect||"https://housepro.pt");
  const failure=new URL("/app/agenda?google=failed",success);
  const cookie=request.cookies.get("helix_google_calendar_state")?.value;
  const response=NextResponse.redirect(failure);

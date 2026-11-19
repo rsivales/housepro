@@ -16,7 +16,7 @@ const ROLE_ICON: Record<string, React.ElementType> = {
   producao: Wallet, override: Coins, royalties: Coins, pensao: PiggyBank, pensao_broker: PiggyBank,
 };
 
-export function PaymentsBoard({ initial, canManage, canManageRoyalties=false, demo }: { initial: Payout[]; canManage: boolean; canManageRoyalties?: boolean; demo?: boolean }) {
+export function PaymentsBoard({ initial, canManage, canManageRoyalties=false, showPersonalPension=true, demo }: { initial: Payout[]; canManage: boolean; canManageRoyalties?: boolean; showPersonalPension?:boolean; demo?: boolean }) {
   const [payouts, setPayouts] = React.useState<Payout[]>(initial);
   const [busy, setBusy] = React.useState<string | null>(null);
   const [error,setError] = React.useState("");
@@ -52,7 +52,7 @@ export function PaymentsBoard({ initial, canManage, canManageRoyalties=false, de
       </div>
 
       {/* Fundo de pensão */}
-      <Link href="/app/fundo-pensao" className="flex items-center justify-between gap-3 rounded-2xl border bg-gradient-to-r from-primary/10 to-transparent p-4 transition-colors hover:from-primary/15">
+      {showPersonalPension&&<Link href="/app/fundo-pensao" className="flex items-center justify-between gap-3 rounded-2xl border bg-gradient-to-r from-primary/10 to-transparent p-4 transition-colors hover:from-primary/15">
         <span className="flex items-center gap-2.5">
           <PiggyBank className="size-5 text-primary" />
           <span>
@@ -61,7 +61,7 @@ export function PaymentsBoard({ initial, canManage, canManageRoyalties=false, de
           </span>
         </span>
         <ArrowRight className="size-4 text-muted-foreground" />
-      </Link>
+      </Link>}
 
       {/* Linhas */}
       <div className="space-y-2.5">

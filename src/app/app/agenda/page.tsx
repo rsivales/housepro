@@ -5,6 +5,7 @@ import { ArrowLeft, CalendarClock } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listTasksByOwner, listVisitsByOwner } from "@/lib/db/repo";
+import {isNetworkFinanceAdmin} from "@/lib/data/finance-access";
 import { AgendaBoard } from "@/components/crm/agenda-board";
 
 export const metadata: Metadata = { title: "Agenda" };
@@ -44,7 +45,7 @@ export default async function AgendaPage({
         </p>
 
         <div className="mt-6">
-          <AgendaBoard initialTasks={tasks} visits={visits} openForm={openForm} />
+          <AgendaBoard initialTasks={tasks} visits={visits} openForm={openForm} canConfigureGoogle={isNetworkFinanceAdmin(session.agent)} readOnly={Boolean(session.demo||session.viewingAs)}/>
         </div>
       </div>
     </div>

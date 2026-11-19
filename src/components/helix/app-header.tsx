@@ -13,13 +13,14 @@ interface Props {
   agency?: string;
   code?: string;
   hasUnread?: boolean;
+  unreadCount?: number;
 }
 
 /**
  * Cabeçalho da app Helix: símbolo + HELIX/by HousePro, pesquisa, agenda,
  * notificações (com indicador) e avatar → menu de perfil.
  */
-export function AppHeader({ name, photo, agency, code, hasUnread }: Props) {
+export function AppHeader({ name, photo, agency, code, hasUnread, unreadCount = 0 }: Props) {
   const [menu, setMenu] = React.useState(false);
   const first = name.split(" ")[0] ?? name;
 
@@ -38,10 +39,10 @@ export function AppHeader({ name, photo, agency, code, hasUnread }: Props) {
           <Link href="/app/agenda" aria-label="Agenda" className="hx-icon-btn">
             <CalendarDays className="size-5" />
           </Link>
-          <Link href="/app/notificacoes" aria-label="Notificações" className="hx-icon-btn relative">
+          <Link href="/app/notificacoes" aria-label={`Notificações: ${unreadCount} por ler`} className="hx-icon-btn relative">
             <Bell className="size-5" />
             {hasUnread && (
-              <span className="absolute right-2.5 top-2.5 size-2 rounded-full" style={{ background: "var(--hx-red)" }} />
+              <span className="absolute -right-1 -top-1 min-w-4 rounded-full px-1 text-center text-[10px] font-bold text-white" style={{ background: "var(--hx-red)" }}>{unreadCount > 99 ? "99+" : unreadCount}</span>
             )}
           </Link>
 

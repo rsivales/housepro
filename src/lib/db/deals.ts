@@ -517,8 +517,11 @@ async function enrichFinancials(
   if (ids.size) {
     const { data, error } = await sb
       .from("profiles")
-      .select("id,name,monthly_gross,company_validated")
+      .select("id,name,monthly_gross,company_validated,pro_producer_since,agency_id")
       .in("id", [...ids]);
+    const approved = await sb.from("pro_producer_requests").select("agent_id,agency_id").eq("status", "aprovado").in("agent_id", [...ids]);
+    if (approved.error) throw new Error("pro_producer_status_unavailable");
+    const approvedAgencies = new Set((approved.data ?? []).map((r) => `${r.agent_id}:${r.agency_id}`));
     if (!error)
       for (const p of data ?? [])
         profiles.set(p.id, {
@@ -526,6 +529,7 @@ async function enrichFinancials(
           name: p.name,
           monthlyGross: Number(p.monthly_gross),
           companyValidated: p.company_validated === true,
+          proProducer: Boolean(p.pro_producer_since) && approvedAgencies.has(`${p.id}:${p.agency_id}`),
         });
   }
   const snapshots = new Map<string, DealCommissionEstimate>();

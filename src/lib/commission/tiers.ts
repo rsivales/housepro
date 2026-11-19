@@ -6,7 +6,8 @@
  *    a banda (marginal). Com empresa própria validada, +10 pontos face a
  *    recibos verdes (compensa o custo de "entidade contratante" na Seg. Social).
  *  • A agência fica com o resto, mas nunca mais do que o CAP por ciclo; ao
- *    atingir o cap, o excedente vai para o agente (~100% até ao reset).
+ *    atingir o cap, o excedente vai para o agente. Só nos planos históricos;
+ *    agencyCapEnabled=false preserva os 80%/70% no regime atual.
  *  • Deduções: royalties da marca (lado agente + lado agência) e fundo de
  *    pensão (lado agente) — retiradas primeiro, para assegurar esses valores.
  *  • Até 10% (pool de rede) é financiado pela fatia da AGÊNCIA e distribuído
@@ -26,6 +27,7 @@ export interface LadderBand {
 }
 
 export interface CommissionPlan {
+  agencyCapEnabled?: boolean;
   ladder: LadderBand[];
   /** Teto do que a agência recebe de um agente por ciclo (€). */
   agencyCap: number;
@@ -41,6 +43,7 @@ export interface CommissionPlan {
 export const DEFAULT_PLAN: CommissionPlan = {
   ladder: COMMISSION.ladder.map((b) => ({ ...b })),
   agencyCap: COMMISSION.agencyCap,
+  agencyCapEnabled: COMMISSION.agencyCapEnabled,
   royaltiesAgentPct: COMMISSION.royaltiesPct,
   royaltiesAgencyPct: COMMISSION.royaltiesPct,
   pensionPct: COMMISSION.pensionPct,
@@ -119,7 +122,7 @@ export function computeLeg(input: LegInput, plan: CommissionPlan = DEFAULT_PLAN)
   let agencyGross = leg - agentGrossRaw;
 
   // Cap: a agência não recebe mais do que o teto por ciclo; excedente → agente.
-  const capRoom = Math.max(0, plan.agencyCap - input.priorAgencyTake);
+  const capRoom = plan.agencyCapEnabled === false ? Infinity : Math.max(0, plan.agencyCap - input.priorAgencyTake);
   let capReturned = 0;
   if (agencyGross > capRoom) {
     capReturned = agencyGross - capRoom;

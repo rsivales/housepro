@@ -7,10 +7,9 @@ describe("posted commission plan",()=>{
   const migration=readFileSync("supabase/migrations/20261024110145_atomic_deal_financial_closures.sql","utf8");
   const match=migration.match(/select '({[^\n]+})'::jsonb;/);
   expect(match).toBeTruthy();
-  const {brokerPensionPct,...historic}=COMMISSION;
-  expect(brokerPensionPct).toBe(2);
-  expect(JSON.parse(match![1])).toEqual(JSON.parse(JSON.stringify(historic)));
-  const current=readFileSync("supabase/migrations/20261024112517_agency_broker_management_and_pension.sql","utf8").match(/select '({[^\n]+})'::jsonb;/);
+  const historic = JSON.parse(match![1]);
+  expect(historic.ladder[2]).toEqual({upTo:null,withCompany:90,withoutCompany:80});
+  const current=readFileSync("supabase/migrations/20261119175348_helix_inbox_pro_producer_fees.sql","utf8").match(/select '({[^\n]+})'::jsonb;/);
   expect(current).toBeTruthy();
   expect(JSON.parse(current![1])).toEqual(JSON.parse(JSON.stringify(COMMISSION)));
  });

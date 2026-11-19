@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import * as React from "react";
 import { BellRing, Bug, CheckCircle2, ShieldCheck, Sparkles, X } from "lucide-react";
 import { LATEST_RELEASE } from "@/lib/data/releases";
@@ -60,7 +61,8 @@ export function ReleaseNotice() {
     {open ? <div className="fixed inset-0 z-[80] grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="release-title">
       <div className="w-full max-w-lg rounded-3xl bg-[var(--hx-surface)] p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--hx-red)" }}>Versão {LATEST_RELEASE.version}</p><h2 id="release-title" className="mt-1 text-xl font-bold">{LATEST_RELEASE.title}</h2><p className="text-xs hx-muted">{LATEST_RELEASE.date}</p></div><button onClick={() => setOpen(false)} className="hx-icon-btn" aria-label="Fechar"><X className="size-5" /></button></div>
-        <ul className="mt-5 space-y-3">{LATEST_RELEASE.items.map((item) => { const Icon = item.type === "security" ? ShieldCheck : item.type === "bugfix" ? Bug : Sparkles; return <li key={item.text} className="flex gap-3 rounded-xl bg-[var(--hx-surface-blue)] p-3 text-sm"><Icon className="mt-0.5 size-4 shrink-0" style={{ color: item.type === "security" ? "var(--hx-success)" : "var(--hx-red)" }} /><span>{item.text}</span></li>; })}</ul>
+        <ul className="mt-5 space-y-3">{LATEST_RELEASE.items.map((item) => { const Icon = String(item.type) === "security" ? ShieldCheck : item.type === "bugfix" ? Bug : Sparkles; return <li key={item.text} className="flex gap-3 rounded-xl bg-[var(--hx-surface-blue)] p-3 text-sm"><Icon className="mt-0.5 size-4 shrink-0" style={{ color: String(item.type) === "security" ? "var(--hx-success)" : "var(--hx-red)" }} /><span>{item.text}</span></li>; })}</ul>
+        <Link href="/app/atualizacoes" className="mt-4 block text-sm text-primary" onClick={() => setOpen(false)}>Ver histórico de atualizações</Link>
         <button onClick={dismiss} className="mt-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl font-semibold text-white" style={{ background: "var(--hx-navy)" }}><CheckCircle2 className="size-4" /> Marcar como vista</button>
       </div>
     </div> : null}

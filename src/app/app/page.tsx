@@ -40,7 +40,7 @@ import {
 
 import { getSession } from "@/lib/supabase/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications, getAgencyById, getAgentPublicById } from "@/lib/db/repo";
+import { listPropertiesByAgent, listLeadsByAgent, listPropertiesByAgency, listNotifications, notificationCounts, getAgencyById, getAgentPublicById } from "@/lib/db/repo";
 import { demoNotifications, demoActivities, tipOfTheDay } from "@/lib/data/dashboard";
 import { quoteTextOfDay } from "@/lib/data/quotes";
 import { getQuotesConfig } from "@/lib/db/repo";
@@ -89,7 +89,6 @@ export default async function AppPage() {
   const mine = await listPropertiesByAgent(agent.id);
   const leads = await listLeadsByAgent(agent.id);
   const now = Date.now();
-  const novas = leads.filter((l) => l.status === "novo").length;
   const refsNovas = referralsIncoming(agent.id).filter((r) => r.status === "pendente").length;
 
   // Dashboard: frase do dia, notificações, última angariação da agência, atividades.
@@ -97,7 +96,8 @@ export default async function AppPage() {
   const tip = tipOfTheDay();
   // Fictícias só em modo demo (sem Supabase) — nunca mostrar notificações de
   // contactos que não existem em produção.
-  const notifs = isSupabaseConfigured() ? await listNotifications(agent.id) : demoNotifications();
+  const notifs = isSupabaseConfigured() ? await listNotifications(agent.id, 5, 0, true) : demoNotifications();
+  const notificationCount = isSupabaseConfigured() ? (await notificationCounts(agent.id)).unread : notifs.filter(n => !n.read).length;
   const activities = demoActivities();
   const agencyProps = agent.agencyId ? await listPropertiesByAgency(agent.agencyId) : [];
   const lastAngariado = agencyProps[0];
@@ -191,7 +191,7 @@ export default async function AppPage() {
 
         {/* Notificações + atividades em curso */}
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <NotificationsInbox items={notifs} />
+          <NotificationsInbox items={notifs} unreadCount={notificationCount} />
           <ActivitiesBoard activities={activities} tip={tip} />
         </div>
 
@@ -232,6 +232,7 @@ export default async function AppPage() {
           <Action icon={Network} title="A minha equipa" href="/app/equipa" note="Afilhados, árvore e override" />
           <Action icon={Coins} title="Comissões" href="/app/comissoes" note="Faturação e override por código" />
           <Action icon={Wallet} title="Faturação & pagamentos" href="/app/pagamentos" note="Produção, override, royalties e 2%" />
+          <Action icon={Wallet} title="Fees e Pro Producer" href="/app/fees" note="Propostas, aprovações e fees mensais" />
           <Action icon={PiggyBank} title="Fundo de pensão" href="/app/fundo-pensao" note="2% por negócio, com dividendos" />
           <Action icon={Users} title="Referências" href="/app/referencias" note="Partilhar leads (mín. 25%)" badge={refsNovas} />
           <Action icon={Briefcase} title="Referências de serviços" href="/app/servicos" note="Crédito, jurídico, energético…" />
@@ -254,11 +255,6 @@ export default async function AppPage() {
             <h2 className="flex items-center gap-2 font-display text-xl">
               <Inbox className="size-5 text-primary" /> Contactos & pedidos de visita
             </h2>
-            {novas > 0 && (
-              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                {novas} nova{novas > 1 ? "s" : ""}
-              </span>
-            )}
           </div>
 
           <ContactSlaWatcher agentId={agent.id} demo={demo} />
@@ -308,7 +304,7 @@ export default async function AppPage() {
                   </div>
 
                   {l.message && (
-                    <p className="mt-3 rounded-lg bg-secondary/50 px-3 py-2 text-sm text-muted-foreground">
+                    <p className="mt-3 line-clamp-2 rounded-lg bg-secondary/50 px-3 py-2 text-sm text-muted-foreground">
                       “{l.message}”
                     </p>
                   )}

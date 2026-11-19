@@ -10,8 +10,7 @@
  *  2. Fundo de pensão: `pensionPct` do lado do agente — retirado à cabeça.
  *  3. Escada de produtividade (`ladder`): a % do agente sobe com a faturação
  *     acumulada no ciclo; com empresa validada, +10 pontos vs. recibos verdes.
- *  4. Cap da agência (`agencyCap`): a agência não recebe mais do que isto por
- *     agente/ciclo; ao atingir, o excedente vai para o agente.
+ *  4. Cap da agência: mantido só para ler planos históricos. Desativado no regime atual.
  *  5. Rede (`overrideTiers`): até à soma dos escalões (5+3+1+1 = 10%), financiada
  *     pela fatia da AGÊNCIA, distribuída pelos padrinhos do produtor por nível.
  */
@@ -28,10 +27,11 @@ export const COMMISSION = {
   ladder: [
     { upTo: 10000, withCompany: 50, withoutCompany: 40 },
     { upTo: 60000, withCompany: 60, withoutCompany: 50 },
-    { upTo: Infinity, withCompany: 90, withoutCompany: 80 },
+    { upTo: Infinity, withCompany: 80, withoutCompany: 70 },
   ],
   /** Teto do que a agência recebe de um agente por ciclo (€). */
   agencyCap: 30000,
+  agencyCapEnabled: false,
 } as const;
 
 /** Pool de rede (%) = soma dos escalões de override. Derivado, nunca duplicado. */

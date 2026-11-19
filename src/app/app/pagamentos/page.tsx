@@ -30,7 +30,7 @@ export default async function PagamentosPage() {
 
         <h1 className="mt-4 flex items-center gap-2 font-display text-3xl">
           <Wallet className="size-7 text-primary" /> Faturação & pagamentos
-        </h1>
+        </h1><Link href="/app/fees" className="mt-3 inline-block text-sm font-semibold text-primary">Fees e Pro Producer</Link>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           Cada fecho de negócio gera linhas de pagamento por beneficiário — produção,
           override de rede, royalties da marca e os 2% do fundo de pensão. Acompanha o

@@ -63,7 +63,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="pb-24 lg:pb-8"><WorkspaceSwitch consultant={isCommercialAgent(agent)} broker={hasBrokerWorkspace} admin={superadmin || ["admin","diretor","coordenador"].includes(agent.roleKey??"")} />{children}</div>
       </div>
       <MobileBottomNavigation superadmin={superadmin} />
-      <ReleaseNotice />
+      <ReleaseNotice revision={process.env.VERCEL_GIT_COMMIT_SHA} />
       {demo && <RoleSwitcher currentId={agent.id} />}
     </div>
   );

@@ -15,7 +15,8 @@ const STORAGE_KEY = "helix:last-seen-release";
  * conta, não o browser) — sobrevive a qualquer domínio/dispositivo. Mantém o
  * localStorage como resposta imediata e reserva para modo demo/sem sessão.
  */
-export function ReleaseNotice() {
+export function ReleaseNotice({ revision }: { revision?: string }) {
+  const releaseId = revision ? `${LATEST_RELEASE.id}:${revision}` : LATEST_RELEASE.id;
   const [visible, setVisible] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const [ready, setReady] = React.useState(false);
@@ -23,7 +24,7 @@ export function ReleaseNotice() {
   React.useEffect(() => {
     let cancelled = false;
     // Resposta imediata a partir do cache local (evita o "flash" do aviso).
-    try { setVisible(localStorage.getItem(STORAGE_KEY) !== LATEST_RELEASE.id); } catch { setVisible(true); }
+    try { setVisible(localStorage.getItem(STORAGE_KEY) !== releaseId); } catch { setVisible(true); }
 
     fetch("/api/me/settings")
       .then((r) => (r.ok ? r.json() : { persisted: false }))
@@ -31,23 +32,23 @@ export function ReleaseNotice() {
         if (cancelled) return;
         if (j?.persisted && j.settings) {
           const seen = j.settings[STORAGE_KEY];
-          setVisible(seen !== LATEST_RELEASE.id);
+          setVisible(seen !== releaseId);
         }
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setReady(true); });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [releaseId]);
 
   function dismiss() {
-    try { localStorage.setItem(STORAGE_KEY, LATEST_RELEASE.id); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, releaseId); } catch {}
     setVisible(false);
     setOpen(false);
     fetch("/api/me/settings", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ patch: { [STORAGE_KEY]: LATEST_RELEASE.id } }),
+      body: JSON.stringify({ patch: { [STORAGE_KEY]: releaseId } }),
     }).catch(() => {});
   }
 
@@ -60,7 +61,7 @@ export function ReleaseNotice() {
     </button>
     {open ? <div className="fixed inset-0 z-[80] grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="release-title">
       <div className="w-full max-w-lg rounded-3xl bg-[var(--hx-surface)] p-6 shadow-2xl">
-        <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--hx-red)" }}>Versão {LATEST_RELEASE.version}</p><h2 id="release-title" className="mt-1 text-xl font-bold">{LATEST_RELEASE.title}</h2><p className="text-xs hx-muted">{LATEST_RELEASE.date}</p></div><button onClick={() => setOpen(false)} className="hx-icon-btn" aria-label="Fechar"><X className="size-5" /></button></div>
+        <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--hx-red)" }}>Versão {LATEST_RELEASE.version}</p><h2 id="release-title" className="mt-1 text-xl font-bold">{LATEST_RELEASE.title}</h2><p className="text-xs hx-muted">Notas publicadas a {LATEST_RELEASE.date}</p></div><button onClick={() => setOpen(false)} className="hx-icon-btn" aria-label="Fechar"><X className="size-5" /></button></div>
         <ul className="mt-5 space-y-3">{LATEST_RELEASE.items.map((item) => { const Icon = String(item.type) === "security" ? ShieldCheck : item.type === "bugfix" ? Bug : Sparkles; return <li key={item.text} className="flex gap-3 rounded-xl bg-[var(--hx-surface-blue)] p-3 text-sm"><Icon className="mt-0.5 size-4 shrink-0" style={{ color: String(item.type) === "security" ? "var(--hx-success)" : "var(--hx-red)" }} /><span>{item.text}</span></li>; })}</ul>
         <Link href="/app/atualizacoes" className="mt-4 block text-sm text-primary" onClick={() => setOpen(false)}>Ver histórico de atualizações</Link>
         <button onClick={dismiss} className="mt-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl font-semibold text-white" style={{ background: "var(--hx-navy)" }}><CheckCircle2 className="size-4" /> Marcar como vista</button>

@@ -25,10 +25,7 @@ export async function PUT(request: Request) {
   try { await authorizedAgency(session.agent, body.agencyId); }
   catch { return NextResponse.json({ error: "Sem acesso ao comissionamento desta agência." }, { status: 403 }); }
   const sb = createAdminClient();
-  const { data, error } = await sb.from("agency_finance_settings")
-    .update({ commission_regime: body.plan, commission_version: body.version + 1, updated_by: session.agent.id, updated_at: new Date().toISOString() })
-    .eq("agency_id", body.agencyId).eq("commission_version", body.version).select("commission_version").maybeSingle();
-  if (error) return NextResponse.json({ error: "Não foi possível guardar o regime." }, { status: 503 });
-  if (!data) return NextResponse.json({ error: "O regime foi alterado noutra sessão. Atualize a página." }, { status: 409 });
-  return NextResponse.json({ ok: true, version: data.commission_version });
+  const {data,error}=await sb.rpc("request_agency_management",{p_agency:body.agencyId,p_agent:null,p_kind:"regime",p_payload:body.plan,p_version:body.version,p_reason:typeof body.reason==="string"?body.reason:"Pedido de revisão do regime de comissionamento",p_actor:session.agent.id});
+  if(error)return NextResponse.json({error:"Já existe um pedido pendente ou a versão foi alterada."},{status:409});
+  return NextResponse.json({ok:true,pending:true,id:data});
 }

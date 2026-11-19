@@ -123,7 +123,7 @@ export function PersonalMotivationBanner(props: Props) {
 
             <div className="mt-5 flex flex-wrap gap-x-10 gap-y-3">
               <Stat label="Faturação" value={`${props.faturacaoPct}%`} pct={props.faturacaoPct} />
-              <Stat label="Angariações" value={`${props.angariacoes.done}/${props.angariacoes.total}`} pct={(props.angariacoes.done / Math.max(1, props.angariacoes.total)) * 100} />
+              <Stat label="Angariações" value={props.angariacoes.total>0?`${props.angariacoes.done}/${props.angariacoes.total}`:`${props.angariacoes.done} · sem meta`} pct={(props.angariacoes.done / Math.max(1, props.angariacoes.total)) * 100} />
             </div>
 
             {props.faltamEuros != null && (

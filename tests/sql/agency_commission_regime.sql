@@ -1,13 +1,15 @@
 -- Safe transactional verification of broker regime and ancillary consultant income.
 begin;
 do $$
-declare a uuid; broker uuid; income uuid; prior_count integer; plan jsonb;
+declare a uuid; broker uuid; income uuid; prior_count integer; plan jsonb; master uuid; rid uuid;
 begin
  select agency_id,broker_id into a,broker from public.agency_finance_settings limit 1;
  if a is null then raise exception 'A broker agency is needed for this check'; end if;
  select count(*) into prior_count from public.deal_financial_closures where agency_id=a and status='posted';
  plan:=helix_private.commission_plan_v2()||jsonb_build_object('otherIncomeShares',jsonb_build_object('credito',55,'certificado',50,'parceria',50,'outros',50));
- update public.agency_finance_settings set commission_regime=plan,commission_version=commission_version+1,updated_by=broker where agency_id=a;
+ select id into master from public.profiles where active and role_key in ('admin','superadmin') limit 1;
+ rid:=public.request_agency_management(a,null,'regime',plan,(select commission_version from public.agency_finance_settings where agency_id=a),'Revisão transacional do regime de comissão',broker);
+ perform public.decide_agency_management(rid,true,'Aprovação transacional para verificar auditoria',master);
  if not exists(select 1 from public.agency_commission_regime_events where agency_id=a and new_regime=plan) then raise exception 'The commission change was not audited'; end if;
  if prior_count<>(select count(*) from public.deal_financial_closures where agency_id=a and status='posted') then raise exception 'A past closure was changed'; end if;
  insert into public.consultant_other_income(request_id,agency_id,consultant_id,category,partner_name,description,earned_on,gross_amount)

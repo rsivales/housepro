@@ -53,7 +53,7 @@ export function RoleStatusBar({
   return (
     <div
       className={cn(
-        "relative z-40 flex flex-wrap items-center justify-between gap-2 border-b px-4 py-1.5 text-xs sm:px-6",
+        "relative z-40 flex flex-wrap items-center justify-between gap-2 border-b px-4 py-1.5 text-sm sm:px-6",
         viewingAs ? "border-amber-500/40 bg-amber-500/10 text-amber-900" : "border-border bg-secondary/40 text-muted-foreground"
       )}
     >

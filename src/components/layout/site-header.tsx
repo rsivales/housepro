@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import {usePathname} from "next/navigation";
 import { Menu, X, User, Briefcase } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -23,17 +24,22 @@ const nav = [
 ];
 
 export function SiteHeader() {
+  const pathname=usePathname();
   const [open, setOpen] = React.useState(false);
   // Com sessão ativa (ex.: Super Admin a navegar pelo site público a partir
   // do admin), o link de "Profissionais" passa a voltar direto à área de
   // trabalho em vez de pedir login outra vez.
   const [authed, setAuthed] = React.useState(false);
   React.useEffect(() => {
+    if(pathname?.startsWith("/app")||pathname?.startsWith("/admin"))return;
     fetch("/api/me/role")
       .then((r) => r.json())
       .then((d) => setAuthed(Boolean(d?.authenticated)))
       .catch(() => {});
-  }, []);
+  }, [pathname]);
+
+  // Professional layouts own their navigation; avoid a second public-site header.
+  if(pathname?.startsWith("/app")||pathname?.startsWith("/admin"))return null;
 
   const proLink = authed
     ? { label: "Voltar à área profissional", href: "/app" }

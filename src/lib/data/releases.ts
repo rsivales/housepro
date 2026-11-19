@@ -1,4 +1,10 @@
 export const RELEASES = [
+  {id:"2026.11.19-navigation-team-cycle",version:"2026.11.19.2",title:"Navegação e acompanhamento da equipa",date:"19 de novembro de 2026",items:[
+   {type:"feature",text:"Menus agrupados na barra lateral, com áreas de Consultor, Broker e Brand. Banner personalizado e Ver como preservados."},
+   {type:"feature",text:"Equipa e comissionamento: ciclos anuais, comissão atual, progresso e estimativa de negócios para os objetivos."},
+   {type:"security",text:"Overrides e alterações de regime só entram em vigor após pedido e autorização da Marca, com histórico."},
+   {type:"bugfix",text:"Faturação de novos fechos e estimativas respeita o ciclo de 12 meses desde a entrada do agente."},
+  ]},
   {
     id: "2026.11.19-inbox-commission-fees",
     version: "2026.11.19",

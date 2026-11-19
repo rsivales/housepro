@@ -26,13 +26,14 @@ export function AppHeader({ name, photo, agency, code, hasUnread, unreadCount = 
 
   return (
     <>
-    <header className="sticky top-0 z-30 border-b border-[var(--hx-border)] bg-[var(--hx-surface)]/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
-        <Link href="/app" aria-label="Início Helix">
+    <header className={`sticky top-0 ${menu?"z-50":"z-30"} border-b border-[var(--hx-border)] bg-[var(--hx-surface)]/90 backdrop-blur`}>
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+        <Link href="/app" aria-label="Início Helix" className="lg:hidden">
           <HelixLogo />
         </Link>
 
-        <div className="flex items-center gap-0.5">
+        <Link href="/app/pesquisa" className="hidden min-h-12 max-w-3xl flex-1 items-center gap-3 rounded-xl border bg-secondary/40 px-4 text-muted-foreground lg:flex"><Search className="size-5"/>Pesquisar no Helix</Link>
+        <div className="ml-auto flex items-center gap-0.5">
           <Link href="/app/pesquisa" aria-label="Pesquisar" className="hx-icon-btn">
             <Search className="size-5" />
           </Link>

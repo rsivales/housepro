@@ -1,3 +1,5 @@
+import {commissionCycles} from "@/lib/db/commission-management";
+import {cycleProgress} from "@/lib/data/commission-cycle";
 import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -59,6 +61,8 @@ export default async function ComissoesPage() {
   if (!session) redirect("/entrar");
   const { agent } = session;
   const regime = !session.demo && agent.agencyId ? (await readCommissionRegime(agent.agencyId)).plan : DEFAULT_REGIME;
+  const cycle=!session.demo?(await commissionCycles([agent.id]))[0]:undefined;
+  const progress=cycle?cycleProgress(cycle):null;
   const calculatorPlan = regimeForCalculator(regime);
 
   const prefix = agentPrefixOf(agent.id);
@@ -109,6 +113,7 @@ export default async function ComissoesPage() {
           {dadosReais ? "Dados reais (fecho de negócios)" : DEMO_DATA_ENABLED ? "Exemplo — sem faturação real ainda" : "Sem faturação registada"}
         </span>
 
+        {cycle&&<section className="mt-4 rounded-xl border bg-card p-4 text-sm"><p><strong>Ciclo de 12 meses:</strong> {cycle.cycleStart} a {cycle.cycleEnd} · reinicia em {progress?.daysLeft} dias.</p><p className="mt-2">Entrada {cycle.joinedOn} · {cycle.dateConfirmed?"confirmada pela Marca":"provisória (data de registo), a confirmar pelo broker"}. {cycle.proProducer?"Pro Producer aprovado · 80%.":`Comissão atual para nova faturação: ${progress?.rate}%.`}</p><p className="mt-2 text-muted-foreground">O acumulado reinicia no aniversário. Os fechos anteriores mantêm os valores registados. Qualquer exceção carece de autorização da Marca.</p></section>}
         {/* Resumo pessoal */}
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
@@ -116,7 +121,7 @@ export default async function ComissoesPage() {
               <TrendingUp className="size-3.5" /> Faturação (ciclo)
             </p>
             <p className="mt-1 font-display text-2xl tabular-nums">{formatEuro(faturacao)}</p>
-            <p className="text-xs text-muted-foreground">Patamar {currentTierLabel(faturacao, calculatorPlan)}</p>
+            <p className="text-xs text-muted-foreground">Patamar {cycle?`${progress?.rate}%${cycle.proProducer?" · Pro Producer":""}`:currentTierLabel(faturacao, calculatorPlan)}</p>
           </div>
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Líquido pessoal (est.)</p>

@@ -1,37 +1,15 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { type CommissionRegime, OTHER_INCOME_CATEGORIES, validateRegime } from "@/lib/data/commission-regime";
-
-export function CommissionRegimeEditor({ agencyId, initial, initialVersion }: { agencyId: string; initial: CommissionRegime; initialVersion: number }) {
-  const router = useRouter();
-  const [plan, setPlan] = useState<CommissionRegime>(initial);
-  const [version, setVersion] = useState(initialVersion);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  async function save() {
-    setMessage("");
-    if (!validateRegime(plan)) { setMessage("Reveja os limites: 3 patamares crescentes, percentagens de 0 a 100 e overrides até 20%."); return; }
-    setBusy(true);
-    try {
-      const response = await fetch("/api/agencies/commission-regime", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ agencyId, plan, version }) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      setVersion(result.version); setMessage("Regime guardado. Será aplicado aos próximos negócios e validações."); router.refresh();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível guardar."); }
-    finally { setBusy(false); }
-  }
-  const input = "mt-1 w-full rounded-xl border bg-background p-3";
-  return <section className="space-y-5 rounded-2xl border bg-card p-5">
-    <h2 className="font-display text-xl">Comissão imobiliária · patamares</h2>
-    <p className="text-sm text-muted-foreground">Patamares definidos pela Marca. Aplicados de forma progressiva à faturação; não há passagem a 100% por teto da agência.</p>
-    <div className="overflow-x-auto"><table className="w-full min-w-[480px] text-left text-sm"><thead><tr>{["Faturação acumulada","Com empresa","Sem empresa"].map(x => <th className="p-2" key={x}>{x}</th>)}</tr></thead><tbody>
-      {["Inferior a 10.000 €","De 10.000 € a 59.999,99 €","A partir de 60.000 €"].map((label,i) => <tr key={label} className="border-t"><td className="p-3">{label}</td><td className="p-3">{plan.ladder[i].withCompany}%</td><td className="p-3">{plan.ladder[i].withoutCompany}%</td></tr>)}
-    </tbody></table></div>
-    <div><h3 className="font-semibold">Override por nível</h3><div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{plan.overrideTiers.map((n, i) => <label className="text-sm" key={i}>Nível {i + 1} (%)<input type="number" min="0" max="20" step="0.01" value={n} onChange={e => setPlan(p => ({ ...p, overrideTiers: p.overrideTiers.map((v, j) => j === i ? Number(e.target.value) : v) }))} className={input} /></label>)}</div></div>
-    <div><h3 className="font-semibold">Repartição de outras comissões</h3><p className="text-xs text-muted-foreground">Percentagem da comissão bruta atribuída ao consultor após validação do broker; o restante cabe à agência.</p><div className="mt-2 grid gap-3 sm:grid-cols-2">{Object.entries(OTHER_INCOME_CATEGORIES).map(([key, label]) => <label className="text-sm" key={key}>{label} · consultor (%)<input type="number" min="0" max="100" step="0.01" value={plan.otherIncomeShares[key as keyof CommissionRegime["otherIncomeShares"]]} onChange={e => setPlan(p => ({ ...p, otherIncomeShares: { ...p.otherIncomeShares, [key]: Number(e.target.value) } }))} className={input} /></label>)}</div></div>
-    <p className="text-sm text-muted-foreground">Nos negócios imobiliários, permanecem fixos por decisão da marca: royalties 3% da parcela de consultor e agência; pensão do consultor 2%; pensão do broker 2% da parcela da agência. Os fechos anteriores guardam a versão aplicada.</p>
-    <button type="button" disabled={busy} onClick={save} className="rounded-full bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50">{busy ? "A guardar…" : "Guardar regime"}</button>
-    {message && <p role="status" className="text-sm">{message}</p>}
-  </section>;
+import {useState} from "react";
+import {useRouter} from "next/navigation";
+import {type CommissionRegime,OTHER_INCOME_CATEGORIES,validateRegime} from "@/lib/data/commission-regime";
+export function CommissionRegimeEditor({agencyId,initial,initialVersion,readOnly=false}:{agencyId:string;initial:CommissionRegime;initialVersion:number;readOnly?:boolean}){
+ const [proposal,setProposal]=useState(initial),[reason,setReason]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");const router=useRouter();
+ async function submit(){setMessage("");if(!validateRegime(proposal)||reason.trim().length<10){setMessage("Reveja a proposta e justifique o pedido com pelo menos 10 caracteres.");return;}setBusy(true);try{const r=await fetch("/api/agencies/commission-management",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"request",kind:"regime",agencyId,version:initialVersion,payload:proposal,reason})});const j=await r.json();if(!r.ok)throw new Error(j.error);setMessage("Pedido enviado à Marca. O regime atual mantém-se até à aprovação.");router.refresh();}catch(e){setMessage(e instanceof Error?e.message:"Não foi possível enviar.");}finally{setBusy(false);}}
+ return <section className="space-y-5 rounded-2xl border bg-card p-5"><h2 className="font-display text-xl">Regime em vigor</h2><p className="text-sm text-muted-foreground">Regras aprovadas pela Marca. Alterações exigem pedido, justificação e autorização; aplicam-se apenas a novos fechos.</p>
+ <div className="overflow-x-auto"><table className="w-full min-w-[480px] text-left text-sm"><thead><tr>{["Faturação no ciclo de 12 meses","Com empresa","Sem empresa"].map(x=><th key={x} className="p-3">{x}</th>)}</tr></thead><tbody>{["Inferior a 10.000 €","De 10.000 € a 59.999,99 €","A partir de 60.000 €"].map((x,i)=><tr key={x} className="border-t"><td className="p-3">{x}</td><td className="p-3">{initial.ladder[i].withCompany}%</td><td className="p-3">{initial.ladder[i].withoutCompany}%</td></tr>)}</tbody></table></div>
+ <div><h3 className="font-semibold">Override por nível · protegido</h3><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{initial.overrideTiers.map((n,i)=><div key={i} className="rounded-xl border bg-secondary/40 p-3"><p className="text-sm text-muted-foreground">Nível {i+1}</p><p className="mt-1 text-xl font-semibold">{n}%</p></div>)}</div></div>
+ <div><h3 className="font-semibold">Outras comissões · percentagem do consultor</h3><div className="mt-2 grid gap-2 sm:grid-cols-2">{Object.entries(OTHER_INCOME_CATEGORIES).map(([k,v])=><p key={k} className="flex justify-between rounded-xl border p-3 text-sm"><span>{v}</span><strong>{initial.otherIncomeShares[k as keyof CommissionRegime['otherIncomeShares']]}%</strong></p>)}</div></div>
+ <p className="text-sm text-muted-foreground">Royalties 3% de cada parcela; pensão do agente 2%; pensão do broker 2% da parcela da agência. Escada progressiva; Pro Producer aprovado: 80%. Sem teto de agência para passar a 100%.</p>
+ {!readOnly&&<details className="rounded-xl border p-4"><summary className="cursor-pointer font-semibold text-primary">Pedir autorização à Marca</summary><div className="mt-4 space-y-4"><p className="text-sm text-muted-foreground">Estes valores são uma proposta. Nada é alterado antes da decisão da Marca.</p><div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{proposal.overrideTiers.map((n,i)=><label key={i} className="text-sm">Override proposto · nível {i+1}<input className="mt-1 w-full rounded-xl border p-3" type="number" min="0" max="20" step="0.01" value={n} onChange={e=>setProposal(p=>({...p,overrideTiers:p.overrideTiers.map((x,j)=>i===j?Number(e.target.value):x)}))}/></label>)}</div><div className="grid gap-3 sm:grid-cols-2">{Object.entries(OTHER_INCOME_CATEGORIES).map(([k,v])=><label key={k} className="text-sm">{v} · proposta (%)<input className="mt-1 w-full rounded-xl border p-3" type="number" min="0" max="100" step="0.01" value={proposal.otherIncomeShares[k as keyof CommissionRegime['otherIncomeShares']]} onChange={e=>setProposal(p=>({...p,otherIncomeShares:{...p.otherIncomeShares,[k]:Number(e.target.value)}}))}/></label>)}</div><label className="block text-sm">Justificação<textarea value={reason} onChange={e=>setReason(e.target.value)} maxLength={2000} className="mt-1 w-full rounded-xl border p-3"/></label><button disabled={busy} onClick={submit} className="rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-50">{busy?"A enviar…":"Enviar pedido à Marca"}</button>{message&&<p role="status" className="text-sm">{message}</p>}</div></details>}
+ </section>;
 }

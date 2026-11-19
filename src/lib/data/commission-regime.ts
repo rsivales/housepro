@@ -37,6 +37,7 @@ export function validateRegime(input: unknown): input is CommissionRegime {
   if (p.royaltiesPct !== 3 || p.pensionPct !== 2 || p.brokerPensionPct !== 2) return false;
   if (typeof p.agencyCap !== "number" || !Number.isInteger(p.agencyCap) || p.agencyCap < 1000 || p.agencyCap > 10000000) return false;
   if (!Array.isArray(p.ladder) || p.ladder.length !== 3 || !Array.isArray(p.overrideTiers) || p.overrideTiers.length !== 4) return false;
+  if (p.ladder.some(b=>!b||typeof b!=="object")) return false;
   if (p.agencyCapEnabled !== false || p.ladder.some((band, i) =>
     band.upTo !== DEFAULT_REGIME.ladder[i].upTo ||
     band.withCompany !== DEFAULT_REGIME.ladder[i].withCompany ||

@@ -1,0 +1,11 @@
+import {describe,it,expect} from "vitest";
+import {cycleProgress,validAgentPolicy,type CommissionCycle} from "./commission-cycle";
+const cycle:CommissionCycle={agentId:"a",name:"Agente",agencyId:"agency",joinedOn:"2025-01-01",dateConfirmed:true,cycleStart:"2026-01-01",cycleEnd:"2027-01-01",gross:0,closedDeals:0,listings:0,recentListings:0,previousGross:0,annualRevenueGoal:60000,annualListingsGoal:0,companyValidated:true,proProducer:false,policyVersion:1};
+describe("broker cycle monitoring",()=>{
+ it("uses exact band boundaries and company validation for current commission",()=>{for(const [gross,expected] of [[9999.99,50],[10000,60],[59999.99,60],[60000,80]]){expect(cycleProgress({...cycle,gross}).rate).toBe(expected);expect(cycleProgress({...cycle,gross,companyValidated:false}).rate).toBe(expected-10);}});
+ it("does not invent a deal count when there is no production history",()=>{expect(cycleProgress(cycle).estimatedDeals).toBeNull();expect(cycleProgress({...cycle,gross:10000,closedDeals:2}).estimatedDeals).toBe(10);});
+ it("keeps Pro Producer at 80% irrespective of a reset and never flags an automatic downgrade",()=>{const p=cycleProgress({...cycle,proProducer:true,companyValidated:false,previousGross:70000},new Date('2026-12-20T12:00:00Z'));expect(p.rate).toBe(80);expect(p.risk).toBe(false);});
+ it("flags previous-tier risk close to renewal, and separates undefined listings goals",()=>{const at=new Date('2026-12-01T12:00:00Z');expect(cycleProgress({...cycle,previousGross:70000,gross:50000},at).risk).toBe(true);expect(cycleProgress(cycle,at).listingsRisk).toBe(false);expect(cycleProgress({...cycle,annualListingsGoal:12},at).listingsRisk).toBe(true);});
+ it("measures the anniversary in Lisbon instead of UTC near midnight",()=>{expect(cycleProgress({...cycle,cycleEnd:'2026-07-01'},new Date('2026-06-30T23:30:00Z')).daysLeft).toBe(0);});
+ it("rejects impossible admission dates and invalid or future policy goals",()=>{const p={joinedOn:'2020-02-29',annualRevenueGoal:60000,annualListingsGoal:12};expect(validAgentPolicy(p)).toBe(true);expect(validAgentPolicy({...p,joinedOn:'2025-02-29'})).toBe(false);expect(validAgentPolicy({...p,joinedOn:'2099-01-01'})).toBe(false);expect(validAgentPolicy({...p,annualRevenueGoal:NaN})).toBe(false);expect(validAgentPolicy({...p,annualListingsGoal:1.5})).toBe(false);});
+});

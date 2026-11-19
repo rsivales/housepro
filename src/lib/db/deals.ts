@@ -3,6 +3,7 @@ import {
   type DealCommissionEstimate,
   type ProducerContext,
 } from "@/lib/commission/deal-estimate";
+import {commissionCycles} from "@/lib/db/commission-cycles";
 import { effectiveCommission } from "@/lib/data/commission";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { syncPropertyStatusFromDeal } from "@/lib/db/property-status";
@@ -519,6 +520,7 @@ async function enrichFinancials(
       .from("profiles")
       .select("id,name,monthly_gross,company_validated,pro_producer_since,agency_id")
       .in("id", [...ids]);
+    const cycles = new Map((await commissionCycles([...ids])).map(c=>[c.agentId,c]));
     const approved = await sb.from("pro_producer_requests").select("agent_id,agency_id").eq("status", "aprovado").in("agent_id", [...ids]);
     if (approved.error) throw new Error("pro_producer_status_unavailable");
     const approvedAgencies = new Set((approved.data ?? []).map((r) => `${r.agent_id}:${r.agency_id}`));
@@ -527,7 +529,7 @@ async function enrichFinancials(
         profiles.set(p.id, {
           id: p.id,
           name: p.name,
-          monthlyGross: Number(p.monthly_gross),
+          monthlyGross: cycles.get(p.id)?.gross ?? 0,
           companyValidated: p.company_validated === true,
           proProducer: Boolean(p.pro_producer_since) && approvedAgencies.has(`${p.id}:${p.agency_id}`),
         });

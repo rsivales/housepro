@@ -8,7 +8,6 @@ import Link from "next/link";
 import { Settings, ExternalLink, Stamp, ImagePlus, Trash2, Type, KeyRound } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { SiteHeader } from "@/components/layout/site-header";
 import {
   ORDERING_LABELS,
   ORDERING_RULES,
@@ -196,7 +195,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <SiteHeader />
+
       <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
         <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
           <Settings className="size-4" /> Back office · Admin · Coordenação · Gestão

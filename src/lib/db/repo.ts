@@ -1,3 +1,4 @@
+import {commissionCycles} from "@/lib/db/commission-cycles";
 import { leadAccessScope } from "@/lib/data/lead-access";
 import { isCommercialAgent } from "@/lib/data/agent-directory";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -422,6 +423,7 @@ export async function getAfilhadosTree(
     .from("profiles")
     .select("id, name, whatsapp, sponsor_id, monthly_gross, created_at, network_active");
   const rows = (data ?? []) as Row[];
+  const cycles=new Map((await commissionCycles(rows.map(r=>String(r.id)))).map(c=>[c.agentId,c]));
 
   // Filhos por padrinho.
   const childrenOf = new Map<string, Row[]>();
@@ -433,7 +435,7 @@ export async function getAfilhadosTree(
 
   const maxDepth = maxOverrideDepth();
   const build = (r: Row | undefined, id: string, name: string, depth: number): AfilhadoNode => {
-    const gross = Number(r?.monthly_gross ?? 0);
+    const gross = cycles.get(id)?.gross ?? 0;
     const kids = depth < maxDepth ? childrenOf.get(id) ?? [] : [];
     return {
       id,
@@ -475,18 +477,8 @@ export async function getUplineChain(
 
 /** Faturação acumulada do mês/ciclo do consultor (0 em modo demo). */
 export async function getMonthlyGross(agentId: string): Promise<number> {
-  if (!isSupabaseConfigured()) return 0;
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("profiles")
-      .select("monthly_gross")
-      .eq("id", agentId)
-      .single();
-    return Number(data?.monthly_gross ?? 0);
-  } catch {
-    return 0;
-  }
+ if(!isSupabaseConfigured())return 0;
+ return (await commissionCycles([agentId]))[0]?.gross??0;
 }
 
 /** Vínculo do agente: tem empresa própria VALIDADA (escalão +10 pontos)? */

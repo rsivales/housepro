@@ -1,0 +1,7 @@
+import Link from "next/link";
+import {redirect} from "next/navigation";
+import {getSession} from "@/lib/supabase/auth";
+import {agencyWorkspaces,authorizedAgency} from "@/lib/db/agency-finance";
+import {listAgencyFinancialPayouts,mapFinancialPayout} from "@/lib/db/finance";
+import {PaymentsBoard} from "@/components/consultant/payments-board";
+export default async function AgencyPayments({searchParams}:{searchParams:Promise<{agency?:string}>}){const s=await getSession();if(!s)redirect('/entrar');if(s.demo)redirect('/app');const all=await agencyWorkspaces(s.agent),q=await searchParams;const id=q.agency??(all.length===1?all[0].id:'');if(!id)return <main className="mx-auto max-w-5xl space-y-4 p-6"><h1 className="text-2xl">Pagamentos · escolher agência</h1>{all.map(a=><Link className="block text-primary" key={a.id} href={`?agency=${a.id}`}>{a.name}</Link>)}</main>;let agency;try{agency=await authorizedAgency(s.agent,id);}catch{return <main className="p-6">Sem acesso a esta agência.</main>;}return <main className="mx-auto max-w-5xl p-6"><Link href={`/app/broker?agency=${id}`} className="text-primary">Gestão da agência</Link><h1 className="mt-4 text-3xl font-semibold">Pagamentos da agência · {agency.name}</h1><p className="mt-2 text-sm text-muted-foreground">Valores dos consultores e contribuições do broker nesta agência. Royalties da Marca são tratados na administração.</p><PaymentsBoard showPersonalPension={false} initial={(await listAgencyFinancialPayouts(s.agent,id)).map(mapFinancialPayout)} canManage={!s.viewingAs} canManageRoyalties={false}/></main>;}

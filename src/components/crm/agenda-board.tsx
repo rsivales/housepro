@@ -29,8 +29,9 @@ const PRIORITY_DOT: Record<Task["priority"], string> = {
 export function AgendaBoard({
   initialTasks,
   visits: initialVisits,
-  openForm,
+  openForm,canConfigureGoogle=false,readOnly=false,
 }: {
+  canConfigureGoogle?:boolean;readOnly?:boolean;
   initialTasks: Task[];
   visits: Visit[];
   /** Abrir automaticamente o formulário de tarefa ou de visita (via ?novo=). */
@@ -59,11 +60,12 @@ export function AgendaBoard({
   const [google, setGoogle] = React.useState<{configured:boolean;connected:boolean;selected?:string;label?:string;calendars:{id:string;summary:string}[];error?:string}|null>(null);
   const [googleBusy, setGoogleBusy] = React.useState("");
   const [googleMessage, setGoogleMessage] = React.useState("");
-  React.useEffect(() => { const status=new URLSearchParams(window.location.search).get("google");if(status==="failed")setGoogleMessage("A ligação ao Google não foi concluída. Tenta novamente.");if(status==="connected")setGoogleMessage("Conta Google ligada. Escolhe a agenda e envia os eventos pretendidos.");fetch("/api/calendar/google").then(r=>r.json()).then(setGoogle).catch(()=>setGoogle(null)); }, []);
+  React.useEffect(() => { if(readOnly){setGoogleMessage("A ligação Google requer a tua sessão real. Termina a visualização para ligar a conta.");return;}const status=new URLSearchParams(window.location.search).get("google");if(status==="not_configured")setGoogleMessage("A administração da Marca precisa de configurar a aplicação Google.");if(status==="invalid_session")setGoogleMessage("Usa a tua sessão real para autorizar o Google.");if(status==="failed")setGoogleMessage("A ligação ao Google não foi concluída. Tenta novamente.");if(status==="connected")setGoogleMessage("Conta Google ligada. Escolhe a agenda e envia os eventos pretendidos.");fetch("/api/calendar/google").then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j.error);return j;}).then(setGoogle).catch(()=>setGoogle(null)); }, [readOnly]);
 
   function resetVisit(){setVName("");setVAt("");setVRef("");setVLocation("");setVDuration("60");setVNote("");setEditingId(null);setVError("");setVOpen(false);}
   function editVisit(v:Visit){const d=new Date(v.at);setEditingId(v.id);setVName(v.contactName||"");setVKind(v.kind);setVAt(new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16));setVRef(v.propertyRef||"");setVLocation(v.location||"");setVDuration(String(v.durationMin||60));setVNote(v.note||"");setVError("");setVOpen(true);}
   async function syncGoogle(v:Visit){setGoogleBusy(v.id);setGoogleMessage("");try{const r=await fetch("/api/calendar/google",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({visitId:v.id})});const d=await r.json();if(!r.ok)throw new Error(d.error);setGoogleMessage("Evento enviado ou atualizado na tua agenda Google.");}catch(e){setGoogleMessage(e instanceof Error?e.message:"Não foi possível enviar o evento.");}finally{setGoogleBusy("");}}
+  async function syncTaskGoogle(t:Task){setGoogleBusy(t.id);setGoogleMessage("");try{const r=await fetch("/api/calendar/google",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({taskId:t.id})});const j=await r.json();if(!r.ok)throw new Error(j.error);setGoogleMessage("Tarefa enviada ou atualizada no Google Calendar como evento de 30 minutos.");}catch(e){setGoogleMessage(e instanceof Error?e.message:"Não foi possível enviar a tarefa.");}finally{setGoogleBusy("");}}
   async function selectCalendar(id:string){setGoogleBusy("calendar");setGoogleMessage("");try{const r=await fetch("/api/calendar/google",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({calendarId:id})});const d=await r.json();if(!r.ok)throw new Error(d.error);setGoogle(g=>g?{...g,selected:id}:g);}catch(e){setGoogleMessage(e instanceof Error?e.message:"Não foi possível selecionar a agenda.");}finally{setGoogleBusy("");}}
   async function disconnectGoogle(){setGoogleBusy("disconnect");try{const r=await fetch("/api/calendar/google",{method:"DELETE"});if(!r.ok)throw new Error();setGoogle(g=>g?{...g,connected:false,calendars:[]}:g);setGoogleMessage("Conta desligada.");}catch{setGoogleMessage("Não foi possível desligar a conta.");}finally{setGoogleBusy("");}}
 
@@ -178,6 +180,7 @@ export function AgendaBoard({
                   {TASK_KIND_LABEL[t.kind]}
                   {t.contactName && <> · {t.contactName}</>}
                   {t.dueAt && <> · <CalendarClock className="size-3" /> {fmt(t.dueAt)}</>}
+                {t.dueAt&&google?.connected&&!google.error&&!readOnly&&<button type="button" onClick={()=>syncTaskGoogle(t)} disabled={Boolean(googleBusy)} className="mt-2 text-xs font-semibold text-primary">{googleBusy===t.id?"A enviar…":"Enviar tarefa ao Google"}</button>}
                 </p>
               </div>
             </li>
@@ -206,8 +209,8 @@ export function AgendaBoard({
             {google.error && <p role="alert" className="text-destructive">{google.error}</p>}
             {google.calendars.length>0 && <label className="block">Escolher agenda<select value={google.selected} onChange={e=>selectCalendar(e.target.value)} disabled={Boolean(googleBusy)} className="input mt-1 w-full">{google.calendars.map(c=><option key={c.id} value={c.id}>{c.summary}{c.id===google.selected?" · selecionada":""}</option>)}</select></label>}
             <div className="flex flex-wrap gap-3"><a href="/api/calendar/google/connect" className="text-primary underline">Voltar a ligar</a><button type="button" onClick={disconnectGoogle} disabled={Boolean(googleBusy)} className="text-muted-foreground underline">Desligar</button></div>
-          </div> : google?.configured ? <a href="/api/calendar/google/connect" className="mt-2 inline-flex rounded-full bg-primary px-4 py-2 font-semibold text-primary-foreground">Ligar a minha conta Google</a> : <p className="mt-1 text-muted-foreground">A ligação Google Calendar aguarda configuração da aplicação.</p>}
-          <p className="mt-2 text-xs text-muted-foreground">Cada agente autoriza a própria conta. Escolhe uma agenda tua e usa “Enviar ao Google” em cada evento. Alterações feitas no Helix podem ser reenviadas pelo mesmo botão.</p>
+          </div> : google?.configured ? <a href="/api/calendar/google/connect" className="mt-2 inline-flex rounded-full bg-primary px-4 py-2 font-semibold text-primary-foreground">Ligar a minha conta Google</a>  : <div className="mt-2 space-y-3"><p className="text-muted-foreground">A aplicação Google Calendar ainda não foi configurada pela Marca.</p>{canConfigureGoogle?<a href="/admin/google-calendar" className="inline-flex rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">Configurar Google Calendar</a>:<p className="text-sm">Peça à administração da Marca para ativar a ligação. Depois poderá autorizar a sua conta aqui.</p>}</div>}
+          <p className="mt-2 text-xs text-muted-foreground">Cada agente autoriza a própria conta. Envia apenas os eventos e tarefas que escolheres. Tarefas com prazo são enviadas como eventos de 30 minutos. Alterações no Helix podem ser reenviadas pelo mesmo botão; não há sincronização automática de toda a agenda.</p>
           {googleMessage && <p role="status" className="mt-2">{googleMessage}</p>}
         </div>
         <div className="flex items-center justify-between">

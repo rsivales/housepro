@@ -6,10 +6,10 @@ import { ArrowRight, ArrowLeft, Check, Loader2, Lock, AlertCircle, RefreshCw, Ma
 
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
-import { validateStep, TAXAS_MARGINAIS, parseCampaign, type MvSubmission } from "@/lib/tools/mais-valias-funnel";
+import { validateStep, TAXAS_MARGINAIS, parseCampaign,runSimulation,buildEmailReport, type MvSubmission } from "@/lib/tools/mais-valias-funnel";
 
 const KEY = "hp:mais-valias";
-const STEPS = ["Imóvel", "Despesas", "Situação fiscal", "Contacto"] as const;
+const BASE_STEPS = ["Imóvel", "Despesas", "Situação fiscal", "Contacto"] as const;
 const YEARS = Array.from({ length: 41 }, (_, i) => String(new Date().getFullYear() + 1 - i));
 const bs: React.CSSProperties = { borderColor: "var(--border)" };
 const inputCls = "mt-1.5 h-11 w-full rounded-xl border bg-[var(--card)] px-3 text-sm outline-none focus-visible:ring-[3px]";
@@ -32,7 +32,13 @@ function Num({ label, hint, value, onChange, prefix = "€", id, error }: { labe
   );
 }
 
-export function MvForm() {
+export function MvForm({mode="public",consultantRef,readOnly=false}:{mode?:"public"|"professional";consultantRef?:string;readOnly?:boolean}={}) {
+  const professional=mode==="professional";
+  const storageKey=professional?`${KEY}:professional:${consultantRef??"demo"}`:KEY;
+  const STEPS=professional?["Imóvel","Despesas","Situação fiscal","Resultado"]:BASE_STEPS;
+  const [preview,setPreview]=React.useState<ReturnType<typeof runSimulation>|null>(null);
+  const [copyMessage,setCopyMessage]=React.useState("");
+  const trackMv=(event:Parameters<typeof track>[0])=>{if(!professional)track(event);};
   const [step, setStep] = React.useState(0);
   const [d, setD] = React.useState<MvSubmission>({ aquisicao: "compra", quota: "100", residencia: "residente" });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -40,16 +46,16 @@ export function MvForm() {
   const [started, setStarted] = React.useState(false);
 
   React.useEffect(() => {
-    try { const raw = sessionStorage.getItem(KEY); if (raw) setD((p) => ({ ...p, ...JSON.parse(raw) })); } catch { /* ignore */ }
-    setD((p) => ({ ...p, pageUrl: location.origin + location.pathname, referrerUrl: document.referrer || undefined, utm: parseCampaign(location.search), ref: new URLSearchParams(location.search).get("ref") || undefined, language: document.documentElement.lang || "pt" }));
-  }, []);
+    try { const raw = sessionStorage.getItem(storageKey); if (raw) setD((p) => ({ ...p, ...JSON.parse(raw) })); } catch { /* ignore */ }
+    setD((p) => ({ ...p, pageUrl: location.origin + location.pathname, referrerUrl: document.referrer || undefined, utm: parseCampaign(location.search), ref: professional?consultantRef:new URLSearchParams(location.search).get("ref") || undefined, language: document.documentElement.lang || "pt" }));
+  }, [storageKey,professional,consultantRef]);
 
   function persist(next: MvSubmission) {
     setD(next);
-    try { const { consent, marketingConsent, ...rest } = next; void consent; void marketingConsent; sessionStorage.setItem(KEY, JSON.stringify(rest)); } catch { /* ignore */ }
+    try { const { consent, marketingConsent, ...rest } = next; void consent; void marketingConsent; sessionStorage.setItem(storageKey, JSON.stringify(rest)); } catch { /* ignore */ }
   }
   function patch(p: Partial<MvSubmission>) {
-    if (!started) { setStarted(true); track("mv_sim_start"); }
+    if (!started) { setStarted(true); trackMv("mv_sim_start"); }
     setErrors((prev) => { if (!Object.keys(prev).length) return prev; const n = { ...prev }; for (const k of Object.keys(p)) delete n[k]; return n; });
     persist({ ...d, ...p });
   }
@@ -57,9 +63,12 @@ export function MvForm() {
     const e = validateStep(step, d);
     setErrors(e);
     if (Object.keys(e).length) return;
-    if (step === 0) track("mv_step1_complete");
-    if (step === 1) track("mv_step2_complete");
-    if (step === 2) track("mv_step3_complete");
+    if (step === 0) trackMv("mv_step1_complete");
+    if (step === 1) trackMv("mv_step2_complete");
+    if (step === 2) {
+      if(professional){try{setPreview(runSimulation(d));}catch{setErrors({simulation:"Reveja os valores e os anos introduzidos."});return;}}
+      trackMv("mv_step3_complete");
+    }
     setStep((s) => Math.min(3, s + 1));
   }
   function back() { setErrors({}); setStep((s) => Math.max(0, s - 1)); }
@@ -69,18 +78,20 @@ export function MvForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (status === "loading") return;
+    if(step<3){next();return;}
+    if(professional&&readOnly){setErrors({consent:"O envio requer a tua sessão real."});return;}
     const errs = validateStep(3, d);
     setErrors(errs);
     if (Object.keys(errs).length) return;
-    setStatus("loading"); track("mv_sim_submit");
+    setStatus("loading"); trackMv("mv_sim_submit");
     try {
-      const res = await fetch("/api/mais-valias", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(d) });
+      const res = await fetch(professional?"/api/mais-valias/profissional":"/api/mais-valias", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(d) });
       if (res.ok) {
         const j = await res.json();
         setEmailSent(j.emailStatus === "enviado");
         setStatus(j.duplicate ? "duplicate" : "success");
-        track(j.emailStatus === "enviado" ? "mv_email_sent" : "mv_email_failed");
-        try { sessionStorage.removeItem(KEY); } catch { /* ignore */ }
+        trackMv(j.emailStatus === "enviado" ? "mv_email_sent" : "mv_email_failed");
+        try { sessionStorage.removeItem(storageKey); } catch { /* ignore */ }
       } else if (res.status === 503) { setStatus("retry"); }
       else if (res.status === 422) { const j = await res.json(); setErrors(j.fields ?? {}); setStatus("idle"); setStep(0); }
       else { setStatus("error"); }
@@ -112,6 +123,7 @@ export function MvForm() {
         ))}
       </ol>
 
+      {professional&&step===3&&preview&&<section className="mt-6 space-y-4 rounded-xl border bg-secondary/30 p-5"><h3 className="text-lg font-semibold">Resultado da simulação</h3><div className="grid gap-3 sm:grid-cols-2">{[["Mais-valia estimada",preview.maisValiaBruta],["Aquisição corrigida",preview.aquisicaoCorrigida],["Despesas consideradas",preview.despesasElegiveis],["Base potencialmente tributável",preview.baseTributavel]].map(([label,value])=><div className="rounded-xl border bg-card p-3" key={String(label)}><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold">{new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(Number(value))}</p></div>)}</div><p className="text-sm"><strong>Imposto estimado:</strong> {preview.impostoEstimado===null?"Por apurar — depende do enquadramento fiscal e restantes rendimentos.":new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(preview.impostoEstimado)}</p><p className="text-sm">Reinvestimento considerado: {new Intl.NumberFormat('pt-PT',{style:'percent',maximumFractionDigits:1}).format(preview.reinvestimentoFracao)}.</p><ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">{preview.notes.map((note,i)=><li key={i}>{note}</li>)}</ul><p className="text-xs text-muted-foreground">Motor {preview.engineVersion} · ano fiscal {preview.fiscalYear}. A metodologia e os campos são partilhados com o simulador público.</p><button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(buildEmailReport(d,preview).text);setCopyMessage("Resumo copiado.");}catch{setCopyMessage("Não foi possível copiar o resumo.");}}} className="rounded-xl border bg-card px-4 py-3 text-sm font-semibold">Copiar relatório completo</button>{copyMessage&&<p role="status" className="text-sm">{copyMessage}</p>}</section>}
       <div className="mt-6">
         {step === 0 && (
           <fieldset className="space-y-4">
@@ -206,8 +218,8 @@ export function MvForm() {
 
         {step === 3 && (
           <fieldset className="space-y-4">
-            <legend className="font-display text-lg">Para onde enviamos a sua simulação?</legend>
-            <p className="text-sm text-muted-foreground">Enviaremos a estimativa para o e-mail indicado. Um consultor HousePro poderá contactá-lo para ajudar a interpretar a simulação e esclarecer o seu caso.</p>
+            <legend className="font-display text-lg">{professional?"Enviar relatório ao cliente (opcional)":"Para onde enviamos a sua simulação?"}</legend>
+            <p className="text-sm text-muted-foreground">{professional?"O resultado já está disponível acima. Preencha estes dados apenas se quiser enviar o relatório ao cliente e registar o pedido na sua carteira.":"Enviaremos a estimativa para o e-mail indicado. Um consultor HousePro poderá contactá-lo para ajudar a interpretar a simulação e esclarecer o seu caso."}</p>
             <div>
               <label htmlFor="mv-nome" className="text-sm font-medium">Nome</label>
               <input id="mv-nome" value={d.name ?? ""} onChange={(e) => patch({ name: e.target.value })} autoComplete="name" className={inputCls} style={{ borderColor: errors.name ? "var(--hp-red)" : "var(--border)" }} />
@@ -255,13 +267,14 @@ export function MvForm() {
         )}
       </div>
 
+      <Err msg={errors.simulation}/>
       <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
         {step > 0 && <button type="button" onClick={back} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border px-5 text-sm font-semibold sm:w-auto" style={bs}><ArrowLeft className="size-4" /> Voltar</button>}
         {step < 3 ? (
           <button type="button" onClick={next} className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold text-white" style={{ background: "var(--hp-navy)" }}>Continuar <ArrowRight className="size-4" /></button>
         ) : (
-          <button type="submit" disabled={status === "loading"} className="hp-btn-red inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold disabled:opacity-70">
-            {status === "loading" ? <><Loader2 className="size-4 animate-spin" /> A enviar…</> : <>Calcular e enviar por e-mail <Mail className="size-4" /></>}
+          <button type="submit" disabled={status === "loading"||(professional&&readOnly)} className="hp-btn-red inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold disabled:opacity-70">
+            {status === "loading" ? <><Loader2 className="size-4 animate-spin" /> A enviar…</> : <>{professional?"Enviar relatório e registar pedido":"Calcular e enviar por e-mail"} <Mail className="size-4" /></>}
           </button>
         )}
       </div>

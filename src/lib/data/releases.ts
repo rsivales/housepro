@@ -1,4 +1,10 @@
 export const RELEASES = [
+ {id:"2026.11.19-consultant-scope-integrations",version:"2026.11.19.3",title:"Área pessoal e configuração de integrações",date:"19 de novembro de 2026",items:[
+  {type:"bugfix",text:"Pagamentos, fees e pensão do consultor separados das visões de agência e Marca, mesmo para contas Super Admin."},
+  {type:"feature",text:"Identificação permanente do utilizador, com fotografia, nome e prefixo das referências de imóveis."},
+  {type:"feature",text:"Simulador profissional de mais-valias com os campos e motor da versão pública, resultado no Helix e relatório atribuídos ao consultor."},
+  {type:"feature",text:"Configuração central de Google Calendar e Resend na Marca. Autorização individual da agenda e diagnósticos de envio de e-mail."},
+ ]},
   {id:"2026.11.19-navigation-team-cycle",version:"2026.11.19.2",title:"Navegação e acompanhamento da equipa",date:"19 de novembro de 2026",items:[
    {type:"feature",text:"Menus agrupados na barra lateral, com áreas de Consultor, Broker e Brand. Banner personalizado e Ver como preservados."},
    {type:"feature",text:"Equipa e comissionamento: ciclos anuais, comissão atual, progresso e estimativa de negócios para os objetivos."},

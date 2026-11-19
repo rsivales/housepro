@@ -8,7 +8,7 @@ async function agent(){const s=await getSession();return s&&!s.demo&&!s.viewingA
 
 export async function GET(){
  const a=await agent();if(!a)return NextResponse.json({error:"Sessão inválida."},{status:401});
- if(!googleConfig())return NextResponse.json({configured:false,connected:false,calendars:[]});
+ if(!await googleConfig())return NextResponse.json({configured:false,connected:false,calendars:[]});
  const {data}=await createAdminClient().from("agent_google_calendar_connections").select("calendar_id,calendar_label").eq("profile_id",a.id).maybeSingle();
  if(!data)return NextResponse.json({configured:true,connected:false,calendars:[]});
  try{const token=await googleAccess(a.id);return NextResponse.json({configured:true,connected:true,selected:data.calendar_id,label:data.calendar_label,calendars:await writableCalendars(token.accessToken)});}
@@ -31,12 +31,21 @@ export async function DELETE(){
 
 export async function POST(request:Request){
  const a=await agent();if(!a)return NextResponse.json({error:"Sessão inválida."},{status:401});
- const b=await request.json().catch(()=>null);if(!uuid(b?.visitId))return NextResponse.json({error:"Evento inválido."},{status:422});
- const {data:visit,error}=await createAdminClient().from("visits").select("id,owner_id,kind,at,duration_min,contact_name,location,property_ref,note").eq("id",b.visitId).eq("owner_id",a.id).maybeSingle();
- if(error||!visit)return NextResponse.json({error:"Evento não encontrado na tua agenda."},{status:404});
+ const b=await request.json().catch(()=>null);const task=uuid(b?.taskId);if((task&&uuid(b?.visitId))||(!task&&!uuid(b?.visitId)))return NextResponse.json({error:"Escolha uma tarefa ou um evento válido."},{status:422});
+ const sb=createAdminClient();
+ let event;
+ if(task){
+  const {data:t,error}=await sb.from("tasks").select("id,owner_id,title,due_at,done").eq("id",b.taskId).eq("owner_id",a.id).maybeSingle();
+  if(error||!t)return NextResponse.json({error:"Tarefa não encontrada na tua agenda."},{status:404});
+  if(!t.due_at||t.done)return NextResponse.json({error:"A tarefa tem de estar pendente e ter data e hora para ser enviada ao calendário."},{status:422});
+  event={...googleEvent({id:t.id,kind:"outro",at:t.due_at,durationMin:30}),id:`het${t.id.replaceAll('-','')}`,summary:`Tarefa · ${t.title}`};
+ }else{
+  const {data:visit,error}=await sb.from("visits").select("id,owner_id,kind,at,duration_min,contact_name,location,property_ref,note").eq("id",b.visitId).eq("owner_id",a.id).maybeSingle();
+  if(error||!visit)return NextResponse.json({error:"Evento não encontrado na tua agenda."},{status:404});
+  event=googleEvent({id:visit.id,kind:visit.kind,at:visit.at,durationMin:visit.duration_min,contactName:visit.contact_name,location:visit.location,propertyRef:visit.property_ref,note:visit.note});
+ }
  try{
   const {accessToken,calendarId}=await googleAccess(a.id);
-  const event=googleEvent({id:visit.id,kind:visit.kind,at:visit.at,durationMin:visit.duration_min,contactName:visit.contact_name,location:visit.location,propertyRef:visit.property_ref,note:visit.note});
   const base=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
   let result=await googleRequest(base,accessToken,"POST",event);
   if(result.status===409)result=await googleRequest(`${base}/${encodeURIComponent(event.id)}`,accessToken,"PUT",event);

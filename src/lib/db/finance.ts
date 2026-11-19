@@ -3,6 +3,7 @@ import type { Agent } from "@/lib/data/types";
 import type { Payout } from "@/lib/data/payments";
 import { isStaff } from "@/lib/data/roles";
 import { isNetworkFinanceAdmin } from "@/lib/data/finance-access";
+import {authorizedAgency} from "./agency-finance";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function listFinancialPayouts(agent:Agent,ownOnly=false) {
@@ -28,4 +29,10 @@ export async function readRoyaltyReport() {
  const total=Math.round(rows.reduce((sum,r)=>sum+r.total,0)*100)/100;
  const paid=Math.round(rows.filter(r=>r.status==="pago").reduce((sum,r)=>sum+r.total,0)*100)/100;
  return {total,paid,pending:Math.round((total-paid)*100)/100,rows};
+}
+
+export async function listAgencyFinancialPayouts(actor:Agent,agencyId:string){
+ await authorizedAgency(actor,agencyId);
+ const {data,error}=await createAdminClient().from("payouts").select("*, closure:deal_financial_closures!closure_id(closed_at,snapshot)").eq("agency_id",agencyId).neq("role","royalties").neq("status","anulado").order("created_at",{ascending:false});
+ if(error)throw new Error("finance_read_failed");return data??[];
 }

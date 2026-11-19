@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 /**
@@ -7,7 +8,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
  * relatórios, SLA. O `tsconfigPaths` resolve o alias "@/…".
  */
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [react(),tsconfigPaths()],
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],

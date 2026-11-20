@@ -38,8 +38,12 @@ export async function runOwnerReports() {
         if(!settings.enabled)continue;
         const context=await buildReportData(row.property_id,row.period_from,now.toISOString(),settings.sections);
         const {property,agent,data}=context;
-        if(property.agent_id!==row.agent_id || !validEmail(property.owner_email) || !validEmail(agent.email))continue;
-        if(["vendido","arrendado"].includes(property.status??""))continue;
+        if(property.agent_id!==row.agent_id || !validEmail(property.owner_email) || !validEmail(agent.email))throw new Error("recipient_configuration");
+        if(["vendido","arrendado"].includes(property.status??"")){
+          await db.from("owner_report_settings").update({next_at:nextReportDate(settings.frequency,settings.day,now).toISOString()})
+            .eq("property_id",row.property_id).eq("revision",row.revision);
+          continue;
+        }
         const recipients=await reportRecipients(agent.id,agent.agency_id);
         const payload:MailPayload={
           ...prepareOwnerMessage(data,settings,row.sequence,delivery.sender,property.owner_email,recipients.bcc),
@@ -59,7 +63,11 @@ export async function runOwnerReports() {
         });
         if(queueError)throw new Error("queue_write_failed");
         if(saved)queued++;
-      }catch{errors++;}
+      }catch{
+        errors++;
+        await db.from("owner_report_settings").update({next_at:new Date(Date.now()+3600000).toISOString()})
+          .eq("property_id",row.property_id).eq("revision",row.revision);
+      }
     }
     const {data:jobs,error:jobsError}=await db.from("owner_report_outbox").select("*").eq("state","pending")
       .or(`last_attempt_at.is.null,last_attempt_at.lt.${new Date(Date.now()-600000).toISOString()}`)
@@ -68,7 +76,7 @@ export async function runOwnerReports() {
     for(const job of jobs??[]) {
       try {
         const {property,agent}=await reportContext(job.property_id);
-        const {data:setting,error:settingError}=await db.from("owner_report_settings").select("revision,settings").eq("property_id",job.property_id).maybeSingle();
+        const {data:setting,error:settingError}=await db.from("owner_report_settings").select("revision,settings,period_from").eq("property_id",job.property_id).maybeSingle();
         if(settingError)throw new Error("settings_read_failed");
         const payload=job.payload as MailPayload;
         const current=await reportRecipients(agent.id,agent.agency_id);
@@ -80,6 +88,13 @@ export async function runOwnerReports() {
           ["vendido","arrendado"].includes(property.status??"");
         if(cancelled) {
           await db.from("owner_report_outbox").update({state:"cancelled"}).eq("id",job.id);
+          if(job.kind==="owner" && setting && setting.revision===job.revision && setting.settings.enabled &&
+            property.agent_id===job.agent_id && !["vendido","arrendado"].includes(property.status??"")){
+            await db.from("owner_report_settings").update({
+              period_from:new Date(Math.min(Date.parse(setting.period_from),Date.parse(job.period_start))).toISOString(),
+              next_at:new Date(Date.now()+600000).toISOString(),
+            }).eq("property_id",job.property_id).eq("revision",job.revision);
+          }
           continue;
         }
         if(job.kind==="broker"){
@@ -113,7 +128,12 @@ export async function runOwnerReports() {
             }).eq("id",job.id);
           }
         }catch{await db.from("owner_report_outbox").update({error_code:"connection_pending"}).eq("id",job.id);}
-      }catch{errors++;}
+      }catch{
+        errors++;
+        await db.from("owner_report_outbox").update({
+          last_attempt_at:new Date().toISOString(),error_code:"recipient_or_data_unavailable",
+        }).eq("id",job.id);
+      }
     }
     return {status:"ok",queued,accepted,errors};
   }finally{

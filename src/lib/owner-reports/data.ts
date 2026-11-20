@@ -13,7 +13,7 @@ export async function reportContext(propertyId: string) {
   ).eq("id",propertyId).maybeSingle();
   if (error || !property) throw new Error("Imóvel indisponível.");
   const { data: agent, error: agentError } = await db.from("profiles")
-    .select("id,name,email,photo_url,agency_id,active").eq("id",property.agent_id).maybeSingle();
+    .select("id,name,email,photo_url,whatsapp,public_title,agency_id,active").eq("id",property.agent_id).maybeSingle();
   if (agentError || !agent?.active) throw new Error("O consultor responsável está indisponível.");
   return { property, agent };
 }
@@ -26,6 +26,7 @@ export async function buildReportData(propertyId: string, from: string, until: s
   const { property:p, agent:a } = await reportContext(propertyId);
   const db = createAdminClient();
   const blocks: ReportData["blocks"] = [];
+  let activityCount=0;
   const {data:documentActivity,error:documentError}=await db.from("property_activity_intakes")
     .select("kind,occurred_at,owner_feedback,share_owner,amount")
     .eq("property_id",propertyId).gte("occurred_at",from).lt("occurred_at",until)
@@ -38,6 +39,7 @@ export async function buildReportData(propertyId: string, from: string, until: s
     const base = () => db.from("visits").select("id",{count:"exact",head:true})
       .or(`property_id.eq.${propertyId},and(property_id.is.null,property_ref.eq."${escapedReference}")`).gte("at",from).lt("at",until);
     const [done,scheduled] = await Promise.all([count(base().eq("status","feita")),count(base().eq("status","agendada"))]);
+    activityCount+=done+scheduled;
     blocks.push({key:"visits",title:"Visitas no período",lines:[`${done} realizadas · ${scheduled} ainda registadas como agendadas neste período.`,...ownerFeedback("visit")]});
   }
   if (sections.includes("leads")) {
@@ -45,11 +47,13 @@ export async function buildReportData(propertyId: string, from: string, until: s
     const sources = ["site","facebook","portal","whatsapp","consultor"];
     const values = await Promise.all(sources.map(source=>count(base().eq("source",source))));
     const total = values.reduce((sum,n)=>sum+n,0);
+    activityCount+=total;
     const sourceLabels = ["Website HousePro","Meta (Facebook/Instagram)","Portais","WhatsApp","Consultor"];
     blocks.push({key:"leads",title:"Pedidos de informação no período",lines:[`${total} pedidos associados ao imóvel.`,...values.map((value,i)=>`${sourceLabels[i]}: ${value}.`)]});
   }
   if (sections.includes("views")) {
     const views = await count(db.from("property_engagement").select("property_id",{count:"exact",head:true}).eq("property_id",propertyId).eq("kind","view").gte("created_at",from).lt("created_at",until));
+    activityCount+=views;
     blocks.push({key:"views",title:"Website no período",lines:[`${views} visualizações registadas no website HousePro.`]});
   }
   if (sections.includes("matches")) {
@@ -67,6 +71,7 @@ export async function buildReportData(propertyId: string, from: string, until: s
       transitions = data??[];
     }
     const newDeals=(deals??[]).filter(d=>d.created_at>=from && d.created_at<until);
+    activityCount+=newDeals.length+transitions.length+(documentActivity??[]).filter(item=>item.kind==="proposal").length;
     const latest=deals?.[0];
     blocks.push({key:"proposals",title:"Propostas e negociação",lines:[
       `${newDeals.length} novos processos de proposta registados no período.`,
@@ -79,6 +84,7 @@ export async function buildReportData(propertyId: string, from: string, until: s
   if (sections.includes("prices")) {
     const {data,error}=await db.from("property_price_history").select("old_price,new_price,created_at").eq("property_id",propertyId).gte("created_at",from).lt("created_at",until).order("created_at",{ascending:false}).limit(101);
     if(error || (data?.length??0)>100) throw new Error("Não foi possível obter o histórico de preços.");
+    activityCount+=data?.length??0;
     blocks.push({key:"prices",title:"Preço e alterações",lines:[`Preço atual: ${euro(Number(p.price))}.`,...(data?.length?data.map(v=>`${new Date(v.created_at).toLocaleDateString("pt-PT")}: ${euro(Number(v.old_price))} → ${euro(Number(v.new_price))}.`):["Sem alterações de preço registadas no período."])]});
   }
   if (sections.includes("promotion")) {
@@ -103,6 +109,7 @@ export async function buildReportData(propertyId: string, from: string, until: s
         if(typeof change.field==="string" && publicChanges[change.field])changes.add(publicChanges[change.field]);
       }
     }
+    activityCount+=changes.size;
     blocks.push({key:"promotion",title:"Promoção e recursos atuais",lines:[
       ...[...changes].map(label=>`${label}: atualização registada no período.`),
       site?"Imóvel disponível na montra HousePro.":"Imóvel atualmente fora da montra pública.",
@@ -113,7 +120,9 @@ export async function buildReportData(propertyId: string, from: string, until: s
   }
   return { property:p, agent:a, data:{
     propertyId,reference:p.reference,title:p.title,ownerName:p.owner_name??"",
-    agentName:a.name,agentEmail:a.email??"",agentPhoto:a.photo_url??undefined,from,until,blocks,
+    agentName:a.name,agentEmail:a.email??"",agentPhoto:a.photo_url??undefined,
+    agentPhone:a.whatsapp??undefined,agentTitle:a.public_title??undefined,
+    activityCount,from,until,blocks,
   } satisfies ReportData };
 }
 /** Team leaders are the accompaniment managers. Sponsorship is a separate network relationship. */

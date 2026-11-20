@@ -1,9 +1,9 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const m=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(),context:vi.fn(),recipients:vi.fn(),fetch:vi.fn(),updates:[] as {table:string;value:Record<string,unknown>}[]}));
+const m=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(),context:vi.fn(),build:vi.fn(),recipients:vi.fn(),fetch:vi.fn(),due:[] as object[],quarterlyDue:[] as object[],updates:[] as {table:string;value:Record<string,unknown>}[]}));
 vi.mock("server-only",()=>({}));
 vi.mock("@/lib/supabase/admin",()=>({createAdminClient:()=>({rpc:m.rpc,from:m.from})}));
 vi.mock("@/lib/email-delivery",()=>({emailDeliveryCredentials:async()=>({enabled:true,apiKey:"test",sender:"HousePro <reports@housepro.pt>"})}));
-vi.mock("./data",()=>({reportContext:m.context,reportRecipients:m.recipients,validEmail:(v:unknown)=>typeof v==="string"&&v.includes("@"),buildReportData:vi.fn()}));
+vi.mock("./data",()=>({reportContext:m.context,reportRecipients:m.recipients,validEmail:(v:unknown)=>typeof v==="string"&&v.includes("@"),buildReportData:m.build}));
 import { runOwnerReports } from "./worker";
 const payload={
  from:"Consultor <reports@housepro.pt>",to:["owner@example.test"],bcc:["agent@example.test","leader@example.test"],
@@ -12,10 +12,11 @@ const payload={
 };
 const job={id:"job-1",property_id:"property-1",agent_id:"agent-1",revision:"rev-1",kind:"owner",period_start:"2026-10-01T00:00:00Z",period_end:"2026-11-01T00:00:00Z",payload,attempts:0,first_attempt_at:null};
 beforeEach(()=>{
- vi.resetAllMocks();m.updates.length=0;vi.stubGlobal("fetch",m.fetch);
+ vi.resetAllMocks();m.updates.length=0;m.due=[];m.quarterlyDue=[];vi.stubGlobal("fetch",m.fetch);
  m.rpc.mockResolvedValue({data:{claimed:true},error:null});
  m.context.mockResolvedValue({property:{agent_id:"agent-1",owner_email:payload.ownerEmail,status:"disponivel"},agent:{id:"agent-1",email:payload.agentEmail,agency_id:"agency-1"}});
  m.recipients.mockResolvedValue({bcc:payload.managers,broker:null});
+ m.build.mockResolvedValue({property:{agent_id:"agent-1",owner_email:payload.ownerEmail,status:"disponivel",reference:"HP-1",title:"Casa"},agent:{id:"agent-1",name:"Consultor",email:payload.agentEmail,agency_id:"agency-1"},data:{propertyId:"property-1",reference:"HP-1",title:"Casa",ownerName:"Ana",agentName:"Consultor",agentEmail:payload.agentEmail,from:"2026-11-01T00:00:00Z",until:"2026-11-20T00:00:00Z",blocks:[],activityCount:0}});
  m.fetch.mockResolvedValue({ok:true,json:async()=>({id:"resend-1"})});
  m.from.mockImplementation((table:string)=>{
    let update=false;
@@ -27,12 +28,33 @@ beforeEach(()=>{
      // The due-settings list is distinguished from the individual job's current configuration.
      return Promise.resolve({data,error:null}).then(resolve);
    };
-   let list=false;
-   chain.lte=()=>{list=true;return chain;};
+   let list="";
+   chain.lte=(field:string)=>{list=field;return chain;};
    const then=chain.then as (resolve:(v:unknown)=>unknown)=>unknown;
-   chain.then=(resolve:(v:unknown)=>unknown)=>list?Promise.resolve({data:[],error:null}).then(resolve):then(resolve);
+   chain.then=(resolve:(v:unknown)=>unknown)=>list?Promise.resolve({data:list==="quarterly_next_at"?m.quarterlyDue:m.due,error:null}).then(resolve):then(resolve);
    return chain;
  });
+});
+it("moves an empty reporting window without sending email and retains its starting date",async()=>{
+ m.due=[{property_id:"property-1",agent_id:"agent-1",revision:"rev-1",next_at:new Date(Date.now()-60000).toISOString(),period_from:"2026-11-01T00:00:00Z",sequence:0,settings:{enabled:true,frequency:15,day:1,quarterly:false,salutation:"",otherSalutation:"",additionalEmail:"",template:0,rotate:true,format:"html",sections:["visits"],introduction:"",nextSteps:""}}];
+ const result=await runOwnerReports();
+ expect(result.queued).toBe(0);
+ expect(m.rpc).not.toHaveBeenCalledWith("queue_owner_report",expect.anything());
+ expect(m.updates.some(v=>v.table==="owner_report_settings"&&typeof v.value.next_at==="string"&&!v.value.period_from)).toBe(true);
+ expect(m.fetch).toHaveBeenCalledTimes(1); // A previous pending job can still be delivered.
+});
+it("queues the quarterly summary separately from the regular schedule",async()=>{
+ const quarterlyNextAt=new Date(Date.now()-60000).toISOString();
+ m.quarterlyDue=[{property_id:"property-1",agent_id:"agent-1",revision:"rev-1",next_at:new Date(Date.now()+15*86400000).toISOString(),
+  quarterly_next_at:quarterlyNextAt,quarterly_period_from:"2026-08-20T00:00:00Z",quarterly_sequence:1,
+  settings:{enabled:true,frequency:30,day:1,quarterly:true,salutation:"Sra.",otherSalutation:"",additionalEmail:"family@example.test",template:0,rotate:true,format:"html",sections:["visits"],introduction:"",nextSteps:""}}];
+ const base=await m.build();
+ m.build.mockResolvedValue({...base,data:{...base.data,activityCount:2,blocks:[{key:"visits",title:"Visitas",lines:["2 realizadas"]}]}});
+ await runOwnerReports();
+ const queued=m.rpc.mock.calls.find(args=>args[0]==="queue_owner_report_quarterly");
+ expect(queued?.[1].p_owner.cc).toEqual(["family@example.test"]);
+ expect(queued?.[1].p_owner.subject).toContain("Balanço trimestral");
+ expect(queued?.[1].p_due).toBe(quarterlyNextAt);
 });
 it("retries with an identical payload and idempotency key, retaining private BCC",async()=>{
  await runOwnerReports();await runOwnerReports();

@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { REPORT_OPENINGS, REPORT_NEXT_STEPS } from "@/lib/owner-reports/messages";
-import { DEFAULT_REPORT, REPORT_SECTIONS, REPORT_TEMPLATES, type ReportSettings } from "@/lib/owner-reports/model";
+import { DEFAULT_REPORT, REPORT_SECTIONS, REPORT_TEMPLATES, validateSettings, type ReportSettings } from "@/lib/owner-reports/model";
 
 type Property={id:string;reference:string;title:string;owner_name:string|null;owner_email:string|null};
 type Config={property_id:string;agent_id:string;revision:string;settings:ReportSettings;next_at:string};
 type History={id:string;property_id:string;kind:string;state:string;period_end:string;error_code:string|null};
-interface PanelData {properties:Property[];settings:Config[];history:History[];agentEmail:string;agentId:string}
+interface PanelData {properties:Property[];settings:Config[];history:History[];agentEmail:string;agentId:string;agentPhotoAvailable:boolean;graceUntil:string|null}
 const field="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm";
 export function OwnerReportsPanel() {
   const params=useSearchParams();
@@ -18,7 +18,7 @@ export function OwnerReportsPanel() {
   const [settings,setSettings]=useState<ReportSettings>(DEFAULT_REPORT);
   const [message,setMessage]=useState("");
   const [loading,setLoading]=useState(false);
-  const [preview,setPreview]=useState<{html:string;text:string;subject:string;to:string;replyTo:string;bcc:string[];broker:string|null}>();
+  const [preview,setPreview]=useState<{html:string;text:string;subject:string;to:string;replyTo:string;bcc:string[];broker:string|null;willSend:boolean;additionalEmail:string}>();
   const load=useCallback(async()=>{
     const response=await fetch("/api/owner-reports",{cache:"no-store"});
     const result=await response.json();
@@ -31,7 +31,7 @@ export function OwnerReportsPanel() {
   const config=data?.settings.find(s=>s.property_id===selected);
   const property=data?.properties.find(p=>p.id===selected);
   useEffect(()=>{
-    setSettings(config && config.agent_id===agentId?config.settings:DEFAULT_REPORT);
+    setSettings(config && config.agent_id===agentId?validateSettings(config.settings):DEFAULT_REPORT);
     setPreview(undefined);
   },[selected,config,agentId]);
   function patch(value:Partial<ReportSettings>) {setSettings(v=>({...v,...value}));setPreview(undefined);}
@@ -54,7 +54,7 @@ export function OwnerReportsPanel() {
   return <div className="mt-6">
     {message&&<p role="status" className="mb-4 rounded-lg border p-3 text-sm">{message}</p>}
     {!data?<p>A carregar configuração…</p>:<>
-      {missing>0&&<p className="mb-5 rounded-lg border border-amber-500/50 bg-amber-500/5 p-4 text-sm">Configuração necessária em {missing} {missing===1?"imóvel":"imóveis"}. Selecione cada imóvel e guarde as opções de envio.</p>}
+      {missing>0&&<p className="mb-5 rounded-lg border border-amber-500/50 bg-amber-500/5 p-4 text-sm">Configuração necessária em {missing} {missing===1?"imóvel":"imóveis"}. Selecione cada imóvel e guarde as opções de envio.{data.graceUntil&&` Prazo: ${new Date(data.graceUntil).toLocaleString("pt-PT")}.`}</p>}
       <label className="block max-w-xl text-sm font-medium">Imóvel
         <select className={field} value={selected} onChange={e=>{setSelected(e.target.value);setMessage("");}}>
           <option value="">Selecionar imóvel</option>
@@ -68,16 +68,24 @@ export function OwnerReportsPanel() {
             <p>Proprietário · {property.owner_name||"Nome por preencher"}</p>
             <p>Enviar para · {property.owner_email||"Email por preencher"}</p>
             <p>Respostas para · {data.agentEmail||"Complete o email no seu perfil"}</p>
+            {!data.agentPhotoAvailable&&<p className="mt-2 text-amber-700">A sua fotografia ainda não está no perfil. O email mostra uma inicial até a carregar. <Link className="underline" href="/app/perfil">Adicionar fotografia</Link></p>}
             <Link href={`/app/imovel/${property.id}/editar`} className="mt-2 inline-block underline">Completar dados do proprietário</Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm">Periodicidade<select className={field} value={settings.frequency} onChange={e=>patch({frequency:e.target.value as ReportSettings["frequency"]})}>
-              <option value="monthly">Mensal</option><option value="fortnightly">A cada 14 dias</option><option value="weekly">Semanal</option>
+            <label className="text-sm">Periodicidade<select className={field} value={settings.frequency} onChange={e=>patch({frequency:Number(e.target.value) as ReportSettings["frequency"]})}>
+              {[15,30,45,60].map(days=><option key={days} value={days}>A cada {days} dias</option>)}
             </select></label>
-            {settings.frequency==="monthly"&&<label className="text-sm">Dia do mês (1 a 28)<input type="number" min="1" max="28" className={field} value={settings.day} onChange={e=>patch({day:Number(e.target.value)})}/></label>}
             <label className="text-sm">Formato<select className={field} value={settings.format} onChange={e=>patch({format:e.target.value as ReportSettings["format"]})}>
               <option value="html">Email com apresentação visual</option><option value="text">Email em texto simples</option>
             </select></label>
+          </div>
+          <label className="flex gap-2 text-sm"><input type="checkbox" checked={settings.quarterly} onChange={e=>patch({quarterly:e.target.checked})}/>Enviar também um relatório trimestral com o balanço dos últimos três meses</label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm">Tratamento do proprietário<select className={field} value={settings.salutation} onChange={e=>patch({salutation:e.target.value})}>
+              <option value="">Sem título</option>{[["Sr.","Senhor (Sr.)"],["Sra.","Senhora (Sra.)"],["Dr.","Doutor (Dr.)"],["Dra.","Doutora (Dra.)"],["Eng.","Engenheiro (Eng.)"],["Eng.ª","Engenheira (Eng.ª)"],["Arq.","Arquitecto (Arq.)"],["Arq.ª","Arquitecta (Arq.ª)"],["Outro","Outro"]].map(([value,label])=><option value={value} key={value}>{label}</option>)}
+            </select></label>
+            {settings.salutation==="Outro"&&<label className="text-sm">Tratamento personalizado<input className={field} maxLength={40} value={settings.otherSalutation} onChange={e=>patch({otherSalutation:e.target.value})}/></label>}
+            <label className="text-sm sm:col-span-2">Email adicional para receber uma cópia visível<input className={field} type="email" value={settings.additionalEmail} onChange={e=>patch({additionalEmail:e.target.value})} placeholder="pessoa@exemplo.pt"/></label>
           </div>
           <fieldset><legend className="mb-2 text-sm font-medium">Apresentação inicial</legend>
             <div className="grid gap-2">{REPORT_TEMPLATES.map((name,i)=><label key={name} className="flex gap-2 rounded-lg border p-3 text-sm">
@@ -109,7 +117,7 @@ export function OwnerReportsPanel() {
             <button type="button" disabled={loading} onClick={()=>void action("preview")} className="rounded-md border px-4 py-2 text-sm disabled:opacity-50">Pré-visualizar</button>
             <button type="button" disabled={loading} onClick={()=>void action("save")} className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{config?"Guardar opções":"Guardar e ativar"}</button>
           </div>
-          {config&&<p className="text-sm text-muted-foreground">{config.settings.enabled?`Próximo envio a partir de ${new Date(config.next_at).toLocaleString("pt-PT")}`:"Envio pausado."}</p>}
+          {config&&<p className="text-sm text-muted-foreground">{config.settings.enabled?`Próximo envio regular a partir de ${new Date(config.next_at).toLocaleString("pt-PT")}`:"Envio pausado."} Os relatórios sem atividade não são enviados; o período acumula até haver atividade.</p>}
         </section>
         <section className="min-w-0 rounded-xl border bg-card p-5">
           <h2 className="font-display text-xl">Pré-visualização</h2>
@@ -117,15 +125,17 @@ export function OwnerReportsPanel() {
             <p className="mt-3 text-sm font-medium">{preview.subject}</p>
             <div className="my-3 space-y-1 text-xs text-muted-foreground">
               <p>Destinatário · {preview.to||"Email por preencher"}</p>
+              {preview.additionalEmail&&<p>Cópia visível · {preview.additionalEmail}</p>}
               <p>Responder a · {preview.replyTo||"Email por preencher"}</p>
               <p>Cópia oculta · {preview.bcc.join(", ")||"Sem destinatários"}</p>
               <p>Resumo separado ao broker · {preview.broker||"Broker por configurar na agência"}</p>
             </div>
+            {!preview.willSend&&<p className="mb-3 rounded-md border border-amber-500/50 bg-amber-500/5 p-3 text-sm">Sem atividade registada neste período. Esta pré-visualização não será enviada automaticamente enquanto não houver atividade.</p>}
             {settings.format==="html"?<iframe title="Relatório ao proprietário" sandbox="" srcDoc={preview.html} className="h-[760px] w-full rounded-md border bg-white"/>:<pre className="whitespace-pre-wrap break-words text-sm leading-7">{preview.text}</pre>}
           </>:<p className="mt-3 text-sm text-muted-foreground">Escolha as opções e clique em Pré-visualizar para ver os dados reais do imóvel.</p>}
           <h2 className="mt-8 font-display text-xl">Envios recentes</h2>
           <ul className="mt-3 space-y-3 text-sm">{data.history.filter(h=>h.property_id===property.id).map(h=><li key={h.id} className="rounded-md border p-3">
-            {h.kind==="owner"?"Proprietário":"Resumo ao broker"} · {new Date(h.period_end).toLocaleDateString("pt-PT")}<br/>
+            {h.kind.startsWith("owner")?"Proprietário":"Resumo ao broker"}{h.kind.endsWith("quarterly")?" · Trimestral":""} · {new Date(h.period_end).toLocaleDateString("pt-PT")}<br/>
             {{pending:"Aguarda envio",accepted:"Aceite pelo serviço de email",failed:"Envio falhou — requer verificação",cancelled:"Cancelado"}[h.state]??h.state}
           </li>)}</ul>
           {!data.history.some(h=>h.property_id===property.id)&&<p className="mt-2 text-sm text-muted-foreground">Ainda sem envios.</p>}

@@ -1,4 +1,5 @@
 "use client";
+import { requestIdentity } from "@/lib/leads/identity";
 
 import * as React from "react";
 import Link from "next/link";
@@ -94,8 +95,8 @@ export function CostWizard({
   }
 
   async function submit() {
-    if (!form.name.trim() || !form.contact.trim()) {
-      setError("Indique o nome e um contacto.");
+    if (!requestIdentity(form.name,form.contact,form.email)) {
+      setError("Indique nome, telefone e email válidos.");
       return;
     }
     if (!form.consent) {

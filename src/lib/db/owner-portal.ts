@@ -56,7 +56,7 @@ export async function getOwnerPortalData(token: string): Promise<OwnerPortal | n
   const { count: leadsCount } = await sb
     .from("leads")
     .select("id", { count: "exact", head: true })
-    .eq("property_id", id);
+    .eq("property_id", id).eq("interaction_only",false);
 
   // Negócio mais recente + eventos (marcos da transação).
   const { data: deal } = await sb

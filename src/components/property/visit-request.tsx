@@ -1,4 +1,5 @@
 "use client";
+import { requestIdentity } from "@/lib/leads/identity";
 
 import * as React from "react";
 import Link from "next/link";
@@ -80,8 +81,8 @@ export function VisitRequest({
     e.preventDefault();
     setError(null);
     if (submittedRef.current || sending) return; // evita duplicados
-    if (!form.name.trim() || !form.contact.trim()) {
-      setError("Indique o nome e um contacto.");
+    if (!requestIdentity(form.name,form.contact,form.email)) {
+      setError("Indique nome, telefone e email válidos.");
       return;
     }
     if (!form.consent) {
@@ -209,16 +210,16 @@ export function VisitRequest({
 
                 <label className="block">
                   <span className="text-sm font-medium text-[var(--hp-navy)]">Nome</span>
-                  <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="O seu nome" className={cn(box, "mt-1")} autoComplete="name" />
+                  <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="O seu nome" className={cn(box, "mt-1")} autoComplete="name" />
                 </label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block">
                     <span className="text-sm font-medium text-[var(--hp-navy)]">Telefone</span>
-                    <input type="tel" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} placeholder="9XX XXX XXX" className={cn(box, "mt-1")} autoComplete="tel" />
+                    <input required type="tel" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} placeholder="9XX XXX XXX" className={cn(box, "mt-1")} autoComplete="tel" />
                   </label>
                   <label className="block">
-                    <span className="text-sm font-medium text-[var(--hp-navy)]">E-mail (opcional)</span>
-                    <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="nome@email.pt" className={cn(box, "mt-1")} autoComplete="email" />
+                    <span className="text-sm font-medium text-[var(--hp-navy)]">E-mail</span>
+                    <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="nome@email.pt" className={cn(box, "mt-1")} autoComplete="email" />
                   </label>
                 </div>
 

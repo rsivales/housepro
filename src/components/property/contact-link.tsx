@@ -1,47 +1,7 @@
 "use client";
-
 import type { ReactNode } from "react";
-
-import { recordEngagement } from "@/lib/portfolio/engagement";
-import { notifyContact } from "@/lib/contact-notify";
-import { track, type AnalyticsEvent } from "@/lib/analytics";
-
-const EVENT: Record<string, AnalyticsEvent> = {
-  WhatsApp: "pdp_whatsapp_click",
-  Chamada: "pdp_call_click",
-  SMS: "pdp_sms_click",
-};
-
-/** <a> de contacto que dispara a notificação (email ao agente + direção). */
-export function ContactLink({
-  href,
-  channel,
-  propertyId,
-  refId,
-  external,
-  className,
-  children,
-}: {
-  href: string;
-  channel: string;
-  propertyId: string;
-  refId?: string;
-  external?: boolean;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      className={className}
-      onClick={() => {
-        if (EVENT[channel]) track(EVENT[channel]);
-        recordEngagement(propertyId,"contact");
-        notifyContact(channel, { propertyId, ref: refId });
-      }}
-      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-    >
-      {children}
-    </a>
-  );
+import { CallCaptureButton } from "./call-capture-button";
+/** Contact actions require identification; opening the form records only a click KPI. */
+export function ContactLink({href,channel,propertyId,refId,className,children}: {href:string;channel:string;propertyId:string;refId?:string;external?:boolean;className?:string;children:ReactNode}) {
+ return <CallCaptureButton telHref={href} channel={channel === "WhatsApp" ? "WhatsApp" : channel === "SMS" ? "SMS" : "Chamada"} agentName="o consultor responsável" propertyId={propertyId} refId={refId} className={className}>{children}</CallCaptureButton>;
 }

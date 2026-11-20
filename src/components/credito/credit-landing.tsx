@@ -61,6 +61,7 @@ export function CreditLanding() {
     [country, setCountry] = React.useState("Portugal"),
     [name, setName] = React.useState(""),
     [email, setEmail] = React.useState(""),
+    [phone,setPhone] = React.useState(""),
     [consent, setConsent] = React.useState(false),
     [status, setStatus] = React.useState<"idle" | "sending" | "sent" | "error">(
       "idle",
@@ -93,6 +94,8 @@ export function CreditLanding() {
           channel: "credito_habitacao",
           clientName: name,
           clientEmail: email,
+          clientPhone:phone,
+          consent,
           objetivo: `${goals[goal].label} · ${price} € · ${years} anos · ${holders} titular(es)`,
         }),
       });
@@ -484,6 +487,9 @@ export function CreditLanding() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="O seu nome"
                 />
+              </label>
+              <label className="field-label mt-4">Telefone
+                <input required type="tel" className="field" value={phone} onChange={e=>setPhone(e.target.value)} autoComplete="tel" />
               </label>
               <label className="field-label mt-4">
                 E-mail

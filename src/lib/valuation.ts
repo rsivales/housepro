@@ -1,3 +1,4 @@
+import { normalizeContactPhone } from "@/lib/phone";
 /**
  * Funil público de avaliação de imóvel — lógica pura (sem React), partilhada
  * pelo formulário (cliente) e pela API (servidor): tipos, opções, validação,
@@ -64,7 +65,7 @@ export function isValidEmail(v?: string): boolean {
   return !!v && EMAIL_RE.test(v.trim());
 }
 export function isValidPhone(v?: string): boolean {
-  return !!v && PHONE_RE.test(v.trim());
+  return !!v && PHONE_RE.test(v.trim()) && Boolean(normalizeContactPhone(v));
 }
 
 /** Validação por etapa (0,1,2). Devolve mapa de erros por campo. */
@@ -77,8 +78,8 @@ export function validateStep(step: number, s: Partial<ValuationSubmission>): Rec
   }
   if (step === 2) {
     if (!s.name?.trim()) e.name = "Indique o seu nome.";
-    if (!isValidEmail(s.email) && !isValidPhone(s.phone)) {
-      e.contact = "Deixe pelo menos um contacto válido (email ou telefone) — a avaliação é entregue por um consultor.";
+    if (!isValidEmail(s.email) || !isValidPhone(s.phone)) {
+      e.contact = "Indique telefone e email válidos para receber a avaliação.";
     }
     if (!s.consent) e.consent = "É necessário o seu consentimento para tratarmos o pedido.";
   }

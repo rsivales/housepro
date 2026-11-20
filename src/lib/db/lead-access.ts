@@ -1,3 +1,4 @@
+import { operationalLead } from "@/lib/leads/identity";
 import "server-only";
 import type { Agent } from "@/lib/data/types";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -9,7 +10,7 @@ export async function visibleLeadRows(agent: Agent, id?: string) {
   if (id) query = query.eq("id", id);
   const { data, error } = await query.or(leadAccessScope(agent));
   if (error) throw new Error("lead_read_failed");
-  return (data ?? []).filter(lead => canReadLead(agent, lead));
+  return (data ?? []).filter(lead => canReadLead(agent, lead) && operationalLead(lead));
 }
 
 // Call only after authorizing access to the parent lead.

@@ -16,7 +16,7 @@ export async function notifyLeadAssigned(opts: {
   agentEmail?: string;
   campaignName?: string;
 }): Promise<void> {
-  const { lead, agentId, agentEmail, campaignName } = opts;
+  const { lead, agentId, campaignName } = opts;
 
   const linhas = [
     "Nova lead atribuída — HousePro",
@@ -31,7 +31,7 @@ export async function notifyLeadAssigned(opts: {
   await notifyGeneric({
     subject: "Nova lead atribuída",
     text: linhas.join("\n"),
-    to: agentEmail ? [agentEmail] : undefined,
+    agentId,
   });
 
   // Notificação na app (privada ao consultor) — liga ao pipeline.

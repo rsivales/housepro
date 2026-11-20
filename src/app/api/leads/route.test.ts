@@ -1,4 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("@/lib/notify",()=>({notifyLead:vi.fn(async()=>[])}));
 
 import { POST } from "./route";
 
@@ -19,11 +21,11 @@ describe("POST /api/leads (página de imóvel)", () => {
   it("rejeita sem nome/contacto", async () => {
     const res = await POST(req({ propertyId: "1", consent: true }));
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("missing_fields");
+    expect((await res.json()).error).toBe("Indique nome, telefone válido e email válido.");
   });
 
   it("exige consentimento RGPD", async () => {
-    const res = await POST(req({ propertyId: "1", name: "Rita", contact: "912000000", consent: false }));
+    const res = await POST(req({ propertyId: "1", name: "Rita", contact: "912000000", email:"rita@example.com", consent: false }));
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("consent_required");
   });
@@ -34,7 +36,7 @@ describe("POST /api/leads (página de imóvel)", () => {
         propertyId: "1",
         intent: "visita",
         name: "Rita",
-        contact: "912000000",
+        contact: "912000000", email:"rita@example.com",
         consent: true,
         subSource: "Página de imóvel",
         pageUrl: "http://localhost/imovel/1",
@@ -52,7 +54,7 @@ describe("POST /api/leads (página de imóvel)", () => {
 
   it("aceita atribuição por referência (?ref) sem erro", async () => {
     const res = await POST(
-      req({ propertyId: "1", ref: "rui", name: "Rita", contact: "912000000", consent: true })
+      req({ propertyId: "1", ref: "rui", name: "Rita", contact: "912000000", email:"rita@example.com", consent: true })
     );
     const json = await res.json();
     expect(res.status).toBe(200);

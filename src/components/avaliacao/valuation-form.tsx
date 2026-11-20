@@ -216,12 +216,12 @@ export function ValuationForm() {
           <fieldset className="space-y-4">
             <legend className="mb-2 font-display text-2xl tracking-[-0.025em] sm:text-3xl">Como prefere receber a avaliação?</legend>
             <p className="text-sm text-muted-foreground">
-              A avaliação é personalizada e entregue por um consultor — por isso precisamos de pelo menos um contacto válido.
+              A avaliação é personalizada e entregue por um consultor — por isso precisamos de do seu nome, telefone e email.
             </p>
             <Field label="Nome" value={data.name} onChange={(v) => patch({ name: v })} required error={errors.name} autoComplete="name" />
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="E-mail" value={data.email} onChange={(v) => patch({ email: v })} type="email" autoComplete="email" />
-              <Field label="Telefone" value={data.phone} onChange={(v) => patch({ phone: v })} type="tel" autoComplete="tel" />
+              <Field required label="Telefone" value={data.phone} onChange={(v) => patch({ phone: v })} type="tel" autoComplete="tel" />
+              <Field required label="E-mail" value={data.email} onChange={(v) => patch({ email: v })} type="email" autoComplete="email" />
             </div>
             <Err msg={errors.contact} />
             <div className="grid gap-4 sm:grid-cols-2">

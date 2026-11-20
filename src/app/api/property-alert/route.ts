@@ -1,3 +1,4 @@
+import { requestIdentity } from "@/lib/leads/identity";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -7,7 +8,7 @@ export async function POST(request: Request) {
   const email = String(body.email ?? "").trim().toLowerCase();
   const kind = body.kind === "personalized" ? "personalized" : "alert";
   const name = String(body.name ?? "").trim();
-  if (!/^\S+@\S+\.\S+$/.test(email) || !body.consent || (kind === "personalized" && !name)) return NextResponse.json({ error: "invalid_fields" }, { status: 400 });
+  if (!/^\S+@\S+\.\S+$/.test(email) || !body.consent || (kind === "personalized" && !requestIdentity(name,body.phone,email))) return NextResponse.json({ error: "invalid_fields" }, { status: 400 });
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("capture_property_lead", { payload: body });
   if (error || !data) {

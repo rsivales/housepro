@@ -1,3 +1,4 @@
+import { requestIdentity } from "@/lib/leads/identity";
 import { NextResponse } from "next/server";
 
 import { getPropertyById, getAgentPublicById, createLead } from "@/lib/db/repo";
@@ -28,11 +29,8 @@ export async function POST(request: Request) {
   const objetivo = body.objetivo ? String(body.objetivo) : "";
 
   const identifiedCall = channel === "Chamada identificada";
-  if ((channel === "Chamada" || identifiedCall) && (!clientPhone || !consent)) {
-    // Nunca criar a antiga notificação anónima: um clique tel: não prova que
-    // a chamada aconteceu e não fornece um contacto para retorno.
-    return NextResponse.json({ error: "identified_phone_required" }, { status: 400 });
-  }
+  const identity = requestIdentity(clientName,clientPhone,clientEmail);
+  if (!identity || !consent) return NextResponse.json({ error: "Indique nome, telefone, email e autorize o contacto." }, { status: 400 });
 
   const property = propertyId ? await getPropertyById(propertyId) : undefined;
   const listingAgent = property?.agentId;
@@ -52,9 +50,9 @@ export async function POST(request: Request) {
       propertyRef: property?.reference,
       ownerId: owner?.id ?? ownerId,
       referrerId,
-      name: clientName || (identifiedCall ? "Pedido de chamada do website" : "Cliente do site"),
-      contact: clientPhone || clientEmail || `(contacto via ${channel})`,
-      email: clientEmail || undefined,
+      name: identity.name,
+      contact: identity.phone,
+      email: identity.email,
       intent: "mensagem",
       message: identifiedCall
         ? `Número registado antes de abrir o marcador para ${owner?.name ?? "o consultor"}. Deve ser contactado se a chamada não for atendida ou cair.`

@@ -1,3 +1,4 @@
+import { OwnerReportSetupGate } from "@/components/property/owner-report-setup-gate";
 import {WorkspaceSwitch} from "@/components/helix/workspace-switch";
 import {agencyWorkspaces} from "@/lib/db/agency-finance";
 import {isCommercialAgent} from "@/lib/data/agent-directory";
@@ -67,6 +68,7 @@ export async function HelixShell({ children }: { children: React.ReactNode }) {
         <div className="pb-24 lg:pb-8"><WorkspaceSwitch identity={{name:agent.name,photo:agent.photo,agency:agency?.name??agent.agency,referenceCode}} consultant={isCommercialAgent(agent)} broker={hasBrokerWorkspace} admin={superadmin || ["admin","diretor","coordenador"].includes(agent.roleKey??"")} />{children}</div>
       </div>
       <MobileBottomNavigation superadmin={superadmin&&!isCommercialAgent(agent)} />
+      {!demo && !session.viewingAs && isCommercialAgent(agent) && <OwnerReportSetupGate />}
       <ReleaseNotice revision={process.env.VERCEL_GIT_COMMIT_SHA} />
       {demo && <RoleSwitcher currentId={agent.id} />}
       </HelixSidebar>

@@ -1051,7 +1051,7 @@ export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
   const { data } = await supabase
     .from("leads")
     .select("*, property:properties!property_id(cover_url,reference)")
-    .eq("owner_id", agentId)
+    .or(`assigned_agent_id.eq.${agentId},and(assigned_agent_id.is.null,owner_id.eq.${agentId}),co_owner_ids.cs.{${agentId}}`)
     .order("created_at", { ascending: false });
   return (data ?? []).map(mapLeadRow);
 }
@@ -1080,6 +1080,9 @@ function mapLeadRow(r: Row): Lead {
     createdAt: String(r.created_at ?? new Date().toISOString()),
     coOwnerIds: (r.co_owner_ids as string[]) ?? [],
     contactedAt: (r.contacted_at as string) ?? undefined,
+    followupState: (r.followup_state as string) ?? undefined,
+    lastFollowupAt: (r.last_followup_at as string) ?? undefined,
+    nextFollowupAt: (r.next_followup_at as string) ?? undefined,
     contactedBy: (r.contacted_by as string) ?? undefined,
     subSource: (r.sub_source as string) ?? undefined,
     formVersion: (r.form_version as string) ?? undefined,

@@ -11,9 +11,9 @@ export default async function LeadsPage() {
   return <main className="mx-auto max-w-4xl px-4 py-8">
     <Link href="/app" className="text-sm text-primary">← Área do consultor</Link>
     <h1 className="mt-4 font-display text-3xl">Pedidos e leads</h1>
-    <p className="mt-2 text-sm text-muted-foreground">Contactos, pedidos do site e simulações para acompanhamento.</p>
+    <p className="mt-2 text-sm text-muted-foreground">Contactos, pedidos do site e simulações. Marcar como lido limpa apenas a leitura. Abra a lead e use Registar acompanhamento para indicar a ação e o próximo prazo.</p>
     <LeadInboxView expanded agentId={session.agent.id} cards={leads.map(lead => ({ id: lead.id, content: <Link href={`/app/leads/${lead.id}`} className="block rounded-2xl border bg-card p-5 hover:border-primary">
-      <h2 className="font-semibold">{lead.name}</h2><p className="mt-1 text-sm">{lead.contact} {lead.email && lead.email !== lead.contact ? `· ${lead.email}` : ""}</p>
+      <h2 className="font-semibold">{lead.name}</h2><p className="mt-1 text-sm font-medium">{lead.followup_state?.replace(/_/g," ")||"Por contactar"}{lead.next_followup_at&&` · Próximo: ${new Date(lead.next_followup_at).toLocaleString("pt-PT",{timeZone:"Europe/Lisbon"})}`}</p><p className="mt-1 text-sm">{lead.contact} {lead.email && lead.email !== lead.contact ? `· ${lead.email}` : ""}</p>
       <p className="mt-2 text-sm text-muted-foreground">{lead.sub_source || lead.source} · {lead.property?.reference || "Sem imóvel associado"} · {new Date(lead.created_at).toLocaleString("pt-PT", {timeZone:"Europe/Lisbon"})}</p>
       <span className="mt-3 inline-block text-sm font-semibold text-primary">Abrir pedido e informação →</span>
     </Link> }))} />

@@ -1,3 +1,4 @@
+import { createAdminClient } from "@/lib/supabase/admin";
 import { LeadQualification } from "@/components/matching/lead-qualification";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -21,6 +22,7 @@ export default async function LeadDetail({ params }: { params: Promise<{id:strin
   const fields = answers.length
     ? answers.map((answer) => ({ label: answer.label || answer.question_key.replace(/_/g, " "), value: answer.value }))
     : valuationAnswers(lead.message ?? "");
+  const {data:followupHistory}=await createAdminClient().rpc("lead_followup_history",{p_actor:session.agent.id,p_lead:id});
   const pipeline = pipelines.find((p) => p.key === lead.pipeline);
   const wait = contactWait(lead.created_at);
   const form = websiteForm(lead.source, lead.sub_source, lead.message);
@@ -44,12 +46,13 @@ export default async function LeadDetail({ params }: { params: Promise<{id:strin
     <section className="mt-6 rounded-2xl border bg-card p-5"><h2 className="font-semibold">Contacto e acompanhamento</h2>
       <p className="mt-3">{lead.contact}</p>{email && email !== lead.contact && <p>{email}</p>}
       {!phone && !email && <p className="mt-2 text-sm text-muted-foreground">Este registo assinala um clique em chamada ou WhatsApp. O visitante não deixou nome nem contacto; não é possível identificá-lo a partir deste clique.</p>}
-      <div className="mt-4 flex flex-wrap gap-3">{phone && <a className="rounded-full border px-4 py-2 text-sm font-semibold" href={`tel:${phone}`}>Ligar</a>}{email && <a className="rounded-full border px-4 py-2 text-sm font-semibold" href={`mailto:${email}`}>Responder por e-mail</a>}{(phone || email) && <LeadContactAction leadId={id} contacted={Boolean(lead.contacted_at)} />}</div>
+      <div className="mt-4 flex flex-wrap gap-3">{phone && <a className="rounded-full border px-4 py-2 text-sm font-semibold" href={`tel:${phone}`}>Ligar</a>}{email && <a className="rounded-full border px-4 py-2 text-sm font-semibold" href={`mailto:${email}`}>Responder por e-mail</a>}{(phone || email) && <LeadContactAction leadId={id} contacted={Boolean(lead.contacted_at)} nextAt={lead.next_followup_at} readOnly={Boolean(session.viewingAs||session.demo)} />}</div>
       <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">Estado</dt><dd>{lead.contacted_at ? "Contactado" : lead.status}</dd></div><div><dt className="text-muted-foreground">Preferência / horário</dt><dd>{lead.contact_preference || "Não indicado"} · {lead.best_time || "Não indicado"}</dd></div>{lead.email_status && <div><dt className="text-muted-foreground">Envio do relatório</dt><dd>{lead.email_status === "enviado" ? "Aceite pelo serviço de e-mail" : "Pendente — responder ao cliente"}</dd></div>}</dl>
       {lead.property_id && <Link className="mt-4 block text-sm text-primary" href={`/imovel/${lead.property_id}`}>{lead.property?.reference} · {lead.property?.title}</Link>}
       {lead.contact_id && <Link className="mt-3 block text-sm text-primary" href={`/app/contactos/${lead.contact_id}`}>Abrir ficha do contacto →</Link>}
     </section>
     {!lead.contact_id && <LeadQualification id={id} name={lead.name} phone={phone ?? undefined} email={email ?? undefined} zone={lead.zone ?? undefined} source={lead.source} readOnly={Boolean(session.viewingAs || session.demo)}/> }
+    <section className="mt-4 rounded-2xl border bg-card p-5"><h2 className="font-semibold">Histórico de acompanhamento</h2><p className="mt-2 text-sm text-muted-foreground">Estado: {lead.followup_state?.replace(/_/g," ")||"Por contactar"}. Ler o pedido não equivale a contactar o cliente.</p>{(followupHistory??[]).map((f:{id:string;action:string;note:string;actor_name:string;created_at:string;next_at?:string})=><article key={f.id} className="mt-3 border-t pt-3 text-sm"><b>{f.action.replace(/_/g," ")} · {f.actor_name}</b><p className="mt-1 whitespace-pre-wrap">{f.note}</p><p className="mt-1 text-muted-foreground">{new Date(f.created_at).toLocaleString("pt-PT",{timeZone:"Europe/Lisbon"})}{f.next_at&&` · Próximo: ${new Date(f.next_at).toLocaleString("pt-PT",{timeZone:"Europe/Lisbon"})}`}</p></article>)}<Link href={`/app/apoio?lead=${id}`} className="mt-4 inline-block text-sm font-semibold text-primary">Pedir ajuda / contestar situação de acompanhamento</Link></section>
     <section className="mt-4 rounded-2xl border bg-card p-5"><h2 className="font-semibold">Pedido e relatório</h2><p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">{lead.message || "Sem mensagem adicional."}</p></section>
     <section className="mt-4 rounded-2xl border bg-card p-5">
       <h2 className="font-semibold">Perguntas e respostas</h2>

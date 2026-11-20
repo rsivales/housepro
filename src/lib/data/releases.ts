@@ -1,4 +1,11 @@
 export const RELEASES = [
+ {id:"2026.11.20-followup-support",version:"2026.11.20.3",title:"Acompanhamento fiável e apoio por tickets",date:"20 de novembro de 2026",items:[
+ {type:"bugfix",text:"Leitura de pedidos separada do contacto: Dashboard mostra por ler, sem primeira ação e acompanhamentos vencidos."},
+ {type:"security",text:"SLA controlado no servidor, com histórico e revisão humana. Não há transferências automáticas nem penalizações por leitura."},
+ {type:"feature",text:"Tickets por tópico, função e agência, incluindo denúncias confidenciais e indicadores de resolução."},
+ {type:"feature",text:"Correspondências com leitura individual e filtros de vistas/por ler. Atualizações da sugestão voltam a aparecer por ler."}
+ ]},
+
  {id:"2026.11.20-safe-sla",version:"2026.11.20.2",title:"Leitura e acompanhamento sem conflitos",date:"20 de novembro de 2026",items:[
  {type:"bugfix",text:"Dashboard distingue pedidos por ler e leads sem primeira ação, excluindo cliques anónimos sem contacto."},
  {type:"security",text:"Verificação de SLA deixa de reatribuir contactos, enviar emails de transferência ou criar penalizações automaticamente."},

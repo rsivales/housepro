@@ -28,7 +28,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   if (!isSupabaseConfigured()) return NextResponse.json({ ok: false, persisted: false });
   const session = await getSession();
-  if (!session || session.demo) return NextResponse.json({ ok: false, persisted: false }, { status: 401 });
+  if (!session || session.demo || session.viewingAs) return NextResponse.json({ ok: false, persisted: false }, { status: 401 });
 
   let body: { patch?: Record<string, unknown> };
   try {

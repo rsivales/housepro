@@ -34,6 +34,7 @@ async function save(agentId: string, state: InboxState) {
     body: JSON.stringify({ patch: { [preference]: state } }),
   });
   if (!response.ok) throw new Error("Não foi possível guardar a alteração na conta.");
+  window.dispatchEvent(new Event("helix:lead-inbox"));
 }
 export function MarkLeadRead({ agentId, leadId }: { agentId: string; leadId: string }) {
   useEffect(() => {
@@ -60,7 +61,8 @@ export function LeadInboxView({ agentId, cards, expanded = false }: {
     refresh();
     window.addEventListener("pageshow", refresh);
     window.addEventListener("focus", refresh);
-    return () => { active = false; window.removeEventListener("pageshow", refresh); window.removeEventListener("focus", refresh); };
+    window.addEventListener("helix:lead-inbox", refresh);
+    return () => { active = false; window.removeEventListener("pageshow", refresh); window.removeEventListener("focus", refresh); window.removeEventListener("helix:lead-inbox", refresh); };
   }, [agentId]);
   const read = new Set(state.read), hidden = new Set(state.hidden);
   const unread = cards.filter(({ id }) => !read.has(id) && !hidden.has(id));
@@ -88,7 +90,7 @@ export function LeadInboxView({ agentId, cards, expanded = false }: {
       <li key={id} className="rounded-2xl border bg-card p-4 shadow-sm">
         {expanded && <div className="mb-3 flex flex-wrap items-center gap-3 text-xs">
           <span>{read.has(id) ? "Lida" : "Por ler"}{hidden.has(id) ? " · Removida da lista" : ""}</span>
-          {!read.has(id) && <button disabled={busy} className="text-primary" onClick={() => void change({ ...state, read: [...state.read, id] })}>Marcar como lida</button>}
+          <button disabled={busy} className="text-primary" onClick={() => void change({ ...state, read: read.has(id)?state.read.filter(x=>x!==id):[...state.read,id] })}>{read.has(id)?"Marcar por ler":"Marcar como lida"}</button>
           <button disabled={busy} className="text-primary" onClick={() => void change({ ...state, hidden: hidden.has(id) ? state.hidden.filter((x) => x !== id) : [...state.hidden, id] })}>{hidden.has(id) ? "Repor" : "Remover da lista"}</button>
         </div>}
         {content}
@@ -96,4 +98,9 @@ export function LeadInboxView({ agentId, cards, expanded = false }: {
     )}</ul> : ready ? <p className="mt-4 rounded-2xl border border-dashed p-5 text-sm text-muted-foreground" role="status">{expanded ? "Sem pedidos nesta lista." : "Todos os pedidos foram lidos."}</p> : null}
     {!expanded && ready && unread.length > 5 && <Link className="mt-3 inline-block text-sm font-semibold text-primary" href="/app/leads">Ver mais {unread.length - 5} por ler</Link>}
   </>;
+}
+
+export function LeadUnreadCount({agentId,ids}:{agentId:string;ids:string[]}){
+ const [count,setCount]=useState<number|null>(null);
+ useEffect(()=>{let active=true;const refresh=()=>{void sync(agentId).then(s=>{if(active)setCount(ids.filter(id=>!s.read.includes(id)&&!s.hidden.includes(id)).length);}).catch(()=>{});};refresh();window.addEventListener('helix:lead-inbox',refresh);window.addEventListener('focus',refresh);window.addEventListener('pageshow',refresh);return()=>{active=false;window.removeEventListener('helix:lead-inbox',refresh);window.removeEventListener('focus',refresh);window.removeEventListener('pageshow',refresh);};},[agentId,ids]);return <span>{count??'…'}</span>;
 }

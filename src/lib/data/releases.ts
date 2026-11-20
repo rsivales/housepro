@@ -1,4 +1,9 @@
 export const RELEASES = [
+ {id:"2026.11.20-safe-sla",version:"2026.11.20.2",title:"Leitura e acompanhamento sem conflitos",date:"20 de novembro de 2026",items:[
+ {type:"bugfix",text:"Dashboard distingue pedidos por ler e leads sem primeira ação, excluindo cliques anónimos sem contacto."},
+ {type:"security",text:"Verificação de SLA deixa de reatribuir contactos, enviar emails de transferência ou criar penalizações automaticamente."},
+ {type:"feature",text:"Registar contacto atualiza a página e a contagem de acompanhamento. Marcar como lida continua a controlar apenas a leitura."}
+ ]},
  {id:"2026.11.20-buyer-matching",version:"2026.11.20",title:"Compradores, correspondências e comunicação HousePro",date:"20 de novembro de 2026",items:[
   {type:"feature",text:"Ficha de comprador com orçamento, zonas, prazo, financiamento, venda/permuta e leitura por fotografia com revisão."},
   {type:"feature",text:"Correspondências entre compradores e imóveis da rede, com flexibilidade de 30–40%, estado comercial e alertas aos consultores responsáveis."},

@@ -26,12 +26,19 @@ export async function buildReportData(propertyId: string, from: string, until: s
   const { property:p, agent:a } = await reportContext(propertyId);
   const db = createAdminClient();
   const blocks: ReportData["blocks"] = [];
+  const {data:documentActivity,error:documentError}=await db.from("property_activity_intakes")
+    .select("kind,occurred_at,owner_feedback,share_owner,amount")
+    .eq("property_id",propertyId).gte("occurred_at",from).lt("occurred_at",until)
+    .order("occurred_at").limit(201);
+  if(documentError || (documentActivity?.length??0)>200)throw new Error("Não foi possível obter as fichas de visita e proposta.");
+  const ownerFeedback=(kind:string)=>(documentActivity??[]).filter(item=>item.kind===kind&&item.share_owner&&item.owner_feedback)
+    .map(item=>`Feedback revisto de ${new Date(item.occurred_at).toLocaleDateString("pt-PT",{timeZone:"Europe/Lisbon"})}: ${item.owner_feedback}`);
   if (sections.includes("visits")) {
     const escapedReference = String(p.reference).replace(/\\/g,"\\\\").replace(/"/g,'\\"');
     const base = () => db.from("visits").select("id",{count:"exact",head:true})
       .or(`property_id.eq.${propertyId},and(property_id.is.null,property_ref.eq."${escapedReference}")`).gte("at",from).lt("at",until);
     const [done,scheduled] = await Promise.all([count(base().eq("status","feita")),count(base().eq("status","agendada"))]);
-    blocks.push({key:"visits",title:"Visitas no período",lines:[`${done} realizadas · ${scheduled} ainda registadas como agendadas neste período.`]});
+    blocks.push({key:"visits",title:"Visitas no período",lines:[`${done} realizadas · ${scheduled} ainda registadas como agendadas neste período.`,...ownerFeedback("visit")]});
   }
   if (sections.includes("leads")) {
     const base = () => db.from("leads").select("id",{count:"exact",head:true}).eq("property_id",propertyId).gte("created_at",from).lt("created_at",until);
@@ -55,7 +62,7 @@ export async function buildReportData(propertyId: string, from: string, until: s
     const ids = (deals??[]).map(d=>d.id);
     let transitions: {to_stage:string}[] = [];
     if (ids.length) {
-      const {data,error:eventsError}=await db.from("deal_events").select("to_stage").in("deal_id",ids).gte("created_at",from).lt("created_at",until).limit(501);
+      const {data,error:eventsError}=await db.from("deal_events").select("to_stage").eq("track","transacional").in("deal_id",ids).gte("created_at",from).lt("created_at",until).limit(501);
       if(eventsError || (data?.length??0)>500) throw new Error("Não foi possível obter as fases de negociação.");
       transitions = data??[];
     }
@@ -63,6 +70,8 @@ export async function buildReportData(propertyId: string, from: string, until: s
     const latest=deals?.[0];
     blocks.push({key:"proposals",title:"Propostas e negociação",lines:[
       `${newDeals.length} novos processos de proposta registados no período.`,
+      ...(documentActivity??[]).filter(item=>item.kind==="proposal").map(item=>`Proposta documentada de ${new Date(item.occurred_at).toLocaleDateString("pt-PT",{timeZone:"Europe/Lisbon"})}: ${euro(Number(item.amount))}.`),
+      ...ownerFeedback("proposal"),
       ...DEAL_STEPS.map(step=>({label:step.label,count:transitions.filter(t=>t.to_stage===step.stage).length})).filter(v=>v.count).map(v=>`${v.label}: ${v.count} movimentos no período.`),
       latest ? `Estado do processo mais recente: ${DEAL_STEPS.find(s=>s.stage===latest.stage)?.label??"Cancelado"}.` : "Sem processos de proposta registados.",
     ]});

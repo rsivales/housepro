@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { REPORT_OPENINGS, REPORT_NEXT_STEPS } from "@/lib/owner-reports/messages";
 import { DEFAULT_REPORT, REPORT_SECTIONS, REPORT_TEMPLATES, type ReportSettings } from "@/lib/owner-reports/model";
 
 type Property={id:string;reference:string;title:string;owner_name:string|null;owner_email:string|null};
@@ -89,7 +90,19 @@ export function OwnerReportsPanel() {
               <input type="checkbox" checked={settings.sections.includes(key as keyof typeof REPORT_SECTIONS)} onChange={e=>patch({sections:e.target.checked?[...settings.sections,key as keyof typeof REPORT_SECTIONS]:settings.sections.filter(s=>s!==key)})}/>{label}
             </label>)}</div>
           </fieldset>
+          <label className="block text-sm">Sugestão de abertura
+            <select className={field} value="" onChange={e=>patch({introduction:e.target.value})}>
+              <option value="">Escolher mensagem pronta</option>
+              {REPORT_OPENINGS.map(item=><option key={item.label} value={item.text}>{item.label}</option>)}
+            </select>
+          </label>
           <label className="block text-sm">Mensagem de abertura personalizada<textarea className={field} rows={3} maxLength={2000} value={settings.introduction} onChange={e=>patch({introduction:e.target.value})}/></label>
+          <label className="block text-sm">Sugestão de próximos passos
+            <select className={field} value="" onChange={e=>patch({nextSteps:e.target.value})}>
+              <option value="">Escolher sugestão pronta</option>
+              {REPORT_NEXT_STEPS.map(item=><option key={item.label} value={item.text}>{item.label}</option>)}
+            </select>
+          </label>
           <label className="block text-sm">Próximos passos a comunicar<textarea className={field} rows={3} maxLength={2000} value={settings.nextSteps} onChange={e=>patch({nextSteps:e.target.value})}/></label>
           {config&&<label className="flex gap-2 text-sm"><input type="checkbox" checked={settings.enabled} onChange={e=>patch({enabled:e.target.checked})}/>Envio automático ativo</label>}
           <div className="flex flex-wrap gap-3">

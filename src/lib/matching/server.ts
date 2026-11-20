@@ -68,7 +68,9 @@ export async function runMatching(scope: MatchScope = {}) {
  }catch { failure="matching_failed";console.error("[matching] execution failed; queued deliveries preserved");return {status:"error"}; }
  finally {await db.rpc("match_worker_access",{p_token:token,p_release:true,p_error:failure});}
 }
-async function deliverMatches(db: ReturnType<typeof createAdminClient>) {
+export async function deliverMatches(db: ReturnType<typeof createAdminClient>) {
+ const worker=await workerConfig();
+ if(!worker.enabled)return {accepted:0,pending:true};
  const config=await emailDeliveryCredentials();if(!config.enabled || !config.apiKey || !config.sender)return {accepted:0,pending:true};
  const retryBefore=new Date(Date.now()-10*60*1000).toISOString();
  const {data:jobs,error}=await db.from("match_email_outbox").select("*").eq("state","pending").or(`last_attempt_at.is.null,last_attempt_at.lt.${retryBefore}`).order("created_at").limit(8);

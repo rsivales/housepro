@@ -1,3 +1,4 @@
+import { houseproEmail } from "@/lib/email-template";
 import { emailDeliveryCredentials } from "@/lib/email-delivery";
 import type { Lead } from "@/lib/data/leads";
 
@@ -81,6 +82,7 @@ export async function notifyLead(
           to,
           subject: `${title}${ctx.propertyRef ? ` · ${ctx.propertyRef}` : ""}`,
           text,
+          html: houseproEmail(title, text),
         }),
         signal: AbortSignal.timeout(8000),
       });
@@ -136,7 +138,7 @@ export async function notifyGeneric(opts: {
           authorization: `Bearer ${resendKey}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ from, reply_to: delivery.notifyEmail, to, subject: opts.subject, text: opts.text }),
+        body: JSON.stringify({ from, reply_to: delivery.notifyEmail, to, subject: opts.subject, text: opts.text, html: houseproEmail(opts.subject, opts.text) }),
         signal: AbortSignal.timeout(8000),
       });
       if (res.ok) channels.push("email");

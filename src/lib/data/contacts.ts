@@ -1,3 +1,4 @@
+import type { BuyerProfile } from "@/lib/matching/profile";
 import { DEMO_DATA_ENABLED } from "@/lib/demo-data";
 /**
  * Contactos — a entidade CENTRAL de pessoa no Helix, partilhada por todos os
@@ -38,6 +39,7 @@ export interface Contact {
   agencyId?: string;
   zone?: string;
   budget?: string;
+  buyerProfile?: BuyerProfile;
   language?: string;
   tags?: string[];
   /** Origem (site, facebook, referência, importado…). */

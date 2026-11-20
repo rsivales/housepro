@@ -1,3 +1,4 @@
+import { MatchesBoard } from "@/components/matching/matches-board";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -66,7 +67,7 @@ export default async function EditarImovelPage({ params }: { params: Promise<{ i
   });
 
   return (
-    <PropertyForm
+    <div><PropertyForm
       mode="edit"
       propertyId={id}
       initial={draftFromProperty(property)}
@@ -75,6 +76,6 @@ export default async function EditarImovelPage({ params }: { params: Promise<{ i
       initialPlans={property.plans ?? []}
       audit={audit}
       demo={session.demo}
-    />
+    /><div className="mx-auto max-w-5xl px-4 pb-8"><MatchesBoard propertyId={id} agentId={a.id} readOnly={Boolean(session.viewingAs||session.demo)}/></div></div>
   );
 }

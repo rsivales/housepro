@@ -1436,6 +1436,7 @@ export function PropertyForm({
         {/* Etiquetas, encargos, proprietário e flags */}
         <Card title="Etiquetas, encargos e proprietário">
           <div className="mb-4 max-w-sm">
+            <label className="mb-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(d.acceptsExchange)} onChange={e => patch({acceptsExchange:e.target.checked})}/> Proprietário recetivo a permuta · aparece automaticamente no anúncio</label>
             <Field label="Estado comercial / etiqueta" hint={autoTagsFromStatus(d.status as PropertyStatus).length ? "Gera etiqueta automática no site." : "Etiqueta pública do imóvel."}>
               <select aria-label="Estado comercial / etiqueta" value={d.status} onChange={(e) => patch({ status: e.target.value })} className={box}>
                 <option value="">— (sem etiqueta)</option>
@@ -1912,6 +1913,7 @@ function draftToPatch(d: ImovelDraft): Record<string, unknown> {
     legacyReference: d.legacyReference.trim() ? d.legacyReference.trim() : null,
     operation: operationOf(d.businessType),
     businessType: d.businessType,
+    acceptsExchange: Boolean(d.acceptsExchange),
     type: d.type,
     typology: d.typology,
     price: d.price,

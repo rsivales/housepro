@@ -1,3 +1,7 @@
+export const maxDuration = 120;
+import { after } from "next/server";
+import { validateBuyerProfile } from "@/lib/matching/profile";
+import { runMatching } from "@/lib/matching/server";
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
@@ -9,7 +13,7 @@ import type { ContactType } from "@/lib/data/contacts";
  *  direção/admin). POST { id, patch: { nome, telefone, tipo, nif, ... } } */
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Sessão inválida." }, { status: 401 });
+  if (!session || session.viewingAs || session.demo) return NextResponse.json({ error: "Sessão inválida." }, { status: 401 });
 
   let body: { id?: string; patch?: Record<string, unknown> };
   try {
@@ -27,7 +31,10 @@ export async function POST(request: Request) {
   }
 
   const p = body.patch;
+  let buyerProfile;
+  if ("buyerProfile" in p) { try { buyerProfile = validateBuyerProfile(p.buyerProfile); } catch(e) { return NextResponse.json({error:e instanceof Error ? e.message : "Qualificação inválida."},{status:422}); } }
   const res = await updateContact(id, {
+    ...(buyerProfile ? {buyerProfile} : {}),
     ...(typeof p.name === "string" ? { name: p.name } : {}),
     ...("phone" in p ? { phone: (p.phone as string) || null } : {}),
     ...("email" in p ? { email: (p.email as string) || null } : {}),
@@ -40,5 +47,6 @@ export async function POST(request: Request) {
     ...("address" in p ? { address: (p.address as string) || null } : {}),
   });
   if ("error" in res) return NextResponse.json(res, { status: 400 });
+  after(async () => { await runMatching({ contactId: id }); });
   return NextResponse.json(res);
 }

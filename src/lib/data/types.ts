@@ -142,6 +142,7 @@ export interface Property {
   /** Tipo de negócio detalhado (venda, permuta, trespasse, arrendamento ao ano,
    *  curta duração, timesharing, cedência…). `operation` é a versão coarse. */
   businessType?: string;
+  acceptsExchange?: boolean;
   type: PropertyType;
   /** Typology: T0–T5, or null for land. */
   typology: string | null;

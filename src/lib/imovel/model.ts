@@ -115,6 +115,7 @@ export interface ImovelDraft {
   /** Tipo de negócio detalhado (venda, permuta, trespasse, arrendamento ao ano,
    *  curta duração, timesharing, cedência de posição…). */
   businessType: string;
+  acceptsExchange?: boolean;
   type: string; // Moradia, Apartamento, Terreno, Loja, Escritório
   typology: string; // T0..T5
   price: number;
@@ -361,6 +362,7 @@ export function blankImovel(id: string): ImovelDraft {
     legacyReference: "",
     operation: "venda",
     businessType: "venda",
+    acceptsExchange: false,
     type: "Apartamento",
     typology: "T2",
     price: 0,
@@ -447,6 +449,7 @@ export function draftFromProperty(p: Property): ImovelDraft {
     legacyReference: p.legacyReference ?? "",
     operation: p.operation,
     businessType: p.businessType ?? p.operation,
+    acceptsExchange: p.acceptsExchange ?? false,
     type: p.type,
     typology: p.typology ?? "",
     price: p.price,

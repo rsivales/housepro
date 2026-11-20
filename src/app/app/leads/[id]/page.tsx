@@ -1,3 +1,4 @@
+import { LeadQualification } from "@/components/matching/lead-qualification";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/supabase/auth";
@@ -48,6 +49,7 @@ export default async function LeadDetail({ params }: { params: Promise<{id:strin
       {lead.property_id && <Link className="mt-4 block text-sm text-primary" href={`/imovel/${lead.property_id}`}>{lead.property?.reference} · {lead.property?.title}</Link>}
       {lead.contact_id && <Link className="mt-3 block text-sm text-primary" href={`/app/contactos/${lead.contact_id}`}>Abrir ficha do contacto →</Link>}
     </section>
+    {!lead.contact_id && <LeadQualification id={id} name={lead.name} phone={phone ?? undefined} email={email ?? undefined} zone={lead.zone ?? undefined} source={lead.source} readOnly={Boolean(session.viewingAs || session.demo)}/> }
     <section className="mt-4 rounded-2xl border bg-card p-5"><h2 className="font-semibold">Pedido e relatório</h2><p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">{lead.message || "Sem mensagem adicional."}</p></section>
     <section className="mt-4 rounded-2xl border bg-card p-5">
       <h2 className="font-semibold">Perguntas e respostas</h2>

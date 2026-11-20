@@ -47,6 +47,9 @@ export interface Lead {
   /** Agente que já fez o contacto (para o parceiro não repetir). */
   contactedBy?: string;
   contactedAt?: string;
+  followupState?: string;
+  lastFollowupAt?: string;
+  nextFollowupAt?: string;
   name: string;
   /** Telefone ou email. */
   contact: string;

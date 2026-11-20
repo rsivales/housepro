@@ -1,0 +1,5 @@
+import {expect,it,vi} from 'vitest';
+const m=vi.hoisted(()=>({session:vi.fn(),list:vi.fn()}));vi.mock('@/lib/supabase/auth',()=>({getSession:m.session}));vi.mock('@/lib/db/repo',()=>({listLeadsByAgent:m.list}));
+import {POST} from './route';
+it('only diagnoses actual contacts; opening a page cannot transfer a lead or send email',async()=>{m.session.mockResolvedValue({agent:{id:'actual'}});m.list.mockResolvedValue([{id:'real',name:'Ana',contact:'912345678',status:'novo',createdAt:'2020-01-01'},{id:'click',contact:'via WhatsApp',status:'novo',createdAt:'2020-01-01'},{id:'done',contact:'912345678',status:'contactado',contactedAt:'2020-01-02',createdAt:'2020-01-01'}]);expect(await (await POST()).json()).toEqual({ok:true,outcomes:[{leadId:'real',name:'Ana',outcome:'attention'}],policy:'read_only_review'});});
+it('does not run in supervision',async()=>{m.list.mockClear();m.session.mockResolvedValue({viewingAs:true,agent:{id:'actual'}});expect((await POST()).status).toBe(403);expect(m.list).not.toHaveBeenCalled();});

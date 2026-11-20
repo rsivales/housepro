@@ -12,9 +12,9 @@ const base: MaisValiasInput = {
 describe("motor fiscal — mais-valias", () => {
   it("venda com ganho: aquisição corrigida, base 50% e versão", () => {
     const r = calcularMaisValias(base);
-    // 180000 * 1.03 = 185400 ; realização 320000 ; despesas 20000
-    expect(r.aquisicaoCorrigida).toBe(185400);
-    expect(r.maisValiaBruta).toBe(320000 - 185400 - 20000);
+    // Portaria 457/2026/1: 2016 → 1,22.
+    expect(r.aquisicaoCorrigida).toBe(219600);
+    expect(r.maisValiaBruta).toBe(320000 - 219600 - 20000);
     expect(r.baseTributavel).toBe(r.maisValiaBruta * 0.5);
     expect(r.menosValia).toBe(false);
     expect(r.engineVersion).toBe(ENGINE_VERSION);
@@ -83,5 +83,19 @@ describe("motor fiscal — mais-valias", () => {
   it("arredonda a 2 casas", () => {
     const r = calcularMaisValias({ ...base, valorAquisicao: 180000.333 });
     expect(Number.isInteger(r.aquisicaoCorrigida * 100)).toBe(true);
+  });
+  it("usa a tabela de 2025 apenas para venda em 2025",()=>{
+    expect(coeficienteFor(2016,2025,[])).toBe(1.19);
+    expect(coeficienteFor(2016,2026,[])).toBe(1.22);
+  });
+  it("calcula a variação de coleta com quociente conjugal, sem aplicar taxa marginal simples",()=>{
+    const single=calcularMaisValias({...base,rendimentoColetavel:30000});
+    const joint=calcularMaisValias({...base,rendimentoColetavel:30000,rendimentoConjuge:30000,tributacaoConjunta:true});
+    expect(single.impostoEstimado).not.toBeNull();expect(joint.impostoEstimado).not.toBeNull();
+    expect(joint.impostoEstimado).toBeLessThan(single.impostoEstimado!);
+  });
+  it("não estima imposto com coeficiente desconhecido ou condição especial",()=>{
+    expect(calcularMaisValias({...base,anoVenda:2027,rendimentoColetavel:30000}).impostoEstimado).toBeNull();
+    expect(calcularMaisValias({...base,rendimentoColetavel:30000,apoioPublicoRelevante:true}).impostoEstimado).toBeNull();
   });
 });

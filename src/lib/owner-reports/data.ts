@@ -9,7 +9,7 @@ const euro = (amount: number) => new Intl.NumberFormat("pt-PT",{style:"currency"
 export async function reportContext(propertyId: string) {
   const db = createAdminClient();
   const { data: property, error } = await db.from("properties").select(
-    "id,reference,title,agent_id,owner_name,owner_email,price,status,approval,listing_state,off_market,listed_at,created_at,video_url,tour_url,has_placa",
+    "id,reference,title,agent_id,owner_name,owner_email,price,status,approval,listing_state,off_market,listed_at,created_at,video_url,tour_url,has_placa,is_signature",
   ).eq("id",propertyId).maybeSingle();
   if (error || !property) throw new Error("Imóvel indisponível.");
   const { data: agent, error: agentError } = await db.from("profiles")
@@ -119,7 +119,7 @@ export async function buildReportData(propertyId: string, from: string, until: s
     ]});
   }
   return { property:p, agent:a, data:{
-    propertyId,reference:p.reference,title:p.title,ownerName:p.owner_name??"",
+    propertyId,reference:p.reference,title:p.title,ownerName:p.owner_name??"",signature:!!p.is_signature,
     agentName:a.name,agentEmail:a.email??"",agentPhoto:a.photo_url??undefined,
     agentPhone:a.whatsapp??undefined,agentTitle:a.public_title??undefined,
     activityCount,from,until,blocks,

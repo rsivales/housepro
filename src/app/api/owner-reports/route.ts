@@ -25,7 +25,17 @@ export async function GET() {
     db.from("owner_report_outbox").select("id,property_id,kind,state,period_end,accepted_at,error_code").in("property_id",ids).order("created_at",{ascending:false}).limit(100),
   ]):[{data:[],error:null},{data:[],error:null}];
   if(settingsError||historyError)return NextResponse.json({error:"A configuração dos relatórios está indisponível."},{status:503});
-  return NextResponse.json({properties:properties??[],settings,history,agentEmail:s.agent.email,agentId:s.agent.id},{headers:{"Cache-Control":"private, no-store"}});
+  const missing=(properties??[]).some(p=>!settings?.some(c=>c.property_id===p.id&&c.agent_id===s.agent.id));
+  let graceUntil:string|null=null;
+  if(missing){
+    const {error:startError}=await db.from("owner_report_setup_grace").upsert({agent_id:s.agent.id},{onConflict:"agent_id",ignoreDuplicates:true});
+    const {data:grace,error:graceError}=await db.from("owner_report_setup_grace").select("first_seen_at").eq("agent_id",s.agent.id).single();
+    if(startError||graceError||!grace)return NextResponse.json({error:"Não foi possível iniciar o prazo de configuração."},{status:503});
+    graceUntil=new Date(Date.parse(grace.first_seen_at)+5*86400000).toISOString();
+  }
+  const {data:profile}=await db.from("profiles").select("photo_url").eq("id",s.agent.id).maybeSingle();
+  return NextResponse.json({properties:properties??[],settings,history,agentEmail:s.agent.email,agentId:s.agent.id,
+    agentPhotoAvailable:Boolean(profile?.photo_url),graceUntil},{headers:{"Cache-Control":"private, no-store"}});
 }
 export async function POST(request:Request) {
   const s=await session();
@@ -42,7 +52,9 @@ export async function POST(request:Request) {
     const from=config?.period_from??initialReportStart(settings,property.created_at,new Date());
     const report=await buildReportData(body.propertyId,from,until,settings.sections);
     const recipients=await reportRecipients(agent.id,agent.agency_id);
-    return NextResponse.json({...renderOwnerReport(report.data,settings,config?.sequence??0),data:report.data,to:property.owner_email,replyTo:agent.email,...recipients},{headers:{"Cache-Control":"private, no-store"}});
+    return NextResponse.json({...renderOwnerReport(report.data,settings,config?.sequence??0),data:report.data,
+      willSend:report.data.activityCount>0,to:property.owner_email,additionalEmail:settings.additionalEmail,
+      replyTo:agent.email,...recipients},{headers:{"Cache-Control":"private, no-store"}});
   }catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Não foi possível criar a pré-visualização."},{status:400});}
 }
 export async function PUT(request:Request) {
@@ -61,7 +73,7 @@ export async function PUT(request:Request) {
     if((!previous || previous.agent_id!==s.agent.id) && !settings.enabled)throw new Error("A primeira configuração deve ativar os relatórios.");
     if((previous?.revision??null)!==(body.revision??null))return NextResponse.json({error:"A configuração mudou. Atualize a página."},{status:409});
     const now=new Date();
-    const next=previous && previous.settings.frequency===settings.frequency && previous.settings.day===settings.day && previous.settings.enabled===settings.enabled?
+    const next=previous && validateSettings(previous.settings).frequency===settings.frequency && previous.settings.enabled===settings.enabled?
       previous.next_at:nextReportDate(settings.frequency,settings.day,now).toISOString();
     const {data:saved,error:saveError}=await db.rpc("save_owner_report_settings",{
       p_property:property.id,p_agent:agent.id,p_expected:previous?.revision??null,p_settings:settings,

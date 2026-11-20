@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_REPORT, nextReportDate, prepareOwnerMessage, renderOwnerReport, validateSettings, type ReportData } from "./model";
+import { DEFAULT_REPORT, nextReportDate, nextQuarterlyDate, prepareOwnerMessage, renderOwnerReport, validateSettings, type ReportData } from "./model";
 const data:ReportData={
  propertyId:"p",reference:"HP-1",title:'Casa <script>alert(1)</script>',ownerName:"Ana & João",
- agentName:"Manuela",agentEmail:"agent@example.test",agentPhoto:"https://example.test/photo.png",
+ agentName:"Manuela",agentEmail:"agent@example.test",agentPhoto:"https://example.test/photo.png",activityCount:4,
  from:"2026-10-01T00:00:00Z",until:"2026-11-01T00:00:00Z",
  blocks:[{key:"visits",title:"Visitas",lines:["3 visitas"]},{key:"proposals",title:"Propostas",lines:["1 proposta"]}],
 };
@@ -15,11 +15,10 @@ describe("owner report",()=>{
   expect(report.text).not.toContain("1 proposta");
   expect(report.html).toContain("mailto:agent@example.test");
  });
- it("rotates through all three layouts and includes the agent photo only in the profile template",()=>{
+ it("rotates through all three branded layouts while showing the agent photo in every version",()=>{
   const reports=[0,1,2,3].map(i=>renderOwnerReport(data,DEFAULT_REPORT,i));
   expect(new Set(reports.slice(0,3).map(r=>r.html)).size).toBe(3);
-  expect(reports[0].html).not.toContain(data.agentPhoto);
-  expect(reports[2].html).toContain(data.agentPhoto);
+  for(const report of reports){expect(report.html).toContain(data.agentPhoto);expect(report.html).toContain("/brand/housepro-red.png");expect(report.html).toContain("/brand/watermark-bird.png");}
   expect(reports[3].html).toBe(reports[0].html);
  });
  it("keeps a selected layout when rotation is disabled",()=>{
@@ -32,9 +31,17 @@ describe("owner report",()=>{
   expect(()=>validateSettings({...DEFAULT_REPORT,day:31})).toThrow();
  });
  it("keeps monthly dates valid across short months and year changes",()=>{
-  expect(nextReportDate("monthly",28,new Date("2026-12-29T10:00:00Z")).toISOString()).toBe("2027-01-28T10:00:00.000Z");
-  expect(nextReportDate("monthly",28,new Date("2027-02-01T10:00:00Z")).toISOString()).toBe("2027-02-28T10:00:00.000Z");
-  expect(nextReportDate("weekly",1,new Date("2026-12-29T10:00:00Z")).toISOString()).toBe("2027-01-05T10:00:00.000Z");
+  expect(nextReportDate(30,1,new Date("2026-12-29T10:00:00Z")).toISOString()).toBe("2027-01-28T10:00:00.000Z");
+  expect(nextReportDate(45,1,new Date("2027-02-01T10:00:00Z")).toISOString()).toBe("2027-03-18T10:00:00.000Z");
+  expect(nextReportDate(15,1,new Date("2026-12-29T10:00:00Z")).toISOString()).toBe("2027-01-13T10:00:00.000Z");
+  expect(nextReportDate(60,1,new Date("2026-12-29T10:00:00Z")).toISOString()).toBe("2027-02-27T10:00:00.000Z");
+  expect(nextQuarterlyDate(new Date("2026-11-20T10:00:00Z")).toISOString()).toBe("2027-02-20T10:00:00.000Z");
+ });
+ it("keeps legacy settings readable and validates the chosen treatment and additional recipient",()=>{
+  expect(validateSettings({...DEFAULT_REPORT,frequency:"monthly"}).frequency).toBe(30);
+  expect(renderOwnerReport(data,{...DEFAULT_REPORT,salutation:"Sra."}).text).toContain("Exma. Sra. Ana & João,");
+  expect(()=>validateSettings({...DEFAULT_REPORT,salutation:"Outro",otherSalutation:"<script>"})).toThrow();
+  expect(()=>validateSettings({...DEFAULT_REPORT,additionalEmail:"invalid"})).toThrow();
  });
 });
 
@@ -47,5 +54,6 @@ it("keeps all internal copies hidden and sends owner replies to the property con
  expect(mail.html).not.toContain("manager@example.test");
  expect(mail.text).not.toContain("manager@example.test");
  expect(mail.from).toBe("Manuela · HousePro <reports@housepro.pt>");
+ expect(prepareOwnerMessage(data,{...DEFAULT_REPORT,additionalEmail:"family@example.test"},0,"reports@housepro.pt","owner@example.test",["agent@example.test"]).cc).toEqual(["family@example.test"]);
  expect(prepareOwnerMessage(data,{...DEFAULT_REPORT,format:"text"},0,"reports@housepro.pt","owner@example.test",[]).html).toBeUndefined();
 });

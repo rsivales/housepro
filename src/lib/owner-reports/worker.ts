@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { emailDeliveryCredentials } from "@/lib/email-delivery";
 import { houseproEmail } from "@/lib/email-template";
 import { buildReportData, reportContext, reportRecipients, validEmail } from "./data";
-import { nextReportDate, prepareOwnerMessage, validateSettings } from "./model";
+import { nextReportDate, nextQuarterlyDate, prepareOwnerMessage, validateSettings } from "./model";
 
 export async function ownerReportWorkerSecret() {
   const {data,error}=await createAdminClient().rpc("owner_report_worker_access");
@@ -16,7 +16,7 @@ export function equalSecret(a:string,b:string) {
   return x.length===y.length && timingSafeEqual(x,y);
 }
 interface MailPayload {
-  from: string; to: string[]; bcc?: string[]; reply_to: string;
+  from: string; to: string[]; cc?:string[]; bcc?: string[]; reply_to: string;
   subject: string; text: string; html?: string;
   ownerEmail: string; agentEmail: string; managers: string[];
 }
@@ -30,42 +30,58 @@ export async function runOwnerReports() {
     const delivery=await emailDeliveryCredentials();
     if(!delivery.enabled || !delivery.apiKey || !delivery.sender)return {status:"disabled"};
     const now=new Date();
-    const {data:due,error}=await db.from("owner_report_settings").select("*").eq("settings->>enabled","true").lte("next_at",now.toISOString()).order("next_at").limit(10);
-    if(error)throw new Error("queue_read_failed");
-    for(const row of due??[]) {
+    const [{data:due,error},{data:quarterlyDue,error:quarterlyError}]=await Promise.all([
+      db.from("owner_report_settings").select("*").eq("settings->>enabled","true").lte("next_at",now.toISOString()).order("next_at").limit(10),
+      db.from("owner_report_settings").select("*").eq("settings->>enabled","true").eq("settings->>quarterly","true").lte("quarterly_next_at",now.toISOString()).order("quarterly_next_at").limit(10),
+    ]);
+    if(error||quarterlyError)throw new Error("queue_read_failed");
+    for(const {row,quarterly} of [...(due??[]).map(row=>({row,quarterly:false})),...(quarterlyDue??[]).map(row=>({row,quarterly:true}))]) {
       try {
         const settings=validateSettings(row.settings);
         if(!settings.enabled)continue;
-        const context=await buildReportData(row.property_id,row.period_from,now.toISOString(),settings.sections);
-        const {property,agent,data}=context;
+        const periodFrom=quarterly?row.quarterly_period_from:row.period_from;
+        if(!periodFrom)throw new Error("missing_period");
+        const next=quarterly?nextQuarterlyDate(now):nextReportDate(settings.frequency,settings.day,now);
+        const nextField=quarterly?"quarterly_next_at":"next_at";
+        const dueAt=quarterly?row.quarterly_next_at:row.next_at;
+        const context=await buildReportData(row.property_id,periodFrom,now.toISOString(),settings.sections);
+        const {property,agent}=context;
+        const data={...context.data,quarterly};
         if(property.agent_id!==row.agent_id || !validEmail(property.owner_email) || !validEmail(agent.email))throw new Error("recipient_configuration");
         if(["vendido","arrendado"].includes(property.status??"")){
-          await db.from("owner_report_settings").update({next_at:nextReportDate(settings.frequency,settings.day,now).toISOString()})
+          await db.from("owner_report_settings").update({[nextField]:next.toISOString()})
             .eq("property_id",row.property_id).eq("revision",row.revision);
+          continue;
+        }
+        if(data.activityCount===0){
+          // Keep period_from untouched: any later activity will be included at the next deadline.
+          const {error:skipError}=await db.from("owner_report_settings").update({[nextField]:next.toISOString()})
+            .eq("property_id",row.property_id).eq("revision",row.revision).eq(nextField,dueAt);
+          if(skipError)throw new Error("empty_period_update_failed");
           continue;
         }
         const recipients=await reportRecipients(agent.id,agent.agency_id);
         const payload:MailPayload={
-          ...prepareOwnerMessage(data,settings,row.sequence,delivery.sender,property.owner_email,recipients.bcc),
+          ...prepareOwnerMessage(data,settings,quarterly?row.quarterly_sequence:row.sequence,delivery.sender,property.owner_email,recipients.bcc),
           ownerEmail:property.owner_email,agentEmail:agent.email,managers:recipients.bcc,
         };
         const summary=[`Imóvel: ${property.reference} · ${property.title}`,`Consultor: ${agent.name}`,`Período: ${data.from} a ${data.until}`,
           ...data.blocks.filter(b=>settings.sections.includes(b.key)).map(b=>`${b.title}\n${b.lines.join("\n")}`),
           "Resumo interno da atividade comunicada ao proprietário."].join("\n\n");
         const broker:MailPayload|null=recipients.broker && recipients.broker.toLowerCase()!==property.owner_email.toLowerCase()?{
-          from:payload.from,to:[recipients.broker],reply_to:agent.email,subject:`Atividade comunicada · ${property.reference}`,
+          from:payload.from,to:[recipients.broker],reply_to:agent.email,subject:`${quarterly?"Balanço trimestral":"Atividade comunicada"} · ${property.reference}`,
           text:summary,html:houseproEmail(`Atividade · ${property.reference}`,summary),
           ownerEmail:property.owner_email,agentEmail:agent.email,managers:recipients.bcc,
         }:null;
-        const {data:saved,error:queueError}=await db.rpc("queue_owner_report",{
-          p_property:row.property_id,p_revision:row.revision,p_due:row.next_at,p_until:now.toISOString(),
-          p_next:nextReportDate(settings.frequency,settings.day,now).toISOString(),p_owner:payload,p_broker:broker,
+        const {data:saved,error:queueError}=await db.rpc(quarterly?"queue_owner_report_quarterly":"queue_owner_report",{
+          p_property:row.property_id,p_revision:row.revision,p_due:dueAt,p_until:now.toISOString(),
+          p_next:next.toISOString(),p_owner:payload,p_broker:broker,
         });
         if(queueError)throw new Error("queue_write_failed");
         if(saved)queued++;
       }catch{
         errors++;
-        await db.from("owner_report_settings").update({next_at:new Date(Date.now()+3600000).toISOString()})
+        await db.from("owner_report_settings").update({[quarterly?"quarterly_next_at":"next_at"]:new Date(Date.now()+3600000).toISOString()})
           .eq("property_id",row.property_id).eq("revision",row.revision);
       }
     }
@@ -76,7 +92,7 @@ export async function runOwnerReports() {
     for(const job of jobs??[]) {
       try {
         const {property,agent}=await reportContext(job.property_id);
-        const {data:setting,error:settingError}=await db.from("owner_report_settings").select("revision,settings,period_from").eq("property_id",job.property_id).maybeSingle();
+        const {data:setting,error:settingError}=await db.from("owner_report_settings").select("revision,settings,period_from,quarterly_period_from").eq("property_id",job.property_id).maybeSingle();
         if(settingError)throw new Error("settings_read_failed");
         const payload=job.payload as MailPayload;
         const current=await reportRecipients(agent.id,agent.agency_id);
@@ -84,21 +100,24 @@ export async function runOwnerReports() {
         const cancelled=!setting?.settings.enabled || setting.revision!==job.revision ||
           property.agent_id!==job.agent_id || property.owner_email!==payload.ownerEmail ||
           agent.email!==payload.agentEmail || managerList!==[...payload.managers].sort().join("|") ||
-          (job.kind==="broker" && payload.to[0]!==current.broker) ||
+          (job.kind.startsWith("broker") && payload.to[0]!==current.broker) ||
           ["vendido","arrendado"].includes(property.status??"");
         if(cancelled) {
           await db.from("owner_report_outbox").update({state:"cancelled"}).eq("id",job.id);
-          if(job.kind==="owner" && setting && setting.revision===job.revision && setting.settings.enabled &&
+          if(job.kind.startsWith("owner") && setting && setting.revision===job.revision && setting.settings.enabled &&
             property.agent_id===job.agent_id && !["vendido","arrendado"].includes(property.status??"")){
+            const quarterly=job.kind.endsWith("quarterly");
+            const fromField=quarterly?"quarterly_period_from":"period_from";
+            const nextField=quarterly?"quarterly_next_at":"next_at";
             await db.from("owner_report_settings").update({
-              period_from:new Date(Math.min(Date.parse(setting.period_from),Date.parse(job.period_start))).toISOString(),
-              next_at:new Date(Date.now()+600000).toISOString(),
+              [fromField]:new Date(Math.min(Date.parse(setting[fromField]??job.period_start),Date.parse(job.period_start))).toISOString(),
+              [nextField]:new Date(Date.now()+600000).toISOString(),
             }).eq("property_id",job.property_id).eq("revision",job.revision);
           }
           continue;
         }
-        if(job.kind==="broker"){
-          const {data:ownerJob}=await db.from("owner_report_outbox").select("state").eq("property_id",job.property_id).eq("period_end",job.period_end).eq("kind","owner").maybeSingle();
+        if(job.kind.startsWith("broker")){
+          const {data:ownerJob}=await db.from("owner_report_outbox").select("state").eq("property_id",job.property_id).eq("period_end",job.period_end).eq("kind",job.kind==="broker_quarterly"?"owner_quarterly":"owner").maybeSingle();
           if(ownerJob?.state!=="accepted")continue;
         }
         if(job.attempts>=5 || (job.first_attempt_at && Date.now()-Date.parse(job.first_attempt_at)>23*3600000)){

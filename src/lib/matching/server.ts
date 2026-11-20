@@ -34,10 +34,10 @@ export async function runMatching(scope: MatchScope = {}) {
   const proposals=new Set(deals.filter(d=>["proposta_enviada","proposta_aceite"].includes(String(d.stage))).map(d=>d.property_id));
   const reserved=new Set(deals.filter(d=>d.stage==="reserva").map(d=>d.property_id));
   // Includes contacts whose type/owner changed: invalidate scoped existing rows as well.
-  let invalidation=db.from("buyer_matches").update({active:false});
+  let invalidation=db.from("buyer_matches").update({active:false}).eq("active",true);
   if(scope.contactId)invalidation=invalidation.eq("contact_id",scope.contactId);
   if(scope.propertyId)invalidation=invalidation.eq("property_id",scope.propertyId);
-  const {error:invalidateError}=await invalidation; if(invalidateError)throw new Error("matching_write_failed");
+  const {error:invalidateError}=await invalidation; if(invalidateError)throw new Error("matching_invalidation_failed");
   let matches=0;
   for(const c of contacts) {
    const buyer=agentMap.get(String(c.owner_id)); if(!buyer)continue;
@@ -65,7 +65,7 @@ export async function runMatching(scope: MatchScope = {}) {
   }
   const delivery=await deliverMatches(db);
   return {status:"ok",matches,...delivery};
- }catch { failure="matching_failed";console.error("[matching] execution failed; queued deliveries preserved");return {status:"error"}; }
+ }catch(error) { const code=error instanceof Error?error.message:"";failure=/^matching_[a-z_]+$/.test(code)?code:"matching_failed";console.error("[matching] execution failed",failure);return {status:"error"}; }
  finally {await db.rpc("match_worker_access",{p_token:token,p_release:true,p_error:failure});}
 }
 export async function deliverMatches(db: ReturnType<typeof createAdminClient>) {

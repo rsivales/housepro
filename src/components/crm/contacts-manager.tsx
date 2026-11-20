@@ -4,6 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { Plus, Loader2, Search, ChevronRight, Phone, Mail } from "lucide-react";
 
+import { BuyerFields } from "@/components/matching/buyer-fields";
+import { OcrCapture } from "@/components/matching/ocr-capture";
+import { buyerTemperature, TEMPERATURE_LABEL, type BuyerProfile } from "@/lib/matching/profile";
 import { Button } from "@/components/ui/button";
 import {
   CONTACT_TYPE_LABEL,
@@ -75,6 +78,7 @@ export function ContactsManager({ initial }: { initial: Contact[] }) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{c.name}</p>
+              {["comprador","investidor"].includes(c.type) && <p className="text-sm text-muted-foreground">{TEMPERATURE_LABEL[buyerTemperature(c.buyerProfile)]}</p>}
               <p className="flex items-center gap-2 truncate text-xs text-muted-foreground">
                 {c.phone && (<span className="inline-flex items-center gap-1"><Phone className="size-3" />{c.phone}</span>)}
                 {c.email && (<span className="inline-flex items-center gap-1"><Mail className="size-3" />{c.email}</span>)}
@@ -96,12 +100,13 @@ export function ContactsManager({ initial }: { initial: Contact[] }) {
   );
 }
 
-function CreateForm({ onCreated }: { onCreated: (c: Contact) => void }) {
-  const [name, setName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [email, setEmail] = React.useState("");
+export function CreateForm({ onCreated, initial, leadId }: { onCreated: (c: Contact) => void; initial?: Partial<Contact>; leadId?: string }) {
+  const [buyerProfile, setBuyerProfile] = React.useState<BuyerProfile>(initial?.buyerProfile ?? {});
+  const [name, setName] = React.useState(initial?.name ?? "");
+  const [phone, setPhone] = React.useState(initial?.phone ?? "");
+  const [email, setEmail] = React.useState(initial?.email ?? "");
   const [type, setType] = React.useState<ContactType>("comprador");
-  const [zone, setZone] = React.useState("");
+  const [zone, setZone] = React.useState(initial?.zone ?? "");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -113,7 +118,7 @@ function CreateForm({ onCreated }: { onCreated: (c: Contact) => void }) {
       const res = await fetch("/api/contacts", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, phone: phone || undefined, email: email || undefined, type, zone: zone || undefined }),
+        body: JSON.stringify({ name, phone: phone || undefined, email: email || undefined, type, source: initial?.source ?? "manual", zone: buyerProfile.zones?.filter(Boolean).join(", ") || zone || undefined, buyerProfile, leadId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Não foi possível criar.");
@@ -127,7 +132,8 @@ function CreateForm({ onCreated }: { onCreated: (c: Contact) => void }) {
 
   return (
     <form onSubmit={submit} className="mt-3 rounded-2xl border bg-card p-4 shadow-sm">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <OcrCapture onApply={p => { if(p.name)setName(p.name); if(p.phone)setPhone(p.phone); if(p.email)setEmail(p.email); if(p.zone)setZone(p.zone); if(p.buyerProfile)setBuyerProfile(v => ({...v,...p.buyerProfile})); }} />
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <label className="block sm:col-span-2">
           <span className="mb-1 block text-xs font-medium text-muted-foreground">Nome *</span>
           <input required value={name} onChange={(e) => setName(e.target.value)} className="input" />
@@ -149,10 +155,11 @@ function CreateForm({ onCreated }: { onCreated: (c: Contact) => void }) {
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-muted-foreground">Zona</span>
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">Zona de contacto (opcional)</span>
           <input value={zone} onChange={(e) => setZone(e.target.value)} className="input" />
         </label>
       </div>
+      {["comprador","investidor"].includes(type) && <BuyerFields value={buyerProfile} onChange={setBuyerProfile}/>}
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
       <div className="mt-4">
         <Button type="submit" disabled={busy}>

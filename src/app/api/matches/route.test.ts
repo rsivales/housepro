@@ -1,0 +1,7 @@
+import { beforeEach, expect, it, vi } from "vitest";
+const m=vi.hoisted(()=>({session:vi.fn(),client:vi.fn(),run:vi.fn(),after:vi.fn()}));
+vi.mock("@/lib/supabase/auth",()=>({getSession:m.session}));vi.mock("@/lib/supabase/server",()=>({createClient:m.client}));vi.mock("@/lib/matching/server",()=>({runMatching:m.run}));vi.mock("next/server",async original=>({...await original<typeof import("next/server")>(),after:m.after}));
+import { GET, POST } from "./route";
+beforeEach(()=>{vi.clearAllMocks();});
+it("rejects unauthenticated reads and preview writes before DB access",async()=>{m.session.mockResolvedValue(null);expect((await GET(new Request("https://housepro.pt/api/matches"))).status).toBe(401);for(const patch of [{demo:true},{viewingAs:true}]){m.session.mockResolvedValue({agent:{id:"a"},...patch});expect((await POST(new Request("https://housepro.pt/api/matches",{method:"POST",body:'{"contactId":"other"}'}))).status).toBe(403);}expect(m.client).not.toHaveBeenCalled();expect(m.after).not.toHaveBeenCalled();});
+it("scopes refresh ownership even for Super Admin",async()=>{m.session.mockResolvedValue({agent:{id:"a",roleKey:"superadmin"}});const q={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),maybeSingle:vi.fn().mockResolvedValue({data:null})};m.client.mockResolvedValue({from:vi.fn(()=>q)});expect((await POST(new Request("https://housepro.pt/api/matches",{method:"POST",body:'{"contactId":"other"}'}))).status).toBe(403);expect(q.eq).toHaveBeenCalledWith("owner_id","a");expect(m.after).not.toHaveBeenCalled();});

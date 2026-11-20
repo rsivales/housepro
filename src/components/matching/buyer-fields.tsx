@@ -1,0 +1,25 @@
+"use client";
+import type { BuyerProfile } from "@/lib/matching/profile";
+import { buyerTemperature, TEMPERATURE_LABEL } from "@/lib/matching/profile";
+export function BuyerFields({ value: p, onChange, disabled }: { value: BuyerProfile; onChange: (p: BuyerProfile) => void; disabled?: boolean }) {
+  const patch = (v: Partial<BuyerProfile>) => onChange({ ...p, ...v });
+  const input = "input mt-1";
+  return <fieldset disabled={disabled} className="mt-5 rounded-2xl border bg-card p-4 disabled:opacity-60"><legend className="px-2 font-semibold">Qualificação do comprador</legend>
+    <p className="mb-4 text-sm text-muted-foreground">{TEMPERATURE_LABEL[buyerTemperature(p)]} · Para sugestões ao comprador: orçamento, zona e tipologia. Para avisar angariadores: orçamento, zona e urgência média ou alta.</p>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <label className="text-sm">Orçamento máximo disponível (€)<input type="number" min="1" max="10000000000" step="0.01" value={p.budgetMax ?? ""} onChange={e => patch({ budgetMax: e.target.value ? Number(e.target.value) : undefined })} className={input}/></label>
+      <label className="text-sm">Tipologias (separadas por vírgula)<input placeholder="T2, T3" value={(p.typologies ?? []).join(", ")} onChange={e => patch({ typologies: e.target.value.toUpperCase().split(",").map(s => s.trim()) })} className={input}/></label>
+      <label className="text-sm sm:col-span-2">Zonas pretendidas (concelhos ou freguesias, separadas por vírgula)<input placeholder="Olhão, Faro, Loulé" value={(p.zones ?? []).join(", ")} onChange={e => patch({ zones: e.target.value.split(",").map(s => s.trim()) })} className={input}/></label>
+      <label className="text-sm">Em quantos meses pretende comprar?<input type="number" min="1" max="120" value={p.timeframeMonths ?? ""} onChange={e => patch({ timeframeMonths: e.target.value ? Number(e.target.value) : undefined })} className={input}/></label>
+      <label className="text-sm">Urgência<select value={p.urgency ?? ""} onChange={e => patch({ urgency: (e.target.value || undefined) as BuyerProfile["urgency"] })} className={input}><option value="">Por confirmar</option><option value="baixa">Baixa · pesquisa inicial</option><option value="media">Média · intenção de compra</option><option value="alta">Alta · pronto para avançar</option></select></label>
+      <label className="text-sm">Financiamento<select value={p.financing ?? ""} onChange={e => patch({ financing: (e.target.value || undefined) as BuyerProfile["financing"] })} className={input}><option value="">Por confirmar</option><option value="capitais_proprios">Capitais próprios</option><option value="aprovado">Crédito pré-aprovado</option><option value="em_analise">Crédito em análise</option><option value="por_iniciar">Precisa de apoio no crédito</option></select></label>
+      <label className="text-sm">Finalidade<select value={p.purpose ?? ""} onChange={e => patch({ purpose: (e.target.value || undefined) as BuyerProfile["purpose"] })} className={input}><option value="">Por confirmar</option><option value="habitacao">Habitação própria</option><option value="investimento">Investimento</option><option value="segunda_habitacao">Segunda habitação</option></select></label>
+      <label className="text-sm">Flexibilidade das sugestões<select value={p.flexibilityPct ?? 35} onChange={e => patch({ flexibilityPct: Number(e.target.value) })} className={input}><option value="30">30%</option><option value="35">35% · recomendada</option><option value="40">40%</option></select></label>
+      <label className="text-sm">Próximo acompanhamento<input type="date" value={p.nextContactAt ?? ""} onChange={e => patch({ nextContactAt: e.target.value || undefined })} className={input}/></label>
+      <div className="space-y-3 text-sm sm:col-span-2">
+        {([["hasHomeToSell","Tem casa para vender"],["hasHomeToExchange","Tem casa para permuta"],["dependsOnSale","A compra depende da venda da casa atual"],["broadenZone","Aceita sugestões de outras freguesias do mesmo concelho"],["active","Procura ativa"],["matchEmails","Receber alertas internos de match por email"]] as const).map(([key,label]) => <label key={key} className="flex items-start gap-2"><input type="checkbox" className="mt-1" checked={p[key] ?? (["active","broadenZone","matchEmails"] as string[]).includes(key)} onChange={e => patch({ [key]: e.target.checked })}/>{label}</label>)}
+      </div>
+      <label className="text-sm sm:col-span-2">Necessidades, decisores e limitações<textarea rows={3} maxLength={3000} value={p.needs ?? ""} onChange={e => patch({ needs: e.target.value })} placeholder="Elevador indispensável, acessibilidade, escola, estacionamento, quem decide, horários para visita…" className={input + " h-auto"}/></label>
+    </div><p className="mt-4 text-sm text-muted-foreground">A flexibilidade permite alternativas de preço e tipologia. Acima do orçamento é sempre assinalado; as zonas só são alargadas ao mesmo concelho quando identificadas sem ambiguidade.</p>
+  </fieldset>;
+}

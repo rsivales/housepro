@@ -37,7 +37,7 @@ function FeaturedCard({ property }: { property: Property }) {
           alt={`${property.type} ${property.typology ?? ""} em ${property.parish}, ${property.municipality}`}
           className={`size-full object-cover ${isCompleted(property.status) ? "grayscale" : ""}`}
         />
-        <PropertyBadges status={property.status} isSignature={property.isSignature} className="absolute left-3 top-3 max-w-[calc(100%-4.5rem)]" />
+        <PropertyBadges status={property.status} isSignature={property.isSignature} acceptsExchange={property.acceptsExchange} className="absolute left-3 top-3 max-w-[calc(100%-4.5rem)]" />
         <div className="absolute right-3 top-3">
           <FavoriteButton propertyId={property.id} />
         </div>

@@ -1,3 +1,4 @@
+import { houseproEmail } from "@/lib/email-template";
 import {emailDeliveryCredentials} from "./email-delivery";
 export interface ResendTestResult {ok:boolean;code:string;message:string;id?:string;}
 export async function sendResendConfigurationTest(recipient:string):Promise<ResendTestResult>{
@@ -6,7 +7,7 @@ export async function sendResendConfigurationTest(recipient:string):Promise<Rese
  if(!c.apiKey)return {ok:false,code:'missing_key',message:'Falta guardar uma chave de envio Resend.'};
  if(!c.sender)return {ok:false,code:'missing_sender',message:'Falta definir o remetente no domínio validado.'};
  try{
-  const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:`Bearer ${c.apiKey}`,'content-type':'application/json'},body:JSON.stringify({from:c.sender,to:[recipient],...(c.notifyEmail?{reply_to:c.notifyEmail}:{}),subject:'Helix — teste de configuração Resend',text:'Teste do envio de e-mails do Helix. Não contém dados de clientes. Se recebeu esta mensagem, o serviço aceitou o envio a partir do remetente configurado.'}),signal:AbortSignal.timeout(10000)});
+  const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{authorization:`Bearer ${c.apiKey}`,'content-type':'application/json'},body:JSON.stringify({from:c.sender,to:[recipient],...(c.notifyEmail?{reply_to:c.notifyEmail}:{}),html:houseproEmail('O seu Helix está ligado','A comunicação HousePro ganhou uma nova apresentação. Este email confirma a receção do teste enviado pela sua conta.'),subject:'Helix — teste de configuração Resend',text:'Teste do envio de e-mails do Helix. Não contém dados de clientes. Se recebeu esta mensagem, o serviço aceitou o envio a partir do remetente configurado.'}),signal:AbortSignal.timeout(10000)});
   const result=await r.json().catch(()=>({}));
   if(r.ok&&typeof result.id==='string')return {ok:true,code:'accepted',id:result.id,message:'Teste aceite pelo Resend. Confirme a receção na caixa de entrada ou no spam; a aceitação não confirma a entrega.'};
   const name=String(result.name??''),message=String(result.message??'').toLowerCase();

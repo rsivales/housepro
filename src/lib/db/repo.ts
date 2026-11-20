@@ -108,6 +108,7 @@ function mapRow(r: Row): Property {
     referenceAliases: Array.isArray(r.reference_aliases) ? r.reference_aliases as string[] : [],
     title: String(r.title ?? ""),
     operation: (r.operation as Property["operation"]) ?? "venda",
+    acceptsExchange: Boolean(r.accepts_exchange),
     businessType: (r.business_type as string) ?? undefined,
     type: (r.type as Property["type"]) ?? "Apartamento",
     typology: (r.typology as string | null) ?? null,
@@ -1809,6 +1810,7 @@ function mapContact(r: Row): Contact {
     agencyId: (r.agency_id as string) ?? undefined,
     zone: (r.zone as string) ?? undefined,
     budget: (r.budget as string) ?? undefined,
+    buyerProfile: (r.buyer_profile as Contact["buyerProfile"]) ?? undefined,
     language: (r.language as string) ?? undefined,
     tags: Array.isArray(r.tags) ? (r.tags as string[]) : undefined,
     source: (r.source as string) ?? undefined,
@@ -1899,6 +1901,7 @@ export async function createContact(input: {
   agencyId?: string;
   zone?: string;
   budget?: string;
+  buyerProfile?: Contact["buyerProfile"];
   language?: string;
   source?: string;
   nif?: string;
@@ -1926,10 +1929,15 @@ export async function createContact(input: {
           await supabase.from("contacts").update({ owner_id: input.ownerId }).eq("id", mapped.id);
           mapped.ownerId = input.ownerId;
         }
+        if (mapped.ownerId === input.ownerId && input.buyerProfile) {
+          const {error} = await supabase.from("contacts").update({buyer_profile:input.buyerProfile,type:input.type,updated_at:new Date().toISOString()}).eq("id",mapped.id).eq("owner_id",input.ownerId);
+          if (error) throw new Error("contact_qualification_failed");
+          mapped.buyerProfile=input.buyerProfile; mapped.type=input.type;
+        }
         return mapped;
       }
     }
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("contacts")
       .insert({
         name: input.name,
@@ -1940,6 +1948,7 @@ export async function createContact(input: {
         agency_id: input.agencyId ?? null,
         zone: input.zone ?? null,
         budget: input.budget ?? null,
+        buyer_profile: input.buyerProfile ?? {},
         language: input.language ?? null,
         source: input.source ?? null,
         nif: input.nif ?? null,
@@ -1948,9 +1957,10 @@ export async function createContact(input: {
       })
       .select("id")
       .single();
-    return { ...contact, id: data ? String(data.id) : contact.id };
+    if (error || !data) throw new Error("Não foi possível guardar o contacto.");
+    return { ...contact, id: String(data.id) };
   } catch {
-    return contact;
+    throw new Error("Não foi possível guardar o contacto.");
   }
 }
 
@@ -2042,6 +2052,7 @@ export async function updateContact(
     type?: Contact["type"];
     zone?: string | null;
     budget?: string | null;
+    buyerProfile?: Contact["buyerProfile"];
     language?: string | null;
     nif?: string | null;
     idDocument?: string | null;
@@ -2055,6 +2066,7 @@ export async function updateContact(
   if ("email" in patch) dbPatch.email = patch.email || null;
   if ("type" in patch) dbPatch.type = patch.type;
   if ("zone" in patch) dbPatch.zone = patch.zone || null;
+  if ("buyerProfile" in patch) dbPatch.buyer_profile = patch.buyerProfile;
   if ("budget" in patch) dbPatch.budget = patch.budget || null;
   if ("language" in patch) dbPatch.language = patch.language || null;
   if ("nif" in patch) dbPatch.nif = patch.nif || null;
@@ -2062,8 +2074,8 @@ export async function updateContact(
   if ("address" in patch) dbPatch.address = patch.address || null;
   try {
     const supabase = await createClient();
-    const { error } = await supabase.from("contacts").update(dbPatch).eq("id", id);
-    if (error) return { error: error.message };
+    const { error, data } = await supabase.from("contacts").update(dbPatch).eq("id", id).select("id");
+    if (error || !data?.length) return { error: "Não foi possível guardar o contacto." };
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "update_failed" };

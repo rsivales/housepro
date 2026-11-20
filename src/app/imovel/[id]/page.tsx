@@ -262,6 +262,7 @@ export default async function ImovelPage({
             status={property.status}
             completion={completionLabel(property)}
             isSignature={property.isSignature}
+            acceptsExchange={property.acceptsExchange}
             operation={businessLabel}
             stats={heroStats}
             propertyId={property.id}

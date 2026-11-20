@@ -1,4 +1,10 @@
 export const RELEASES = [
+ {id:"2026.11.20-buyer-matching",version:"2026.11.20",title:"Compradores, correspondências e comunicação HousePro",date:"20 de novembro de 2026",items:[
+  {type:"feature",text:"Ficha de comprador com orçamento, zonas, prazo, financiamento, venda/permuta e leitura por fotografia com revisão."},
+  {type:"feature",text:"Correspondências entre compradores e imóveis da rede, com flexibilidade de 30–40%, estado comercial e alertas aos consultores responsáveis."},
+  {type:"bugfix",text:"Opção de permuta no imóvel com indicação automática na montra e emails com identidade HousePro."},
+  {type:"security",text:"Os outros agentes recebem a referência da qualificação e o consultor responsável, preservando os contactos pessoais do comprador."},
+ ]},
  {id:"2026.11.19-consultant-scope-integrations",version:"2026.11.19.3",title:"Área pessoal e configuração de integrações",date:"19 de novembro de 2026",items:[
   {type:"bugfix",text:"Pagamentos, fees e pensão do consultor separados das visões de agência e Marca, mesmo para contas Super Admin."},
   {type:"feature",text:"Identificação permanente do utilizador, com fotografia, nome e prefixo das referências de imóveis."},

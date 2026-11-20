@@ -1,3 +1,6 @@
+export const maxDuration = 120;
+import { after } from "next/server";
+import { runMatching } from "@/lib/matching/server";
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
@@ -16,6 +19,7 @@ const FIELDS: Record<string, string> = {
   title: "title",
   operation: "operation",
   businessType: "business_type",
+  acceptsExchange: "accepts_exchange",
   type: "type",
   priceVisible: "price_visible",
   locationPrivacy: "location_privacy",
@@ -110,6 +114,7 @@ export async function POST(request: Request) {
   }
   const id = String(body.id ?? "").trim();
   const patch = body.patch ?? {};
+  if ("acceptsExchange" in patch && typeof patch.acceptsExchange !== "boolean") return NextResponse.json({error:"Opção de permuta inválida."},{status:422});
   if (!id) return NextResponse.json({ error: "id_missing" }, { status: 400 });
   if ("unitLabel" in patch && (typeof patch.unitLabel!=="string" || patch.unitLabel.length>50)) return NextResponse.json({error:"Código de fração inválido."},{status:400});
 
@@ -320,6 +325,7 @@ export async function POST(request: Request) {
     }
   }
 
+  if (!session.demo) after(async () => { await runMatching({propertyId:id}); });
   // Devolve a entrada de histórico (o cliente mostra-a mesmo em demo).
   return NextResponse.json({ ok: true, entry, demo: session.demo });
 }

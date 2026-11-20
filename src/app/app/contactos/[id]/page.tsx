@@ -1,3 +1,5 @@
+import { BuyerSummary } from "@/components/matching/buyer-summary";
+import { MatchesBoard } from "@/components/matching/matches-board";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
@@ -34,7 +36,8 @@ export default async function ContactDetailPage({
         </Link>
 
         {/* Cabeçalho da ficha — vê/edita inline */}
-        <ContactHeader contact={contact} />
+        <ContactHeader contact={contact} readOnly={Boolean(session.viewingAs||session.demo)} />
+        {["comprador","investidor"].includes(contact.type) && <><BuyerSummary profile={contact.buyerProfile}/><MatchesBoard contactId={contact.id} agentId={session.agent.id} readOnly={Boolean(session.viewingAs||session.demo||contact.ownerId!==session.agent.id)}/></>}
 
         <h2 className="mt-8 font-display text-xl">Cronologia</h2>
         <p className="mt-1 text-sm text-muted-foreground">

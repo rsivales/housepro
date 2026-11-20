@@ -1,3 +1,4 @@
+import { BuyerKpis } from "@/components/matching/buyer-kpis";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -33,6 +34,8 @@ export default async function ContactosPage() {
           {session.demo && " Dados de exemplo."}
         </p>
 
+        <BuyerKpis contacts={contacts}/>
+        <Link href="/app/matches" className="text-sm font-semibold text-primary">Ver correspondências na rede</Link>
         <div className="mt-6">
           <ContactsManager initial={contacts} />
         </div>

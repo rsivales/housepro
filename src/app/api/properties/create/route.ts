@@ -1,3 +1,6 @@
+export const maxDuration = 120;
+import { after } from "next/server";
+import { runMatching } from "@/lib/matching/server";
 import { NextResponse } from "next/server";
 
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
@@ -77,6 +80,7 @@ export async function POST(request: Request) {
     development_units: d.developmentUnits != null ? Number(d.developmentUnits) : null,
     energy: d.energy ? String(d.energy) : "C",
     cpcv_at: d.cpcvAt ? String(d.cpcvAt) : null,
+    accepts_exchange: d.acceptsExchange === true,
     status: typeof d.status === "string" && d.status ? String(d.status) : "novo",
     cover_url: d.coverUrl ? String(d.coverUrl) : null,
     gallery: Array.isArray(d.gallery) && d.gallery.length ? d.gallery : null,
@@ -165,5 +169,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Não foi possível guardar a morada. Tente novamente." }, { status: 500 });
     }
   }
+  after(async () => { await runMatching({propertyId:data.id}); });
   return NextResponse.json({ ok: true, id: data.id, reference: data.reference });
 }

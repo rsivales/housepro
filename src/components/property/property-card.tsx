@@ -57,7 +57,7 @@ export function PropertyCard({
         </Link>
 
         <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between">
-          <PropertyBadges status={property.status} isSignature={property.isSignature} className="max-w-[calc(100%-3rem)]" />
+          <PropertyBadges status={property.status} isSignature={property.isSignature} acceptsExchange={property.acceptsExchange} className="max-w-[calc(100%-3rem)]" />
           <FavoriteButton propertyId={property.id} />
         </div>
 

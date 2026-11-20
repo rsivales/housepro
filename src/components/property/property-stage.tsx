@@ -75,6 +75,7 @@ export function PropertyStage({
   status,
   completion,
   isSignature,
+  acceptsExchange,
   operation,
   stats,
   propertyId,
@@ -92,6 +93,7 @@ export function PropertyStage({
   status?: PropertyStatus | null;
   completion?: string | null;
   isSignature?: boolean;
+  acceptsExchange?: boolean;
   operation: string;
   stats: HeroStat[];
   propertyId: string;
@@ -280,7 +282,7 @@ export function PropertyStage({
           <div className="absolute left-4 top-4 z-10 flex max-w-[calc(100%-8rem)] flex-wrap items-center gap-2 sm:left-6 sm:top-6">
             {mode === "photo" ? (
               <>
-                <PropertyBadges status={status} isSignature={isSignature} />
+                <PropertyBadges status={status} isSignature={isSignature} acceptsExchange={acceptsExchange} />
                 <span className="rounded-[8px] border border-white/20 bg-white/70 px-3.5 py-1.5 text-xs font-semibold capitalize text-[var(--hp-navy)] shadow-sm backdrop-blur">
                   {operation}
                 </span>

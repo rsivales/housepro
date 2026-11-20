@@ -1,0 +1,20 @@
+import { describe, it, expect } from "vitest";
+import { matchBuyer, missingQualification, type MatchProperty } from "./engine";
+import { buyerTemperature, validateBuyerProfile } from "./profile";
+const b={budgetMax:300000,zones:["Olhão"],typologies:["T2"],urgency:"alta" as const};
+const p:MatchProperty={id:"p",reference:"HP1101-01",title:"Apartamento",price:300000,typology:"T2",parish:"Olhão",municipality:"Olhão",status:"novo",operation:"venda",approval:"aprovado",listing_state:"activo",off_market:false,agent_id:"agent-x"};
+describe("buyer matching",()=>{
+ it("matches independent of responsible agent identity",()=>{expect(matchBuyer(b,p)).toMatchObject({score:100,exact:true,status:"Disponível"});});
+ it("treats budget as a maximum, so cheaper homes remain eligible",()=>{expect(matchBuyer(b,{...p,price:100000})?.exact).toBe(true);});
+ it("labels rather than silently raising the buyer budget",()=>{const r=matchBuyer(b,{...p,price:405000});expect(r?.warnings.join()).toContain("35% acima");expect(r?.exact).toBe(false);expect(b.budgetMax).toBe(300000);expect(matchBuyer(b,{...p,price:405001})).toBeNull();});
+ it("supports configurable 30%–40% bounds",()=>{expect(matchBuyer({...b,flexibilityPct:30},{...p,price:405000})).toBeNull();expect(matchBuyer({...b,flexibilityPct:40},{...p,price:420000})).not.toBeNull();});
+ it("allows adjacent typology with an explicit warning",()=>{expect(matchBuyer(b,{...p,typology:"T3"})?.warnings.join()).toContain("Tipologia alternativa");expect(matchBuyer(b,{...p,typology:"T5"})).toBeNull();});
+ it("normalizes accents, never matches unrelated areas",()=>{expect(matchBuyer({...b,zones:["olhao"]},p)).not.toBeNull();expect(matchBuyer({...b,zones:["Porto"]},p)).toBeNull();});
+ it("broadens unambiguous parish to same municipality only when allowed",()=>{const r={...p,parish:"Olhão",municipality:"Olhão"};expect(matchBuyer({...b,zones:["Pechão"]},r)?.warnings.join()).toContain("Zona alargada");expect(matchBuyer({...b,zones:["Pechão"],broadenZone:false},r)).toBeNull();});
+ it("includes reserved and proposed homes with immediate status warnings",()=>{expect(matchBuyer(b,{...p,status:"reservado"})?.status).toBe("Reservado");expect(matchBuyer(b,{...p,proposal:true})?.status).toBe("Com proposta");expect(matchBuyer(b,{...p,status:"reservado",proposal:true})?.status).toBe("Reservado");});
+ it("excludes completed, private, inactive and unpublished properties",()=>{for(const patch of [{status:"vendido"},{status:"arrendado"},{status:"cpcv"},{off_market:true},{approval:"rascunho"},{listing_state:"inactivo"},{operation:"arrendamento"}])expect(matchBuyer(b,{...p,...patch})).toBeNull();});
+ it("requires all minimum criteria and medium/high urgency",()=>{expect(missingQualification({})).toHaveLength(3);expect(matchBuyer({...b,urgency:"baixa"},p)).toMatchObject({buyerEligible:true,propertyEligible:false});expect(matchBuyer({...b,typologies:[]},p)).toMatchObject({buyerEligible:false,propertyEligible:true});expect(matchBuyer({...b,active:false},p)).toBeNull();});
+ it("surfaces exchange availability",()=>{expect(matchBuyer(b,{...p,accepts_exchange:true})?.reasons.join()).toContain("permuta");});
+ it("keeps unknown timing unqualified, separating urgency from temperature",()=>{expect(buyerTemperature({urgency:"alta"})).toBe("por_qualificar");expect(buyerTemperature({timeframeMonths:3})).toBe("quente");expect(buyerTemperature({timeframeMonths:6})).toBe("morno");expect(buyerTemperature({timeframeMonths:7})).toBe("frio");});
+ it("rejects malformed and out of range data, stripping arbitrary keys",()=>{for(const v of [{budgetMax:-1},{budgetMax:"300000"},{timeframeMonths:1.2},{flexibilityPct:90},{hasHomeToSell:"true"},{typologies:["banana"]},{zones:"Olhão"}])expect(()=>validateBuyerProfile(v)).toThrow();expect(validateBuyerProfile({...b,ownerId:"another"})).not.toHaveProperty("ownerId");});
+});

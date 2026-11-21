@@ -26,13 +26,7 @@ const eur0 = new Intl.NumberFormat("pt-PT", {
 const pct = (r: number) => `${(r * 100).toLocaleString("pt-PT", { maximumFractionDigits: 1 })}%`;
 
 const BAR_COLORS = [
-  "var(--chart-1, #dcd7c7)",
-  "var(--gold, #cfb264)",
-  "var(--chart-3, #bd9a3d)",
-  "var(--gold, #a3862c)",
-  "var(--chart-4, #7d6a20)",
-  "var(--muted-foreground, #565b5a)",
-  "var(--primary, #3f4444)",
+  "#c7d9e7", "#82aac8", "#3478a5", "#244765", "#0b1f3a", "#d62832", "#a31621",
 ];
 
 function parseNum(s: string): number {
@@ -108,8 +102,9 @@ export function ImtCalculator() {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
       {/* Entradas */}
-      <div className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
-        <label htmlFor="imt-ano" className="mb-5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ano da compra<select id="imt-ano" className="mt-2 block w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-foreground" value={ano} onChange={e=>{setAno(Number(e.target.value));setJovem(false);setDataCompra("")}}>{[...IMT_ANOS_SUPORTADOS].reverse().map(a=><option value={a} key={a}>{a}</option>)}</select></label>
+      <div className="rounded-2xl border border-[#e5eaf1] bg-white p-5 shadow-[0_26px_60px_-42px_rgba(11,31,58,.6)] sm:p-7">
+        <div className="mb-6 flex items-center gap-3 border-b border-[#e5eaf1] pb-5"><span className="grid size-9 place-items-center rounded-lg bg-[#0b1f3a] text-sm font-bold text-white">01</span><div><h3 className="font-display text-lg text-[#0b1f3a]">Dados da compra</h3><p className="text-xs text-[#667085]">Preencha o essencial. Pode ajustar depois.</p></div></div>
+        <label htmlFor="imt-ano" className="mb-5 block text-xs font-bold uppercase tracking-wide text-[#34445a]">Ano da compra<select id="imt-ano" className="mt-2 block h-12 w-full rounded-lg border border-[#dfe6ef] bg-white px-3 text-sm font-medium text-[#0b1f3a] focus-visible:border-[#3478a5] focus-visible:ring-2 focus-visible:ring-[#3478a5]/20" value={ano} onChange={e=>{setAno(Number(e.target.value));setJovem(false);setDataCompra("")}}>{[...IMT_ANOS_SUPORTADOS].reverse().map(a=><option value={a} key={a}>{a}</option>)}</select></label>
         <Segmented
           label="Localização do imóvel"
           options={[
@@ -132,8 +127,8 @@ export function ImtCalculator() {
                 className={cn(
                   "rounded-lg border px-3.5 py-2.5 text-left text-sm transition-colors",
                   fin === o.v
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "hover:border-muted-foreground/40 hover:bg-secondary"
+                    ? "border-[#0b1f3a] bg-[#0b1f3a] font-semibold text-white"
+                    : "border-[#dfe6ef] bg-white text-[#34445a] hover:border-[#3478a5] hover:bg-[#f2f6fa]"
                 )}
               >
                 {o.label}
@@ -147,7 +142,7 @@ export function ImtCalculator() {
           value={preco}
           onChange={setPreco}
         />
-        {ano===2024&&<label className="mt-4 block text-sm">Data da compra (para confirmar IMT Jovem)<input type="date" min="2024-01-01" max="2024-12-31" value={dataCompra} onChange={e=>setDataCompra(e.target.value)} className="mt-2 block w-full rounded-lg border bg-white px-3 py-2.5"/></label>}
+        {ano===2024&&<label className="mt-4 block text-sm">Data da compra (para confirmar IMT Jovem)<input type="date" min="2024-01-01" max="2024-12-31" value={dataCompra} onChange={e=>setDataCompra(e.target.value)} className="mt-2 block h-12 w-full rounded-lg border border-[#dfe6ef] bg-white px-3"/></label>}
         <MoneyField
           label="Valor Patrimonial Tributário (opcional)"
           value={vpt}
@@ -161,7 +156,7 @@ export function ImtCalculator() {
           className={cn(
             "mt-5 flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors",
             !jovemDisponivel && "pointer-events-none opacity-45",
-            jovem ? "border-gold bg-gold/10" : "hover:border-muted-foreground/40"
+            jovem ? "border-[#d62832] bg-[#fff3f3]" : "border-[#dfe6ef] hover:border-[#3478a5]"
           )}
         >
           <input
@@ -169,7 +164,7 @@ export function ImtCalculator() {
             checked={jovem}
             disabled={!jovemDisponivel}
             onChange={(e) => setJovem(e.target.checked)}
-            className="mt-0.5 size-[18px] accent-primary"
+            className="mt-0.5 size-[18px] accent-[#d62832]"
           />
           <span className="text-sm">
             <b className="block font-semibold">
@@ -188,7 +183,7 @@ export function ImtCalculator() {
           data-on={credito}
           className={cn(
             "mt-3 flex items-center gap-4 rounded-xl border p-3.5 transition-colors",
-            credito ? "border-gold bg-gold/10" : ""
+            credito ? "border-[#3478a5] bg-[#f2f6fa]" : "border-[#dfe6ef]"
           )}
         >
           <div className="min-w-0 flex-1">
@@ -206,7 +201,7 @@ export function ImtCalculator() {
             onClick={() => setCredito((v) => !v)}
             className={cn(
               "relative h-[30px] w-[52px] shrink-0 rounded-full transition-colors",
-              credito ? "bg-primary" : "bg-muted-foreground/35"
+              credito ? "bg-[#0b1f3a]" : "bg-[#aab5c4]"
             )}
           >
             <span
@@ -237,16 +232,17 @@ export function ImtCalculator() {
       </div>
 
       {/* Resultado (recibo) */}
-      <div className="lg:sticky lg:top-20 h-fit rounded-2xl border bg-card shadow-sm">
-        <div className="flex items-start justify-between gap-4 border-b border-dashed p-6 pb-5">
+      <div className="lg:sticky lg:top-20 h-fit overflow-hidden rounded-2xl border border-[#d8e2ed] bg-white shadow-[0_26px_60px_-42px_rgba(11,31,58,.6)]">
+        <div className="bg-[#0b1f3a] px-6 py-4 text-xs font-bold uppercase tracking-[.16em] text-white/75">02 · Resultado da simulação</div>
+        <div className="flex items-start justify-between gap-4 border-b border-[#e5eaf1] p-6 pb-5">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="text-xs font-bold uppercase tracking-wide text-[#667085]">
               Total de impostos
             </div>
             <div
               className={cn(
-                "mt-1 font-display text-5xl leading-none tabular-nums",
-                d.total === 0 && d.base > 0 && "text-gold"
+                "mt-2 font-display text-4xl leading-none tabular-nums text-[#0b1f3a] sm:text-5xl",
+                d.total === 0 && d.base > 0 && "text-[#24815d]"
               )}
             >
               {eur.format(d.total)}
@@ -255,12 +251,7 @@ export function ImtCalculator() {
               {d.base > 0 ? d.regime : "IMT + Imposto de Selo"}
             </div>
           </div>
-          <div className="grid size-[74px] shrink-0 -rotate-12 place-items-center rounded-full border-2 border-gold text-center text-gold">
-            <div>
-              <b className="block font-display text-[15px] leading-none">{ano}</b>
-              <small className="mt-1 block text-[8.5px] uppercase tracking-widest">IMT · IS</small>
-            </div>
-          </div>
+          <span className="shrink-0 rounded-lg bg-[#edf3f8] px-3 py-2 text-xs font-bold text-[#0b1f3a]">Tabela {ano}</span>
         </div>
 
         <div className="px-6 pt-2">
@@ -278,9 +269,9 @@ export function ImtCalculator() {
               v={emprestimo > 0 ? eur.format(d.isCredito) : "€0,00"}
             />
           )}
-          <div className="flex items-baseline justify-between gap-4 py-4">
+          <div className="flex items-baseline justify-between gap-4 border-t border-[#dfe6ef] py-5">
             <div className="font-semibold">Total a pagar</div>
-            <div className="font-display text-2xl font-medium tabular-nums">{eur.format(d.total)}</div>
+            <div className="font-display text-2xl font-bold tabular-nums text-[#d62832]">{eur.format(d.total)}</div>
           </div>
           {d.base > 0 && (
             <p className="pb-1 text-xs text-muted-foreground">
@@ -295,7 +286,7 @@ export function ImtCalculator() {
             <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Como se reparte o IMT pelos escalões
             </h4>
-            <div className="flex h-5 overflow-hidden rounded-md border bg-secondary">
+            <div className="flex h-3 overflow-hidden rounded-full bg-[#edf3f8]">
               {d.segmentos.map((s, i) => (
                 <span
                   key={i}
@@ -328,7 +319,7 @@ export function ImtCalculator() {
           <button
             type="button"
             onClick={copiar}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#d62832] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#b71d26]"
           >
             {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
             {copied ? "Copiado" : "Copiar resumo"}
@@ -336,7 +327,7 @@ export function ImtCalculator() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#dfe6ef] px-4 py-2.5 text-sm font-semibold text-[#0b1f3a] hover:bg-[#f2f6fa]"
           >
             <Printer className="size-4" /> Imprimir / PDF
           </button>
@@ -346,9 +337,9 @@ export function ImtCalculator() {
           {nota}
         </p>
       </div>
-      <section id="duvidas-imt" className="rounded-2xl border bg-card p-5 sm:p-7 lg:col-span-2">
-        <h2 className="font-display text-2xl">Dúvidas sobre os impostos da sua compra?</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Envie a questão a um consultor. Juntamos os valores desta simulação ao pedido para o ajudar a responder.</p>
+      <section id="duvidas-imt" className="scroll-mt-20 rounded-2xl border border-[#dfe6ef] bg-white p-5 shadow-[0_26px_60px_-48px_rgba(11,31,58,.45)] sm:p-8 lg:col-span-2">
+        <div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#d62832]">Acompanhamento HousePro</p><h2 className="mt-2 font-display text-2xl sm:text-3xl">Dúvidas sobre os impostos da sua compra?</h2>
+        <p className="mt-2 text-sm leading-relaxed text-[#596579]">Envie a sua questão. Um consultor recebe também o contexto da simulação para poder responder com mais precisão.</p></div>
         {leadStatus==="sent"?<p role="status" className="mt-5 rounded-lg bg-green-50 p-4">Pedido recebido. Um consultor entrará em contacto consigo.</p>:<form className="mt-5 grid gap-3 sm:grid-cols-2" onSubmit={async e=>{e.preventDefault();setLeadStatus("sending");try{const ref=new URLSearchParams(location.search).get("ref")||undefined;const r=await fetch("/api/contact-intent",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({channel:"Dúvidas IMT e Imposto do Selo",ref,clientName:lead.name,clientEmail:lead.email,clientPhone:lead.phone,consent:lead.consent,objetivo:`Ano ${ano}; ${fin}; ${loc}; preço ${eur.format(preco)}; VPT ${eur.format(vpt)}; base ${eur.format(d.base)}; IMT ${eur.format(d.imt)}; Selo aquisição ${eur.format(d.isAquisicao)}; Selo crédito ${eur.format(d.isCredito)}. Questão: ${lead.question}`,pageUrl:location.href})});if(!r.ok)throw new Error();setLeadStatus("sent")}catch{setLeadStatus("error")}}}>
           <label className="text-sm">Nome<input required maxLength={120} value={lead.name} onChange={e=>setLead(v=>({...v,name:e.target.value}))} className="mt-1 block w-full rounded-lg border px-3 py-2.5"/></label>
           <label className="text-sm">Telefone<input type="tel" required value={lead.phone} onChange={e=>setLead(v=>({...v,phone:e.target.value}))} className="mt-1 block w-full rounded-lg border px-3 py-2.5"/></label>
@@ -356,7 +347,7 @@ export function ImtCalculator() {
           <label className="text-sm sm:col-span-2">A sua dúvida<textarea value={lead.question} onChange={e=>setLead(v=>({...v,question:e.target.value}))} rows={3} maxLength={2000} className="mt-1 block w-full rounded-lg border px-3 py-2.5"/></label>
           <label className="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" required checked={lead.consent} onChange={e=>setLead(v=>({...v,consent:e.target.checked}))}/><span>Autorizo o tratamento dos meus dados e o contacto para responder a este pedido, conforme a <a href="/privacidade" className="underline">política de privacidade</a>.</span></label>
           {leadStatus==="error"&&<p role="alert" className="text-sm text-red-700 sm:col-span-2">Não foi possível enviar. Verifique os dados e tente novamente.</p>}
-          <button disabled={leadStatus==="sending"} className="rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50 sm:col-span-2 sm:justify-self-start">{leadStatus==="sending"?"A enviar…":"Pedir esclarecimento"}</button>
+          <button disabled={leadStatus==="sending"} className="min-h-12 rounded-lg bg-[#d62832] px-5 py-3 text-sm font-bold text-white hover:bg-[#b71d26] disabled:opacity-50 sm:col-span-2 sm:justify-self-start">{leadStatus==="sending"?"A enviar…":"Pedir esclarecimento"}</button>
         </form>}
       </section>
     </div>
@@ -365,7 +356,7 @@ export function ImtCalculator() {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#34445a]">
       {children}
     </p>
   );
@@ -397,8 +388,8 @@ function Segmented({
             className={cn(
               "flex-1 rounded-lg border px-3.5 py-2.5 text-sm transition-colors",
               value === o.v
-                ? "border-primary bg-primary text-primary-foreground"
-                : "hover:border-muted-foreground/40 hover:bg-secondary"
+                ? "border-[#0b1f3a] bg-[#0b1f3a] font-semibold text-white"
+                : "border-[#dfe6ef] bg-white text-[#34445a] hover:border-[#3478a5] hover:bg-[#f2f6fa]"
             )}
           >
             {o.label}
@@ -452,7 +443,7 @@ function MoneyField({
             onChange(parseNum(e.target.value));
           }}
           className={cn(
-            "w-full rounded-xl border bg-background pl-10 pr-4 font-display font-semibold tabular-nums outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40",
+            "w-full rounded-xl border border-[#dfe6ef] bg-white pl-10 pr-4 font-display font-semibold tabular-nums text-[#0b1f3a] outline-none focus-visible:border-[#3478a5] focus-visible:ring-[3px] focus-visible:ring-[#3478a5]/20",
             compact ? "py-2.5 text-lg" : "py-3.5 text-2xl"
           )}
         />
@@ -464,12 +455,12 @@ function MoneyField({
 
 function Row({ k, sub, v, free }: { k: string; sub?: string; v: string; free?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-secondary py-3">
+    <div className="flex items-baseline justify-between gap-4 border-b border-[#e5eaf1] py-3">
       <div className="text-sm">
         {k}
         {sub && <small className="block text-xs text-muted-foreground">{sub}</small>}
       </div>
-      <div className={cn("font-display text-lg tabular-nums whitespace-nowrap", free && "text-gold")}>
+      <div className={cn("font-display text-lg tabular-nums whitespace-nowrap text-[#0b1f3a]", free && "!text-[#24815d]")}>
         {v}
       </div>
     </div>

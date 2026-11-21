@@ -1,203 +1,85 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Calculator, Check, HelpCircle } from "lucide-react";
-
-import { SiteHeader } from "@/components/layout/site-header";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { FadeIn } from "@/components/motion/fade-in";
+import Image from "next/image";
+import { ArrowDown, ArrowRight, FileText, HelpCircle, Home, Landmark, ShieldCheck } from "lucide-react";
+import { PublicHeader } from "@/components/home/public-header";
+import { PublicFooter } from "@/components/home/public-footer";
 import { ImtCalculator } from "@/components/tools/imt-calculator";
+import { site } from "@/lib/site";
 
+const path = "/ferramentas/imt";
+const description = "Calcule o IMT e o Imposto do Selo na compra de casa em Portugal. Simule habitação própria, segunda habitação e IMT Jovem com tabelas de 2023 a 2026. Veja exemplos e saiba obter as guias oficiais.";
 export const metadata: Metadata = {
-  title: "Calculadora de IMT e Imposto do Selo | HousePro",
-  description:
-    "Calcule o IMT e o Imposto do Selo na compra de casa. Tabelas da Autoridade Tributária de 2023 a 2026, IMT Jovem e ajuda de um consultor.",
-  keywords: [
-    "calculadora IMT",
-    "IMT 2026",
-    "imposto de selo",
-    "IMT jovem",
-    "comprar casa impostos",
-    "IMT continente",
-    "simulador IMT",
-  ],
-  alternates: { canonical: "/ferramentas/imt" },
-  openGraph: {
-    title: "Calculadora de IMT e Imposto do Selo · HousePro",
-    description:
-      "Quanto vai pagar de impostos ao comprar casa? Simule com tabelas de 2023 a 2026 e esclareça dúvidas com um consultor.",
-    type: "article",
-  },
+  title: "Calculadora de IMT 2026 e Imposto do Selo | HousePro",
+  description,
+  keywords: ["calculadora IMT 2026", "simulador IMT", "imposto do selo compra casa", "IMT jovem 2026", "IMT segunda habitação", "quanto pago de IMT"],
+  alternates: { canonical: path },
+  openGraph: { title: "Quanto vou pagar de IMT e Imposto do Selo? | HousePro", description, url: path, type: "website", locale: "pt_PT" },
+  twitter: { card: "summary", title: "Calculadora de IMT e Imposto do Selo | HousePro", description },
 };
-
 const faq = [
-  {
-    q: "O que é o IMT?",
-    a: "O Imposto Municipal sobre as Transmissões Onerosas de Imóveis (IMT) é pago por quem compra um imóvel em Portugal. É apurado escalão a escalão sobre a base tributável — o maior valor entre o preço da escritura e o Valor Patrimonial Tributário (VPT).",
-  },
-  {
-    q: "Como funciona o IMT Jovem?",
-    a: "Compradores até 35 anos, na aquisição da primeira habitação própria e permanente, podem beneficiar de isenção total de IMT e Imposto de Selo até um determinado valor, e de isenção parcial num segundo escalão. Acima desses limites aplica-se a tabela normal.",
-  },
-  {
-    q: "Quando se paga o IMT e o Imposto de Selo?",
-    a: "Ambos os impostos têm de ser liquidados antes da escritura. O notário exige o comprovativo de pagamento para realizar a escritura de compra e venda.",
-  },
-  {
-    q: "A calculadora inclui todos os custos da compra?",
-    a: "Não. A ferramenta calcula o IMT e o Imposto de Selo. Não inclui custos de escritura, registo predial e outros encargos, que variam caso a caso. É uma estimativa e não substitui a liquidação oficial nas Finanças.",
-  },
-  { q: "Onde vejo quanto paguei numa compra antiga?", a: "Procure as guias e comprovativos do IMT e do Imposto do Selo junto da escritura. No Portal das Finanças, aceda a IMT, consulte a declaração Modelo 1 e obtenha ou imprima o comprovativo. Se não encontrar, peça ajuda pelo e-balcão ou ao profissional que realizou a escritura." },
-  { q: "Posso usar a tabela de hoje para uma casa que comprei há anos?", a: "Não. Os escalões mudaram. A calculadora cobre compras entre 2023 e 2026. Para outros anos, use os comprovativos da liquidação original; não estime o imposto antigo com a tabela atual." },
-  { q: "O Imposto do Selo da compra é igual ao do empréstimo?", a: "Não. A aquisição tem Imposto do Selo próprio, calculado sobre a base tributável. Se houve crédito, poderá existir outro Imposto do Selo sobre o financiamento. Os valores são apresentados em linhas separadas." },
+  { q: "O que é o IMT e quem o paga?", a: "O Imposto Municipal sobre as Transmissões Onerosas de Imóveis é devido, em regra, pelo comprador. Na aquisição de habitação, os escalões dependem da finalidade, da localização e do ano da compra." },
+  { q: "O IMT incide sobre o preço ou sobre o VPT?", a: "Em regra, usa-se o maior dos dois valores: o preço da escritura ou o Valor Patrimonial Tributário (VPT). Se não souber o VPT, procure a caderneta predial. Casos especiais podem ter regras próprias." },
+  { q: "Quanto é o Imposto do Selo na compra de casa?", a: "Na aquisição onerosa, a verba 1.1 é de 0,8% da base tributável. Se existir financiamento, o empréstimo pode ter um Imposto do Selo separado, que a calculadora mostra noutra linha." },
+  { q: "Como funciona o IMT Jovem?", a: "A isenção pode aplicar-se à primeira aquisição de habitação própria e permanente por compradores elegíveis até aos 35 anos. Começou em 1 de agosto de 2024; os limites mudam por ano e outros requisitos têm de ser confirmados nas Finanças." },
+  { q: "Quando e onde se pagam os impostos?", a: "A declaração Modelo 1 de IMT é entregue antes da escritura no Portal das Finanças. Após a submissão, são emitidas as guias. Leve os comprovativos de pagamento ou isenção para a escritura." },
+  { q: "Onde encontro o IMT e Selo que paguei numa compra antiga?", a: "Consulte a escritura e as guias da aquisição. No Portal das Finanças, procure a declaração Modelo 1 de IMT em Consultar declaração e obtenha o comprovativo. Se não o encontrar, recorra ao e-balcão ou ao profissional que acompanhou a escritura." },
+  { q: "Posso calcular o IMT de uma compra anterior a 2023?", a: "Esta calculadora inclui as tabelas de 2023 a 2026. Para anos anteriores ou regimes especiais, confirme o montante na liquidação original. Aplicar a tabela atual a uma compra antiga daria um resultado errado." },
+  { q: "A simulação inclui escritura, registos e outros custos?", a: "Não. O total mostra IMT, Selo da aquisição e, se escolher, Selo do crédito. Emolumentos, registos e outras despesas devem ser pedidos separadamente." },
+];
+const taxCards = [
+  { icon: Home, title: "1. IMT", text: "Depende do maior valor entre preço e VPT, da finalidade da compra, da localização e do ano. Habitação própria e segunda habitação têm escalões diferentes." },
+  { icon: Landmark, title: "2. Selo da aquisição", text: "Em regra, corresponde a 0,8% da base tributável da aquisição. É apresentado separadamente do IMT." },
+  { icon: FileText, title: "3. Selo do crédito", text: "Se usar financiamento, o empréstimo pode gerar outro Imposto do Selo. Ative essa parcela e indique o montante e o prazo." },
 ];
 
 export default function CalculadoraImtPage() {
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faq.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
+  const jsonLd = [
+    { "@context": "https://schema.org", "@type": "WebApplication", name: "Calculadora de IMT e Imposto do Selo HousePro", applicationCategory: "FinanceApplication", operatingSystem: "Web", inLanguage: "pt-PT", url: `${site.url}${path}`, description, offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, provider: { "@type": "Organization", name: site.brand, url: site.url } },
+    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Início", item: site.url },
+      { "@type": "ListItem", position: 2, name: "Comprar casa", item: `${site.url}/imoveis` },
+      { "@type": "ListItem", position: 3, name: "Calculadora de IMT", item: `${site.url}${path}` },
+    ] },
+  ];
   return (
-    <div className="min-h-dvh bg-background">
-      <SiteHeader />
+    <div className="hp min-h-dvh bg-[#f5f7fa] text-[#0b1f3a]">
+      <PublicHeader solid />
       <main>
-        {/* Hero */}
-        <section className="border-b bg-secondary/40">
-          <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-            <FadeIn>
-              <p className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-xs font-medium">
-                <Calculator className="size-3.5 text-primary" /> Ferramenta grátis · Tabelas 2023–2026
-              </p>
-              <h1 className="mt-4 max-w-3xl font-display text-4xl leading-[1.05] sm:text-5xl">
-                Calculadora de IMT e Imposto de Selo
-              </h1>
-              <p className="mt-3 max-w-2xl text-pretty text-muted-foreground">
-                Descubra quanto vai pagar de impostos ao comprar casa em Portugal.
-                Escolha o ano da compra, a finalidade e a localização do imóvel.
-                Veja o IMT, o Imposto do Selo da aquisição e, se aplicável, do crédito.
-              </p>
-            </FadeIn>
+        <section className="relative isolate overflow-hidden bg-[#0b1f3a] text-white">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_86%_22%,rgba(42,99,142,.43),transparent_36%),linear-gradient(135deg,#0b1f3a_22%,#122d4b_100%)]" aria-hidden />
+          <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pb-28 pt-14 sm:px-6 sm:pb-32 sm:pt-20 lg:grid-cols-[1.2fr_.8fr] lg:items-center">
+            <div>
+              <nav aria-label="Percurso" className="mb-8 flex flex-wrap items-center gap-2 text-xs text-white/65"><Link href="/" className="hover:text-white">Início</Link><span>/</span><Link href="/imoveis?operacao=comprar" className="hover:text-white">Comprar casa</Link><span>/</span><span className="text-white">IMT e Imposto do Selo</span></nav>
+              <p className="text-xs font-bold uppercase tracking-[.18em] text-[#ff8188]">Ferramentas HousePro · Compra de casa</p>
+              <h1 className="mt-5 max-w-3xl font-display text-4xl leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.65rem]">Calculadora de IMT e <span className="text-[#ff8188]">Imposto do Selo</span></h1>
+              <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg">Saiba quanto pode pagar ao comprar casa. Introduza o preço, escolha a finalidade e veja os impostos discriminados, sem sair da página.</p>
+              <div className="mt-8 flex flex-wrap gap-3"><a href="#calcular-imt" className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-[#d62832] px-6 text-sm font-bold text-white shadow-lg shadow-black/20 hover:bg-[#b71d26]">Fazer a simulação <ArrowDown className="size-4" /></a><a href="#guia-imt" className="inline-flex min-h-12 items-center gap-2 rounded-lg border border-white/25 px-5 text-sm font-semibold hover:bg-white/10">Perceber os impostos <ArrowRight className="size-4" /></a></div>
+              <p className="mt-5 text-xs text-white/60">Gratuito · Tabelas de 2023 a 2026 · Sem registo</p>
+            </div>
+            <div className="relative hidden min-h-[330px] items-center justify-center lg:flex" aria-hidden><div className="absolute size-[320px] rounded-full border border-white/10" /><div className="absolute size-[245px] rounded-full border border-white/10" /><Image src="/brand/housepro-designer-mark.png" alt="" width={225} height={278} className="relative h-[260px] w-auto object-contain drop-shadow-[0_28px_36px_rgba(0,0,0,.22)]" /><span className="absolute bottom-2 right-0 border-t border-[#ff8188]/65 pt-3 text-[10px] font-bold uppercase tracking-[.2em] text-white/70">HousePro · Paixão pelo que fazemos</span></div>
           </div>
         </section>
-
-        {/* Calculadora */}
-        <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
+        <section id="calcular-imt" aria-labelledby="calculadora-titulo" className="relative z-10 mx-auto -mt-16 max-w-6xl scroll-mt-20 px-4 sm:px-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-2 text-white"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#ff8188]">Simulação imediata</p><h2 id="calculadora-titulo" className="mt-1 font-display text-2xl sm:text-3xl">Faça as contas à sua compra</h2></div><p className="text-sm text-white/65">Resultado atualizado à medida que preenche.</p></div>
           <ImtCalculator />
         </section>
-
-        {/* Como funciona */}
-        <section className="mx-auto max-w-3xl px-4 pb-4 sm:px-6">
-          <h2 className="font-display text-2xl sm:text-3xl">Como se calcula o IMT</h2>
-          <div className="mt-4 space-y-4 text-pretty leading-relaxed text-foreground/90">
-            <p>
-              O IMT é apurado <strong>escalão a escalão</strong> sobre a base
-              tributável — o maior valor entre o preço de escritura e o Valor
-              Patrimonial Tributário (VPT). Cada fatia do valor é tributada à taxa
-              do seu escalão; nos dois escalões superiores aplica-se uma taxa única
-              sobre o valor total.
-            </p>
-            <p>
-              O <strong>Imposto de Selo</strong> é de 0,8% sobre o valor da
-              aquisição. Se houver crédito à habitação, acresce 0,6% (prazo igual
-              ou superior a 5 anos) ou 0,5% (prazo inferior a 5 anos) sobre o
-              montante financiado.
-            </p>
-            <ul className="space-y-2">
-              {[
-                "Habitação própria e permanente tem escalões com isenção inicial.",
-                "2.ª habitação e investimento pagam IMT desde o 1.º euro.",
-                "Terrenos e prédios urbanos não habitacionais: taxa única de 6,5%.",
-                "Prédios rústicos: taxa única de 5%.",
-              ].map((t) => (
-                <li key={t} className="flex items-start gap-2.5">
-                  <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>{t}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <section id="guia-imt" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 sm:py-20">
+          <div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#d62832]">Guia claro</p><h2 className="mt-2 font-display text-3xl sm:text-4xl">Que impostos paga ao comprar casa?</h2><p className="mt-4 leading-relaxed text-[#596579]">O preço não é o único valor a preparar para a escritura. O IMT e o Imposto do Selo têm bases e regras diferentes; a simulação separa cada parcela.</p></div>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">{taxCards.map(c=><article key={c.title} className="rounded-2xl border border-[#e5eaf1] bg-white p-6 shadow-[0_16px_40px_-32px_rgba(11,31,58,.4)]"><span className="grid size-11 place-items-center rounded-xl bg-[#eaf1f7] text-[#0b1f3a]"><c.icon className="size-5" /></span><h3 className="mt-5 font-display text-lg">{c.title}</h3><p className="mt-2 text-sm leading-relaxed text-[#596579]">{c.text}</p></article>)}</div>
+          <div className="mt-6 rounded-2xl border-l-4 border-[#d62832] bg-white p-6 text-sm leading-relaxed text-[#34445a]"><strong>Exemplo para 2026:</strong> uma habitação própria no Continente comprada por 250 000 €, com VPT igual ou inferior ao preço e sem isenções especiais, resulta em cerca de <strong>7 042 € de IMT</strong> e <strong>2 000 € de Selo da aquisição</strong>. O valor final depende da liquidação oficial.</div>
         </section>
-
-        <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-          <h2 className="font-display text-2xl sm:text-3xl">Como obter os valores oficiais</h2>
-          <ol className="mt-4 list-decimal space-y-3 pl-6 text-sm leading-relaxed">
-            <li>Confirme o preço da escritura e o VPT que constava da caderneta predial à data da compra.</li>
-            <li>No <a className="underline" href="https://info.portaldasfinancas.gov.pt/pt/apoio_ao_contribuinte/Cidadaos/Casa_e_propriedades/Compra_da_casa/Paginas/default.aspx" target="_blank" rel="noopener noreferrer">Portal das Finanças: compra da casa</a>, consulte a declaração Modelo 1 de IMT e as guias de IMT e Selo. Para uma compra passada, procure também a escritura ou os recibos do notário/solicitador.</li>
-            <li>Se faltar um comprovativo, veja as <a className="underline" href="https://info.portaldasfinancas.gov.pt/pt/apoio_ao_contribuinte/Cidadaos/Casa_e_propriedades/Certidoes_e_comprovativos/Paginas/default.aspx" target="_blank" rel="noopener noreferrer">instruções da AT para obter e imprimir a declaração</a> ou peça apoio no e-balcão.</li>
-          </ol>
-          <p className="mt-4 rounded-xl border bg-secondary/40 p-4 text-sm">Comprou antes de 2023 ou teve isenção especial, permuta, compropriedade ou outra situação fora de uma compra simples? Use os valores da liquidação original e <a href="#duvidas-imt" className="font-semibold underline">peça esclarecimento</a>.</p>
-        </section>
-
-        {/* FAQ */}
-        <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-          <h2 className="font-display text-2xl sm:text-3xl">Perguntas frequentes</h2>
-          <div className="mt-5 divide-y rounded-2xl border bg-card">
-            {faq.map((f) => (
-              <details key={f.q} className="group px-5 py-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-medium">
-                  <span className="flex items-center gap-2">
-                    <HelpCircle className="size-4 text-primary" /> {f.q}
-                  </span>
-                  <span className="text-muted-foreground transition-transform group-open:rotate-45">+</span>
-                </summary>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-
-        {/* CTA lead */}
-        <section className="px-4 pb-16 sm:px-6">
-          <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl border bg-gradient-to-br from-primary to-primary/80 px-6 py-10 text-primary-foreground sm:px-12 sm:py-12">
-            <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:items-center">
-              <div>
-                <h2 className="font-display text-2xl sm:text-3xl">
-                  Vai comprar casa? Nós tratamos de tudo.
-                </h2>
-                <p className="mt-2 max-w-xl text-primary-foreground/85">
-                  Um consultor HousePro ajuda-o a encontrar o imóvel certo, a
-                  simular o crédito e a preparar toda a documentação — do primeiro
-                  clique à escritura.
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-                <Link
-                  href="/imoveis"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-background px-5 py-3 text-sm font-medium text-foreground transition-transform hover:scale-[1.02]"
-                >
-                  Ver imóveis <ArrowRight className="size-4" />
-                </Link>
-                <Link
-                  href="/credito"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-5 py-3 text-sm font-medium transition-colors hover:bg-white/10"
-                >
-                  Simular crédito habitação
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <p className="mx-auto max-w-3xl px-4 pb-12 text-xs leading-relaxed text-muted-foreground sm:px-6">
-          Tabelas da AT dos anos 2023 a 2026 (Ofícios-Circulados n.º 40120/2023,
-          40123/2024, 40128/2025 e 40129/2026). Esta ferramenta dá
-          uma <strong className="text-foreground">estimativa</strong> e não
-          substitui a liquidação oficial nas Finanças nem o aconselhamento de um
-          profissional. Não inclui custos de escritura, registo predial e outros
-          encargos, que variam caso a caso.
-        </p>
+        <section className="bg-white py-16 sm:py-20"><div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[.85fr_1.15fr]"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#d62832]">Antes da escritura</p><h2 className="mt-2 font-display text-3xl sm:text-4xl">Onde obter as guias e os comprovativos?</h2><p className="mt-4 text-sm leading-relaxed text-[#596579]">A simulação ajuda a preparar o orçamento. Os valores oficiais são emitidos pela Autoridade Tributária.</p></div><ol className="space-y-6">
+          <li className="flex gap-4"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#0b1f3a] text-sm font-bold text-white">1</span><div><h3 className="font-semibold">Confirme os dados do imóvel</h3><p className="mt-1 text-sm leading-relaxed text-[#596579]">Tenha à mão o preço, a caderneta predial com o VPT e a finalidade da compra.</p></div></li>
+          <li className="flex gap-4"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#0b1f3a] text-sm font-bold text-white">2</span><div><h3 className="font-semibold">Entregue a declaração Modelo 1 de IMT</h3><p className="mt-1 text-sm leading-relaxed text-[#596579]">No <a className="font-semibold text-[#0d3b66] underline underline-offset-2" href="https://info.portaldasfinancas.gov.pt/pt/apoio_ao_contribuinte/Cidadaos/Casa_e_propriedades/Compra_da_casa/Paginas/default.aspx" target="_blank" rel="noopener noreferrer">Portal das Finanças</a>, siga as instruções para entregar a declaração e emitir as guias de IMT e Selo.</p></div></li>
+          <li className="flex gap-4"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#0b1f3a] text-sm font-bold text-white">3</span><div><h3 className="font-semibold">Guarde os comprovativos</h3><p className="mt-1 text-sm leading-relaxed text-[#596579]">Leve os documentos de pagamento ou isenção à escritura. Para compras passadas, a AT explica como <a className="font-semibold text-[#0d3b66] underline underline-offset-2" href="https://info.portaldasfinancas.gov.pt/pt/apoio_ao_contribuinte/Cidadaos/Casa_e_propriedades/Certidoes_e_comprovativos/Paginas/default.aspx" target="_blank" rel="noopener noreferrer">obter o comprovativo da declaração</a>.</p></div></li>
+        </ol></div></section>
+        <section id="faq-imt" className="mx-auto max-w-4xl scroll-mt-20 px-4 py-16 sm:px-6 sm:py-20"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#d62832]">Perguntas frequentes</p><h2 className="mt-2 font-display text-3xl sm:text-4xl">IMT e Imposto do Selo, sem dúvidas</h2><div className="mt-7 divide-y divide-[#e5eaf1] overflow-hidden rounded-2xl border border-[#e5eaf1] bg-white">{faq.map(f=><details key={f.q} className="group px-5 py-5 sm:px-7"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold"><span className="flex items-center gap-3"><HelpCircle className="size-4 shrink-0 text-[#d62832]" />{f.q}</span><span aria-hidden className="text-xl font-normal text-[#d62832] group-open:rotate-45">+</span></summary><p className="mt-3 max-w-2xl pl-7 text-sm leading-relaxed text-[#596579]">{f.a}</p></details>)}</div></section>
+        <section className="px-4 pb-16 sm:px-6"><div className="mx-auto flex max-w-6xl flex-col justify-between gap-6 rounded-2xl bg-[#0b1f3a] px-6 py-9 text-white sm:px-10 lg:flex-row lg:items-center"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#ff8188]">O próximo passo</p><h2 className="mt-2 font-display text-2xl sm:text-3xl">À procura da casa certa?</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-white/75">Explore os imóveis disponíveis e prepare o financiamento com as contas claras desde o início.</p></div><div className="flex flex-wrap gap-3"><Link href="/imoveis?operacao=comprar" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#d62832] px-5 text-sm font-bold text-white hover:bg-[#b71d26]">Ver imóveis <ArrowRight className="size-4" /></Link><Link href="/credito" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 px-5 text-sm font-semibold hover:bg-white/10">Simular crédito</Link></div></div></section>
+        <div className="mx-auto max-w-4xl px-4 pb-12 text-xs leading-relaxed text-[#667085] sm:px-6"><p className="flex items-start gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0" /><span><strong>Estimativa indicativa.</strong> Baseada nas tabelas da AT para 2023–2026 (Ofícios-Circulados 40120/2023, 40123/2024, 40128/2025 e 40129/2026). Não substitui a liquidação oficial nem inclui escritura, registos ou outros encargos. Confirme benefícios e casos especiais com a AT ou um profissional.</span></p></div>
       </main>
-      <SiteFooter />
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
+      <PublicFooter />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     </div>
   );
 }

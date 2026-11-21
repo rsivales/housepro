@@ -1,121 +1,30 @@
 import type { Metadata } from "next";
-import { Eye, Users, CalendarCheck, Check, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, CalendarCheck, ClipboardList, FileCheck2, House, Mail, TrendingUp, Users } from "lucide-react";
 
-import { PortalShell } from "@/components/portal/portal-shell";
-import { DealStepper } from "@/components/process/deal-stepper";
-import { vendedorPortal } from "@/lib/data/client";
-import { propertyById } from "@/lib/data/mock";
-import { dealById } from "@/lib/data/deal";
-import { docStatus, docLabel, requiredDocKinds } from "@/lib/imovel/model";
-import { formatEuro, formatPrice } from "@/lib/format";
+import { ClientAreaShell } from "@/components/cliente/client-area-shell";
+import { PortalNewsBanner } from "@/components/cliente/portal-news-banner";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { getOwnerPortalsByEmail } from "@/lib/db/owner-portal";
 
-export const metadata: Metadata = { title: "Portal do vendedor" };
+export const metadata: Metadata = { title: "Acompanhar a venda", robots: { index: false, follow: false } };
 export const revalidate = 300;
 
-export default function VendedorPortal() {
-  const p = vendedorPortal;
-  const property = propertyById(p.propertyId);
-  const deal = dealById(p.dealId);
-  const isCompany = property?.sellerType === "empresa";
-  const st = docStatus(property?.documents ?? [], isCompany);
-  const requiredKinds = requiredDocKinds(isCompany);
-
-  const stats = [
-    { icon: Eye, label: "Visualizações", value: p.stats.views.toLocaleString("pt-PT") },
-    { icon: Users, label: "Contactos", value: String(p.stats.leads) },
-    { icon: CalendarCheck, label: "Visitas", value: String(p.stats.visits) },
-  ];
-
-  return (
-    <PortalShell active="vendedor" clientName={p.name} consultantId={p.consultantId}>
-      <h1 className="font-display text-2xl sm:text-3xl">A sua venda</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Desempenho da montra, avaliação e evolução do processo de venda.
-      </p>
-
-      {/* Imóvel + avaliação */}
-      {property && (
-        <section className="mt-8 overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <div className="grid sm:grid-cols-[16rem_1fr]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={property.image} alt="" className="h-44 w-full object-cover sm:h-full" />
-            <div className="p-5">
-              <p className="text-xs font-medium text-primary">O seu imóvel · {property.reference}</p>
-              <h2 className="mt-1 font-display text-xl">{property.title}</h2>
-              <p className="text-sm text-muted-foreground">{property.parish}, {property.municipality}</p>
-              <div className="mt-4 flex flex-wrap items-end gap-x-6 gap-y-2">
-                <div>
-                  <p className="text-xs text-muted-foreground">Em comercialização</p>
-                  <p className="font-display text-2xl">{formatPrice(property)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Avaliação HousePro</p>
-                  <p className="font-medium">
-                    {formatEuro(p.valuation.min)} – {formatEuro(p.valuation.max)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Desempenho da montra */}
-      <section className="mt-6 grid gap-4 sm:grid-cols-3">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-2xl border bg-card p-5 shadow-sm">
-            <div className="grid size-10 place-items-center rounded-xl bg-secondary text-primary">
-              <s.icon className="size-5" />
-            </div>
-            <p className="mt-3 font-display text-2xl">{s.value}</p>
-            <p className="text-sm text-muted-foreground">{s.label}</p>
-          </div>
-        ))}
-      </section>
-
-      {/* Documentação */}
-      <section className="mt-8 rounded-2xl border bg-card p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-display text-xl">Documentação</h2>
-          {st.complete ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-medium text-success">
-              <Check className="size-3.5" /> Completa
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-xs font-medium text-gold-foreground">
-              <AlertTriangle className="size-3.5" /> {st.missingCount} em falta
-            </span>
-          )}
-        </div>
-        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-          {requiredKinds.map((k) => {
-            const has = (property?.documents ?? []).includes(k);
-            return (
-              <li key={k} className="flex items-center gap-2 text-sm">
-                <span
-                  className={
-                    "grid size-5 place-items-center rounded-full " +
-                    (has ? "bg-success/15 text-success" : "bg-secondary text-muted-foreground")
-                  }
-                >
-                  {has ? <Check className="size-3" /> : <span className="size-1.5 rounded-full bg-current" />}
-                </span>
-                <span className={has ? "" : "text-muted-foreground"}>{docLabel(k)}</span>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
-      {/* Processo de venda */}
-      {deal && (
-        <section className="mt-8 rounded-2xl border bg-card p-6 shadow-sm">
-          <h2 className="font-display text-xl">Processo de venda</h2>
-          <div className="mt-6">
-            <DealStepper stage={deal.stage} creditStage={deal.creditStage} />
-          </div>
-        </section>
-      )}
-    </PortalShell>
-  );
+export default async function VendedorPortal() {
+  const user = isSupabaseConfigured() ? (await (await createClient()).auth.getUser()).data.user : null;
+  const properties = user?.email ? await getOwnerPortalsByEmail(user.email) : [];
+  return <ClientAreaShell active="vendedor" eyebrow="Acompanhamento do proprietário" title="Vender com clareza, do início ao fim." description="Tenha os próximos passos à mão e acompanhe os dados concretos do seu imóvel através da ligação privada enviada pela equipa HousePro." image="/home/banner-familia.webp">
+    {properties.length > 0 && <section className="mt-7"><p className="text-xs font-bold uppercase tracking-[.16em] text-[#a31621]">Imóveis associados à sua conta</p><h2 className="mt-1 font-display text-2xl font-semibold">A sua venda, em números reais</h2><div className="mt-4 grid gap-4 sm:grid-cols-2">{properties.map(p => <article key={p.ref} className="rounded-[1.5rem] border border-[#dce3ec] bg-white p-5 shadow-sm dark:border-white/15 dark:bg-white/5"><p className="text-xs font-semibold text-[#a31621]">Ref. {p.ref} · {p.municipality}</p><h3 className="mt-1 font-display text-xl font-semibold">{p.title}</h3><div className="mt-5 grid grid-cols-2 gap-3 text-sm"><p className="rounded-xl bg-[#f4f6f9] p-3 dark:bg-white/10"><CalendarCheck className="mb-2 size-4 text-[#a31621]" /><strong className="block text-lg">{p.visitsDone}</strong>visitas realizadas</p><p className="rounded-xl bg-[#f4f6f9] p-3 dark:bg-white/10"><Users className="mb-2 size-4 text-[#a31621]" /><strong className="block text-lg">{p.leadsCount}</strong>interessados</p></div><p className="mt-4 text-xs opacity-70">{p.dealStage ? `Processo em acompanhamento · ${p.milestones.find(m => !m.reached)?.label ?? "etapas registadas"}` : "Ainda sem negócio registado"}</p></article>)}</div></section>}
+    <section className="mt-7 grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
+      <div className="rounded-[1.5rem] border border-[#dce3ec] bg-white p-6 shadow-sm sm:p-8 dark:border-white/15 dark:bg-white/5">
+        <p className="text-xs font-bold uppercase tracking-[.16em] text-[#a31621]">O seu imóvel</p><h2 className="mt-2 font-display text-2xl font-semibold">O acompanhamento é privado.</h2>
+        <p className="mt-3 max-w-xl text-sm leading-6 opacity-75">{properties.length ? "O portal privado de cada imóvel reúne mais detalhes da atividade e do processo. Use a ligação enviada pelo seu consultor." : "Visitas, interessados e etapas da venda aparecem no portal privado do imóvel. Abra a ligação que o seu consultor lhe enviou. Se ainda não a recebeu, peça acesso à equipa."}</p>
+        <a href={`mailto:geral@housepro.pt?subject=${encodeURIComponent("Acesso ao portal do proprietário")}`} className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#a31621] px-5 py-3 text-sm font-semibold text-white hover:bg-[#bd2631]"><Mail className="size-4" /> Pedir acesso ao meu imóvel</a>
+      </div>
+      <div className="rounded-[1.5rem] bg-[#0b1f3a] p-6 text-white sm:p-8"><FileCheck2 className="size-7 text-[#f5a7ad]" /><h2 className="mt-4 font-display text-xl">Prepare a venda sem surpresas</h2><p className="mt-2 text-sm leading-6 text-white/75">Documentação, valor de mercado e custos de venda merecem ser vistos antes de tomar decisões.</p><Link href="/ferramentas/calculadora-mais-valias" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-white underline underline-offset-4">Calcular mais-valias <ArrowRight className="size-4" /></Link></div>
+    </section>
+    <section className="mt-10"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#a31621]">No seu ritmo</p><h2 className="mt-1 font-display text-2xl font-semibold sm:text-3xl">Recursos para cada decisão</h2><div className="mt-4 grid gap-3 sm:grid-cols-3">{[{ icon: House, title: "Quanto vale a minha casa?", text: "Peça uma análise adaptada ao mercado local.", href: "/avaliacao-imovel" }, { icon: TrendingUp, title: "Mais-valias", text: "Faça uma simulação indicativa antes de vender.", href: "/ferramentas/calculadora-mais-valias" }, { icon: ClipboardList, title: "Preparar a venda", text: "Conheça o acompanhamento HousePro.", href: "/vender" }].map(x => <Link key={x.href} href={x.href} className="group rounded-2xl border border-[#dce3ec] bg-white p-5 transition hover:border-[#a31621]/50 hover:shadow-md dark:border-white/15 dark:bg-white/5"><x.icon className="size-6 text-[#a31621]" /><h3 className="mt-4 font-semibold">{x.title}</h3><p className="mt-1 text-sm opacity-70">{x.text}</p><ArrowRight className="mt-4 size-4 transition group-hover:translate-x-1" /></Link>)}</div></section>
+    <PortalNewsBanner />
+  </ClientAreaShell>;
 }

@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { SiteHeader } from "@/components/layout/site-header";
-import { SiteFooter } from "@/components/layout/site-footer";
+import Link from "next/link";
+import { ClientAreaShell } from "@/components/cliente/client-area-shell";
 import { FavoritesList } from "@/components/cliente/favorites-list";
+import { PortalNewsBanner } from "@/components/cliente/portal-news-banner";
 
 export const metadata: Metadata = { title: "Os meus favoritos" };
 
@@ -23,19 +24,9 @@ export default async function FavoritosPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-background">
-      <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <p className="text-sm font-medium text-primary">A minha conta</p>
-        <h1 className="mt-1 font-display text-3xl sm:text-4xl">
-          Os meus favoritos
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Os imóveis que guardou com o ♥, reunidos num só sítio.
-        </p>
-        <FavoritesList />
-      </main>
-      <SiteFooter />
-    </div>
+    <ClientAreaShell active="comprador" eyebrow="A sua seleção" title="A casa certa merece ser guardada." description="Reúna os imóveis que lhe interessam e compare as opções antes de decidir." image="/imt/hero-algarve.webp">
+      <section className="mt-7 rounded-[1.5rem] border border-[#dce3ec] bg-white p-5 sm:p-7 dark:border-white/15 dark:bg-white/5"><h2 className="font-display text-2xl font-semibold">Os meus imóveis guardados</h2><p className="mt-1 text-sm opacity-70">Pode explorar sem conta. Para manter os favoritos em vários dispositivos, <Link href="/cliente/entrar" className="font-semibold text-[#a31621] underline">entre com o seu email</Link>.</p><FavoritesList /></section>
+      <PortalNewsBanner />
+    </ClientAreaShell>
   );
 }

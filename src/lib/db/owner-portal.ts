@@ -40,6 +40,22 @@ export async function getOwnerPortalData(token: string): Promise<OwnerPortal | n
     .eq("owner_token", token)
     .maybeSingle();
   if (!p) return null;
+  return buildOwnerPortal(p);
+}
+
+/** Imóveis associados ao email verificado da conta do proprietário. Não
+ * expõe tokens nem associa imóveis apenas por um nome semelhante. */
+export async function getOwnerPortalsByEmail(email: string): Promise<OwnerPortal[]> {
+  if (!hasServiceRole() || !email.trim()) return [];
+  const { data, error } = await createAdminClient().from("properties")
+    .select("id, reference, title, municipality, status, off_market, interest")
+    .eq("owner_email", email.trim().toLowerCase()).limit(20);
+  if (error) return [];
+  return Promise.all((data ?? []).map(buildOwnerPortal));
+}
+
+async function buildOwnerPortal(p: { id: unknown; reference?: unknown; title?: unknown; municipality?: unknown; status?: unknown; off_market?: unknown; interest?: unknown }): Promise<OwnerPortal> {
+  const sb = createAdminClient();
   const id = String(p.id);
   const ref = String(p.reference ?? "");
 

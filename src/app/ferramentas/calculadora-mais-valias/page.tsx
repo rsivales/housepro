@@ -88,6 +88,7 @@ export default function CalculadoraMaisValiasPage() {
         <section id="simular" className="scroll-mt-16">
           <div className="relative z-10 mx-auto -mt-32 max-w-3xl px-4 sm:-mt-36 sm:px-6">
             <MvForm />
+            <p className="mt-4 text-center text-sm text-muted-foreground">Vai comprar casa? <a href="/ferramentas/imt" className="font-semibold underline">Calcule o IMT e o Imposto do Selo</a>.</p>
           </div>
         </section>
 

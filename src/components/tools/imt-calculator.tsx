@@ -5,7 +5,7 @@ import { Check, Copy, Printer } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
-  calcularImt,
+  calcularImtNoAno, IMT_ANOS_SUPORTADOS,
   type Finalidade,
   type ImtInput,
   type Localizacao,
@@ -53,6 +53,8 @@ const FINALIDADES: { v: Finalidade; label: string }[] = [
 
 /** Calculadora pública de IMT + Imposto de Selo (usa o motor puro em lib/tools). */
 export function ImtCalculator() {
+  const [ano,setAno]=React.useState(2026);
+  const [dataCompra,setDataCompra]=React.useState("");
   const [loc, setLoc] = React.useState<Localizacao>("continente");
   const [fin, setFin] = React.useState<Finalidade>("hpp");
   const [preco, setPreco] = React.useState(0);
@@ -62,10 +64,13 @@ export function ImtCalculator() {
   const [emprestimo, setEmprestimo] = React.useState(0);
   const [prazo, setPrazo] = React.useState<Prazo>("longo");
   const [copied, setCopied] = React.useState(false);
+  const [lead,setLead]=React.useState({name:"",email:"",phone:"",question:"",consent:false});
+  const [leadStatus,setLeadStatus]=React.useState<"idle"|"sending"|"sent"|"error">("idle");
 
-  const input: ImtInput = { loc, fin, preco, vpt, jovem, credito, emprestimo, prazo };
-  const d = calcularImt(input);
-  const jovemDisponivel = fin === "hpp";
+  const jovemDisponivel = fin === "hpp" && ano >= 2024;
+  const jovemNaData = jovem && (ano > 2024 || (dataCompra >= "2024-08-01" && dataCompra <= "2024-12-31"));
+  const input: ImtInput = { loc, fin, preco, vpt, jovem: jovemNaData, credito, emprestimo, prazo };
+  const d = calcularImtNoAno(input, ano);
 
   React.useEffect(() => {
     if (!jovemDisponivel && jovem) setJovem(false);
@@ -73,7 +78,7 @@ export function ImtCalculator() {
 
   function copiar() {
     const txt =
-      "Estimativa de impostos na compra de imóvel (2026)\n" +
+      `Estimativa de impostos na compra de imóvel (${ano})\n` +
       `Base tributável: ${eur.format(d.base)}\n` +
       `IMT: ${d.imt === 0 ? "Isento" : eur.format(d.imt)}\n` +
       `Imposto de Selo (aquisição): ${d.isAquisicao === 0 ? "Isento" : eur.format(d.isAquisicao)}\n` +
@@ -86,7 +91,7 @@ export function ImtCalculator() {
   }
 
   const nota = (() => {
-    if (fin === "hpp" && !jovem)
+    if (fin === "hpp" && !jovem && jovemDisponivel)
       return "Dica: se o comprador tem até 35 anos e é a 1.ª habitação, ative o IMT Jovem — pode ficar isento.";
     if (jovem && fin !== "hpp")
       return "O IMT Jovem só se aplica a habitação própria e permanente.";
@@ -104,6 +109,7 @@ export function ImtCalculator() {
     <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
       {/* Entradas */}
       <div className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+        <label htmlFor="imt-ano" className="mb-5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ano da compra<select id="imt-ano" className="mt-2 block w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-foreground" value={ano} onChange={e=>{setAno(Number(e.target.value));setJovem(false);setDataCompra("")}}>{[...IMT_ANOS_SUPORTADOS].reverse().map(a=><option value={a} key={a}>{a}</option>)}</select></label>
         <Segmented
           label="Localização do imóvel"
           options={[
@@ -141,6 +147,7 @@ export function ImtCalculator() {
           value={preco}
           onChange={setPreco}
         />
+        {ano===2024&&<label className="mt-4 block text-sm">Data da compra (para confirmar IMT Jovem)<input type="date" min="2024-01-01" max="2024-12-31" value={dataCompra} onChange={e=>setDataCompra(e.target.value)} className="mt-2 block w-full rounded-lg border bg-white px-3 py-2.5"/></label>}
         <MoneyField
           label="Valor Patrimonial Tributário (opcional)"
           value={vpt}
@@ -174,6 +181,7 @@ export function ImtCalculator() {
             </small>
           </span>
         </label>
+        {jovem&&ano===2024&&!jovemNaData&&<p role="status" className="mt-2 text-xs text-amber-700">A isenção jovem entrou em vigor em 1 de agosto de 2024. Indique uma data a partir desse dia para a aplicar.</p>}
 
         {/* Crédito */}
         <div
@@ -249,7 +257,7 @@ export function ImtCalculator() {
           </div>
           <div className="grid size-[74px] shrink-0 -rotate-12 place-items-center rounded-full border-2 border-gold text-center text-gold">
             <div>
-              <b className="block font-display text-[15px] leading-none">2026</b>
+              <b className="block font-display text-[15px] leading-none">{ano}</b>
               <small className="mt-1 block text-[8.5px] uppercase tracking-widest">IMT · IS</small>
             </div>
           </div>
@@ -338,6 +346,19 @@ export function ImtCalculator() {
           {nota}
         </p>
       </div>
+      <section id="duvidas-imt" className="rounded-2xl border bg-card p-5 sm:p-7 lg:col-span-2">
+        <h2 className="font-display text-2xl">Dúvidas sobre os impostos da sua compra?</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Envie a questão a um consultor. Juntamos os valores desta simulação ao pedido para o ajudar a responder.</p>
+        {leadStatus==="sent"?<p role="status" className="mt-5 rounded-lg bg-green-50 p-4">Pedido recebido. Um consultor entrará em contacto consigo.</p>:<form className="mt-5 grid gap-3 sm:grid-cols-2" onSubmit={async e=>{e.preventDefault();setLeadStatus("sending");try{const ref=new URLSearchParams(location.search).get("ref")||undefined;const r=await fetch("/api/contact-intent",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({channel:"Dúvidas IMT e Imposto do Selo",ref,clientName:lead.name,clientEmail:lead.email,clientPhone:lead.phone,consent:lead.consent,objetivo:`Ano ${ano}; ${fin}; ${loc}; preço ${eur.format(preco)}; VPT ${eur.format(vpt)}; base ${eur.format(d.base)}; IMT ${eur.format(d.imt)}; Selo aquisição ${eur.format(d.isAquisicao)}; Selo crédito ${eur.format(d.isCredito)}. Questão: ${lead.question}`,pageUrl:location.href})});if(!r.ok)throw new Error();setLeadStatus("sent")}catch{setLeadStatus("error")}}}>
+          <label className="text-sm">Nome<input required maxLength={120} value={lead.name} onChange={e=>setLead(v=>({...v,name:e.target.value}))} className="mt-1 block w-full rounded-lg border px-3 py-2.5"/></label>
+          <label className="text-sm">Telefone<input type="tel" required value={lead.phone} onChange={e=>setLead(v=>({...v,phone:e.target.value}))} className="mt-1 block w-full rounded-lg border px-3 py-2.5"/></label>
+          <label className="text-sm">E-mail<input type="email" required value={lead.email} onChange={e=>setLead(v=>({...v,email:e.target.value}))} className="mt-1 block w-full rounded-lg border px-3 py-2.5"/></label>
+          <label className="text-sm sm:col-span-2">A sua dúvida<textarea value={lead.question} onChange={e=>setLead(v=>({...v,question:e.target.value}))} rows={3} maxLength={2000} className="mt-1 block w-full rounded-lg border px-3 py-2.5"/></label>
+          <label className="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" required checked={lead.consent} onChange={e=>setLead(v=>({...v,consent:e.target.checked}))}/><span>Autorizo o tratamento dos meus dados e o contacto para responder a este pedido, conforme a <a href="/privacidade" className="underline">política de privacidade</a>.</span></label>
+          {leadStatus==="error"&&<p role="alert" className="text-sm text-red-700 sm:col-span-2">Não foi possível enviar. Verifique os dados e tente novamente.</p>}
+          <button disabled={leadStatus==="sending"} className="rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50 sm:col-span-2 sm:justify-self-start">{leadStatus==="sending"?"A enviar…":"Pedir esclarecimento"}</button>
+        </form>}
+      </section>
     </div>
   );
 }

@@ -7,12 +7,15 @@ import { ArrowRight, ArrowLeft, Check, Loader2, Lock, AlertCircle, RefreshCw, Ma
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 import { validateStep, TAXAS_MARGINAIS, parseCampaign,runSimulation,buildEmailReport,renderMvReportEmail, type MvSubmission } from "@/lib/tools/mais-valias-funnel";
+import { calcularImtNoAno, suportaImtHistorico, IMT_FONTES, type Finalidade, type Localizacao } from "@/lib/tools/imt";
 
 const KEY = "hp:mais-valias";
 const BASE_STEPS = ["Imóvel", "Despesas", "Situação fiscal", "Contacto"] as const;
 const YEARS = Array.from({ length: 41 }, (_, i) => String(new Date().getFullYear() + 1 - i));
 const bs: React.CSSProperties = { borderColor: "var(--border)" };
 const inputCls = "mt-1.5 h-11 w-full rounded-xl border bg-[var(--card)] px-3 text-sm outline-none focus-visible:ring-[3px]";
+const eur = (n:number) => new Intl.NumberFormat("pt-PT",{style:"currency",currency:"EUR"}).format(n);
+const amount = (v?:string) => Number((v??"").replace(/[^\d,.-]/g,"").replace(/\.(?=\d{3}(\D|$))/g,"").replace(",",".")) || 0;
 
 function Err({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -42,6 +45,14 @@ export function MvForm({mode="public",consultantRef,consultant,readOnly=false}:{
   const trackMv=(event:Parameters<typeof track>[0])=>{if(!professional)track(event);};
   const [step, setStep] = React.useState(0);
   const [d, setD] = React.useState<MvSubmission>({ aquisicao: "compra", quota: "100", residencia: "residente" });
+  const [showImt,setShowImt]=React.useState(false);
+  const [imtFin,setImtFin]=React.useState<Finalidade>("hpp");
+  const [imtLoc,setImtLoc]=React.useState<Localizacao>("continente");
+  const [imtVpt,setImtVpt]=React.useState("");
+  const [imtJovem,setImtJovem]=React.useState(false);
+  const [imtDate,setImtDate]=React.useState("");
+  const [imtError,setImtError]=React.useState("");
+  const appliedImt=React.useRef(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [status, setStatus] = React.useState<"idle" | "loading" | "error" | "retry" | "success" | "duplicate">("idle");
   const [started, setStarted] = React.useState(false);
@@ -61,6 +72,9 @@ export function MvForm({mode="public",consultantRef,consultant,readOnly=false}:{
   function patch(p: Partial<MvSubmission>) {
     if (!started) { setStarted(true); trackMv("mv_sim_start"); }
     setErrors((prev) => { if (!Object.keys(prev).length) return prev; const n = { ...prev }; for (const k of Object.keys(p)) delete n[k]; return n; });
+    const changedAcquisition = "valorAquisicao" in p || "anoAquisicao" in p || "aquisicao" in p;
+    if (changedAcquisition && appliedImt.current) { p = { ...p, imt: "", selo: "" }; appliedImt.current = false; }
+    if ("imt" in p || "selo" in p) appliedImt.current = false;
     persist({ ...d, ...p });
   }
   function next() {
@@ -183,6 +197,19 @@ export function MvForm({mode="public",consultantRef,consultant,readOnly=false}:{
           <fieldset className="space-y-4">
             <legend className="font-display text-lg">Despesas e encargos</legend>
             <p className="text-sm text-muted-foreground">Indique o que se aplica — deixe em branco o resto. A dedutibilidade de cada despesa depende de comprovativos e das regras aplicáveis.</p>
+            {d.aquisicao==="compra"&&<section className="rounded-xl border bg-secondary/30 p-4 sm:p-5" aria-label="Calcular impostos pagos na compra">
+              <button type="button" aria-expanded={showImt} onClick={()=>setShowImt(v=>!v)} className="text-left font-semibold text-[var(--hp-navy)]">{showImt?"−":"+"} Não se lembra do IMT e do Selo? Calcular aqui</button>
+              {showImt&&<div className="mt-4 space-y-4 text-sm">
+                <p>Usamos o valor e o ano de compra indicados no passo anterior. Escolha a finalidade <strong>à data da compra</strong>.</p>
+                <div className="grid gap-3 sm:grid-cols-2"><label>Finalidade à data da compra<select className={inputCls} value={imtFin} onChange={e=>setImtFin(e.target.value as Finalidade)}><option value="hpp">Habitação própria e permanente</option><option value="secundaria">Segunda habitação, arrendamento ou investimento</option><option value="terreno">Prédio urbano não habitacional / terreno</option><option value="rustico">Prédio rústico</option></select></label><label>Localização<select className={inputCls} value={imtLoc} onChange={e=>setImtLoc(e.target.value as Localizacao)}><option value="continente">Continente</option><option value="ra">Açores / Madeira</option></select></label></div>
+                <div className="grid gap-3 sm:grid-cols-2"><Num id="mv-imt-vpt" label="VPT na data da compra, se souber" value={imtVpt} onChange={setImtVpt} hint="O imposto usa o maior entre preço da escritura e VPT."/><label>Data da compra (necessária para IMT Jovem de 2024)<input type="date" className={inputCls} value={imtDate} onChange={e=>setImtDate(e.target.value)}/></label></div>
+                {imtFin==="hpp"&&Number(d.anoAquisicao)>=2024&&<label className="flex items-start gap-2"><input type="checkbox" checked={imtJovem} onChange={e=>setImtJovem(e.target.checked)}/>Beneficiei de IMT Jovem na primeira habitação, até 35 anos (confirmar condições na liquidação)</label>}
+                {!suportaImtHistorico(Number(d.anoAquisicao))?<p className="rounded-lg border border-amber-300 bg-amber-50 p-3">Ainda não temos uma tabela histórica validada para {d.anoAquisicao||"este ano"}. Consulte a escritura ou a liquidação no Portal das Finanças e introduza os montantes abaixo. Não aplicamos a tabela atual a uma compra antiga.</p>:<button type="button" className="rounded-lg bg-[var(--hp-navy)] px-4 py-2.5 font-semibold text-white" onClick={()=>{try{if(imtDate&&Number(imtDate.slice(0,4))!==Number(d.anoAquisicao))throw new Error("A data deve corresponder ao ano de aquisição.");const r=calcularImtNoAno({fin:imtFin,loc:imtLoc,preco:amount(d.valorAquisicao),vpt:amount(imtVpt),jovem:imtFin==="hpp"&&imtJovem},Number(d.anoAquisicao),imtDate||undefined);if(!r.base)throw new Error("Indique o valor da compra no passo anterior.");patch({imt:r.imt.toFixed(2),selo:r.isAquisicao.toFixed(2)});appliedImt.current=true;setImtError(`Aplicados: IMT ${eur(r.imt)} e Selo da aquisição ${eur(r.isAquisicao)} (base ${eur(r.base)}).`);}catch(e){setImtError(e instanceof Error?e.message:"Não foi possível calcular.");}}}>Calcular e usar no relatório</button>}
+                {imtError&&<p role="status">{imtError}</p>}
+                {suportaImtHistorico(Number(d.anoAquisicao))&&<a href={IMT_FONTES[Number(d.anoAquisicao)]} target="_blank" rel="noopener noreferrer" className="underline">Ver tabela da Autoridade Tributária para {d.anoAquisicao}</a>}
+                <p className="text-xs text-muted-foreground">Estimativa para compra simples, sem outras isenções ou regimes especiais. Use os valores efetivamente pagos se tiver as liquidações. O Selo do crédito não é somado a esta despesa.</p>
+              </div>}
+            </section>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Num id="mv-imt" label="IMT" value={d.imt} onChange={(v) => patch({ imt: v })} />
               <Num id="mv-selo" label="Imposto do Selo" value={d.selo} onChange={(v) => patch({ selo: v })} />

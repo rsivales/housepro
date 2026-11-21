@@ -10,7 +10,7 @@ import { site } from "@/lib/site";
 const path = "/ferramentas/imt";
 const description = "Calcule o IMT e o Imposto do Selo na compra de casa em Portugal. Simule habitação própria, segunda habitação e IMT Jovem com tabelas de 2023 a 2026. Veja exemplos e saiba obter as guias oficiais.";
 export const metadata: Metadata = {
-  title: "Calculadora de IMT 2026 e Imposto do Selo | HousePro",
+  title: "Calculadora de IMT 2026 e Imposto do Selo",
   description,
   keywords: ["calculadora IMT 2026", "simulador IMT", "imposto do selo compra casa", "IMT jovem 2026", "IMT segunda habitação", "quanto pago de IMT"],
   alternates: { canonical: path },

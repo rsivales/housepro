@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   const delivery = await emailDeliveryCredentials();
   if (!delivery.enabled || !delivery.sender || !delivery.apiKey) return error("Configure o Resend antes do envio.", 503);
   let agencyName = "";
-  let localNews: { title: string; body: string } | null = null;
+  let localNews: { title: string; body: string; image?: string } | null = null;
   if (scope === "agency") {
     const { data: agency } = await db.from("agencies").select("name,news,suspended").eq("id", agencyId).maybeSingle();
     if (!agency || agency.suspended) return error("Agência indisponível.", 409);
@@ -97,8 +97,8 @@ export async function POST(request: Request) {
   let sent = 0;
   const articles = (campaign.article_ids as string[]).map(id => EDITORIAL_2026.find(a => a.id === id)).filter((a): a is (typeof EDITORIAL_2026)[number] => Boolean(a));
   const cards = localNews
-    ? `<article><h2>${escapeHtml(localNews.title)}</h2><p style="white-space:pre-line">${escapeHtml(localNews.body)}</p></article>`
-    : articles.map(a => `<article style="padding:16px 0;border-bottom:1px solid #eee"><h2 style="font-size:19px">${escapeHtml(a.title)}</h2><p>${escapeHtml(a.excerpt)}</p><a href="https://housepro.pt/noticias/${encodeURIComponent(a.id)}">Ler análise completa</a></article>`).join("");
+    ? `<article>${localNews.image?.startsWith("https://") ? `<img src="${escapeHtml(localNews.image)}" alt="" width="560" style="width:100%;height:auto;border-radius:12px"/>` : ""}<h2>${escapeHtml(localNews.title)}</h2><p style="white-space:pre-line">${escapeHtml(localNews.body)}</p></article>`
+    : articles.map(a => `<article style="padding:16px 0;border-bottom:1px solid #eee"><img src="https://housepro.pt${a.image}" alt="" width="560" style="width:100%;height:auto;border-radius:12px"/><h2 style="font-size:19px">${escapeHtml(a.title)}</h2><p>${escapeHtml(a.excerpt)}</p><a href="https://housepro.pt/noticias/${encodeURIComponent(a.id)}">Ler análise completa</a></article>`).join("");
   if (!cards) return error("Edição sem conteúdo.", 422);
   for (const row of pending ?? []) {
     // Nova consulta imediatamente antes do envio: cancelamentos posteriores à criação da fila são respeitados.

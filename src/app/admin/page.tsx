@@ -253,6 +253,7 @@ export default function AdminPage() {
         <section className="mt-6 grid gap-4 sm:grid-cols-3">
           {canManageFinance && <NavCard href="/admin/integracoes" icon={Settings} title="Integrações" note="Google Calendar e Resend" />}
           {canManageFinance && <NavCard href="/admin/email" icon={Settings} title="Envio de e-mails" note="Remetente, chave e teste de envio" />}
+          {canManageFinance && <NavCard href="/admin/newsletter" icon={Rss} title="Newsletter da marca" note="Edições em fila, subscrições e envio" />}
           {canManageFinance && <NavCard href="/admin/royalties" icon={TrendingUp} title="Royalties Brand" note="Acumulado por agência e negócio" />}
           <NavCard href="/admin/aprovacoes" icon={ShieldCheck} title="Aprovações" note={`${pendentes.length} pendente(s) · SLA 24–48h`} alert={pendentes.length > 0} />
           <NavCard href="/admin/permissoes" icon={ShieldHalf} title="Permissões" note="Hierarquia · quem aprova/vê" />

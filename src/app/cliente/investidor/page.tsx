@@ -8,6 +8,7 @@ import { propertyById } from "@/lib/data/mock";
 import { formatEuro } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Portal do investidor" };
+export const revalidate = 300;
 
 export default function InvestidorPortal() {
   const p = investidorPortal;

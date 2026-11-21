@@ -10,6 +10,7 @@ import { docStatus, docLabel, requiredDocKinds } from "@/lib/imovel/model";
 import { formatEuro, formatPrice } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Portal do vendedor" };
+export const revalidate = 300;
 
 export default function VendedorPortal() {
   const p = vendedorPortal;

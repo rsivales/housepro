@@ -6,6 +6,8 @@ import { FadeIn } from "@/components/motion/fade-in";
 import { ArticleImage } from "@/components/home/article-image";
 import { getNews, newsHref, isExternalNews, newsImage, NEWS_FALLBACK, newsCategories } from "@/lib/data/news";
 
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: "Notícias & mercado",
   description:

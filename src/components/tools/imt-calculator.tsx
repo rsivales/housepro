@@ -4,6 +4,7 @@ import * as React from "react";
 import { Check, Copy, Printer } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { site, fullAddress } from "@/lib/site";
 import {
   calcularImtNoAno, IMT_ANOS_SUPORTADOS,
   type Finalidade,
@@ -327,7 +328,8 @@ export function ImtCalculator() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#dfe6ef] px-4 py-2.5 text-sm font-semibold text-[#0b1f3a] hover:bg-[#f2f6fa]"
+            disabled={d.base === 0}
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#dfe6ef] px-4 py-2.5 text-sm font-semibold text-[#0b1f3a] hover:bg-[#f2f6fa] disabled:cursor-not-allowed disabled:opacity-45"
           >
             <Printer className="size-4" /> Imprimir / PDF
           </button>
@@ -350,6 +352,50 @@ export function ImtCalculator() {
           <button disabled={leadStatus==="sending"} className="min-h-12 rounded-lg bg-[#d62832] px-5 py-3 text-sm font-bold text-white hover:bg-[#b71d26] disabled:opacity-50 sm:col-span-2 sm:justify-self-start">{leadStatus==="sending"?"A enviar…":"Pedir esclarecimento"}</button>
         </form>}
       </section>
+      <div id="imt-print-report" className="imt-print-report" aria-label="Relatório HousePro de IMT e Imposto do Selo">
+        <div className="imt-print-stripe" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="imt-print-watermark" src="/brand/watermark-bird.png" alt="" />
+        <div className="imt-print-content">
+          <header className="imt-print-header">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/housepro-logo.png" alt="HousePro" />
+            <span>ESTIMATIVA DE AQUISIÇÃO · {ano}</span>
+          </header>
+          <p className="imt-print-eyebrow">FERRAMENTAS HOUSEPRO / COMPRA DE CASA</p>
+          <h1>IMT e Imposto do Selo</h1>
+          <p className="imt-print-intro">Simulação individual dos impostos na aquisição de um imóvel. Valores indicativos calculados com a tabela de {ano}.</p>
+          <p className="imt-print-date">Emitido em {new Date().toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Lisbon" })}</p>
+          <h2>Dados utilizados</h2>
+          <dl className="imt-print-table">
+            <div><dt>Finalidade</dt><dd>{FINALIDADES.find(o => o.v === fin)?.label}</dd></div>
+            <div><dt>Localização</dt><dd>{loc === "continente" ? "Portugal continental" : "Açores ou Madeira"}</dd></div>
+            <div><dt>Valor da escritura</dt><dd>{eur.format(preco)}</dd></div>
+            {vpt > 0 && <div><dt>Valor patrimonial tributário</dt><dd>{eur.format(vpt)}</dd></div>}
+            <div><dt>Base tributável considerada</dt><dd>{eur.format(d.base)}</dd></div>
+            {jovem && <div><dt>IMT Jovem</dt><dd>{jovemNaData ? "Considerado na simulação" : "Não aplicado à data indicada"}</dd></div>}
+          </dl>
+          <h2>Resultado estimado</h2>
+          <dl className="imt-print-table">
+            <div><dt>IMT</dt><dd>{d.imt === 0 ? "Isento" : eur.format(d.imt)}</dd></div>
+            <div><dt>Imposto do Selo · aquisição</dt><dd>{d.isAquisicao === 0 ? "Isento" : eur.format(d.isAquisicao)}</dd></div>
+            {credito && <div><dt>Imposto do Selo · crédito ({prazo === "longo" ? "5+ anos" : "menos de 5 anos"})</dt><dd>{eur.format(d.isCredito)}</dd></div>}
+            <div className="imt-print-total"><dt>Total estimado</dt><dd>{eur.format(d.total)}</dd></div>
+          </dl>
+          <section className="imt-print-note"><strong>IMPORTANTE · ESTIMATIVA INDICATIVA</strong><p>Esta simulação não substitui a liquidação da Autoridade Tributária. Confirme os requisitos das isenções, a situação concreta do imóvel e as tabelas do ano escolhido antes da escritura. Não inclui emolumentos, registos, escritura e outros encargos.</p></section>
+          <footer className="imt-print-footer"><span>HousePro · Paixão pelo que fazemos</span><span>housepro.pt / Ferramentas</span></footer>
+        </div>
+        <aside className="imt-print-sidebar">
+          <span className="imt-print-sidebar-title">CONTACTOS</span>
+          <strong>HousePro</strong>
+          <span>{fullAddress}</span>
+          <span>{site.email.general}</span>
+          <span>housepro.pt</span>
+          <span>AMI {site.amiLicense}</span>
+          <span>NIPC {site.nipc}</span>
+          <span className="imt-print-sidebar-legal">{site.legalName}</span>
+        </aside>
+      </div>
     </div>
   );
 }

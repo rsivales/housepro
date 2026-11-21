@@ -7,6 +7,8 @@ import { DEFAULT_REPORT, initialReportStart, nextReportDate, renderOwnerReport, 
 
 export const dynamic="force-dynamic";
 export const maxDuration=60;
+// Existing listings are grandfathered in. Keep the cutoff fixed across deployments.
+const REPORT_REQUIREMENT_START="2026-11-21T14:41:16.000Z";
 async function session() {
   const s=await getSession();
   return s && !s.demo && !s.viewingAs && hasServiceRole()?s:null;
@@ -16,7 +18,7 @@ export async function GET() {
   if(!s)return NextResponse.json({error:"Sessão inválida."},{status:401});
   const db=createAdminClient();
   const {data:properties,error}=await db.from("properties")
-    .select("id,reference,title,owner_name,owner_email,status,cover_url")
+    .select("id,reference,title,owner_name,owner_email,status,cover_url,created_at")
     .eq("agent_id",s.agent.id).or("status.is.null,status.not.in.(vendido,arrendado)").order("created_at",{ascending:false}).limit(501);
   if(error || (properties?.length??0)>500)return NextResponse.json({error:"Não foi possível carregar os imóveis."},{status:503});
   const ids=(properties??[]).map(p=>p.id);
@@ -25,7 +27,8 @@ export async function GET() {
     db.from("owner_report_outbox").select("id,property_id,kind,state,period_end,accepted_at,error_code").in("property_id",ids).order("created_at",{ascending:false}).limit(100),
   ]):[{data:[],error:null},{data:[],error:null}];
   if(settingsError||historyError)return NextResponse.json({error:"A configuração dos relatórios está indisponível."},{status:503});
-  const missing=(properties??[]).some(p=>!settings?.some(c=>c.property_id===p.id&&c.agent_id===s.agent.id));
+  const requiredProperties=(properties??[]).filter(p=>p.created_at>=REPORT_REQUIREMENT_START && Boolean(p.owner_email));
+  const missing=requiredProperties.some(p=>!settings?.some(c=>c.property_id===p.id&&c.agent_id===s.agent.id));
   let graceUntil:string|null=null;
   if(missing){
     const {error:startError}=await db.from("owner_report_setup_grace").upsert({agent_id:s.agent.id},{onConflict:"agent_id",ignoreDuplicates:true});
@@ -34,7 +37,7 @@ export async function GET() {
     graceUntil=new Date(Date.parse(grace.first_seen_at)+5*86400000).toISOString();
   }
   const {data:profile}=await db.from("profiles").select("photo_url").eq("id",s.agent.id).maybeSingle();
-  return NextResponse.json({properties:properties??[],settings,history,agentEmail:s.agent.email,agentId:s.agent.id,
+  return NextResponse.json({properties:properties??[],requiredPropertyIds:requiredProperties.map(p=>p.id),settings,history,agentEmail:s.agent.email,agentId:s.agent.id,
     agentPhotoAvailable:Boolean(profile?.photo_url),graceUntil},{headers:{"Cache-Control":"private, no-store"}});
 }
 export async function POST(request:Request) {

@@ -21,7 +21,7 @@ export function OwnerReportSetupGate() {
       if(!response.ok)return;
       const data=await response.json();
       if(active){
-        setMissing(data.properties.filter((p:{id:string})=>!data.settings.some((s:{property_id:string;agent_id:string})=>s.property_id===p.id && s.agent_id===data.agentId)).length);
+        setMissing(data.properties.filter((p:{id:string})=>data.requiredPropertyIds?.includes(p.id) && !data.settings.some((s:{property_id:string;agent_id:string})=>s.property_id===p.id && s.agent_id===data.agentId)).length);
         setDeadline(data.graceUntil??"");
         setDismissed(Boolean(data.graceUntil&&sessionStorage.getItem(`owner-report-dismissed:${data.graceUntil}`)));
       }

@@ -7,6 +7,10 @@ import { PublicShell } from "@/components/layout/public-shell";
 import { FadeIn } from "@/components/motion/fade-in";
 import { ArticleImage } from "@/components/home/article-image";
 import { getNews, getNewsById, newsImage, NEWS_FALLBACK } from "@/lib/data/news";
+import { getCommentSettings, listArticleComments } from "@/lib/db/news-comments";
+import { ArticleActions } from "@/components/news/article-actions";
+import { ArticleComments } from "@/components/news/article-comments";
+import { site, fullAddress } from "@/lib/site";
 
 export async function generateMetadata({
   params,
@@ -34,10 +38,19 @@ export default async function NoticiaPage({
 
   const outras = (await getNews()).filter((n) => n.id !== item.id).slice(0, 3);
   const body = item.body ?? [item.excerpt];
+  const settings = await getCommentSettings();
+  const comments = await listArticleComments(item.id);
 
   return (
     <PublicShell>
-      <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
+      <article className="news-article mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
+        <div className="news-print-brand" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/housepro-logo.png" alt="" />
+          <span>GUIA HOUSEPRO · INFORMAÇÃO IMOBILIÁRIA</span>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="news-print-watermark" src="/brand/watermark-bird.png" alt="" aria-hidden="true" />
         <Link href="/noticias" className="inline-flex items-center gap-1.5 text-sm text-[var(--hp-text-2)] transition-colors hover:text-[var(--hp-navy)]">
           <ArrowLeft className="size-4" /> Guia HousePro
         </Link>
@@ -70,6 +83,7 @@ export default async function NoticiaPage({
           <div className="mt-8 space-y-5 text-pretty text-[1.05rem] leading-relaxed text-[var(--hp-navy)]/90">
             {body.map((p, i) => <p key={i} className={i === 0 ? "font-semibold" : i === body.length - 1 ? "border-l-4 border-[var(--hp-red)] pl-4" : ""}>{p}</p>)}
           </div>
+          <ArticleActions title={item.title} id={item.id} />
 
           {item.sources?.length ? <aside className="mt-9 rounded-xl border bg-black/[0.03] p-5 text-sm">
             <h2 className="font-semibold text-[var(--hp-navy)]">Fontes oficiais</h2>
@@ -79,6 +93,10 @@ export default async function NoticiaPage({
             Análise informativa HousePro, revista em {formatDate(item.date)}. Regras e valores podem mudar. Confirme o seu caso com as entidades competentes e profissionais habilitados.
           </p>
         </FadeIn>
+
+        <ArticleComments articleId={item.id} comments={comments} enabled={settings.enabled && !settings.disabled_article_ids.includes(item.id)} />
+
+        <div className="news-print-footer" aria-hidden="true">HousePro · {site.legalName} · AMI {site.amiLicense} · {fullAddress} · {site.email.general} · housepro.pt</div>
 
         {outras.length > 0 && (
           <section className="mt-14">

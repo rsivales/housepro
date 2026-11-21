@@ -4,6 +4,7 @@ import { SIGNATURE_COLLECTIONS } from "@/lib/signature/collections";
 import { signaturePropertyHref } from "@/lib/signature/media";
 import { site } from "@/lib/site";
 import { listSignatureProperties } from "@/lib/db/repo";
+import { EDITORIAL_2026 } from "@/lib/data/news-2026";
 
 /** Sitemap das páginas públicas principais. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -33,6 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const signature = await listSignatureProperties();
   return [
     ...staticEntries,
+    ...EDITORIAL_2026.map(article => ({ url: base + "/noticias/" + article.id, lastModified: new Date(article.date + "T12:00:00Z"), changeFrequency: "weekly" as const, priority: 0.65 })),
     ...SIGNATURE_COLLECTIONS.map(collection => ({ url: `${base}/signature/colecoes/${collection.slug}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 })),
     ...signature.map((property) => ({
       url: `${base}${signaturePropertyHref(property)}`,

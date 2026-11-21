@@ -47,8 +47,9 @@ export default function CalculadoraImtPage() {
       <PublicHeader solid />
       <main>
         <section className="relative isolate overflow-hidden bg-[#0b1f3a] text-white">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_86%_22%,rgba(42,99,142,.43),transparent_36%),linear-gradient(135deg,#0b1f3a_22%,#122d4b_100%)]" aria-hidden />
-          <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pb-28 pt-14 sm:px-6 sm:pb-32 sm:pt-20 lg:grid-cols-[1.2fr_.8fr] lg:items-center">
+          <Image src="/imt/hero-algarve.webp" alt="" fill priority sizes="100vw" className="object-cover object-[72%_center] sm:object-center" aria-hidden />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#07182f] via-[#0b1f3a]/85 to-[#0b1f3a]/30 sm:bg-gradient-to-r sm:from-[#07182f] sm:via-[#0b1f3a]/80 sm:to-[#0b1f3a]/10" aria-hidden />
+          <div className="relative mx-auto max-w-6xl px-4 pb-36 pt-52 sm:px-6 sm:pb-32 sm:pt-20">
             <div>
               <nav aria-label="Percurso" className="mb-8 flex flex-wrap items-center gap-2 text-xs text-white/65"><Link href="/" className="hover:text-white">Início</Link><span>/</span><Link href="/imoveis?operacao=comprar" className="hover:text-white">Comprar casa</Link><span>/</span><span className="text-white">IMT e Imposto do Selo</span></nav>
               <p className="text-xs font-bold uppercase tracking-[.18em] text-[#ff8188]">Ferramentas HousePro · Compra de casa</p>
@@ -57,8 +58,8 @@ export default function CalculadoraImtPage() {
               <div className="mt-8 flex flex-wrap gap-3"><a href="#calcular-imt" className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-[#d62832] px-6 text-sm font-bold text-white shadow-lg shadow-black/20 hover:bg-[#b71d26]">Fazer a simulação <ArrowDown className="size-4" /></a><a href="#guia-imt" className="inline-flex min-h-12 items-center gap-2 rounded-lg border border-white/25 px-5 text-sm font-semibold hover:bg-white/10">Perceber os impostos <ArrowRight className="size-4" /></a></div>
               <p className="mt-5 text-xs text-white/60">Gratuito · Tabelas de 2023 a 2026 · Sem registo</p>
             </div>
-            <div className="relative hidden min-h-[330px] items-center justify-center lg:flex" aria-hidden><div className="absolute size-[320px] rounded-full border border-white/10" /><div className="absolute size-[245px] rounded-full border border-white/10" /><Image src="/brand/housepro-designer-mark.png" alt="" width={225} height={278} className="relative h-[260px] w-auto object-contain drop-shadow-[0_28px_36px_rgba(0,0,0,.22)]" /><span className="absolute bottom-2 right-0 border-t border-[#ff8188]/65 pt-3 text-[10px] font-bold uppercase tracking-[.2em] text-white/70">HousePro · Paixão pelo que fazemos</span></div>
           </div>
+          <Image src="/imt/selo-tabelas-2026.png" alt="Tabelas de IMT e Imposto do Selo atualizadas para 2026" width={128} height={128} className="absolute bottom-5 right-4 z-10 size-20 sm:bottom-10 sm:right-8 sm:size-32" />
         </section>
         <section id="calcular-imt" aria-labelledby="calculadora-titulo" className="relative z-10 mx-auto -mt-16 max-w-6xl scroll-mt-20 px-4 sm:px-6">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-2 text-white"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#ff8188]">Simulação imediata</p><h2 id="calculadora-titulo" className="mt-1 font-display text-2xl sm:text-3xl">Faça as contas à sua compra</h2></div><p className="text-sm text-white/65">Resultado atualizado à medida que preenche.</p></div>

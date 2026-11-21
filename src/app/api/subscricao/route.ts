@@ -12,10 +12,12 @@ export async function POST(request:Request){
   const email=String(body?.email??"").trim().toLowerCase();
   const name=String(body?.name??"").trim();
   const offers=body?.offers===true,news=body?.news===true;
+  const agencyId=typeof body?.agencyId==="string"&&/^[a-f0-9-]{36}$/i.test(body.agencyId)?body.agencyId:null;
   if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)||email.length>254||name.length>120||(!offers&&!news)||body?.consent!==true){
     return NextResponse.json({error:"Confirme o email, o consentimento e os conteúdos pretendidos."},{status:422});
   }
   const db=createAdminClient();
+  if(agencyId){const {data:agency,error:agencyError}=await db.from("agencies").select("id").eq("id",agencyId).eq("suspended",false).maybeSingle();if(agencyError||!agency)return NextResponse.json({error:"Agência indisponível."},{status:422});}
   const {data:existing,error:lookupError}=await db.from("marketing_subscriptions").select("requested_at").eq("email",email).maybeSingle();
   if(lookupError)return NextResponse.json({error:"Serviço indisponível."},{status:503});
   if(existing?.requested_at&&Date.now()-Date.parse(existing.requested_at)<15*60000)return NextResponse.json({ok:true});
@@ -24,8 +26,8 @@ export async function POST(request:Request){
   const token=randomBytes(32).toString("hex");
   const now=new Date().toISOString();
   const {error:writeError}=await db.from("marketing_subscriptions").upsert({
-    email,pending_name:name,pending_offers:offers,pending_news:news,pending_token_hash:hash(token),
-    requested_at:now,source:"relatorio",
+    email,pending_name:name,pending_offers:offers,pending_news:news,pending_agency_id:agencyId,pending_token_hash:hash(token),
+    requested_at:now,source:agencyId?"agencia":"website",
   },{onConflict:"email"});
   if(writeError)return NextResponse.json({error:"Não foi possível registar o pedido."},{status:503});
   const path=`/subscrever/confirmar?token=${token}`;

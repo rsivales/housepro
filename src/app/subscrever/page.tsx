@@ -13,7 +13,7 @@ function SubscribeContent(){
     const fields=new FormData(event.currentTarget);
     try{
       const response=await fetch("/api/subscricao",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
-        name:fields.get("name"),email:fields.get("email"),offers:fields.get("offers")==="on",news:fields.get("news")==="on",consent:fields.get("consent")==="on",
+        name:fields.get("name"),email:fields.get("email"),offers:fields.get("offers")==="on",news:fields.get("news")==="on",consent:fields.get("consent")==="on",agencyId:params.get("agencia"),
       })});
       const result=await response.json();
       if(!response.ok)throw new Error(result.error??"Não foi possível enviar a confirmação.");
@@ -22,7 +22,7 @@ function SubscribeContent(){
   }
   return <main className="mx-auto max-w-xl px-5 py-16 text-slate-800">
     <Link href="/"><Image src="/brand/housepro-red.png" alt="HousePro" width={170} height={57} className="h-auto w-44"/></Link>
-    <h1 className="mt-10 font-display text-3xl">Escolha o que quer receber</h1>
+    <h1 className="mt-10 font-display text-3xl">Receba o Guia HousePro</h1>
     {params.get("estado")==="confirmado"?<p className="mt-5 rounded-xl bg-emerald-50 p-5">Subscrição confirmada. Obrigado por escolher a HousePro.</p>:
       params.get("estado")==="invalido"?<p className="mt-5 rounded-xl bg-amber-50 p-5">O link expirou ou já foi utilizado. Faça um novo pedido abaixo.</p>:null}
     <p className="mt-3 text-sm leading-6">Só enviaremos informação sobre os temas que selecionar, depois de confirmar o pedido no seu email. Pode <Link href="/subscrever/cancelar" className="underline">cancelar a subscrição</Link> a qualquer momento.</p>
@@ -32,7 +32,7 @@ function SubscribeContent(){
       <label className="block text-sm">Email<input name="email" type="email" required maxLength={254} className="mt-1 w-full rounded-md border px-3 py-2"/></label>
       <fieldset className="space-y-3 text-sm"><legend className="mb-3 font-medium">Quero receber</legend>
         <label className="flex gap-2"><input name="offers" type="checkbox"/>Oportunidades e imóveis selecionados</label>
-        <label className="flex gap-2"><input name="news" type="checkbox"/>Novidades e informações da HousePro</label>
+        <label className="flex gap-2"><input name="news" type="checkbox" defaultChecked/>Novidades e informações da HousePro{params.get("agencia")?" e da agência local":""}</label>
       </fieldset>
       <label className="flex gap-2 text-sm"><input name="consent" type="checkbox" required/>Aceito receber emails sobre os temas selecionados. Li a <Link href="/privacidade" className="underline">política de privacidade</Link>.</label>
       {state==="error"&&<p role="alert" className="text-sm text-red-700">{message}</p>}

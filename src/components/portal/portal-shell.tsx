@@ -9,6 +9,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { CLIENT_PROFILES, type ClientProfile } from "@/lib/data/client";
 import { agentById } from "@/lib/data/mock";
 import { formatPhone, telLink } from "@/lib/format";
+import { PortalNewsBanner } from "@/components/cliente/portal-news-banner";
 
 export function PortalShell({
   active,
@@ -59,7 +60,7 @@ export function PortalShell({
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="grid gap-8 lg:grid-cols-[1fr_18rem]">
-          <div className="min-w-0">{children}</div>
+          <div className="min-w-0">{children}<PortalNewsBanner /></div>
 
           {/* Consultor dedicado */}
           <aside className="lg:sticky lg:top-6 lg:self-start">

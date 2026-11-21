@@ -9,6 +9,7 @@ import { getBuyerPortalDataByContactId } from "@/lib/db/buyer-portal";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { FavoritesList } from "@/components/cliente/favorites-list";
+import { PortalNewsBanner } from "@/components/cliente/portal-news-banner";
 import { formatEuro } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -94,6 +95,7 @@ export default async function CompradorPortal() {
           <h2 className="font-display text-xl">Imóveis guardados</h2>
           <FavoritesList />
         </section>
+        <PortalNewsBanner />
       </main>
       <SiteFooter />
     </div>

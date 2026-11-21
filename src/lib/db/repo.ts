@@ -542,7 +542,9 @@ export async function insertNotifications(
  *  Sem `ids`, marca todas as não lidas — usado por "marcar todas como lidas". */
 export async function markNotificationsRead(userId: string, ids?: string[]): Promise<void> {
   if (!isSupabaseConfigured()) return;
-  const supabase = await createClient();
+  // The session-scoped client may be subject to RLS that silently updates zero rows.
+  // The authenticated API supplies the user ID; the admin query is strictly scoped to it.
+  const supabase = createAdminClient();
   let q = supabase.from("notifications").update({ read: true }).eq("user_id", userId);
   q = ids ? q.in("id", ids) : q.eq("read", false);
   const { error } = await q;

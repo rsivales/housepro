@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
 import { site, fullAddress, legalLine } from "@/lib/site";
+import { AGENCY_INDEPENDENCE_NOTICE } from "@/lib/brand-disclaimer";
 
 /**
  * Rodapé compacto Deep Navy da página de imóvel — não repete o menu completo
@@ -32,6 +33,7 @@ export function PropertyFooter() {
         <p className="mt-8 border-t border-white/10 pt-6 text-xs text-white/55">
           © {new Date().getFullYear()} {site.brand} · {site.legalName}. Todos os direitos reservados.
         </p>
+        <p className="mt-3 max-w-4xl text-xs leading-relaxed text-white/65">{AGENCY_INDEPENDENCE_NOTICE}</p>
       </div>
     </footer>
   );

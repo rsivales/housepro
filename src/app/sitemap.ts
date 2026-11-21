@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/signature/construcao-por-medida", priority: 0.6 },
     { path: "/investir", priority: 0.7 },
     { path: "/ferramentas/calculadora-mais-valias", priority: 0.8 },
+    { path: "/ferramentas/imt", priority: 0.8 },
     { path: "/credito", priority: 0.6 },
     { path: "/noticias", priority: 0.6 },
     { path: "/carreiras", priority: 0.5 },

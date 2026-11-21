@@ -1,11 +1,17 @@
 import Link from "next/link";
-import { Coins, Calculator, Gauge, ArrowRight } from "lucide-react";
+import { Coins, Calculator, Gauge, ArrowRight, Landmark } from "lucide-react";
 
 /**
  * "Ferramentas úteis" — decida com mais confiança. Fundo Deep Navy.
  * Cada ferramenta liga a uma página real e indexável. Resultados indicativos.
  */
 const TOOLS = [
+  {
+    icon: Landmark,
+    title: "Calcular IMT e selo",
+    desc: "Simule os impostos na compra de casa.",
+    href: "/ferramentas/imt",
+  },
   {
     icon: Coins,
     title: "Calcular mais-valias",
@@ -43,7 +49,7 @@ export function UsefulTools() {
           <p className="mt-2 text-sm text-white/70">Resultados indicativos · gratuitos</p>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2 sm:mt-8 sm:gap-4">
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:mt-8 sm:grid-cols-4 sm:gap-4">
           {TOOLS.map((t) => (
             <Link
               key={t.title}

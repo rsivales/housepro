@@ -9,7 +9,7 @@ import { DEFAULT_REPORT, REPORT_SECTIONS, REPORT_TEMPLATES, validateSettings, ty
 type Property={id:string;reference:string;title:string;owner_name:string|null;owner_email:string|null};
 type Config={property_id:string;agent_id:string;revision:string;settings:ReportSettings;next_at:string};
 type History={id:string;property_id:string;kind:string;state:string;period_end:string;error_code:string|null};
-interface PanelData {properties:Property[];settings:Config[];history:History[];agentEmail:string;agentId:string;agentPhotoAvailable:boolean;graceUntil:string|null}
+interface PanelData {properties:Property[];requiredPropertyIds:string[];settings:Config[];history:History[];agentEmail:string;agentId:string;agentPhotoAvailable:boolean;graceUntil:string|null}
 const field="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm";
 export function OwnerReportsPanel() {
   const params=useSearchParams();
@@ -50,7 +50,7 @@ export function OwnerReportsPanel() {
     }catch(error){setMessage(error instanceof Error?error.message:"Não foi possível concluir.");}
     finally{setLoading(false);}
   }
-  const missing=data?.properties.filter(p=>!data.settings.some(s=>s.property_id===p.id && s.agent_id===data.agentId)).length??0;
+  const missing=data?.properties.filter(p=>data.requiredPropertyIds.includes(p.id) && !data.settings.some(s=>s.property_id===p.id && s.agent_id===data.agentId)).length??0;
   return <div className="mt-6">
     {message&&<p role="status" className="mb-4 rounded-lg border p-3 text-sm">{message}</p>}
     {!data?<p>A carregar configuração…</p>:<>
@@ -58,7 +58,7 @@ export function OwnerReportsPanel() {
       <label className="block max-w-xl text-sm font-medium">Imóvel
         <select className={field} value={selected} onChange={e=>{setSelected(e.target.value);setMessage("");}}>
           <option value="">Selecionar imóvel</option>
-          {data.properties.map(p=><option value={p.id} key={p.id}>{p.reference} · {p.title}{data.settings.some(s=>s.property_id===p.id && s.agent_id===data.agentId)?"":" · Configurar"}</option>)}
+          {data.properties.map(p=><option value={p.id} key={p.id}>{p.reference} · {p.title}{data.settings.some(s=>s.property_id===p.id && s.agent_id===data.agentId)?"":data.requiredPropertyIds.includes(p.id)?" · Configuração obrigatória":" · Configuração opcional"}</option>)}
         </select>
       </label>
       {!data.properties.length&&<p className="mt-5 text-sm">Sem imóveis ativos a configurar.</p>}

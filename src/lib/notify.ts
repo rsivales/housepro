@@ -111,11 +111,14 @@ export async function notifyGeneric(opts: {
   text: string;
   to?: (string | undefined)[];
   agentId?: string;
+  html?: string;
+  replyTo?: string;
+  privateReport?: boolean;
 }): Promise<string[]> {
   const channels: string[] = [];
 
   const webhook = process.env.LEAD_WEBHOOK_URL;
-  if (webhook) {
+  if (webhook && !opts.privateReport) {
     try {
       const res = await fetch(webhook, {
         method: "POST",
@@ -142,7 +145,7 @@ export async function notifyGeneric(opts: {
           authorization: `Bearer ${resendKey}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ from, reply_to: delivery.notifyEmail, to, cc, subject: opts.subject, text: opts.text, html: houseproEmail(opts.subject, opts.text) }),
+        body: JSON.stringify({ from, reply_to: opts.replyTo||delivery.notifyEmail, to, cc, subject: opts.subject, text: opts.text, html: opts.html||houseproEmail(opts.subject, opts.text) }),
         signal: AbortSignal.timeout(8000),
       });
       if (res.ok) channels.push("email");

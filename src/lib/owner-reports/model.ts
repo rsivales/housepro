@@ -30,6 +30,7 @@ export const DEFAULT_REPORT: ReportSettings = {
 };
 export interface ReportData {
   propertyId: string; reference: string; title: string; ownerName: string;
+  signature?: boolean;
   agentName: string; agentEmail: string; agentPhoto?: string; agentPhone?: string; agentTitle?: string;
   activityCount: number; quarterly?: boolean;
   from: string; until: string;
@@ -108,8 +109,8 @@ export function renderOwnerReport(data: ReportData, settings: ReportSettings, se
     }
     return `<tr><td style="padding:${template===0?"12px 28px":"18px 28px"};${template===2?"border-top:1px solid #e5e7eb":""}"><h2 style="font-size:${template===0?"16":"17"}px;color:${color};margin:0 0 10px">${escape(b.title)}</h2>${lines}</td></tr>`;
   }).join("");
-  const logo=`<a href="https://housepro.pt"><img src="https://housepro.pt/brand/housepro-red.png" width="174" alt="HousePro" style="display:block;width:174px;max-width:100%;height:auto;border:0"></a>`;
-  const mark=`<img src="https://housepro.pt/brand/watermark-bird.png" width="64" alt="" style="display:block;width:64px;height:auto;opacity:.13;border:0">`;
+  const logo=`<a href="https://housepro.pt"><img src="https://housepro.pt/brand/${data.signature?"housepro-designer-black":"housepro-designer-red"}.png" width="174" alt="HousePro" style="display:block;width:174px;max-width:100%;height:auto;border:0"></a>`;
+  const mark=`<img src="https://housepro.pt/brand/housepro-designer-mark.png" width="42" alt="" style="display:block;width:42px;height:auto;opacity:.16;border:0">`;
   const masthead=template===1
     ? `<tr><td style="padding:29px 32px;background:#0D3B66"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#fff;padding:12px;border-radius:6px">${logo}</td></tr></table><p style="color:#e8d6d6;font-size:11px;letter-spacing:2px;margin:18px 0 0">ACOMPANHAMENTO DO SEU IMÓVEL</p></td></tr>`
     : `<tr><td style="padding:26px 32px;border-bottom:1px solid #e8edf1">${logo}</td></tr>`;

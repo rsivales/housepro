@@ -18,7 +18,8 @@ describe("owner report",()=>{
  it("rotates through all three branded layouts while showing the agent photo in every version",()=>{
   const reports=[0,1,2,3].map(i=>renderOwnerReport(data,DEFAULT_REPORT,i));
   expect(new Set(reports.slice(0,3).map(r=>r.html)).size).toBe(3);
-  for(const report of reports){expect(report.html).toContain(data.agentPhoto);expect(report.html).toContain("/brand/housepro-red.png");expect(report.html).toContain("/brand/watermark-bird.png");}
+  for(const report of reports){expect(report.html).toContain(data.agentPhoto);expect(report.html).toContain("/brand/housepro-designer-red.png");expect(report.html).toContain("/brand/housepro-designer-mark.png");}
+  expect(renderOwnerReport({...data,signature:true},DEFAULT_REPORT).html).toContain("/brand/housepro-designer-black.png");
   expect(reports[3].html).toBe(reports[0].html);
  });
  it("keeps a selected layout when rotation is disabled",()=>{

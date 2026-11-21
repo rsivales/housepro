@@ -10,6 +10,7 @@ import { TopConcelhos } from "@/components/home/top-concelhos";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { listPropertiesByAgency, listSoldByAgency, getAgencyBySlug, listActiveAgentsByAgency } from "@/lib/db/repo";
 import { applyOrdering } from "@/lib/data/ordering";
+import { AGENCY_INDEPENDENCE_NOTICE } from "@/lib/brand-disclaimer";
 import { topConcelhos } from "@/lib/data/concelhos";
 
 export async function generateMetadata({
@@ -181,11 +182,9 @@ export default async function AgenciaPage({
               <strong className="font-medium text-foreground">
                 Gestão independente.
               </strong>{" "}
-              A agência {agency.name} é gerida de forma autónoma e independente
-              pelos seus responsáveis. A marca HousePro disponibiliza a plataforma
-              e a montra online, mas não é responsável pela gestão, pelos atos,
-              contratos ou obrigações desta agência — que respondem exclusivamente
-              perante os seus próprios titulares.
+              A agência {agency.name} tem gestão autónoma. {AGENCY_INDEPENDENCE_NOTICE}
+              {agency.amiLicense && <> Licença de mediação imobiliária desta agência: AMI {agency.amiLicense}.</>}
+              {agency.nipc && <> NIPC: {agency.nipc}.</>}
             </p>
           </div>
         </section>

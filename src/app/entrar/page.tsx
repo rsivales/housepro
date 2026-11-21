@@ -14,6 +14,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AGENCY_INDEPENDENCE_NOTICE } from "@/lib/brand-disclaimer";
 
 const YEAR = new Date().getFullYear();
 
@@ -366,6 +367,7 @@ export default function EntrarPage() {
             </span>
           </p>
         </div>
+        <p className="mx-auto max-w-6xl px-4 pb-5 text-xs leading-relaxed text-muted-foreground sm:px-6">{AGENCY_INDEPENDENCE_NOTICE}</p>
       </footer>
     </div>
   );

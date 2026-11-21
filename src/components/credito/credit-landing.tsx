@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
+import { AGENCY_INDEPENDENCE_NOTICE } from "@/lib/brand-disclaimer";
 import {
   ArrowRight,
   BarChart3,
@@ -641,6 +642,7 @@ export function CreditLanding() {
             As simulações são indicativas e não constituem proposta de crédito.
           </p>
         </div>
+        <p className="mx-auto max-w-[1440px] px-6 pb-6 text-[11px] leading-relaxed text-[#586a7e] lg:px-12">{AGENCY_INDEPENDENCE_NOTICE}</p>
       </footer>
       <style jsx global>{`
         .field-label {

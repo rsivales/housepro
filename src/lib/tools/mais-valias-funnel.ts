@@ -6,6 +6,7 @@
  */
 import type { NewLead } from "@/lib/db/repo";
 import {escapeHtml} from "@/lib/email-template";
+import {AGENCY_INDEPENDENCE_NOTICE} from "@/lib/brand-disclaimer";
 import { parseCampaign, resolveConsultant, isValidEmail, isValidPhone } from "@/lib/valuation";
 import {
   calcularMaisValias, ENGINE_VERSION, FISCAL_YEAR, LAST_REVIEWED, SOURCES,
@@ -239,6 +240,7 @@ export function buildEmailReport(s: MvSubmission, r: MaisValiasResult): { subjec
     "Esta ferramenta fornece uma estimativa meramente indicativa, baseada nos dados introduzidos e nas regras gerais aplicáveis. Não substitui aconselhamento fiscal, contabilístico ou jurídico, nem constitui uma liquidação oficial da Autoridade Tributária.",
     "",
     "Um consultor HousePro poderá contactá-lo para ajudar a interpretar a simulação e esclarecer o seu caso.",
+    AGENCY_INDEPENDENCE_NOTICE,
   ].filter(Boolean) as string[];
 
   return { subject: "A sua simulação de mais-valias imobiliárias", text: linhas.join("\n") };
@@ -254,7 +256,7 @@ export function renderMvReportEmail(report:{subject:string;text:string},agent?:{
   }).join("");
   const photo=agent?.photo&&/^https:\/\//.test(agent.photo)?`<img src="${safe(agent.photo)}" alt="Fotografia do consultor" width="68" height="68" style="border-radius:50%;object-fit:cover">`:"";
   const consultant=agent?.name?`<tr><td style="padding:22px 32px;border-top:1px solid #e5e7eb"><table role="presentation"><tr><td style="padding-right:15px">${photo}</td><td><strong>${safe(agent.name)}</strong><br>${safe(agent.publicTitle||"Consultor imobiliário HousePro")}<br>${agent.email?`<a href="mailto:${safe(agent.email)}" style="color:#A31621">${safe(agent.email)}</a>`:""}</td></tr></table></td></tr>`:"";
-  return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f3f5f7;color:#182638;font-family:Arial,sans-serif"><table role="presentation" width="100%"><tr><td align="center" style="padding:28px 10px"><table role="presentation" width="600" style="width:100%;max-width:600px;background:white;border:1px solid #e5e7eb"><tr><td style="border-top:6px solid #0D3B66;padding:24px 32px"><img src="https://housepro.pt/brand/housepro-designer-red.png" alt="HousePro" width="180" style="display:block;height:auto"></td></tr><tr><td style="padding:12px 32px 28px"><p style="color:#A31621;font-size:11px;letter-spacing:2px;font-weight:bold">CLÍNICA DE FINANÇAS · HOUSEPRO</p><h1 style="font-family:Georgia,serif;font-size:26px;color:#0D3B66">${safe(report.subject)}</h1><p style="text-align:right;margin:0"><img src="https://housepro.pt/brand/housepro-designer-mark.png" width="35" alt="" style="opacity:.16"></p>${paragraphs}</td></tr>${consultant}<tr><td style="background:#0D3B66;padding:20px 32px;color:white;font-size:12px">HousePro · Paixão pelo que fazemos<br><a href="https://housepro.pt/privacidade" style="color:white">Privacidade</a></td></tr></table></td></tr></table></body></html>`;
+  return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f3f5f7;color:#182638;font-family:Arial,sans-serif"><table role="presentation" width="100%"><tr><td align="center" style="padding:28px 10px"><table role="presentation" width="600" style="width:100%;max-width:600px;background:white;border:1px solid #e5e7eb"><tr><td style="border-top:6px solid #0D3B66;padding:24px 32px"><img src="https://housepro.pt/brand/housepro-designer-red.png" alt="HousePro" width="180" style="display:block;height:auto"></td></tr><tr><td style="padding:12px 32px 28px"><p style="color:#A31621;font-size:11px;letter-spacing:2px;font-weight:bold">CLÍNICA DE FINANÇAS · HOUSEPRO</p><h1 style="font-family:Georgia,serif;font-size:26px;color:#0D3B66">${safe(report.subject)}</h1><p style="text-align:right;margin:0"><img src="https://housepro.pt/brand/housepro-designer-mark.png" width="35" alt="" style="opacity:.16"></p>${paragraphs}</td></tr>${consultant}<tr><td style="background:#0D3B66;padding:20px 32px;color:white;font-size:12px">HousePro · Paixão pelo que fazemos<br><a href="https://housepro.pt/privacidade" style="color:white">Privacidade</a><p style="margin:12px 0 0;color:#cbd5e1;font-size:11px">${safe(AGENCY_INDEPENDENCE_NOTICE)}</p></td></tr></table></td></tr></table></body></html>`;
 }
 
 export function dedupeKey(s: MvSubmission): string {

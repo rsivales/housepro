@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { PublicShell } from "@/components/layout/public-shell";
 import { FadeIn } from "@/components/motion/fade-in";
 import { ArticleImage } from "@/components/home/article-image";
-import { getNews, newsHref, isExternalNews, newsImage, NEWS_FALLBACK } from "@/lib/data/news";
+import { getNews, newsHref, isExternalNews, newsImage, NEWS_FALLBACK, newsCategories } from "@/lib/data/news";
 
 export const metadata: Metadata = {
   title: "Notícias & mercado",
   description:
-    "Notícias do mercado imobiliário, legislação, investimento e dicas — agregadas automaticamente pela HousePro.",
+    "Notícias HousePro sobre legislação, arrendamento, mais-valias, mercado imobiliário e investimento. Análises com fontes oficiais e dicas práticas.",
 };
 
 export default async function NoticiasPage() {
@@ -25,13 +26,15 @@ export default async function NoticiasPage() {
             Notícias, mercado &amp; investimento
           </h1>
           <p className="mt-2 max-w-2xl text-[var(--hp-text-2)]">
-            Legislação, mercado, investimento, dicas e eventos — sem necessidade
-            de redação manual.
+            Análises práticas e atualizadas, com fontes identificadas e contexto para decidir com confiança.
           </p>
+          <Link href="/subscrever?origem=noticias" className="mt-6 inline-flex rounded-full bg-[var(--hp-red)] px-6 py-3 font-semibold text-white transition hover:opacity-90">Receber o guia por email</Link>
         </FadeIn>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {news.map((item, i) => (
+        {newsCategories.map(category => <section key={category} className="mt-12 border-t pt-8" aria-label={category}>
+          <h2 className="font-display text-2xl font-semibold text-[var(--hp-navy)]">{category}</h2>
+          <div className="mt-5 grid gap-6 md:grid-cols-3">
+          {news.filter(item => item.category === category).map((item, i) => (
             <FadeIn key={item.id} delay={(i % 3) * 0.08}>
               <a
                 href={newsHref(item)}
@@ -58,9 +61,9 @@ export default async function NoticiasPage() {
                       })}
                     </span>
                   </div>
-                  <h2 className="mt-2 font-display text-lg leading-snug text-[var(--hp-navy)]">
+                  <h3 className="mt-2 font-display text-lg leading-snug text-[var(--hp-navy)]">
                     {item.title}
-                  </h2>
+                  </h3>
                   <p className="mt-2 line-clamp-2 text-sm text-[var(--hp-text-2)]">
                     {item.excerpt}
                   </p>
@@ -71,7 +74,8 @@ export default async function NoticiasPage() {
               </a>
             </FadeIn>
           ))}
-        </div>
+          </div>
+        </section>)}
       </div>
     </PublicShell>
   );

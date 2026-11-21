@@ -16,7 +16,7 @@ export async function generateMetadata({
   const { id } = await params;
   const item = await getNewsById(id);
   if (!item) return { title: "Notícia" };
-  return { title: item.title, description: item.excerpt };
+  return { title: item.title, description: item.excerpt, alternates: { canonical: "/noticias/" + item.id }, openGraph: { title: item.title, description: item.excerpt, images: [newsImage(item)] } };
 }
 
 function formatDate(iso: string): string {
@@ -67,13 +67,16 @@ export default async function NoticiaPage({
             />
           </div>
 
-          <div className="mt-8 space-y-4 text-pretty text-[1.05rem] leading-relaxed text-[var(--hp-navy)]/90">
-            {body.map((p, i) => <p key={i}>{p}</p>)}
+          <div className="mt-8 space-y-5 text-pretty text-[1.05rem] leading-relaxed text-[var(--hp-navy)]/90">
+            {body.map((p, i) => <p key={i} className={i === 0 ? "font-semibold" : i === body.length - 1 ? "border-l-4 border-[var(--hp-red)] pl-4" : ""}>{p}</p>)}
           </div>
 
-          <p className="mt-8 rounded-xl border bg-black/[0.03] p-4 text-xs text-[var(--hp-text-2)]">
-            Conteúdo agregado do feed do setor a título informativo. Para aconselhamento
-            sobre o seu caso concreto, fale com um consultor HousePro.
+          {item.sources?.length ? <aside className="mt-9 rounded-xl border bg-black/[0.03] p-5 text-sm">
+            <h2 className="font-semibold text-[var(--hp-navy)]">Fontes oficiais</h2>
+            <ul className="mt-2 list-inside list-disc space-y-1">{item.sources.map((s) => <li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer" className="text-[var(--hp-red-hover)] underline underline-offset-2">{s.label}</a></li>)}</ul>
+          </aside> : null}
+          <p className="mt-6 text-xs leading-relaxed text-[var(--hp-text-2)]">
+            Análise informativa HousePro, revista em {formatDate(item.date)}. Regras e valores podem mudar. Confirme o seu caso com as entidades competentes e profissionais habilitados.
           </p>
         </FadeIn>
 

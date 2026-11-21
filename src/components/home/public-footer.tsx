@@ -28,6 +28,7 @@ const COLS: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "Ferramentas", href: "/ferramentas" },
       { label: "Calcular IMT e Selo", href: "/ferramentas/imt" },
       { label: "Guia HousePro", href: "/noticias" },
+      { label: "Subscrever newsletter", href: "/subscrever?origem=rodape" },
       { label: "Crédito", href: "/credito" },
       { label: "FAQ", href: "/ferramentas" },
     ],

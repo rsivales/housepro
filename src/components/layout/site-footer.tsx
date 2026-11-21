@@ -52,6 +52,7 @@ export function SiteFooter() {
               title="HousePro"
               links={[
                 { label: "Crédito habitação", href: "/credito" },
+                { label: "Calculadora de IMT e Selo", href: "/ferramentas/imt" },
                 { label: "Avaliação", href: "/avaliacao-imovel" },
                 { label: "Área de cliente", href: "/cliente" },
                 { label: "Indicar um amigo", href: "/indicar" },

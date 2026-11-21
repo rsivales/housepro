@@ -92,6 +92,58 @@ export const TABELAS_2026: Record<Localizacao, RegimeTabelas> = {
   },
 };
 
+/** Arquivo AT: Ofícios 40120/2023, 40123/2024 e 40128/2025. */
+const TABELAS_HISTORICAS: Record<number, Record<Localizacao, RegimeTabelas>> = {
+  2023: {
+    continente: {
+      hpp: { prog: [[97064,0],[132774,.02],[181034,.05],[301688,.07],[603289,.08]], flat: [[1050400,.06],[Infinity,.075]] },
+      secundaria: { prog: [[97064,.01],[132774,.02],[181034,.05],[301688,.07],[578598,.08]], flat: [[1050400,.06],[Infinity,.075]] },
+      jovemTotal: 0, jovemParcial: 0,
+    },
+    ra: {
+      hpp: { prog: [[121330,0],[165968,.02],[226293,.05],[377110,.07],[754111,.08]], flat: [[1313000,.06],[Infinity,.075]] },
+      secundaria: { prog: [[121330,.01],[165968,.02],[226293,.05],[377110,.07],[723248,.08]], flat: [[1313000,.06],[Infinity,.075]] },
+      jovemTotal: 0, jovemParcial: 0,
+    },
+  },
+  2024: {
+    continente: {
+      hpp: { prog: [[101917,0],[139412,.02],[190086,.05],[316772,.07],[633453,.08]], flat: [[1102920,.06],[Infinity,.075]] },
+      secundaria: { prog: [[101917,.01],[139412,.02],[190086,.05],[316772,.07],[607528,.08]], flat: [[1102920,.06],[Infinity,.075]] },
+      jovemTotal: 316772, jovemParcial: 633453,
+    },
+    ra: {
+      hpp: { prog: [[127396,0],[174265,.02],[237608,.05],[395965,.07],[791816,.08]], flat: [[1378650,.06],[Infinity,.075]] },
+      secundaria: { prog: [[127396,.01],[174265,.02],[237608,.05],[395965,.07],[759410,.08]], flat: [[1378650,.06],[Infinity,.075]] },
+      jovemTotal: 395965, jovemParcial: 791816,
+    },
+  },
+  2025: {
+    continente: {
+      hpp: { prog: [[104261,0],[142618,.02],[194458,.05],[324058,.07],[648022,.08]], flat: [[1128287,.06],[Infinity,.075]] },
+      secundaria: { prog: [[104261,.01],[142618,.02],[194458,.05],[324058,.07],[621501,.08]], flat: [[1128287,.06],[Infinity,.075]] },
+      jovemTotal: 324058, jovemParcial: 648022,
+    },
+    ra: {
+      hpp: { prog: [[130326,0],[178273,.02],[243073,.05],[405073,.07],[810028,.08]], flat: [[1410359,.06],[Infinity,.075]] },
+      secundaria: { prog: [[130326,.01],[178273,.02],[243073,.05],[405073,.07],[776876,.08]], flat: [[1410359,.06],[Infinity,.075]] },
+      jovemTotal: 405073, jovemParcial: 810028,
+    },
+  },
+};
+
+export const IMT_ANOS_SUPORTADOS = [2023, 2024, 2025, 2026] as const;
+export const IMT_FONTES: Record<number, string> = {
+  2023: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/legislacao/instrucoes_administrativas/Documents/Oficio_circulado_40120_2023.pdf",
+  2024: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/legislacao/instrucoes_administrativas/Documents/Oficio_Circulado_40123_2024.pdf",
+  2025: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/legislacao/instrucoes_administrativas/Documents/Oficio_circulado_40128_2025.pdf",
+  2026: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/legislacao/instrucoes_administrativas/Documents/Oficio_circulado_40129_2026.pdf",
+};
+
+export function suportaImtHistorico(ano: number): boolean {
+  return IMT_ANOS_SUPORTADOS.some((a) => a === ano);
+}
+
 /** Segmento de repartição do IMT por escalão (para o gráfico/legenda). */
 export interface Segmento {
   de: number;
@@ -178,6 +230,16 @@ const eur0 = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR"
 
 /** Calcula IMT + Imposto de Selo a partir das entradas. */
 export function calcularImt(input: ImtInput): ImtResultado {
+  return calcularImtNoAno(input, 2026);
+}
+
+/** Nunca usa uma tabela atual para simular uma compra num ano não documentado. */
+export function calcularImtNoAno(input: ImtInput, ano: number, data?: string): ImtResultado {
+  if (!suportaImtHistorico(ano)) throw new RangeError("Não existe tabela histórica validada para este ano.");
+  if (input.jovem && (ano < 2024 || (ano === 2024 && (!data || data < "2024-08-01")))) {
+    throw new RangeError("A isenção jovem só se aplica a aquisições desde 1 de agosto de 2024.");
+  }
+  if (data && Number(data.slice(0, 4)) !== ano) throw new RangeError("A data não coincide com o ano da compra.");
   const preco = Math.max(0, input.preco || 0);
   const vpt = Math.max(0, input.vpt || 0);
   const base = Math.max(preco, vpt);
@@ -207,7 +269,7 @@ export function calcularImt(input: ImtInput): ImtResultado {
     out.segmentos = [{ de: 0, ate: base, taxa: 0.065, imp: out.imt, unica: true }];
     out.isAquisicao = base * 0.008;
   } else {
-    const regime = TABELAS_2026[input.loc];
+    const regime = (TABELAS_HISTORICAS[ano] ?? TABELAS_2026)[input.loc];
     const tab = regime[input.fin];
     const jovemAtivo = input.fin === "hpp" && Boolean(input.jovem);
 

@@ -16,6 +16,7 @@ const COLS: { title: string; links: { label: string; href: string }[] }[] = [
     title: "Imóveis",
     links: [
       { label: "Comprar", href: "/imoveis?operacao=comprar" },
+      { label: "IMT na compra", href: "/ferramentas/imt" },
       { label: "Arrendar", href: "/imoveis?operacao=arrendar" },
       { label: "Investir", href: "/investir" },
       { label: "Vender", href: "/vender" },
@@ -25,6 +26,7 @@ const COLS: { title: string; links: { label: string; href: string }[] }[] = [
     title: "Apoio",
     links: [
       { label: "Ferramentas", href: "/ferramentas" },
+      { label: "Calcular IMT e Selo", href: "/ferramentas/imt" },
       { label: "Guia HousePro", href: "/noticias" },
       { label: "Crédito", href: "/credito" },
       { label: "FAQ", href: "/ferramentas" },

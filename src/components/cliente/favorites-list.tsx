@@ -162,20 +162,10 @@ export function FavoritesList() {
 
   if (props.length === 0) {
     return (
-      <div className="mt-10 rounded-2xl border border-dashed p-10 text-center">
-        <div className="mx-auto grid size-12 place-items-center rounded-full bg-secondary text-muted-foreground">
-          <Heart className="size-6" />
-        </div>
-        <h2 className="mt-4 font-display text-xl">Ainda sem favoritos</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Explore os imóveis e toque no ♥ para os guardar aqui.
-        </p>
-        <Link
-          href="/imoveis"
-          className="mt-5 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
-        >
-          Ver imóveis
-        </Link>
+      <div className="mt-5 grid overflow-hidden rounded-[1.5rem] border border-[#dce3ec] bg-white shadow-sm sm:grid-cols-[1fr_.7fr] dark:border-white/15 dark:bg-white/5">
+        <div className="p-6 sm:p-8"><div className="grid size-11 place-items-center rounded-xl bg-[#a31621]/10 text-[#a31621]"><Heart className="size-5" /></div><h3 className="mt-5 font-display text-2xl font-semibold text-[#0b1f3a] dark:text-white">Guarde o que lhe faz sentido.</h3><p className="mt-2 max-w-sm text-sm leading-6 text-[#5b687d] dark:text-white/70">Ainda não guardou imóveis. Explore a montra e toque no coração dos seus favoritos. Depois pode compará-los aqui.</p><Link href="/imoveis?operacao=comprar" className="mt-5 inline-flex rounded-full bg-[#a31621] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#bd2631]">Explorar casas →</Link></div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/home/banner-familia.webp" alt="" className="h-40 w-full object-cover sm:h-full" />
       </div>
     );
   }

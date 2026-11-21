@@ -8,7 +8,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "mais-valias-arrendamento-2026", category: "Legislação",
     title: "Mais-valias na venda de imóveis: quando o reinvestimento em arrendamento pode afastar o IRS",
     excerpt: "A regra criada em 2026 abre uma via de reinvestimento, mas exige limites de renda, prazos e permanência no arrendamento.",
-    source: "Guia HousePro", date: "2026-11-21", url: "#", image: "/news/fiscalidade.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-21", url: "#", image: "/news/editorial/mais-valias-arrendamento-2026.webp", tint: "",
     sources: [{ label: "Decreto-Lei n.º 97/2026, artigo 10.º do CIRS", url: "https://diariodarepublica.pt/dr/detalhe/decreto-lei/97-2026-1124493227" }, { label: "Código do IRS, artigo 10.º", url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/pages/irs10.aspx" }],
     body: [
       "Quem venda, entre 2026 e 2029, um imóvel destinado a habitação pode, em determinadas condições, excluir de IRS a mais-valia se reinvestir o valor relevante na compra de outro imóvel em Portugal para arrendamento habitacional a renda limitada. A possibilidade foi introduzida pelo Decreto-Lei n.º 97/2026, de 20 de maio, e interessa a proprietários que pretendem continuar a investir em habitação. O benefício não resulta simplesmente de voltar a comprar: depende do montante, do calendário, da renda praticada e da manutenção do destino do imóvel.",
@@ -22,7 +22,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "arrendamento-2026-regras-em-vigor", category: "Legislação",
     title: "Arrendamento em 2026: o que já vigora e o que continua a ser proposta",
     excerpt: "O regime simplificado de arrendamento acessível está em vigor; a reforma geral anunciada em julho continua a exigir confirmação legislativa.",
-    source: "Guia HousePro", date: "2026-11-21", url: "#", image: "/news/legislacao.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-21", url: "#", image: "/news/editorial/arrendamento-2026-regras-em-vigor.webp", tint: "",
     sources: [{ label: "Decreto-Lei n.º 97/2026", url: "https://diariodarepublica.pt/dr/detalhe/decreto-lei/97-2026-1124493227" }, { label: "Portaria n.º 454/2026/1", url: "https://diariodarepublica.pt/dr/detalhe/portaria/454-2026-1179722108" }, { label: "Comunicado do Conselho de Ministros de 9 de julho", url: "https://portugal.gov.pt/gc25/governo/comunicados-do-conselho-de-ministros/comunicado-do-conselho-de-ministros-de-9-de-julho-de-2026-1" }],
     body: [
       "Senhorios, arrendatários e investidores em Portugal encontram em novembro de 2026 dois debates diferentes: novas medidas fiscais para ampliar a oferta de casas já publicadas em Diário da República e uma proposta de reforma do regime geral de arrendamento ainda sujeita ao processo legislativo. O Decreto-Lei n.º 97/2026 criou, entre outras medidas, o Regime Simplificado de Arrendamento Acessível; a Portaria n.º 454/2026/1 fixou limites de renda por tipologia. A distinção importa porque uma proposta do Governo não altera automaticamente um contrato em vigor.",
@@ -36,7 +36,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "rendas-novos-contratos-ine-2026", category: "Mercado",
     title: "Rendas de novos contratos: como ler os 10,17 €/m² sem perder a realidade local",
     excerpt: "O indicador do INE para o segundo trimestre ajuda a enquadrar o mercado, mas não é uma avaliação automática de cada imóvel.",
-    source: "Guia HousePro", date: "2026-11-20", url: "#", image: "/news/arrendamento.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-20", url: "#", image: "/news/editorial/rendas-novos-contratos-ine-2026.webp", tint: "",
     sources: [{ label: "INE, estatísticas de rendas da habitação ao nível local", url: "https://ine.pt/xportal/xmain?tema_cod=1211&xpgid=ine_tema&xpid=INE" }],
     body: [
       "Quem procura ou coloca uma casa para arrendar em Portugal recebeu um novo ponto de referência: o INE divulgou que a renda mediana de novos contratos de alojamentos familiares no segundo trimestre de 2026 chegou a 10,17 euros por metro quadrado, mais 10,2% do que no período homólogo. O dado, divulgado em setembro, mede contratos novos e ajuda famílias, senhorios e profissionais a perceber a pressão sobre o mercado. Não significa que toda a habitação em qualquer concelho tenha essa renda, nem que os contratos antigos tenham subido na mesma proporção.",
@@ -50,7 +50,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "credito-habitacao-setembro-2026", category: "Mercado",
     title: "Crédito à habitação: o que dizem as taxas e prestações divulgadas em novembro",
     excerpt: "Os dados do Banco de Portugal apontam para taxa média de 3,06% nas novas operações e ajudam a comparar propostas sem confundir média com oferta individual.",
-    source: "Guia HousePro", date: "2026-11-20", url: "#", image: "/news/mercado.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-20", url: "#", image: "/news/editorial/credito-habitacao-setembro-2026.webp", tint: "",
     sources: [{ label: "Banco de Portugal, estatísticas de setembro de 2026", url: "https://bpstat.bportugal.pt/conteudos/noticias/3170/" }, { label: "Banco de Portugal, empréstimos e depósitos", url: "https://bpstat.bportugal.pt/conteudos/noticias/3167" }],
     body: [
       "Compradores de casa e titulares de crédito em Portugal têm novos dados para orientar perguntas ao banco. Em 2 de novembro de 2026, o Banco de Portugal publicou as estatísticas de setembro: a taxa média das novas operações de crédito à habitação subiu para 3,06%, enquanto a prestação média do stock de empréstimos para habitação própria permanente chegou a 450 euros. Os números interessam porque revelam tendências agregadas, mas não são a taxa nem a prestação que um cliente particular vai receber.",
@@ -64,7 +64,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "contratos-investimento-arrendamento-2026", category: "Investimento",
     title: "Contratos de investimento para arrendamento: o que avaliar antes de entrar no regime",
     excerpt: "O novo modelo de 2026 prevê compromissos longos e benefícios condicionados; o investidor deve testar a renda e as obrigações antes de comprar.",
-    source: "Guia HousePro", date: "2026-11-19", url: "#", image: "/news/investimento.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-19", url: "#", image: "/news/editorial/contratos-investimento-arrendamento-2026.webp", tint: "",
     sources: [{ label: "Decreto-Lei n.º 97/2026", url: "https://diariodarepublica.pt/dr/detalhe/decreto-lei/97-2026-1124493227" }, { label: "Portaria n.º 500/2026/1, registo do ónus", url: "https://diariodarepublica.pt/dr/detalhe/portaria/500-2026-1194943528" }],
     body: [
       "Investidores, promotores e entidades que pretendem aumentar a oferta de arrendamento habitacional em Portugal passaram a ter, desde 2026, o regime dos contratos de investimento para arrendamento. O Decreto-Lei n.º 97/2026 criou o enquadramento para construção, reabilitação ou aquisição destinada a arrendar, com benefícios fiscais associados a compromissos que podem prolongar-se até 25 anos. A Portaria n.º 500/2026/1, publicada em 13 de novembro, regulou o registo predial do ónus relativo à autorização para transmitir certos imóveis abrangidos. É uma notícia importante para quem pensa investir com horizonte longo, não um desconto automático em qualquer compra.",
@@ -78,7 +78,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "renda-moderada-fiscalidade-investidor-2026", category: "Investimento",
     title: "Renda moderada e fiscalidade: como comparar o benefício com o retorno real",
     excerpt: "A fiscalidade de 2026 incentiva contratos dentro de limites, mas o fluxo de caixa e a procura local continuam decisivos.",
-    source: "Guia HousePro", date: "2026-11-19", url: "#", image: "/news/vender.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-19", url: "#", image: "/news/editorial/renda-moderada-fiscalidade-investidor-2026.webp", tint: "",
     sources: [{ label: "Decreto-Lei n.º 97/2026", url: "https://diariodarepublica.pt/dr/detalhe/decreto-lei/97-2026-1124493227" }, { label: "Estatuto dos Benefícios Fiscais, redação consolidada", url: "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/1989-34554075-185435094" }],
     body: [
       "Um proprietário que arrenda para habitação em Portugal pode encontrar em 2026 incentivos fiscais ligados a rendas dentro de limites legais. O Decreto-Lei n.º 97/2026 alterou a tributação de rendimentos prediais e criou outros instrumentos para reforçar a oferta. Interessa a senhorios e investidores porque a taxa de imposto altera o rendimento líquido, mas a aplicação do benefício depende do tipo de contrato, da renda, do sujeito passivo e dos prazos. Não se deve anunciar uma taxa universal sem confirmar o regime escolhido.",
@@ -92,7 +92,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "atualizacao-rendas-2027", category: "Dicas",
     title: "Atualização das rendas em 2027: coeficiente de 2,56% e passos para comunicar",
     excerpt: "O aviso oficial publicou o coeficiente de 1,0256; a aplicação depende do contrato e da comunicação escrita no prazo correto.",
-    source: "Guia HousePro", date: "2026-11-18", url: "#", image: "/news/dicas.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-18", url: "#", image: "/news/editorial/atualizacao-rendas-2027.webp", tint: "",
     sources: [{ label: "Aviso n.º 24199/2026/2", url: "https://diariodarepublica.pt/dr/detalhe/aviso/24199-2026-1175645456" }, { label: "Código Civil, artigo 1077.º", url: "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/1966-34509075-66152691" }],
     body: [
       "Senhorios e inquilinos que planeiam o orçamento de 2027 já conhecem o coeficiente de atualização anual de rendas: 1,0256, publicado pelo INE no Aviso n.º 24199/2026/2, de 1 de outubro. O valor corresponde a uma variação de 2,56% quando se aplica a atualização legal anual. Interessa aos contratos de arrendamento abrangidos pelo regime, mas não autoriza uma subida imediata e igual para todas as casas. O momento, a forma da comunicação e o que foi estipulado por escrito no contrato continuam a importar.",
@@ -106,7 +106,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "comprar-casa-credito-2026-checklist", category: "Dicas",
     title: "Comprar casa com crédito em 2026: o que comparar antes de assinar o CPCV",
     excerpt: "Entrada, impostos, FINE e avaliação bancária: um roteiro para definir um orçamento que aguente cenários menos favoráveis.",
-    source: "Guia HousePro", date: "2026-11-18", url: "#", image: "/news/comprar.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-18", url: "#", image: "/news/editorial/comprar-casa-credito-2026-checklist.webp", tint: "",
     sources: [{ label: "Banco de Portugal, estatísticas de crédito de setembro", url: "https://bpstat.bportugal.pt/conteudos/noticias/3170/" }, { label: "Portal das Finanças, compra da casa", url: "https://info.portaldasfinancas.gov.pt/pt/apoio_ao_contribuinte/Cidadaos/Casa_e_propriedades/Compra_da_casa/Paginas/default.aspx" }],
     body: [
       "Quem pretende comprar casa com financiamento em Portugal no final de 2026 deve preparar a operação antes de entregar um sinal. O Banco de Portugal divulgou em novembro que a taxa média de novas operações de crédito à habitação em setembro foi 3,06%, num mercado onde predominam propostas de taxa mista. O dado ajuda a enquadrar a procura, mas o objetivo prático é outro: conhecer a entrada disponível, o imposto da aquisição, os custos de escritura e as condições concretas de pelo menos duas propostas bancárias antes do CPCV.",
@@ -120,7 +120,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "debate-arrendamento-novembro-2026", category: "Eventos",
     title: "Habitação no Parlamento: o que acompanhar depois das reuniões de novembro",
     excerpt: "O Governo reuniu com partidos sobre a reforma do arrendamento; os contratos atuais só mudam quando houver texto legal aprovado e em vigor.",
-    source: "Guia HousePro", date: "2026-11-17", url: "#", image: "/news/eventos.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-17", url: "#", image: "/news/editorial/debate-arrendamento-novembro-2026.webp", tint: "",
     sources: [{ label: "Governo, reuniões com partidos em novembro", url: "https://portugal.gov.pt/gc25/comunicacao/noticias/habitacao-governo-inicia-reunioes-com-partidos" }, { label: "Comunicado da proposta de reforma do arrendamento", url: "https://portugal.gov.pt/gc25/governo/comunicados-do-conselho-de-ministros/comunicado-do-conselho-de-ministros-de-9-de-julho-de-2026-1" }],
     body: [
       "O Governo português iniciou a 5 de novembro de 2026 reuniões com os partidos com assento parlamentar para discutir medidas de habitação, incluindo a reforma do arrendamento urbano. Os encontros, anunciados oficialmente e prolongados nos dias seguintes, interessam a senhorios, inquilinos e mediadores porque podem influenciar futuras regras contratuais. O objetivo declarado foi recolher contributos para soluções de acesso à habitação. Uma reunião política, contudo, não é uma lei: as mudanças só têm efeito após aprovação, publicação e entrada em vigor.",
@@ -134,7 +134,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "construcao-modular-anuncio-novembro-2026", category: "Eventos",
     title: "Construção modular volta à agenda: o que foi anunciado e o que ainda falta",
     excerpt: "O Governo anunciou preparar um acordo-quadro para simplificar licenciamento; compradores devem distinguir intenção, projeto aprovado e obra concluída.",
-    source: "Guia HousePro", date: "2026-11-21", url: "#", image: "/news/geral.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-21", url: "#", image: "/news/editorial/construcao-modular-anuncio-novembro-2026.webp", tint: "",
     sources: [{ label: "Governo, anúncio de 20 de novembro de 2026", url: "https://portugal.gov.pt/pt/gc25/comunicacao/noticias/governo-prepara-acordo-quadro-para-simplificar-licenciamento-da-construcao-modular" }],
     body: [
       "O Primeiro-Ministro anunciou em 20 de novembro de 2026, durante uma visita a uma unidade industrial em Braga, que o Governo está a finalizar um acordo-quadro para simplificar o licenciamento de empreendimentos de construção industrial e modular. A medida é apresentada como forma de acelerar projetos e aumentar a oferta de habitação em Portugal. Interessa a promotores, autarquias e famílias que acompanham novas soluções construtivas. Na data do anúncio, porém, trata-se de um instrumento em preparação, não de uma dispensa geral de licenças para qualquer casa pré-fabricada.",
@@ -148,7 +148,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "eu-habitacao-portugal-2026", category: "Internacional",
     title: "A Comissão Europeia olha para a habitação em Portugal: que sinais deixa para o mercado",
     excerpt: "O anexo europeu de 2026 aponta falta de oferta, pressão sobre rendas e disparidades regionais; eis como usar essa leitura sem a transformar em previsão.",
-    source: "Guia HousePro", date: "2026-11-16", url: "#", image: "/news/internacional.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-16", url: "#", image: "/news/editorial/eu-habitacao-portugal-2026.webp", tint: "",
     sources: [{ label: "Comissão Europeia, Housing Annex 2026 — Portugal", url: "https://housing.ec.europa.eu/document/download/c954af18-c755-4dd4-bc35-b32357a21eb2_en?filename=2026+PT+Housing+Annex.pdf" }, { label: "Habitação no Semestre Europeu", url: "https://housing.ec.europa.eu/european-affordable-housing-plan/housing-european-semester_en" }],
     body: [
       "A Comissão Europeia incluiu Portugal no anexo sobre habitação do Semestre Europeu de 2026, analisando acessibilidade, oferta e diferenças regionais. O documento interessa a famílias, investidores, municípios e profissionais portugueses porque situa o mercado nacional numa comparação europeia. A análise aponta preços que cresceram mais depressa do que rendimentos, falta de oferta e pressão em áreas de elevada procura. É um diagnóstico de política pública divulgado em 2026, não uma tabela de preços futuros para Faro, Lisboa ou qualquer rua.",
@@ -162,7 +162,7 @@ export const EDITORIAL_2026: NewsItem[] = [
     id: "bce-juros-habitacao-outubro-2026", category: "Internacional",
     title: "BCE manteve taxas em outubro: o que isso significa — e não significa — para a prestação",
     excerpt: "A decisão europeia influencia o contexto do crédito, mas a Euribor, o contrato e o calendário de revisão definem o efeito individual.",
-    source: "Guia HousePro", date: "2026-11-16", url: "#", image: "/news/financiamento.webp", tint: "",
+    source: "Guia HousePro", date: "2026-11-16", url: "#", image: "/news/editorial/bce-juros-habitacao-outubro-2026.webp", tint: "",
     sources: [{ label: "BCE, decisão de política monetária de 29 de outubro", url: "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp261029~9a493adf17.en.html" }, { label: "Banco de Portugal, crédito de setembro", url: "https://bpstat.bportugal.pt/conteudos/noticias/3170/" }],
     body: [
       "O Conselho do Banco Central Europeu decidiu em 29 de outubro de 2026 manter as suas três taxas diretoras: 2,50% na facilidade de depósito, 2,65% nas operações principais de refinanciamento e 2,90% na facilidade permanente de cedência de liquidez. A decisão interessa a compradores e proprietários com crédito em Portugal porque condiciona o ambiente monetário da área do euro. Não altera, por si só e no mesmo dia, a prestação de todos os contratos: cada empréstimo segue o respetivo indexante, spread, tipo de taxa e data de revisão.",

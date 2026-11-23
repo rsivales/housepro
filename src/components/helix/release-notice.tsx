@@ -15,8 +15,9 @@ const STORAGE_KEY = "helix:last-seen-release";
  * conta, não o browser) — sobrevive a qualquer domínio/dispositivo. Mantém o
  * localStorage como resposta imediata e reserva para modo demo/sem sessão.
  */
-export function ReleaseNotice({ revision }: { revision?: string }) {
-  const releaseId = revision ? `${LATEST_RELEASE.id}:${revision}` : LATEST_RELEASE.id;
+export function ReleaseNotice() {
+  // Product release ID, not Vercel commit SHA: rebuilds must not retrigger notices.
+  const releaseId = LATEST_RELEASE.id;
   const [visible, setVisible] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const [ready, setReady] = React.useState(false);

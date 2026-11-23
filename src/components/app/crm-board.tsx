@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { formatEuro } from "@/lib/format";
 import { DEAL_STEPS, dealStageToStatus } from "@/lib/data/deal";
 import type { DealListItem } from "@/lib/db/deals";
+import { dealPipelineSummary } from "@/lib/commission/deal-pipeline-summary";
 import { STATUS_LABEL } from "@/lib/data/status";
 import type { PropertyStatus } from "@/lib/data/types";
 
@@ -104,6 +105,7 @@ export function CrmBoard({
   agencies = [],
   prefill,
   canManage = false,
+  viewerId,
 }: {
   initial: DealListItem[];
   /** Outras agências (para "partilha com outra agência"). */
@@ -112,6 +114,8 @@ export function CrmBoard({
   prefill?: CrmBoardPrefill;
   /** Staff (coordenação/direção/admin) — pode apagar negócios. */
   canManage?: boolean;
+  /** Consultant whose own commission share is shown in the forecast. */
+  viewerId: string;
 }) {
   const router = useRouter();
   const [deals, setDeals] = React.useState(initial);
@@ -193,7 +197,7 @@ export function CrmBoard({
     setShowBuyerMatches(false);
   }
 
-  const total = deals.reduce((s, d) => s + d.amount, 0);
+  const summary = dealPipelineSummary(deals, viewerId);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -306,6 +310,32 @@ export function CrmBoard({
     (id, stage) => void setStage(id, stage),
     busy !== null,
   );
+  const [scrollMetrics, setScrollMetrics] = React.useState({ left: 0, max: 0 });
+  const syncScrollMetrics = React.useCallback(() => {
+    const board = dragging.board.current;
+    if (!board) return;
+    const next = {
+      left: Math.round(board.scrollLeft),
+      max: Math.max(0, board.scrollWidth - board.clientWidth),
+    };
+    setScrollMetrics((current) =>
+      current.left === next.left && current.max === next.max ? current : next,
+    );
+  }, [dragging.board]);
+  React.useEffect(() => {
+    const board = dragging.board.current;
+    if (!board) return;
+    const observer = new ResizeObserver(syncScrollMetrics);
+    observer.observe(board);
+    for (const column of board.children) observer.observe(column);
+    syncScrollMetrics();
+    return () => observer.disconnect();
+  }, [dragging.board, syncScrollMetrics]);
+
+  function scrollBoard(direction: -1 | 1) {
+    const board = dragging.board.current;
+    if (board) board.scrollBy({ left: direction * board.clientWidth * 0.75, behavior: "smooth" });
+  }
 
   function move(dealId: string, dir: 1 | -1, idx: number) {
     const to = ORDER[idx + dir];
@@ -357,21 +387,21 @@ export function CrmBoard({
             (reserva → reservado · CPCV → CPCV · escritura/concluído → vendido).
           </p>
         </div>
-        <div className="flex items-center gap-5">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="size-5 text-primary" />
-            <div>
-              <p className="text-xs text-muted-foreground">Valor em pipeline</p>
-              <p className="font-display text-xl leading-none">
-                {formatEuro(total)}
-              </p>
-            </div>
-          </div>
-          <Button onClick={() => setShowNew((s) => !s)}>
-            <Plus className="size-4" /> Novo negócio
-          </Button>
-        </div>
+        <Button onClick={() => setShowNew((s) => !s)}>
+          <Plus className="size-4" /> Novo negócio
+        </Button>
       </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo dos negócios ativos">
+        <SummaryMetric label="Negócios ativos" value={String(summary.activeCount)} detail={`${summary.closingCount} em CPCV ou escritura · ${summary.completedCount} concluídos fora da previsão`} />
+        <SummaryMetric label="Valor dos imóveis em negociação" value={formatEuro(summary.propertyValue)} detail="Soma dos negócios ativos, não é faturação" />
+        <SummaryMetric label="Faturação bruta prevista" value={formatEuro(summary.gross)} detail="A tua parte da comissão, antes das deduções" accent />
+        <SummaryMetric label="Após royalties e fundo" value={formatEuro(summary.afterDeductions)} detail="Antes de impostos e IVA · estimativa" accent />
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Projeção se os negócios ativos forem concluídos. Não inclui negócios perdidos ou já concluídos.
+        {summary.missingForecast > 0 && ` ${summary.missingForecast} negócio${summary.missingForecast === 1 ? "" : "s"} sem previsão de comissão validada; não incluído${summary.missingForecast === 1 ? "" : "s"} nos dois totais de faturação.`}
+      </p>
 
       {/* Novo negócio */}
       {showNew && (
@@ -654,6 +684,20 @@ export function CrmBoard({
         Arraste pela pega do cartão com rato ou dedo. Pode também usar as setas
         ou selecionar a pega com o teclado.
       </p>
+      <div className="mt-3 flex items-center gap-2" role="group" aria-label="Deslocar as fases do Kanban">
+        <button type="button" onClick={() => scrollBoard(-1)} disabled={scrollMetrics.left <= 0}
+          aria-label="Ver fases anteriores" className="grid size-9 shrink-0 place-items-center rounded-lg border bg-card text-foreground disabled:opacity-40">
+          <ChevronLeft className="size-4" />
+        </button>
+        <input type="range" min={0} max={Math.max(1, scrollMetrics.max)} value={scrollMetrics.left}
+          disabled={scrollMetrics.max === 0} aria-label="Deslocar o Kanban horizontalmente"
+          onChange={(e) => { if (dragging.board.current) dragging.board.current.scrollLeft = Number(e.target.value); }}
+          className="h-9 min-w-0 flex-1 cursor-pointer accent-primary disabled:opacity-40" />
+        <button type="button" onClick={() => scrollBoard(1)} disabled={scrollMetrics.left >= scrollMetrics.max}
+          aria-label="Ver fases seguintes" className="grid size-9 shrink-0 place-items-center rounded-lg border bg-card text-foreground disabled:opacity-40">
+          <ChevronRight className="size-4" />
+        </button>
+      </div>
       <p role="status" aria-live="polite" className="sr-only">
         {dragging.announcement}
       </p>
@@ -671,7 +715,8 @@ export function CrmBoard({
       {/* Quadro Kanban de negócios reais */}
       <div
         ref={dragging.board}
-        className="mt-3 flex gap-4 overflow-x-auto overscroll-x-contain pb-4"
+        onScroll={syncScrollMetrics}
+        className="crm-board-viewport mt-2 flex gap-4 overflow-x-auto overscroll-x-contain pb-4"
       >
         {DEAL_STEPS.map((step, i) => {
           const cards = deals.filter((d) => d.stage === step.stage);
@@ -917,6 +962,21 @@ export function CrmBoard({
           referência de um imóvel (ex.: HP-1049).
         </p>
       )}
+    </div>
+  );
+}
+
+function SummaryMetric({
+  label, value, detail, accent = false,
+}: { label: string; value: string; detail: string; accent?: boolean }) {
+  return (
+    <div className={cn("min-w-0 rounded-2xl border bg-card p-4 shadow-sm", accent && "border-primary/20 bg-primary/[0.03]")}>
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        {accent && <TrendingUp aria-hidden="true" className="size-3.5 text-primary" />}
+        {label}
+      </p>
+      <p className="mt-2 font-display text-xl font-semibold tabular-nums sm:text-2xl">{value}</p>
+      <p className="mt-1 text-xs leading-snug text-muted-foreground">{detail}</p>
     </div>
   );
 }

@@ -396,7 +396,7 @@ export function CrmBoard({
         <SummaryMetric label="Negócios ativos" value={String(summary.activeCount)} detail={`${summary.closingCount} em CPCV ou escritura · ${summary.completedCount} concluídos fora da previsão`} />
         <SummaryMetric label="Valor dos imóveis em negociação" value={formatEuro(summary.propertyValue)} detail="Soma dos negócios ativos, não é faturação" />
         <SummaryMetric label="Faturação bruta prevista" value={formatEuro(summary.gross)} detail="A tua parte da comissão, antes das deduções" accent />
-        <SummaryMetric label="Após royalties e fundo" value={formatEuro(summary.afterDeductions)} detail="Antes de impostos e IVA · estimativa" accent />
+        <SummaryMetric label="Faturação líquida prevista*" value={formatEuro(summary.afterDeductions)} detail="*Após royalties e fundo; antes de impostos e IVA" accent />
       </div>
       <p className="mt-2 text-xs text-muted-foreground">
         Projeção se os negócios ativos forem concluídos. Não inclui negócios perdidos ou já concluídos.

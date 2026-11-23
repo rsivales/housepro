@@ -69,7 +69,7 @@ export async function HelixShell({ children }: { children: React.ReactNode }) {
       </div>
       <MobileBottomNavigation superadmin={superadmin&&!isCommercialAgent(agent)} />
       {!demo && !session.viewingAs && isCommercialAgent(agent) && <OwnerReportSetupGate />}
-      <ReleaseNotice revision={process.env.VERCEL_GIT_COMMIT_SHA} />
+      <ReleaseNotice />
       {demo && <RoleSwitcher currentId={agent.id} />}
       </HelixSidebar>
     </div>

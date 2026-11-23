@@ -1,11 +1,11 @@
 import type { Agent } from "@/lib/data/types";
 import { isCommercialAgent } from "@/lib/data/agent-directory";
 import { isNetworkFinanceAdmin } from "@/lib/data/finance-access";
-import { isStaff } from "@/lib/data/roles";
-export type NavigationAccess = { commercial: boolean; broker: boolean; admin: boolean; financeMaster: boolean; legal: boolean; agentId: string };
+import { isStaff, isSuperadmin } from "@/lib/data/roles";
+export type NavigationAccess = { commercial: boolean; broker: boolean; admin: boolean; financeMaster: boolean; legal: boolean; superadmin: boolean; agentId: string };
 export type NavigationGroup = { label: string; icon: string; items: { label: string; href: string }[] };
 export function navigationAccess(agent: Agent, broker: boolean): NavigationAccess {
- return { commercial: isCommercialAgent(agent), broker, admin: isStaff(agent), financeMaster:isNetworkFinanceAdmin(agent), legal:agent.roleKey==="advogado", agentId: agent.id };
+ return { commercial: isCommercialAgent(agent), broker, admin: isStaff(agent), superadmin: isSuperadmin(agent), financeMaster:isNetworkFinanceAdmin(agent), legal:agent.roleKey==="advogado", agentId: agent.id };
 }
 export function navigationGroups(a: NavigationAccess): NavigationGroup[] {
  const groups: NavigationGroup[] = a.commercial ? [
@@ -17,7 +17,7 @@ export function navigationGroups(a: NavigationAccess): NavigationGroup[] {
  ] : [];
  if(a.legal)groups.push({label:"LegalFlow",icon:"shield",items:[{label:"Processos e documentos",href:"/app/legalflow"},{label:"Agenda",href:"/app/agenda"}]});
  if (a.broker) groups.push({label:"Gestão da agência",icon:"agency",items:[{label:"Painel da agência",href:"/app/broker"},{label:"Negócios da agência",href:"/app/broker/crm"},{label:"Indicadores imobiliários",href:"/app/indicadores-imobiliarios"},{label:"Equipa e comissionamento",href:"/app/broker/comissionamento"},{label:"Pagamentos da agência",href:"/app/broker/pagamentos"},{label:"Fees e Pro Producer",href:"/app/broker/fees"}]});
- if (a.admin) groups.push({label:"Marca e administração",icon:"shield",items:[{label:"Painel da Marca",href:"/admin"},...(!a.broker?[{label:"Indicadores imobiliários",href:"/app/indicadores-imobiliarios"}]:[]),...(a.financeMaster?[{label:"Aprovações de comissões",href:"/app/aprovacoes-comissoes"},{label:"Negócios da rede",href:"/admin/crm"},{label:"Pagamentos da Marca",href:"/admin/pagamentos"},{label:"Fees e Pro Producer",href:"/admin/fees"},{label:"Integrações",href:"/admin/integracoes"}]:[]),{label:"Agências",href:"/admin/agencias"},{label:"Consultores",href:"/admin/consultores"},{label:"Website público",href:"/admin/website"},{label:"Mapa e funções",href:"/admin/mapa-sistema"}]});
+ if (a.admin) groups.push({label:"Marca e administração",icon:"shield",items:[{label:"Painel da Marca",href:"/admin"},...(!a.broker?[{label:"Indicadores imobiliários",href:"/app/indicadores-imobiliarios"}]:[]),...(a.financeMaster?[{label:"Aprovações de comissões",href:"/app/aprovacoes-comissoes"},{label:"Negócios da rede",href:"/admin/crm"},{label:"Pagamentos da Marca",href:"/admin/pagamentos"},{label:"Fees e Pro Producer",href:"/admin/fees"},{label:"Integrações",href:"/admin/integracoes"}]:[]),{label:"Agências",href:"/admin/agencias"},{label:"Consultores",href:"/admin/consultores"},{label:"Website público",href:"/admin/website"},...(a.superadmin?[{label:"Manual técnico Helix",href:"/admin/helix-manual"}]:[]),{label:"Mapa e funções",href:"/admin/mapa-sistema"}]});
  return groups;
 }
 export function linkIsActive(path: string, href: string) { return path === href || (href !== "/app" && href !== "/admin" && href !== "/app/broker" && path.startsWith(href + "/")); }

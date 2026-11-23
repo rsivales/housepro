@@ -22,12 +22,17 @@ it("keeps a multi-line client comment and offer conditions without absorbing lat
  expect(result.conditions).toBe("Sujeito a financiamento\nEscritura até dezembro");
  expect(result.deposit).toBe(10000);
 });
+it("reads a photographed form whose labels and values fall on separate lines",()=>{
+ const result=parseActivityText("FICHA DE VISITA\nNome do cliente\nAna Silva\nContacto - 912 345 678\nE-mail: ana@example.com\nData da visita: 21/11/2026\nComentários do cliente: Gostou da luz\nGostaria de voltar com a família\nConsultor: Pedro Seabra");
+ expect(result).toMatchObject({name:"Ana Silva",phone:"912 345 678",email:"ana@example.com",feedback:"Gostou da luz\nGostaria de voltar com a família",participants:[{name:"Pedro Seabra"}]});
+});
 it("requires review and a valid phone for a CRM pipeline, and validates the public summary",()=>{
  const base={...EMPTY_ACTIVITY,name:"Cliente",phone:"912345678",occurredAt:"2026-11-01T12:00:00.000Z"};
  expect(()=>validateActivity(base)).toThrow();
  expect(()=>validateActivity({...base,confirmed:true,shareOwner:true})).toThrow();
  expect(validateActivity({...base,confirmed:true,shareOwner:true,ownerFeedback:"Gostou da luminosidade."})).toMatchObject({phone:"912345678",confirmed:true});
  expect(()=>validateActivity({...base,confirmed:true,phone:""})).toThrow();
+ expect(validateActivity({...base,confirmed:true,phone:"",email:"ana@example.com"})).toMatchObject({phone:"",email:"ana@example.com"});
 });
 it("checks offer values and optional dates",()=>{
  const base={...EMPTY_ACTIVITY,kind:"proposal",name:"Cliente",phone:"912345678",occurredAt:"2026-11-01T12:00:00.000Z",confirmed:true,amount:175000};

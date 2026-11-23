@@ -2,6 +2,7 @@
 
 import { useEffect,useRef,useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ACTIVITY_SOURCES,EMPTY_ACTIVITY,parseActivityText,type ActivityInput } from "@/lib/property-activity/model";
 import { readActivityDocument } from "@/lib/property-activity/ocr-client";
 import type { LeadPipeline } from "@/lib/data/lead-pipelines";
@@ -10,13 +11,14 @@ interface ActivityRecord {
  id:string;kind:string;occurred_at:string;document_name:string;contact_id:string;lead_id:string;deal_id:string|null;
  listing_agent:{name:string}|null;buyer_agent:{name:string}|null;data:ActivityInput;rating:number|null;sentiment:string;
 }
-interface Workspace {history:ActivityRecord[];property:{reference:string;title:string};agents:{id:string;name:string;agency:string}[];pipelines:LeadPipeline[]}
+interface Workspace {history:ActivityRecord[];property:{reference:string;title:string};agents:{id:string;name:string;agency:string}[];pipelines:LeadPipeline[];canWrite:boolean}
 const field="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm";
 export function ActivityCapture({properties,initialId}:{properties:{id:string;reference:string;title:string}[];initialId:string}) {
  const [propertyId,setPropertyId]=useState(initialId);
  const [workspace,setWorkspace]=useState<Workspace>();
  const [form,setForm]=useState<ActivityInput>(EMPTY_ACTIVITY);
  const [file,setFile]=useState<File>();
+ const [preview,setPreview]=useState("");
  const [status,setStatus]=useState("");
  const [busy,setBusy]=useState(false);
  const [result,setResult]=useState<{contactId:string;leadId:string;dealId?:string;exists:boolean}>();
@@ -31,6 +33,11 @@ export function ActivityCapture({properties,initialId}:{properties:{id:string;re
   }).catch(e=>{if(active)setStatus(e.message);});
   return ()=>{active=false;};
  },[propertyId]);
+ useEffect(()=>{
+  if(!file){setPreview("");return;}
+  const url=URL.createObjectURL(file);setPreview(url);
+  return ()=>URL.revokeObjectURL(url);
+ },[file]);
  const patch=(value:Partial<ActivityInput>)=>setForm(v=>({...v,...value,confirmed:false}));
  async function read(source?:File) {
   if(!source)return;
@@ -42,8 +49,14 @@ export function ActivityCapture({properties,initialId}:{properties:{id:string;re
   setForm(current=>({...EMPTY_ACTIVITY,kind:current.kind,pipeline:current.pipeline,stage:current.stage}));
   try {
    const text=await readActivityDocument(source,setStatus);
-   setForm(current=>({...current,...parseActivityText(text),confirmed:false}));
-   setStatus("Leitura concluída. Reveja o texto, os dados e os agentes antes de gravar. A escrita à mão pode exigir correções.");
+   const suggestion=parseActivityText(text);
+   const normalized=(name:string)=>name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+   suggestion.participants=suggestion.participants?.map(person=>{
+    const matching=workspace?.agents.filter(agent=>normalized(agent.name)===normalized(person.name));
+    return matching?.length===1?{...person,profileId:matching[0].id,agency:person.agency||matching[0].agency}:person;
+   });
+   setForm(current=>({...current,...suggestion,confirmed:false}));
+   setStatus("Leitura concluída. Os campos identificados foram preenchidos abaixo. Compare com o original antes de confirmar, sobretudo manuscritos, nomes, números e datas.");
   }catch(error){setStatus((error instanceof Error?error.message:"Não foi possível ler o documento.")+" Pode preencher a ficha manualmente e guardar a cópia selecionada.");}
   finally{setBusy(false);if(upload.current)upload.current.value="";if(camera.current)camera.current.value="";}
  }
@@ -70,7 +83,7 @@ export function ActivityCapture({properties,initialId}:{properties:{id:string;re
   </select></label>
   {status&&<p role="status" className="rounded-lg border bg-card p-4 text-sm">{status}</p>}
   {workspace&&<>
-   <section className="space-y-5 rounded-xl border bg-card p-5 sm:p-7">
+   {workspace.canWrite&&<section className="space-y-5 rounded-xl border bg-card p-5 sm:p-7">
     <div className="flex flex-wrap items-end justify-between gap-4">
      <label className="text-sm">Tipo de documento<select className={field} disabled={busy} value={form.kind} onChange={e=>patch({kind:e.target.value as ActivityInput["kind"],stage:e.target.value==="visit"?2:3})}>
       <option value="visit">Ficha de visita</option><option value="proposal">Proposta</option>
@@ -83,15 +96,18 @@ export function ActivityCapture({properties,initialId}:{properties:{id:string;re
     <input ref={camera} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden onChange={e=>void read(e.target.files?.[0])}/>
     <input ref={upload} type="file" accept="application/pdf,image/jpeg,image/png,image/webp" hidden onChange={e=>void read(e.target.files?.[0])}/>
     <p className="text-xs text-muted-foreground">PDF até 12 páginas ou fotografia, até 4 MB. A leitura decorre no dispositivo. A cópia é guardada no histórico quando confirmar a ficha.</p>
-    {file&&<p className="text-sm font-medium">Documento selecionado · {file.name}</p>}
+    {file&&<div className="space-y-3 rounded-lg border p-3"><p className="text-sm font-medium">Original para conferência · {file.name}</p>
+     {preview&&(file.type==="application/pdf"?<iframe className="h-[480px] w-full rounded border" title="Documento original selecionado" src={preview}/>:<Image className="max-h-[620px] w-full rounded object-contain" alt="Fotografia original da ficha selecionada" src={preview} width={1200} height={1600} unoptimized/>)}
+    </div>}
     <details><summary className="cursor-pointer text-sm font-medium">Texto extraído do documento</summary>
      <textarea className={field} rows={7} maxLength={50000} value={form.rawText} onChange={e=>patch({rawText:e.target.value})}/>
      <button className="mt-2 rounded-md border px-3 py-2 text-sm" disabled={busy||!form.rawText} onClick={()=>patch(parseActivityText(form.rawText))}>Voltar a sugerir campos a partir do texto</button>
     </details>
     <fieldset className="grid gap-4 sm:grid-cols-2"><legend className="mb-3 font-display text-xl">Cliente e origem</legend>
      <label className="text-sm">Nome do cliente<input className={field} value={form.name} onChange={e=>patch({name:e.target.value})}/></label>
-     <label className="text-sm">Telefone<input className={field} type="tel" value={form.phone} onChange={e=>patch({phone:e.target.value})}/></label>
-     <label className="text-sm">Email<input className={field} type="email" value={form.email} onChange={e=>patch({email:e.target.value})}/></label>
+     <label className="text-sm">Telefone, se indicado<input className={field} type="tel" value={form.phone} onChange={e=>patch({phone:e.target.value})}/></label>
+     <label className="text-sm">Email, se indicado<input className={field} type="email" value={form.email} onChange={e=>patch({email:e.target.value})}/></label>
+     <p className="text-xs text-muted-foreground sm:col-span-2">Para ligar a ficha ao contacto e ao CRM basta um telefone ou email confirmado. Não tente adivinhar caracteres ilegíveis.</p>
      <label className="text-sm">NIF, se indicado<input className={field} value={form.nif} onChange={e=>patch({nif:e.target.value})}/></label>
      <label className="text-sm sm:col-span-2">Morada, se indicada<input className={field} value={form.address} onChange={e=>patch({address:e.target.value})}/></label>
      <label className="text-sm">Data da {form.kind==="visit"?"visita":"proposta"}<input className={field} type="date" value={form.occurredAt?new Date(Date.parse(form.occurredAt)-new Date(form.occurredAt).getTimezoneOffset()*60000).toISOString().slice(0,10):""} onChange={e=>patch({occurredAt:e.target.value?new Date(e.target.value+"T12:00").toISOString():"",timeKnown:false})}/></label>
@@ -148,7 +164,7 @@ export function ActivityCapture({properties,initialId}:{properties:{id:string;re
     <label className="flex gap-2 text-sm"><input type="checkbox" checked={form.confirmed} onChange={e=>setForm(v=>({...v,confirmed:e.target.checked}))}/>Confirmei os dados extraídos, a data, os agentes e a informação a partilhar.</label>
     <button type="button" disabled={!file||!form.confirmed||busy} onClick={()=>void save()} className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{busy?"A processar…":"Guardar documento e registar atividade"}</button>
     {result&&<div className="flex flex-wrap gap-4 text-sm"><Link className="underline" href={`/app/contactos/${result.contactId}`}>Abrir contacto</Link><Link className="underline" href={`/app/leads/${result.leadId}`}>Abrir pedido no CRM</Link>{result.dealId&&<Link className="underline" href={`/app/crm/${result.dealId}`}>Abrir negócio</Link>}</div>}
-   </section>
+   </section>}
    <section className="rounded-xl border bg-card p-5">
     <h2 className="font-display text-2xl">Histórico de fichas e documentos</h2>
     {!workspace.history.length&&<p className="mt-3 text-sm text-muted-foreground">Ainda sem fichas de visita ou propostas carregadas.</p>}
@@ -162,7 +178,8 @@ export function ActivityCapture({properties,initialId}:{properties:{id:string;re
       <p>Angariador · {item.listing_agent?.name??"Consultar imóvel"} · Consultor do comprador · {item.buyer_agent?.name??"Consultar registo"}</p>
       <p>Outros intervenientes · {item.data.participants.map(p=>`${p.name} (${p.role})`).join(", ")||"Angariador e consultor do registo"}</p>
       {item.data.shareOwner&&<p>Resumo para o proprietário · {item.data.ownerFeedback}</p>}
-      <div className="flex flex-wrap gap-4"><a className="underline" href={`/api/property-activity/document?id=${item.id}`}>Descarregar {item.document_name}</a><Link className="underline" href={`/app/leads/${item.lead_id}`}>Ver pedido</Link>{item.deal_id&&<Link className="underline" href={`/app/crm/${item.deal_id}`}>Ver negócio</Link>}</div>
+      <details className="rounded border p-3"><summary className="cursor-pointer font-medium">Ver documento original · {item.document_name}</summary><iframe className="mt-3 h-[520px] w-full rounded border" title={`Original: ${item.document_name}`} src={`/api/property-activity/document?id=${item.id}`}/></details>
+      <div className="flex flex-wrap gap-4"><a className="underline" href={`/api/property-activity/document?id=${item.id}&download=1`}>Descarregar original</a><Link className="underline" href={`/app/leads/${item.lead_id}`}>Ver pedido</Link>{item.deal_id&&<Link className="underline" href={`/app/crm/${item.deal_id}`}>Ver negócio</Link>}</div>
      </div>
     </details>)}</div>
    </section>

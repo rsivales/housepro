@@ -2,16 +2,16 @@ import { createHash,randomUUID } from "node:crypto";
 import { after,NextResponse } from "next/server";
 import { getSession } from "@/lib/supabase/auth";
 import { createAdminClient,hasServiceRole } from "@/lib/supabase/admin";
-import { mayEditProperty,UUID } from "@/lib/portfolio/server";
+import { mayEditProperty,mayReadProperty,UUID } from "@/lib/portfolio/server";
 import { crmLeadPipelines } from "@/lib/db/crm-lead-pipelines";
 import { validateActivity } from "@/lib/property-activity/model";
 import { runMatching } from "@/lib/matching/server";
 
 export const dynamic="force-dynamic";
 export const maxDuration=120;
-async function access(id:string) {
+async function access(id:string,write=false) {
   const s=await getSession();
-  return s&&!s.demo&&!s.viewingAs&&hasServiceRole()&&UUID.test(id)&&await mayEditProperty(s.agent,id)?s:null;
+  return s&&!s.demo&&!s.viewingAs&&hasServiceRole()&&UUID.test(id)&&await (write?mayEditProperty(s.agent,id):mayReadProperty(s.agent,id))?s:null;
 }
 export async function GET(request:Request) {
   const id=new URL(request.url).searchParams.get("propertyId")??"";
@@ -25,7 +25,8 @@ export async function GET(request:Request) {
     crmLeadPipelines(s.agent,false),
   ]);
   if(history.error||property.error||agents.error)return NextResponse.json({error:"Não foi possível carregar as fichas e documentos."},{status:503});
-  return NextResponse.json({history:history.data,property:property.data,agents:agents.data,pipelines},{headers:{"Cache-Control":"private, no-store"}});
+  const canWrite=await mayEditProperty(s.agent,id);
+  return NextResponse.json({history:history.data,property:property.data,agents:agents.data,pipelines,canWrite},{headers:{"Cache-Control":"private, no-store"}});
 }
 const detectedMime=(bytes:Uint8Array)=>{
   if(Buffer.from(bytes.slice(0,5)).toString()==="%PDF-")return "application/pdf";
@@ -39,7 +40,7 @@ export async function POST(request:Request) {
   if(length>4500000)return NextResponse.json({error:"Use um documento até 4 MB."},{status:413});
   const form=await request.formData().catch(()=>null);
   const propertyId=String(form?.get("propertyId")??"");
-  const s=await access(propertyId);
+  const s=await access(propertyId,true);
   if(!s)return NextResponse.json({error:"Sem acesso à ficha deste imóvel."},{status:403});
   const file=form?.get("document");
   if(!(file instanceof File)||file.size===0||file.size>4*1024*1024)return NextResponse.json({error:"Carregue o original em PDF, JPG, PNG ou WebP, até 4 MB."},{status:422});

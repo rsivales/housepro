@@ -36,8 +36,8 @@ export function validateActivity(value:unknown):ActivityInput {
     rawText:text(b.rawText,50000),confirmed:b.confirmed===true,
   };
   const phone=/^[+\d\s().-]+$/.test(result.phone)?normalizeContactPhone(result.phone):null;
-  if(!["visit","proposal"].includes(result.kind)||!result.name||!phone||!optionalEmail(result.email))throw new Error("Confirme o tipo de ficha, nome e telefone do cliente, e o email quando preenchido.");
-  result.phone=phone;
+  if(!["visit","proposal"].includes(result.kind)||!result.name||(!phone&&!result.email)||!optionalEmail(result.email))throw new Error("Confirme o tipo de ficha, nome e pelo menos um contacto válido (telefone ou email) do cliente.");
+  result.phone=phone??"";
   if(!Number.isFinite(Date.parse(result.occurredAt))||new Date(result.occurredAt).toISOString()!==result.occurredAt||
     result.occurredAt<"2000"||Date.parse(result.occurredAt)>Date.now()+300000)throw new Error("Confirme a data e hora da ficha.");
   if(!Object.hasOwn(ACTIVITY_SOURCES,result.source)||!["positive","neutral","negative","unspecified"].includes(result.sentiment)||
@@ -69,24 +69,33 @@ function amount(value:string|undefined) {
 }
 /** Labelled suggestions remain editable. Names and email addresses belonging to agents are never guessed as the buyer. */
 export function parseActivityText(text:string):Partial<ActivityInput> {
-  const labelled=(labels:string)=>text.match(new RegExp(`(?:^|\\n)\\s*(?:${labels})\\s*[:=]\\s*([^\\n]+)`,"i"))?.[1]?.trim();
+  const lines=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+  const labelled=(labels:string)=>{
+    const label=new RegExp(`^(?:${labels})[ \\t]*(?:[:=]|[—–-])[ \\t]*(.*)$`,"i");
+    const alone=new RegExp(`^(?:${labels})[ \\t]*:?$`,"i");
+    for(let i=0;i<lines.length;i++){
+      const match=lines[i].match(label);
+      if(match?.[1]?.trim())return match[1].trim();
+      if((match||alone.test(lines[i]))&&lines[i+1]&&!/^[^:;]{2,55}\s*[:=]/.test(lines[i+1]))return lines[i+1];
+    }
+    return undefined;
+  };
   const block=(labels:string)=>{
-    const lines=text.split(/\r?\n/);
-    const start=lines.findIndex(line=>new RegExp(`^\\s*(?:${labels})\\s*[:=]`,"i").test(line));
+    const start=lines.findIndex(line=>new RegExp(`^(?:${labels})[ \\t]*(?:[:=]|[—–-])`,"i").test(line));
     if(start<0)return undefined;
-    const first=lines[start].replace(new RegExp(`^\\s*(?:${labels})\\s*[:=]\\s*`,"i"),"").trim();
+    const first=lines[start].replace(new RegExp(`^(?:${labels})[ \\t]*(?:[:=]|[—–-])[ \\t]*`,"i"),"").trim();
     const values=first?[first]:[];
     for(const line of lines.slice(start+1)){
-      if(!line.trim()||/^\s*[^:;]{2,55}\s*[:=]/.test(line)||/^(?:assinatura|declaração|anexo|termos)\b/i.test(line.trim()))break;
+      if(/^[^:;]{2,55}\s*[:=]/.test(line)||/^(?:assinatura|declaração|anexo|termos)\b/i.test(line.trim()))break;
       values.push(line.trim());
     }
     return values.join("\n").trim()||undefined;
   };
   const result:Partial<ActivityInput>={rawText:text.slice(0,50000)};
   const fields:Record<string,keyof ActivityInput>={
-    "nome(?: do cliente| completo)?|cliente|comprador":"name","telefone(?: do cliente)?|telem[oó]vel(?: do cliente)?":"phone",
-    "e-?mail(?: do cliente)?":"email","nif(?: do cliente)?|contribuinte":"nif","morada(?: do cliente)?":"address",
-    "feedback|opini[aã]o(?: do cliente)?|observa[cç][oõ]es":"feedback","condi[cç][oõ]es(?: da proposta)?":"conditions",
+    "nome(?: do cliente| completo| e apelido)?|cliente|comprador|visitante":"name","telefone(?: do cliente)?|telem[oó]vel(?: do cliente)?|contacto(?: telef[oó]nico)?|tel\\.?":"phone",
+    "e-?mail(?: do cliente)?|correio eletr[oó]nico":"email","nif(?: do cliente)?|contribuinte":"nif","morada(?: do cliente)?":"address",
+    "feedback|opini[aã]o(?: do cliente)?|observa[cç][oõ]es(?: do cliente)?|coment[aá]rios(?: do cliente)?":"feedback","condi[cç][oõ]es(?: da proposta)?":"conditions",
     "origem(?: do cliente)?|como nos conheceu":"originDetail",
   };
   for(const [labels,key] of Object.entries(fields)){
@@ -97,7 +106,7 @@ export function parseActivityText(text:string):Partial<ActivityInput> {
   if(price)result.amount=price;
   const deposit=amount(labelled("sinal|dep[oó]sito"));
   if(deposit)result.deposit=deposit;
-  const date=labelled("data(?: da visita| da proposta)?");
+  const date=labelled("data(?: da visita| da proposta)?|dia da visita");
   const match=date?.match(/^(\d{2})[/-](\d{2})[/-](\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
   if(match) {
     const isoDate=`${match[3]}-${match[2]}-${match[1]}`;
@@ -106,7 +115,7 @@ export function parseActivityText(text:string):Partial<ActivityInput> {
       result.occurredAt=d.toISOString();result.timeKnown=Boolean(match[4]);
     }
   }
-  const explicitName=labelled("nome do cliente|cliente|comprador");
+  const explicitName=labelled("nome do cliente|cliente|comprador|visitante");
   const explicitEmail=labelled("e-?mail do cliente|e-?mail do comprador");
   if(explicitName)result.name=explicitName;
   if(explicitEmail)result.email=explicitEmail;
@@ -136,7 +145,7 @@ export function parseActivityText(text:string):Partial<ActivityInput> {
   if(financing&&/^(cr[eé]dito|capitais pr[oó]prios|misto)$/i.test(financing))result.financing=/^cr/i.test(financing)?"credito":/^cap/i.test(financing)?"capitais_proprios":"misto";
   if(/(?:^|\n)\s*proposta de (?:compra|aquisi[cç][aã]o)\s*(?:\n|$)/i.test(text)){result.kind="proposal";result.stage=3;}
   else if(/(?:^|\n)\s*ficha de visita\s*(?:\n|$)/i.test(text)){result.kind="visit";result.stage=2;}
-  const agent=labelled("consultor(?: do comprador)?|agente(?: imobili[aá]rio)?");
+  const agent=labelled("consultor(?: do comprador| respons[aá]vel)?|agente(?: imobili[aá]rio)?");
   if(agent)result.participants=[{name:agent,role:"Consultor indicado na ficha",agency:labelled("ag[eê]ncia|imobili[aá]ria")??"",phone:"",email:"",profileId:""}];
   return result;
 }

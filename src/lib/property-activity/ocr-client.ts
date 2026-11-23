@@ -1,12 +1,34 @@
 "use client";
 
 import type { Worker } from "tesseract.js";
+function prepareImage(file:File):Promise<HTMLCanvasElement> {
+  return createImageBitmap(file).then(bitmap=>{
+    try {
+      const scale=Math.min(2.5,Math.max(1,1800/Math.max(bitmap.width,bitmap.height)));
+      const limit=Math.min(scale,3000/Math.max(bitmap.width,bitmap.height));
+      const canvas=document.createElement("canvas");
+      canvas.width=Math.round(bitmap.width*limit);canvas.height=Math.round(bitmap.height*limit);
+      const context=canvas.getContext("2d",{willReadFrequently:true});
+      if(!context)throw new Error("Não foi possível preparar a fotografia.");
+      context.fillStyle="#fff";context.fillRect(0,0,canvas.width,canvas.height);
+      context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+      const pixels=context.getImageData(0,0,canvas.width,canvas.height);
+      for(let i=0;i<pixels.data.length;i+=4){
+        const grey=.299*pixels.data[i]+.587*pixels.data[i+1]+.114*pixels.data[i+2];
+        const value=Math.max(0,Math.min(255,(grey-128)*1.35+145));
+        pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=value;
+      }
+      context.putImageData(pixels,0,0);
+      return canvas;
+    }finally{bitmap.close();}
+  });
+}
 export async function readActivityDocument(file:File,onProgress:(message:string)=>void):Promise<string> {
   let worker:Worker|undefined;
   async function recognize(image:File|HTMLCanvasElement) {
     if(!worker) {
       const {createWorker}=await import("tesseract.js");
-      worker=await createWorker("por",1,{
+      worker=await createWorker("por+eng",1,{
         workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js",
         corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0",
         langPath:"https://tessdata.projectnaptha.com/4.0.0",
@@ -14,10 +36,21 @@ export async function readActivityDocument(file:File,onProgress:(message:string)
       });
     }
     const result=await worker.recognize(image);
-    return result.data.text;
+    return result.data;
   }
   try {
-    if(file.type!=="application/pdf")return await recognize(file);
+    if(file.type!=="application/pdf"){
+      const original=await recognize(file);
+      onProgress("A melhorar a leitura da fotografia…");
+      const canvas=await prepareImage(file).catch(()=>null);
+      if(!canvas)return original.text;
+      try {
+        const enhanced=await recognize(canvas);
+        // Confidence alone favours short, incomplete readings. Require comparable coverage.
+        return enhanced.confidence>original.confidence+5&&enhanced.text.trim().length>=original.text.trim().length*.75
+          ?enhanced.text:original.text;
+      }finally{canvas.width=0;canvas.height=0;}
+    }
     const pdfjs=await import("pdfjs-dist");
     pdfjs.GlobalWorkerOptions.workerSrc=`https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
     const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer())});
@@ -39,7 +72,7 @@ export async function readActivityDocument(file:File,onProgress:(message:string)
           const context=canvas.getContext("2d");
           if(!context)throw new Error("Não foi possível preparar a página para leitura.");
           await page.render({canvas,canvasContext:context,viewport}).promise;
-          pages.push(await recognize(canvas));
+          pages.push((await recognize(canvas)).text);
           canvas.width=0;canvas.height=0;
         }
         page.cleanup();

@@ -20,10 +20,7 @@ using (
         d.angariador_id = (select auth.uid())
         or d.consultor_comprador_id = (select auth.uid())
         or d.coordenador_id = (select auth.uid())
-        or exists (
-          select 1 from public.deal_participants dp
-          where dp.deal_id = d.id and dp.profile_id = (select auth.uid())
-        )
+        
         or (public.has_role('coordenador') and d.agency_id = public.auth_agency())
       )
   )
@@ -41,10 +38,7 @@ with check (
         d.angariador_id = (select auth.uid())
         or d.consultor_comprador_id = (select auth.uid())
         or d.coordenador_id = (select auth.uid())
-        or exists (
-          select 1 from public.deal_participants dp
-          where dp.deal_id = d.id and dp.profile_id = (select auth.uid())
-        )
+        
         or (public.has_role('coordenador') and d.agency_id = public.auth_agency())
       )
   )

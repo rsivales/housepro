@@ -1,7 +1,29 @@
 # Helix — Manual técnico de arquitetura / Transaction Manager
-**Versão:** 0.1 (especificação, NÃO implementado)  
-**Destinatário:** role brand (acesso exclusivo a validar na autenticação e RLS)  
+**Versão:** 0.2 (Fase 1 implementada — motor de checklist, prazos e alertas; portais ainda pendentes)
+**Destinatário:** Super Admin (não existe role "brand" no sistema real — ver nota abaixo)
 **Repositório:** rsivales/housepro
+
+## Nota sobre perfis (correção à v0.1)
+O sistema real (`src/lib/data/roles.ts`) não tem roles "brand" nem "broker". O
+acesso reservado deste manual usa `isSuperadmin()`. "Broker" do texto abaixo
+corresponde a `diretor`/`coordenador` da agência (ou ao `broker_id` de
+`agency_finance_settings`, usado na escalada de alertas aos 48h). A atribuição
+de gestor processual não criou role nova: é só `deals.transaction_manager_id`,
+qualquer perfil (normalmente coordenação/direção).
+
+## Estado real por funcionalidade (Fase 1)
+| Funcionalidade | Estado |
+|---|---|
+| Schema (`deal_tasks`, `deal_task_events`, `deal_alert_dispatches`, colunas de prazo em `deals`) | Implementado |
+| Checklist condicional por fase (pré-CPCV, crédito, pós-CPCV, pré-escritura, pós-escritura) | Implementado, com template por defeito aplicável a cada negócio |
+| Sincronização de prazos (mudar a data da escritura/CPCV avança `deadline_version` e realinha `due_at`) | Implementado (trigger `helix_deal_deadlines_sync`) |
+| UI da checklist na ficha do negócio (`/app/crm/[id]`) | Implementado — validar/rejeitar/dispensar por tarefa |
+| Atribuição de gestor processual e prazos na ficha do negócio | Implementado |
+| Painel do Transaction Manager (`/admin/transaction-manager`) — agrupado 7/15/30 dias, créditos em curso, urgência | Implementado, só leitura + navegação para a ficha |
+| Escalada automática de prazos (7/5/3/2/1 dias e vencido, por e-mail, com dedupe) | Implementado — cron diário `helix-transaction-deadlines` |
+| Integração com o Portal do Comprador e do Proprietário (ver/pedir/carregar documentos) | **Não implementado** — fase 2 |
+| Mediação de documentos por audiência (comprador só vê os seus) | Schema preparado (`deal_documents.audience`), fluxo e RLS por audiência ainda por implementar |
+| Regra "cliente não aprova o próprio crédito/distrate" | Modelada no schema (tarefas de audiência `buyer`/`seller` só leem, só staff valida) — falta a superfície do portal onde o cliente efetivamente só acompanha |
 
 ## Estado da auditoria
 - Consultados: README.md, PLAN.md, package.json, src/app/admin/page.tsx.

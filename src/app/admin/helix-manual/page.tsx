@@ -19,12 +19,13 @@ export default async function HelixTechnicalManual() {
   const sections = [
     { title: "Arquitetura", body: "Next.js 15, TypeScript, Supabase e Vercel. Mudanças estruturais exigem revisão e testes antes de produção." },
     { title: "Transações", body: "Proposta enviada → aceite → reserva → CPCV → escritura → concluído. Crédito decorre em paralelo, sem coluna própria no Kanban principal." },
-    { title: "Gestão processual", body: "Checklist por negócio com tarefas condicionais, responsáveis, prazos, documentos, validação e histórico. Implementação da persistência ainda pendente de migração e testes." },
-    { title: "Prazos", body: "Alertas contratuais previstos aos 30, 15, 7, 3 e 1 dias. Validação pré-escritura começa pelo menos 7 dias antes; pendências escalam aos 5, 3, 2 e 1 dias." },
-    { title: "Portais", body: "Comprador e proprietário só devem ver tarefas e documentos destinados à sua parte. Upload nunca equivale a validação." },
-    { title: "Permissões", body: "Acesso a este manual: Super Admin autenticado (perfil atualmente equivalente à autoridade arquitetural brand). Acesso a dados e documentos deve ser reforçado com RLS." },
-    { title: "Segurança", body: "Foi detetada política demasiado ampla no bucket deal-docs. A correção está preparada no PR #114 e ainda não foi aplicada nem validada em produção." },
-    { title: "Evolução", body: "Especificado: regras e arquitetura. Em desenvolvimento: indicadores, estrutura de tarefas e segurança. Não publicado: notificações, sincronização de portais, gestor processual e UI operacional." },
+    { title: "Gestão processual", body: "Checklist condicional por negócio (deal_tasks), com fases pré-CPCV/crédito/pós-CPCV/pré-escritura/pós-escritura, responsáveis, prazos, validação e histórico de auditoria. Implementado e ligado à ficha do negócio em /app/crm/[id]." },
+    { title: "Prazos", body: "Validação pré-escritura inicia 7 dias antes; pendências escalam aos 5, 3, 2 e 1 dias, e todos os dias em atraso após o vencimento. Mudar a data da escritura/CPCV avança a versão do prazo e realinha a checklist automaticamente (trigger na base de dados)." },
+    { title: "Alertas", body: "Cron diário helix-transaction-deadlines (07:00 UTC) escala por e-mail à gestora processual, coordenação, consultor e — a partir das 48h com pendências críticas — ao broker da agência. Deduplicado por negócio/marco/versão do prazo/destinatário (deal_alert_dispatches)." },
+    { title: "Portais", body: "Comprador e proprietário ainda não veem a checklist nem pedem/carregam documentos pelo Helix — essa integração é a fase 2. O schema já prevê audiência por documento (deal_documents.audience) e tarefas de audiência buyer/seller onde o cliente só acompanha." },
+    { title: "Permissões", body: "Acesso a este manual: Super Admin autenticado. Atribuir gestor processual e prazos: staff (coordenação e acima) da agência do negócio. Validar/rejeitar tarefas da checklist: equipa do negócio ou staff — nunca o cliente." },
+    { title: "Segurança", body: "A política do bucket deal-docs foi corrigida para exigir participante do negócio (já em produção nesta versão). Mediação por audiência (comprador vs vendedor) falta para a fase 2." },
+    { title: "Evolução", body: "Publicado: checklist, prazos, painel do Transaction Manager, alertas automáticos. Especificado mas não implementado: portais do comprador/proprietário, mediação de documentos por audiência, manual de procedimentos para consultores/brokers." },
   ];
 
   return (
@@ -32,7 +33,7 @@ export default async function HelixTechnicalManual() {
       <div className="mb-6">
         <p className="text-sm font-medium text-primary">Helix · Super Admin · Documentação reservada</p>
         <h1 className="mt-2 text-3xl font-semibold">Manual técnico Helix</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Versão 0.1 · Documento vivo. Os estados refletem desenvolvimento, não funcionalidades publicadas.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Versão 0.2 · Documento vivo. Os estados refletem desenvolvimento, não funcionalidades publicadas.</p>
       </div>
       <nav aria-label="Capítulos" className="mb-8 flex flex-wrap gap-2">
         {sections.map((s,i) => <a key={s.title} href={`#cap-${i}`} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">{s.title}</a>)}

@@ -10,6 +10,9 @@ import { listAgenciesReal } from "@/lib/db/repo";
 import { DealDetailView } from "@/components/app/deal-detail";
 import { createAdminClient,hasServiceRole } from "@/lib/supabase/admin";
 import { mayEditProperty } from "@/lib/portfolio/server";
+import { listDealTasks, listTransactionManagerCandidates } from "@/lib/db/deal-tasks";
+import { TransactionChecklist } from "@/components/process/transaction-checklist";
+import { TransactionManagerPanel } from "@/components/process/transaction-manager-panel";
 
 export const metadata: Metadata = { title: "Negócio — Helix" };
 
@@ -31,12 +34,39 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
     .eq("deal_id",id).eq("kind","proposal").order("occurred_at",{ascending:false}).limit(50):{data:[]};
   const canDownload=Boolean(deal.propertyId&&await mayEditProperty(session.agent,deal.propertyId));
 
+  const showTransactionManager = ["reserva", "cpcv", "escritura", "concluido"].includes(deal.stage);
+  const [tasks, tmCandidates] = showTransactionManager
+    ? await Promise.all([
+        listDealTasks(id),
+        staff ? listTransactionManagerCandidates(deal.agencyId) : Promise.resolve([]),
+      ])
+    : [[], []];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <Link href="/app/crm" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> CRM · Negócios
       </Link>
       <DealDetailView deal={deal} agencies={agencies} canManage={staff} />
+      {showTransactionManager && (
+        <div className="mt-6 space-y-6">
+          {staff && (
+            <TransactionManagerPanel
+              dealId={id}
+              escrituraAt={deal.escrituraAt}
+              cpcvDeadlineAt={deal.cpcvDeadlineAt}
+              transactionManagerId={deal.transactionManagerId}
+              candidates={tmCandidates}
+            />
+          )}
+          <TransactionChecklist
+            dealId={id}
+            initialTasks={tasks}
+            escrituraAt={deal.escrituraAt}
+            canManage={staff}
+          />
+        </div>
+      )}
       {activity?.length ? <section className="mt-6 space-y-3 rounded-xl border bg-card p-5">
         <h2 className="font-display text-xl">Propostas documentadas</h2>
         {activity.map(item=>{

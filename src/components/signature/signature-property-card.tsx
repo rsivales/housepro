@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Expand } from "lucide-react";
+import { CompletionLabel } from "@/components/property/completion-label";
 import { PropertyBadges } from "@/components/property/property-badges";
 import { isCompleted } from "@/lib/data/completion";
 import { publicPriceLabel } from "@/lib/format";
@@ -35,7 +36,7 @@ export function SignaturePropertyCard({ property, referrer, featured = false }: 
           </h3>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          {!completed && <span className="font-medium">{price}</span>}
+          {completed ? <CompletionLabel property={property} /> : <span className="font-medium">{price}</span>}
           <span className="inline-flex items-center gap-2 text-[#695331] group-hover:underline group-focus-visible:underline">
             {images.length > 0 ? <><Expand className="size-4" aria-hidden="true" />Ver fotografias</> : "Ver detalhes"}
           </span>

@@ -24,6 +24,7 @@ import {
   isCommercialCampaign,
 } from "@/lib/data/meta";
 import { TestLeadButton } from "@/components/meta/test-lead-button";
+import { IntegrationPanel } from "@/components/meta/integration-panel";
 
 export const metadata: Metadata = { title: "Meta CRM — campanhas e leads" };
 
@@ -85,12 +86,15 @@ export default async function MetaPage() {
           </div>
           {connection.status === "demo" && (
             <p className="mt-3 rounded-lg bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
-              Nenhuma conta Meta ligada. Os tokens de acesso nunca ficam no
-              browser nem no repositório — a ligação real faz-se no servidor
-              (Fase C). Podes explorar todo o fluxo com os dados de exemplo.
+              Nenhuma Página Meta ligada. Abre a configuração técnica abaixo para
+              validar a ligação e associar formulários às campanhas.
             </p>
           )}
         </div>
+
+        {!session.demo && ["coordenador", "diretor", "admin", "superadmin"].includes(session.agent.roleKey ?? "") && (
+          <IntegrationPanel campaigns={campaigns.map(c => ({id:c.id,name:c.name}))} />
+        )}
 
         {/* Navegação do módulo */}
         <div className="mt-6 flex flex-wrap gap-2">

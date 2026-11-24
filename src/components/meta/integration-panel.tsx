@@ -1,0 +1,26 @@
+"use client";
+import {useEffect,useState} from "react";
+import Link from "next/link";
+
+type Form={id:string;name:string;status?:string};
+type State={configured:{appSecret:boolean;verifyToken:boolean;pageToken:boolean;serviceRole:boolean};connections:{id:string;page_id:string;page_name:string;status:string}[];forms:{id:string;meta_form_id:string;name:string;campaign_id:string|null}[];availableForms:Form[];pending:number;processed:number;formError?:string};
+export function IntegrationPanel({campaigns}:{campaigns:{id:string;name:string}[]}){
+ const [state,setState]=useState<State|null>(null),[pageId,setPageId]=useState(""),[busy,setBusy]=useState(""),[message,setMessage]=useState("");
+ async function refresh(){const res=await fetch("/api/meta/sync",{cache:"no-store"});if(res.ok)setState(await res.json());else setMessage("Não foi possível consultar a integração.")}
+ useEffect(()=>{void refresh()},[]);
+ async function act(action:string,details:Record<string,string>={}){setBusy(action);setMessage("");try{const res=await fetch("/api/meta/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,...details})});const data=await res.json();setMessage(res.ok?data.backfillPending?"Formulário ligado; sincronização anterior pendente.":`Concluído${data.processed!==undefined?`: ${data.processed} leads processadas`:""}.`:(data.error??"Erro na ligação."));await refresh()}catch{setMessage("Falha de rede; tenta novamente.")}finally{setBusy("")}}
+ return <section className="mt-5 rounded-2xl border bg-card p-5 shadow-sm" aria-label="Configuração técnica Meta">
+  <h2 className="font-display text-lg">Ligação automática · Facebook e Instagram</h2>
+  <p className="mt-1 text-sm text-muted-foreground">Configura a Página uma vez. Depois associa cada formulário à campanha e as novas leads entram automaticamente no CRM.</p>
+  {!state?<p className="mt-4 text-sm">A verificar ligação…</p>:<>
+   <div className="mt-4 flex flex-wrap gap-2 text-xs">{Object.entries(state.configured).map(([key,ready])=><span key={key} className={`rounded-full px-3 py-1 ${ready?"bg-green-50 text-green-800":"bg-amber-50 text-amber-900"}`}>{({appSecret:"Assinatura",verifyToken:"Verificação",pageToken:"Acesso à Página",serviceRole:"Base de dados"} as Record<string,string>)[key]}: {ready?"pronto":"por configurar"}</span>)}</div>
+   <p className="mt-3 text-sm">Página: <strong>{state.connections.find(c=>c.status==="ligada")?.page_name??"sem ligação validada"}</strong> · Recebidas: {state.processed} · Pendentes: {state.pending}</p>
+   <p className="mt-2 text-xs text-muted-foreground">O administrador técnico configura os segredos META_APP_SECRET, META_VERIFY_TOKEN e META_PAGE_TOKEN nas variáveis protegidas do servidor e subscreve o evento leadgen para o endereço /api/meta/webhook. Nunca cole tokens em campos públicos.</p>
+   <div className="mt-3 flex flex-wrap items-end gap-2"><label className="text-xs font-medium">ID da Página Facebook<input className="mt-1 block rounded-md border bg-background px-3 py-2 text-sm" inputMode="numeric" value={pageId} onChange={e=>setPageId(e.target.value)} placeholder="Número da Página" /></label><button className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50" disabled={!!busy||!pageId} onClick={()=>void act("connect",{pageId})}>Validar Página</button><button className="rounded-md border px-4 py-2 text-sm disabled:opacity-50" disabled={!!busy||!state.pending} onClick={()=>void act("retry")}>Reprocessar pendentes</button></div>
+   {state.formError&&<p className="mt-2 text-sm text-red-700">{state.formError}</p>}
+   <div className="mt-4 space-y-2"><h3 className="font-medium">Formulários da Página</h3>{state.availableForms.length===0?<p className="text-sm text-muted-foreground">Liga uma Página com acesso a leads para listar os formulários automaticamente.</p>:state.availableForms.map(form=>{const linked=state.forms.find(f=>f.meta_form_id===form.id);return <div key={form.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm"><span className="grow"><strong>{form.name}</strong> <span className="text-muted-foreground">· {form.id}</span></span><select aria-label={`Campanha para ${form.name}`} defaultValue={linked?.campaign_id??""} id={`meta-campaign-${form.id}`} className="rounded-md border bg-background p-2"><option value="">Selecionar campanha</option>{campaigns.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><button disabled={!!busy} className="rounded-md border px-3 py-2 disabled:opacity-50" onClick={()=>{const value=(document.getElementById(`meta-campaign-${form.id}`) as HTMLSelectElement)?.value;if(value)void act("link",{formId:form.id,campaignId:value})}}>Associar e sincronizar</button>{linked&&<button disabled={!!busy} className="rounded-md border px-3 py-2 disabled:opacity-50" onClick={()=>void act("backfill",{formId:form.id})}>Rever anteriores</button>}</div>})}</div>
+   <p className="mt-3 text-xs text-muted-foreground">Gestão detalhada das perguntas em <Link href="/app/meta/formularios" className="underline">Formulários & mapeamento</Link>. As leads sem campanha ficam pendentes até serem associadas.</p>
+  </>}
+  {message&&<p role="status" className="mt-3 rounded-md bg-secondary p-3 text-sm">{message}</p>}
+ </section>
+}

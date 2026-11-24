@@ -1,5 +1,5 @@
 # Helix — Manual técnico de arquitetura / Transaction Manager
-**Versão:** 0.2 (Fase 1 implementada — motor de checklist, prazos e alertas; portais ainda pendentes)
+**Versão:** 0.3 (Fase 1 + Fase 2 implementadas — motor de checklist, prazos, alertas e integração com os portais)
 **Destinatário:** Super Admin (não existe role "brand" no sistema real — ver nota abaixo)
 **Repositório:** rsivales/housepro
 
@@ -21,9 +21,9 @@ qualquer perfil (normalmente coordenação/direção).
 | Atribuição de gestor processual e prazos na ficha do negócio | Implementado |
 | Painel do Transaction Manager (`/admin/transaction-manager`) — agrupado 7/15/30 dias, créditos em curso, urgência | Implementado, só leitura + navegação para a ficha |
 | Escalada automática de prazos (7/5/3/2/1 dias e vencido, por e-mail, com dedupe) | Implementado — cron diário `helix-transaction-deadlines` |
-| Integração com o Portal do Comprador e do Proprietário (ver/pedir/carregar documentos) | **Não implementado** — fase 2 |
-| Mediação de documentos por audiência (comprador só vê os seus) | Schema preparado (`deal_documents.audience`), fluxo e RLS por audiência ainda por implementar |
-| Regra "cliente não aprova o próprio crédito/distrate" | Modelada no schema (tarefas de audiência `buyer`/`seller` só leem, só staff valida) — falta a superfície do portal onde o cliente efetivamente só acompanha |
+| Integração com o Portal do Comprador e do Proprietário (ver/pedir/carregar documentos) | Implementado — `/cliente/comprador` e `/cliente/vendedor` mostram só as tarefas da sua audiência e permitem carregar o documento pedido |
+| Mediação de documentos por audiência (comprador só vê os seus) | Implementado — `deal_documents.audience` + acesso verificado por contacto (comprador) ou email verificado (proprietário), nunca por id enviado pelo cliente |
+| Regra "cliente não aprova o próprio crédito/distrate" | Implementada por desenho: o upload do cliente só move a tarefa para `received`; `validated`/`rejected`/`waived` exigem a rota interna (`/api/deals/tasks/[taskId]`), que só staff/equipa do negócio pode chamar |
 
 ## Estado da auditoria
 - Consultados: README.md, PLAN.md, package.json, src/app/admin/page.tsx.

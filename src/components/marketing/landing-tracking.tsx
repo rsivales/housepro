@@ -1,0 +1,4 @@
+"use client";
+import { useEffect } from "react";
+export function LandingTracking({slug}:{slug:string}){useEffect(()=>{const key=`housepro:campaign-view:${slug}`;try{if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,"1");}catch{}fetch("/api/marketing/landing-pages/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({slug,kind:"view"}),keepalive:true}).catch(()=>{});},[slug]);return null;}
+export function CampaignPropertyLink({slug,id,children,className}:{slug:string;id:string;children:React.ReactNode;className?:string}){return <a className={className} href={`/imovel/${id}?utm_source=housepro&utm_medium=landing_page&utm_campaign=${encodeURIComponent(slug)}`} onClick={()=>{fetch("/api/marketing/landing-pages/event",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({slug,kind:"property_click"}),keepalive:true}).catch(()=>{});}}>{children}</a>}

@@ -62,15 +62,15 @@ export default async function SignatureProperty({ params }: Props) {
       </div>
     </header>
     <main>
-      <SignatureGallery images={gallery} title={title}>
-        <div className="max-w-[700px]">
-          <div className="flex flex-wrap items-center gap-3 text-[10px] font-semibold uppercase tracking-[.25em] text-[#ead4a3]"><span>HousePro Signature</span><span className="h-px w-12 bg-[#c8a875]" /><span>{p.reference}</span></div>
-          <h1 className="mt-6 max-w-2xl font-serif text-[clamp(2.65rem,6vw,6.5rem)] leading-[.98] tracking-[-.025em] [text-wrap:balance]">{heroTitle}</h1>
-          <p className="mt-6 flex items-center gap-2 text-sm text-white/85"><MapPin className="size-4 shrink-0 text-[#d0b178]" />{location}</p>
-          {intro && <p className="mt-5 max-w-xl line-clamp-3 text-sm leading-7 text-white/80 sm:text-base">{intro}</p>}
-          <div className="mt-8 flex flex-wrap items-center gap-3"><a href="#experiencia" className="inline-flex min-h-12 items-center gap-3 border border-[#d2b476] bg-[#0a1422]/25 px-5 text-sm font-medium text-[#f4dfb4] transition hover:bg-[#d2b476] hover:text-[#0a1422]">Explorar a propriedade <ArrowRight className="size-4" /></a><a href="#contacto" className="inline-flex min-h-12 items-center px-3 text-sm text-white underline decoration-[#c8a875] underline-offset-8">Apresentação privada</a></div>
+      <SignatureGallery key={p.id} images={gallery} title={title} />
+      <div className="mx-auto flex max-w-[1500px] flex-wrap items-end justify-between gap-6 px-5 py-8 sm:px-10 sm:py-12">
+        <div>
+          <p className="text-xs uppercase tracking-[.18em] text-[#ead4a3]">{p.reference}</p>
+          <h1 id="detalhes-imovel" tabIndex={-1} className="mt-3 max-w-4xl scroll-mt-6 font-serif text-[clamp(2.25rem,5vw,4.5rem)] leading-[1.02] [text-wrap:balance]">{heroTitle}</h1>
+          {location && <p className="mt-4 flex items-center gap-2 text-sm text-white/85"><MapPin className="size-4 shrink-0 text-[#d0b178]" aria-hidden="true" />{location}</p>}
         </div>
-      </SignatureGallery>
+        <a href="#contacto" className="inline-flex min-h-11 items-center border border-[#d2b476] px-5 text-sm text-[#f2dbaf] hover:bg-[#c8a875]/10">Apresentação privada</a>
+      </div>
 
       <section id="experiencia" aria-label="O essencial" className="border-y border-[#d2b476]/25 bg-[#0a1422]">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-x-10 gap-y-5 px-5 py-6 sm:px-10 lg:py-8">

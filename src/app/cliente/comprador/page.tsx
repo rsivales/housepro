@@ -12,6 +12,8 @@ import { ClientNameEditor } from "@/components/cliente/client-name-editor";
 import { PortalNewsBanner } from "@/components/cliente/portal-news-banner";
 import { FavoritesList } from "@/components/cliente/favorites-list";
 import { ClientTaskList } from "@/components/cliente/client-task-list";
+import { PortalWelcomeBanner } from "@/components/cliente/portal-welcome-banner";
+import { getClientPortalProfile } from "@/lib/db/client-portal";
 import { formatEuro } from "@/lib/format";
 
 export const metadata: Metadata = { title: "A minha área de compra", robots: { index: false, follow: false } };
@@ -21,6 +23,9 @@ export default async function CompradorPortal() {
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user?.email) redirect("/cliente/entrar");
+  const profile = await getClientPortalProfile(user.id, user.email);
+  if (!profile?.role) redirect("/cliente/escolher-perfil");
+  if (profile.role !== "comprador") redirect(`/cliente/${profile.role}`);
   const contact = await ensureBuyerContact(user.id, user.email);
   const deal = contact ? await getBuyerPortalDataByContactId(contact.id, contact.name) : null;
   const firstName = contact?.name?.split(" ")[0] || user.email.split("@")[0];
@@ -35,6 +40,15 @@ export default async function CompradorPortal() {
       </div>
       <ClientNameEditor name={contact?.name ?? ""} email={user.email} />
     </section>
+    {!profile.onboarded && <PortalWelcomeBanner
+      title="Bem-vindo à sua área de compra, HousePro."
+      tips={[
+        "Guarde os imóveis que lhe interessam em \"Os meus imóveis guardados\" e compare-os lado a lado.",
+        "Use as ferramentas de IMT, Selo e simulação de crédito para preparar a compra com números reais.",
+        "Quando o seu consultor associar uma compra à sua conta, acompanhe aqui as etapas e os documentos pedidos.",
+        "Precisa de ajuda? Fale com a equipa HousePro por e-mail a qualquer momento.",
+      ]}
+    />}
     <section id="favoritos" className="mt-8 scroll-mt-24"><div className="flex items-center gap-3"><Heart className="size-5 text-[#a31621]" /><h2 className="font-display text-2xl font-semibold sm:text-3xl">Os meus imóveis guardados</h2></div><p className="mt-1 text-sm opacity-70">Guarde os que lhe interessam e compare lado a lado.</p><FavoritesList /></section>
     <section className="mt-8"><div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#a31621]">Ferramentas úteis</p><h2 className="mt-1 font-display text-2xl font-semibold sm:text-3xl">Planeie com números claros</h2></div><Link href="/ferramentas" className="inline-flex items-center gap-1 text-sm font-semibold text-[#a31621]">Todas as ferramentas <ArrowRight className="size-4" /></Link></div><div className="grid gap-3 sm:grid-cols-3">{[{ href: "/ferramentas/imt", title: "Calcular IMT e Selo", note: "Prepare os impostos da compra", icon: FileText }, { href: "/credito", title: "Simular prestação", note: "Estime o crédito mensal", icon: Wallet }, { href: "/imoveis?operacao=comprar", title: "Descobrir casas", note: "Explore e guarde favoritas", icon: Search }].map(a => <Link key={a.href} href={a.href} className="group flex items-center gap-4 rounded-2xl border border-[#dce3ec] bg-white p-4 transition hover:border-[#a31621]/50 hover:shadow-md dark:border-white/15 dark:bg-white/5"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#f7e9eb] text-[#a31621]"><a.icon className="size-5" /></span><span className="min-w-0 flex-1"><strong className="block text-sm">{a.title}</strong><span className="text-xs opacity-65">{a.note}</span></span><ArrowRight className="size-4 opacity-50 transition group-hover:translate-x-1" /></Link>)}</div></section>
     <section className="mt-10">

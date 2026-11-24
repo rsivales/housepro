@@ -1,15 +1,34 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight, Building2, Calculator, Globe2, Mail } from "lucide-react";
 
 import { ClientAreaShell } from "@/components/cliente/client-area-shell";
 import { PortalNewsBanner } from "@/components/cliente/portal-news-banner";
+import { PortalWelcomeBanner } from "@/components/cliente/portal-welcome-banner";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { getClientPortalProfile } from "@/lib/db/client-portal";
 
 export const metadata: Metadata = { title: "Investir com a HousePro", robots: { index: false, follow: false } };
-export const revalidate = 300;
 
-export default function InvestidorPortal() {
+export default async function InvestidorPortal() {
+  if (!isSupabaseConfigured()) redirect("/cliente/entrar");
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user?.email) redirect("/cliente/entrar");
+  const profile = await getClientPortalProfile(user.id, user.email);
+  if (!profile?.role) redirect("/cliente/escolher-perfil");
+  if (profile.role !== "investidor") redirect(`/cliente/${profile.role}`);
   return <ClientAreaShell active="investidor" eyebrow="Investimento imobiliário" title="Boas decisões começam com boa informação." description="Explore oportunidades, compare cenários e peça à equipa uma análise dos imóveis que fazem sentido para os seus objetivos." image="/signature/editorial-coast-hero.webp">
+    {!profile.onboarded && <PortalWelcomeBanner
+      title="Bem-vindo à sua área de investimento, HousePro."
+      tips={[
+        "Peça à equipa uma análise da sua carteira: rendas, custos, ocupação e rentabilidade.",
+        "Compare empreendimentos e oportunidades, incluindo projetos internacionais.",
+        "Use a calculadora de IMT e Selo para estimar custos de compra antes de decidir.",
+      ]}
+    />}
     <section className="mt-7 grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
       <div className="rounded-[1.5rem] border border-[#dce3ec] bg-white p-6 shadow-sm sm:p-8 dark:border-white/15 dark:bg-white/5"><p className="text-xs font-bold uppercase tracking-[.16em] text-[#a31621]">Acompanhamento pessoal</p><h2 className="mt-2 font-display text-2xl font-semibold">Uma carteira com números verificados.</h2><p className="mt-3 max-w-xl text-sm leading-6 opacity-75">Ainda não existe uma carteira de investimento ligada a esta área. A equipa pode reunir os seus imóveis e preparar uma análise individual de rendas, custos, ocupação e rentabilidade.</p><a href={`mailto:geral@housepro.pt?subject=${encodeURIComponent("Análise da minha carteira imobiliária")}`} className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#a31621] px-5 py-3 text-sm font-semibold text-white hover:bg-[#bd2631]"><Mail className="size-4" /> Pedir análise da carteira</a></div>
       <div className="rounded-[1.5rem] bg-[#0b1f3a] p-6 text-white sm:p-8"><Building2 className="size-7 text-[#f5a7ad]" /><h2 className="mt-4 font-display text-xl">Encontre o próximo projeto</h2><p className="mt-2 text-sm leading-6 text-white/75">Veja imóveis, empreendimentos e oportunidades internacionais num só percurso.</p><Link href="/investir" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold underline underline-offset-4">Explorar investimento <ArrowRight className="size-4" /></Link></div>

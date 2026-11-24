@@ -7,6 +7,7 @@ import {
   GripVertical,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Home,
   Loader2,
   Plus,
@@ -119,6 +120,7 @@ export function CrmBoard({
 }) {
   const router = useRouter();
   const [deals, setDeals] = React.useState(initial);
+  const [expandedDeals, setExpandedDeals] = React.useState<string[]>([]);
   React.useEffect(() => setDeals(initial), [initial]);
   const saving = React.useRef(false);
   const [moveNotice, setMoveNotice] = React.useState("");
@@ -795,7 +797,7 @@ export function CrmBoard({
                                 {d.buyerName || "Comprador"}
                               </p>
                               {status && (
-                                <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                <span className="max-w-24 truncate rounded-md bg-secondary px-1.5 py-0.5 text-[10px] leading-tight font-medium text-muted-foreground">
                                   {STATUS_LABEL[status as PropertyStatus]}
                                 </span>
                               )}
@@ -823,7 +825,16 @@ export function CrmBoard({
                           </span>
                         )}
                       </div>
-                      <DealCommission estimate={d.financials} compact />
+                      <button type="button" aria-expanded={expandedDeals.includes(d.id)} aria-label={`${expandedDeals.includes(d.id) ? "Recolher" : "Expandir"} informação do negócio ${d.propertyRef}`} onClick={() => setExpandedDeals((prev) => prev.includes(d.id) ? prev.filter((id) => id !== d.id) : [...prev, d.id])} className="mt-2 flex w-full items-center justify-between rounded-md border px-2 py-1.5 text-xs font-medium hover:bg-secondary">
+                        Informação do negócio <ChevronDown className={cn("size-3.5 transition-transform", expandedDeals.includes(d.id) && "rotate-180")} />
+                      </button>
+                      {expandedDeals.includes(d.id) && <div className="mt-2 space-y-2 rounded-lg bg-secondary/40 p-2 text-xs">
+                        <div><span className="text-muted-foreground">Comprador:</span> {d.buyerName || "Por identificar"}</div>
+                        <div><span className="text-muted-foreground">Imóvel:</span> {d.propertyTitle || d.propertyRef}</div>
+                        <div><span className="text-muted-foreground">Valor da proposta:</span> {formatEuro(d.amount || 0)}</div>
+                        <DealCommission estimate={d.financials} compact />
+                        <Link href={`/app/crm/${d.id}`} className="block font-medium text-primary underline-offset-2 hover:underline">Abrir ficha e acompanhar negócio</Link>
+                      </div>}
                       <div className="mt-3 flex items-center justify-between gap-1 border-t pt-2">
                         <div className="flex items-center gap-1">
                           {busy === d.id && (

@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { DEAL_STEPS, type DealStage } from "@/lib/data/deal";
+import { listClientDealTasks, type DealTask } from "@/lib/db/deal-tasks";
 
 /** Garante um token de portal do comprador para o contacto e devolve-o. */
 export async function ensureBuyerPortalToken(contactId: string): Promise<string | null> {
@@ -23,6 +24,10 @@ export interface BuyerPortal {
   amount: number;
   dealStage: DealStage | null;
   milestones: { stage: DealStage; label: string; reached: boolean; at?: string }[];
+  /** Negócio ligado — para pedir/carregar documentos pelo portal (fase 2). */
+  dealId: string | null;
+  /** Só as tarefas destinadas ao comprador — acompanha, nunca valida. */
+  tasks: DealTask[];
 }
 
 /** Dados (só leitura) do portal do comprador a partir do token — o negócio
@@ -61,7 +66,7 @@ export async function getBuyerPortalDataByContactId(contactId: string, name?: st
     .maybeSingle();
 
   if (!deal) {
-    return { name: resolvedName, propertyRef: "", propertyTitle: "", propertyImage: null, amount: 0, dealStage: null, milestones: [] };
+    return { name: resolvedName, propertyRef: "", propertyTitle: "", propertyImage: null, amount: 0, dealStage: null, milestones: [], dealId: null, tasks: [] };
   }
 
   const reachedAt = new Map<string, string>();
@@ -87,6 +92,8 @@ export async function getBuyerPortalDataByContactId(contactId: string, name?: st
     | { reference?: string; title?: string; cover_url?: string }
     | null;
 
+  const tasks = await listClientDealTasks(String(deal.id), "buyer");
+
   return {
     name: resolvedName,
     propertyRef: p?.reference ?? "",
@@ -95,5 +102,7 @@ export async function getBuyerPortalDataByContactId(contactId: string, name?: st
     amount: deal.amount != null ? Number(deal.amount) : 0,
     dealStage: (deal.stage as DealStage) ?? null,
     milestones,
+    dealId: String(deal.id),
+    tasks,
   };
 }

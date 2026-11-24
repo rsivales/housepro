@@ -11,6 +11,7 @@ import { ClientAreaShell } from "@/components/cliente/client-area-shell";
 import { ClientNameEditor } from "@/components/cliente/client-name-editor";
 import { PortalNewsBanner } from "@/components/cliente/portal-news-banner";
 import { FavoritesList } from "@/components/cliente/favorites-list";
+import { ClientTaskList } from "@/components/cliente/client-task-list";
 import { formatEuro } from "@/lib/format";
 
 export const metadata: Metadata = { title: "A minha área de compra", robots: { index: false, follow: false } };
@@ -46,6 +47,7 @@ export default async function CompradorPortal() {
       </div>
     </section>
     {deal?.propertyRef && <section className="mt-6 rounded-[1.5rem] border border-[#dce3ec] bg-white p-5 sm:p-7 dark:border-white/15 dark:bg-white/5"><div className="flex items-center gap-3"><CalendarDays className="size-5 text-[#a31621]" /><h2 className="font-display text-xl font-semibold">Etapas da compra</h2></div><ol className="mt-5 grid gap-3 sm:grid-cols-2">{deal.milestones.map(m => <li key={m.stage} className="flex items-center gap-3 rounded-xl border border-[#e3e8ef] px-4 py-3 text-sm dark:border-white/10"><span className={`grid size-7 shrink-0 place-items-center rounded-full ${m.reached ? "bg-[#a31621] text-white" : "bg-[#f1f3f6] text-[#55657b] dark:bg-white/10 dark:text-white"}`}>{m.reached ? <Check className="size-4" /> : "·"}</span><span className="flex-1 font-medium">{m.label}</span>{m.at && <time className="text-xs opacity-60" dateTime={m.at}>{new Date(m.at).toLocaleDateString("pt-PT")}</time>}</li>)}</ol></section>}
+    {deal && deal.tasks.length > 0 && <section className="mt-6 rounded-[1.5rem] border border-[#dce3ec] bg-white p-5 sm:p-7 dark:border-white/15 dark:bg-white/5"><div className="flex items-center gap-3"><FileText className="size-5 text-[#a31621]" /><h2 className="font-display text-xl font-semibold">Documentos pedidos</h2></div><p className="mt-1 text-sm opacity-70">Acompanhe e carregue o que lhe for pedido. A validação é sempre feita pela equipa HousePro.</p><ClientTaskList tasks={deal.tasks} /></section>}
     <PortalNewsBanner />
   </ClientAreaShell>;
 }

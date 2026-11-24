@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { DEAL_STEPS, type DealStage } from "@/lib/data/deal";
 import type { PropertyStatus } from "@/lib/data/types";
+import { listClientDealTasks, type DealTask } from "@/lib/db/deal-tasks";
 
 /** Garante um token de portal do proprietário para o imóvel e devolve-o. */
 export async function ensureOwnerToken(propertyId: string): Promise<string | null> {
@@ -28,6 +29,9 @@ export interface OwnerPortal {
   leadsCount: number;
   dealStage: DealStage | null;
   milestones: { stage: DealStage; label: string; reached: boolean; at?: string }[];
+  dealId: string | null;
+  /** Só as tarefas destinadas ao vendedor — acompanha, nunca valida. */
+  tasks: DealTask[];
 }
 
 /** Dados (só leitura) do portal do proprietário a partir do token. */
@@ -104,6 +108,8 @@ async function buildOwnerPortal(p: { id: unknown; reference?: unknown; title?: u
     at: reachedAt.get(s.stage) || undefined,
   }));
 
+  const tasks = deal?.id ? await listClientDealTasks(String(deal.id), "seller") : [];
+
   return {
     ref,
     title: String(p.title ?? ""),
@@ -116,5 +122,7 @@ async function buildOwnerPortal(p: { id: unknown; reference?: unknown; title?: u
     leadsCount: leadsCount ?? 0,
     dealStage: (deal?.stage as DealStage) ?? null,
     milestones,
+    dealId: deal?.id ? String(deal.id) : null,
+    tasks,
   };
 }

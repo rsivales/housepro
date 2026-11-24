@@ -285,3 +285,123 @@ export async function getTaskDealId(taskId: string): Promise<string | null> {
     .maybeSingle();
   return data?.deal_id ?? null;
 }
+
+/** Tarefas de um negócio visíveis a uma das partes — nunca tarefas internas. */
+export async function listClientDealTasks(
+  dealId: string,
+  audience: "buyer" | "seller",
+): Promise<DealTask[]> {
+  if (!hasServiceRole()) return [];
+  const sb = createAdminClient();
+  const { data, error } = await sb
+    .from("deal_tasks")
+    .select(TASK_COLS)
+    .eq("deal_id", dealId)
+    .eq("audience", audience)
+    .neq("applicability", "not_applicable")
+    .order("due_at", { nullsFirst: false });
+  if (error || !data) return [];
+  return (data as TaskRow[]).map(mapTask);
+}
+
+interface ClientTaskGate {
+  dealId: string;
+  audience: TaskAudience;
+}
+
+/** Confirma que a tarefa é do comprador e pertence ao negócio ligado a este
+ *  contacto — nunca confia no dealId que o cliente possa enviar. */
+export async function verifyBuyerTaskAccess(
+  taskId: string,
+  buyerContactId: string,
+): Promise<ClientTaskGate | null> {
+  if (!hasServiceRole() || !buyerContactId) return null;
+  const sb = createAdminClient();
+  const { data: task } = await sb
+    .from("deal_tasks")
+    .select("deal_id, audience")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!task || task.audience !== "buyer") return null;
+  const { data: deal } = await sb
+    .from("deals")
+    .select("id")
+    .eq("id", task.deal_id)
+    .eq("buyer_contact_id", buyerContactId)
+    .maybeSingle();
+  if (!deal) return null;
+  return { dealId: task.deal_id, audience: "buyer" };
+}
+
+/** Confirma que a tarefa é do vendedor e que o email verificado é o do
+ *  proprietário do imóvel ligado a este negócio (mesmo mecanismo do portal
+ *  do proprietário — sem conta/contacto próprio, só email verificado). */
+export async function verifySellerTaskAccess(
+  taskId: string,
+  ownerEmail: string,
+): Promise<ClientTaskGate | null> {
+  if (!hasServiceRole() || !ownerEmail.trim()) return null;
+  const sb = createAdminClient();
+  const { data: task } = await sb
+    .from("deal_tasks")
+    .select("deal_id, audience")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!task || task.audience !== "seller") return null;
+  const { data: deal } = await sb
+    .from("deals")
+    .select("id, property:properties!property_id(owner_email)")
+    .eq("id", task.deal_id)
+    .maybeSingle();
+  const p = Array.isArray(deal?.property) ? deal.property[0] : deal?.property;
+  if (!deal || String(p?.owner_email ?? "").toLowerCase() !== ownerEmail.trim().toLowerCase())
+    return null;
+  return { dealId: task.deal_id, audience: "seller" };
+}
+
+const DOC_KIND_BY_CODE: Record<string, string> = {
+  credito_aprovacao: "aprovacao_credito",
+  credito_avaliacao: "avaliacao_banco",
+  cert_energetico: "cert_energetico",
+  caderneta_predial: "caderneta",
+};
+
+/** Regista o documento carregado pelo cliente: cria o deal_documents (audiência
+ *  = a da tarefa) e passa a tarefa para 'received' — nunca 'validated'. Só um
+ *  profissional autorizado confirma a validação (ver updateDealTaskStatus). */
+export async function recordClientTaskUpload(
+  taskId: string,
+  dealId: string,
+  audience: TaskAudience,
+  storagePath: string,
+): Promise<{ ok: true } | { error: string }> {
+  if (!hasServiceRole()) return { error: "not_configured" };
+  const sb = createAdminClient();
+  const { data: task } = await sb
+    .from("deal_tasks")
+    .select("code")
+    .eq("id", taskId)
+    .maybeSingle();
+  const { data: doc, error: docError } = await sb
+    .from("deal_documents")
+    .insert({
+      deal_id: dealId,
+      kind: DOC_KIND_BY_CODE[task?.code ?? ""] ?? "outro",
+      url: storagePath,
+      audience,
+      task_id: taskId,
+    })
+    .select("id")
+    .single();
+  if (docError || !doc) return { error: docError?.message ?? "upload_failed" };
+  const { error } = await sb
+    .from("deal_tasks")
+    .update({
+      status: "received",
+      evidence_document_id: doc.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", taskId);
+  if (error) return { error: error.message };
+  return { ok: true };
+}

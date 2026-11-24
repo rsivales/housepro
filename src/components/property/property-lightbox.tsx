@@ -57,6 +57,7 @@ export function PropertyLightbox({
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) close(); }}>
       <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[69] bg-black" />
         <Dialog.Content
           aria-describedby={undefined}
           className="fixed inset-0 z-[70] flex h-dvh flex-col bg-black outline-none"

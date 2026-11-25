@@ -137,6 +137,7 @@ export function CrmBoard({
   const router = useRouter();
   const [deals, setDeals] = React.useState(initial);
   const [expandedDeals, setExpandedDeals] = React.useState<string[]>([]);
+  const [creditFilter, setCreditFilter] = React.useState<CreditStage | "">("");
   React.useEffect(() => setDeals(initial), [initial]);
   const saving = React.useRef(false);
   const [moveNotice, setMoveNotice] = React.useState("");
@@ -717,6 +718,26 @@ export function CrmBoard({
         Arraste pela pega do cartão com rato ou dedo. Pode também usar as setas
         ou selecionar a pega com o teclado.
       </p>
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <span className="text-xs font-medium text-muted-foreground">Filtrar por crédito:</span>
+        <button
+          type="button"
+          onClick={() => setCreditFilter("")}
+          className={cn("rounded-full px-2.5 py-1 text-[11px] font-medium", !creditFilter ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")}
+        >
+          Todos
+        </button>
+        {(["sem_credito", ...CREDIT_STEPS.map((c) => c.stage)] as CreditStage[]).map((stage) => (
+          <button
+            key={stage}
+            type="button"
+            onClick={() => setCreditFilter((v) => (v === stage ? "" : stage))}
+            className={cn("rounded-full px-2.5 py-1 text-[11px] font-medium", creditFilter === stage ? "ring-2 ring-offset-1 ring-ring" : "", CREDIT_BADGE[stage])}
+          >
+            {CREDIT_LABEL[stage]}
+          </button>
+        ))}
+      </div>
       <div className="mt-3 flex items-center gap-2" role="group" aria-label="Deslocar as fases do Kanban">
         <button type="button" onClick={() => scrollBoard(-1)} disabled={scrollMetrics.left <= 0}
           aria-label="Ver fases anteriores" className="grid size-9 shrink-0 place-items-center rounded-lg border bg-card text-foreground disabled:opacity-40">
@@ -752,7 +773,7 @@ export function CrmBoard({
         className="crm-board-viewport mt-2 flex gap-4 overflow-x-auto overscroll-x-contain pb-4"
       >
         {DEAL_STEPS.map((step, i) => {
-          const cards = deals.filter((d) => d.stage === step.stage);
+          const cards = deals.filter((d) => d.stage === step.stage && (!creditFilter || d.creditStage === creditFilter));
           const soma = cards.reduce((s, d) => s + d.amount, 0);
           return (
             <div

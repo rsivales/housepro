@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   const sb = await createClient();
   const { data } = await sb
     .from("properties")
-    .select("id, reference, title, municipality, price, operation, owner_name, commission_type, commission_pct, commission_fixed, commission_justification")
+    .select("id, reference, title, municipality, price, operation, owner_name, commission_type, commission_pct, commission_fixed, commission_justification, agent_id, agent:profiles!agent_id(name)")
     .or(`reference.ilike.%${q}%,title.ilike.%${q}%,municipality.ilike.%${q}%`)
     .order("listed_at", { ascending: false })
     .limit(8);
@@ -36,6 +36,8 @@ export async function GET(request: Request) {
     municipality: String(p.municipality ?? ""),
     price: Number(p.price ?? 0),
     sellerName: (p.owner_name as string) ?? "",
+    agentId: String(p.agent_id ?? ""),
+    agentName: ((p.agent as { name?: string } | null)?.name) ?? "",
     commissionPreview: commissionLabel(Number(p.price ?? 0), {
       operation: p.operation === "arrendamento" ? "arrendamento" : "venda",
       commissionJustification: p.commission_justification as string | undefined,

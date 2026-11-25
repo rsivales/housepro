@@ -70,6 +70,8 @@ interface PropertyMatch {
   price: number;
   sellerName: string;
   commissionPreview: string;
+  agentId: string;
+  agentName: string;
 }
 
 interface ContactMatch {
@@ -92,6 +94,8 @@ export interface CrmBoardPrefill {
 
 const NEW_DEAL_FORM = {
   propertyId: "",
+  propertyAgentId: "",
+  propertyAgentName: "",
   reference: "",
   buyerName: "",
   buyerContactId: "",
@@ -176,17 +180,25 @@ export function CrmBoard({
   }, [form.reference, form.propertyId]);
 
   function pickProperty(p: PropertyMatch) {
+    const isOther = Boolean(p.agentId) && p.agentId !== viewerId;
     setForm((f) => ({
       ...f,
       propertyId: p.id,
+      propertyAgentId: p.agentId,
+      propertyAgentName: p.agentName,
       reference: p.reference,
       sellerName: p.sellerName || f.sellerName,
       amount: p.price ? String(p.price) : f.amount,
+      // Imóvel de outro consultor: entras como consultor comprador e o
+      // negócio fica automaticamente marcado como partilhado.
+      coBroker: isOther ? true : f.coBroker,
     }));
     setCommissionPreview(p.commissionPreview);
     setMatches([]);
     setShowMatches(false);
   }
+
+  const isSharedDeal = Boolean(form.propertyAgentId) && form.propertyAgentId !== viewerId;
 
   // Pesquisa de comprador por nome/e-mail/telefone — abrange QUALQUER
   // contacto, não só os da carteira do consultor, incluindo quem já se
@@ -476,7 +488,7 @@ export function CrmBoard({
               <button
                 type="button"
                 onClick={() => {
-                  setForm((f) => ({ ...f, propertyId: "", reference: "" }));
+                  setForm((f) => ({ ...f, propertyId: "", reference: "", propertyAgentId: "", propertyAgentName: "", coBroker: false }));
                   setCommissionPreview("");
                 }}
                 className="shrink-0 underline-offset-2 hover:underline"
@@ -518,6 +530,9 @@ export function CrmBoard({
                           <span className="font-medium">{p.reference}</span> ·{" "}
                           {p.title || p.municipality}
                           {p.price ? ` · ${formatEuro(p.price)}` : ""}
+                          {p.agentId && p.agentId !== viewerId && p.agentName ? (
+                            <span className="ml-1 text-muted-foreground">· consultor: {p.agentName}</span>
+                          ) : null}
                         </button>
                       ))
                     )}
@@ -553,40 +568,50 @@ export function CrmBoard({
             )}
           </p>
 
+          {isSharedDeal && (
+            <p className="mt-2 rounded-lg bg-gold/15 px-3 py-2 text-xs font-medium text-foreground">
+              🤝 Imóvel de {form.propertyAgentName || "outro consultor"} — ficas como consultor comprador e o negócio
+              fica assinalado como partilha de negócio. Indica abaixo a tua parte combinada da comissão.
+            </p>
+          )}
           <div className="mt-2 grid gap-2 sm:grid-cols-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.coBroker}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    coBroker: e.target.checked,
-                    coBrokerAgencyId: e.target.checked
-                      ? f.coBrokerAgencyId
-                      : "",
-                  }))
-                }
-                className="size-4 accent-primary"
-              />
-              Partilha com outra agência
-            </label>
+            {!isSharedDeal && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.coBroker}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      coBroker: e.target.checked,
+                      coBrokerAgencyId: e.target.checked
+                        ? f.coBrokerAgencyId
+                        : "",
+                    }))
+                  }
+                  className="size-4 accent-primary"
+                />
+                Partilha com outra agência
+              </label>
+            )}
             {form.coBroker && (
               <>
-                <select
-                  value={form.coBrokerAgencyId}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, coBrokerAgencyId: e.target.value }))
-                  }
-                  className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
-                >
-                  <option value="">Selecionar agência…</option>
-                  {agencies.map((ag) => (
-                    <option key={ag.id} value={ag.id}>
-                      {ag.name}
-                    </option>
-                  ))}
-                </select>
+                {!isSharedDeal && (
+                  <select
+                    value={form.coBrokerAgencyId}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, coBrokerAgencyId: e.target.value }))
+                    }
+                    className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+                  >
+                    <option value="">Selecionar agência…</option>
+                    {agencies.map((ag) => (
+                      <option key={ag.id} value={ag.id}>
+                        {ag.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <select
                   value={form.coBrokerSplitType}
                   onChange={(e) =>
@@ -878,6 +903,11 @@ export function CrmBoard({
                                 </span>
                               )}
                             </div>
+                            {d.coBroker && (
+                              <span className="mt-1 inline-block rounded-full bg-gold/20 px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+                                🤝 Partilha de negócio
+                              </span>
+                            )}
                             <p className="mt-0.5 truncate text-sm text-muted-foreground">
                               {d.propertyTitle || d.propertyRef}
                             </p>

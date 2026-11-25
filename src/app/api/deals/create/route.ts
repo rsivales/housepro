@@ -41,16 +41,23 @@ export async function POST(request: Request) {
   if (!property) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const a = session.agent;
-  const allowed = property.agentId === a.id || (property.coAgentIds ?? []).includes(a.id) || isStaff(a);
+  const isListingTeam = property.agentId === a.id || (property.coAgentIds ?? []).includes(a.id);
+  // Imóvel de outro consultor (da mesma agência ou de outra): continua a poder
+  // criar o negócio, mas entra como consultor comprador — não como angariador
+  // — e o negócio fica assinalado como partilhado quando a agência difere.
+  const allowed = isListingTeam || isStaff(a) || Boolean(property.agentId);
   if (!allowed) return NextResponse.json({ error: "sem_permissao" }, { status: 403 });
 
   const agencyId = property.agent?.agencyId || a.agencyId;
   if (!agencyId) return NextResponse.json({ error: "agency_unknown" }, { status: 400 });
 
+  const otherAgency = !isListingTeam && property.agent?.agencyId && a.agencyId && property.agent.agencyId !== a.agencyId;
+
   const res = await createDeal({
     propertyId,
     agencyId,
     angariadorId: property.agentId,
+    consultorCompradorId: isListingTeam ? undefined : a.id,
     buyerName: body.buyerName ? String(body.buyerName) : undefined,
     buyerContactId: body.buyerContactId ? String(body.buyerContactId) : undefined,
     sellerName: body.sellerName ? String(body.sellerName) : undefined,
@@ -59,8 +66,11 @@ export async function POST(request: Request) {
     commissionType: property.commissionType ?? "percent",
     commissionPct: property.commissionPct,
     commissionFixed: property.commissionFixed,
-    coBroker: Boolean(body.coBroker),
-    coBrokerAgencyId: body.coBrokerAgencyId ? String(body.coBrokerAgencyId) : undefined,
+    // Imóvel de outra agência trazido por este consultor: partilha automática
+    // com a SUA agência (não a do dropdown, que lista as "outras" agências do
+    // ponto de vista de quem lista o imóvel).
+    coBroker: otherAgency ? true : Boolean(body.coBroker),
+    coBrokerAgencyId: otherAgency ? a.agencyId : (body.coBrokerAgencyId ? String(body.coBrokerAgencyId) : undefined),
     coBrokerSplitType: body.coBrokerSplitType === "fixed" ? "fixed" : "percent",
     coBrokerSplitPct: body.coBrokerSplitPct != null ? Number(body.coBrokerSplitPct) : undefined,
     coBrokerSplitFixed: body.coBrokerSplitFixed != null ? Number(body.coBrokerSplitFixed) : undefined,

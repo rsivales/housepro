@@ -300,6 +300,7 @@ export async function createDeal(input: {
   propertyId: string;
   agencyId: string;
   angariadorId: string;
+  consultorCompradorId?: string;
   buyerName?: string;
   buyerContactId?: string;
   sellerName?: string;
@@ -321,6 +322,7 @@ export async function createDeal(input: {
       property_id: input.propertyId,
       agency_id: input.agencyId,
       angariador_id: input.angariadorId,
+      consultor_comprador_id: input.consultorCompradorId || null,
       buyer_name: input.buyerName || null,
       buyer_contact_id: input.buyerContactId || null,
       seller_name: input.sellerName || null,

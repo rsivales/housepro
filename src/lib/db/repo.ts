@@ -1835,6 +1835,7 @@ export function mapContact(r: Row): Contact {
     nif: (r.nif as string) ?? undefined,
     idDocument: (r.id_document as string) ?? undefined,
     address: (r.address as string) ?? undefined,
+    birthDate: (r.birth_date as string) ?? undefined,
     authUserId: (r.auth_user_id as string) ?? undefined,
     createdAt: String(r.created_at ?? new Date().toISOString()),
     lastActivityAt: (r.last_activity_at as string) ?? undefined,
@@ -2074,6 +2075,7 @@ export async function updateContact(
     nif?: string | null;
     idDocument?: string | null;
     address?: string | null;
+    birthDate?: string | null;
   }
 ): Promise<{ ok: true } | { error: string }> {
   if (!isSupabaseConfigured()) return { ok: true };
@@ -2089,6 +2091,7 @@ export async function updateContact(
   if ("nif" in patch) dbPatch.nif = patch.nif || null;
   if ("idDocument" in patch) dbPatch.id_document = patch.idDocument || null;
   if ("address" in patch) dbPatch.address = patch.address || null;
+  if ("birthDate" in patch) dbPatch.birth_date = patch.birthDate || null;
   try {
     const supabase = await createClient();
     const { error, data } = await supabase.from("contacts").update(dbPatch).eq("id", id).select("id");

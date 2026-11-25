@@ -50,6 +50,8 @@ export interface Contact {
   idDocument?: string;
   /** Morada completa. */
   address?: string;
+  /** Data de nascimento (YYYY-MM-DD) — para o envio institucional de aniversário. */
+  birthDate?: string;
   /** Conta de cliente (login por magic link em /cliente/entrar) ligada a este
    *  contacto — permite ao comprador ver o seu histórico mesmo antes de
    *  qualquer negócio existir. */

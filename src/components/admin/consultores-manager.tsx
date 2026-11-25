@@ -8,7 +8,7 @@ import type { RoleKey } from "@/lib/data/types";
 
 interface Consultor {
   id: string; name: string; email?: string | null; role?: string; role_key?: string;
-  agency_id?: string | null; whatsapp?: string | null; active?: boolean;
+  agency_id?: string | null; whatsapp?: string | null; active?: boolean; birth_date?: string | null;
   sponsor_id?: string | null; code?: number | null; company_validated?: boolean;
 }
 interface Agency { id: string; name: string; region?: string }
@@ -180,6 +180,7 @@ export function ConsultoresManager() {
                   <select id={`a-${c.id}`} defaultValue={c.agency_id ?? ""} className={field}><option value="">— sem agência —</option>{agencies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
                 </label>
                 <label className="block"><span className="text-xs font-medium">WhatsApp</span><input id={`w-${c.id}`} defaultValue={c.whatsapp ?? ""} className={field} /></label>
+                <label className="block"><span className="text-xs font-medium">Data de nascimento</span><input id={`bd-${c.id}`} type="date" defaultValue={c.birth_date ?? ""} className={field} /></label>
                 <label className="block"><span className="text-xs font-medium">Padrinho (rede de afilhados)</span>
                   <select id={`s-${c.id}`} defaultValue={c.sponsor_id ?? ""} className={field}>
                     <option value="">— sem padrinho —</option>
@@ -199,6 +200,7 @@ export function ConsultoresManager() {
                     roleKey: (document.getElementById(`r-${c.id}`) as HTMLSelectElement).value,
                     agencyId: (document.getElementById(`a-${c.id}`) as HTMLSelectElement).value,
                     whatsapp: (document.getElementById(`w-${c.id}`) as HTMLInputElement).value,
+                    birthDate: (document.getElementById(`bd-${c.id}`) as HTMLInputElement).value,
                     sponsorId: (document.getElementById(`s-${c.id}`) as HTMLSelectElement).value,
                     companyValidated: (document.getElementById(`cv-${c.id}`) as HTMLSelectElement).value === "1",
                   })} className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-60"><Check className="size-4" /> Guardar</button>

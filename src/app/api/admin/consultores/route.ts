@@ -78,7 +78,7 @@ export async function GET(request: Request) {
   }
 
   const [{ data: profiles }, { data: agencies }] = await Promise.all([
-    admin.from("profiles").select("id, name, email, role, role_key, agency_id, whatsapp, active, sponsor_id, code, public_title, company_validated").order("name"),
+    admin.from("profiles").select("id, name, email, role, role_key, agency_id, whatsapp, active, sponsor_id, code, public_title, company_validated, birth_date").order("name"),
     admin.from("agencies").select("id, name, region").order("name"),
   ]);
   return NextResponse.json({ ok: true, consultores: profiles ?? [], agencies: agencies ?? [] });
@@ -183,6 +183,7 @@ export async function PATCH(request: Request) {
   if (typeof b.name === "string") patch.name = b.name.trim();
   if (typeof b.email === "string") patch.email = b.email.trim().toLowerCase() || null;
   if (typeof b.whatsapp === "string") patch.whatsapp = b.whatsapp || null;
+  if (typeof b.birthDate === "string") patch.birth_date = b.birthDate || null;
   if (typeof b.publicTitle === "string") patch.public_title = b.publicTitle.trim() || null;
   if (typeof b.photoUrl === "string") patch.photo_url = b.photoUrl || null;
   if (typeof b.agencyId === "string") patch.agency_id = b.agencyId || null;

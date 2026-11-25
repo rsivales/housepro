@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     ...("nif" in p ? { nif: (p.nif as string) || null } : {}),
     ...("idDocument" in p ? { idDocument: (p.idDocument as string) || null } : {}),
     ...("address" in p ? { address: (p.address as string) || null } : {}),
+    ...("birthDate" in p ? { birthDate: (p.birthDate as string) || null } : {}),
   });
   if ("error" in res) return NextResponse.json(res, { status: 400 });
   after(async () => { await runMatching({ contactId: id }); });

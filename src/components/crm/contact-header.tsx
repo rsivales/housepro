@@ -30,6 +30,7 @@ export function ContactHeader({ contact, readOnly = false }: { contact: Contact;
   const [nif, setNif] = React.useState(contact.nif ?? "");
   const [idDocument, setIdDocument] = React.useState(contact.idDocument ?? "");
   const [address, setAddress] = React.useState(contact.address ?? "");
+  const [birthDate, setBirthDate] = React.useState(contact.birthDate ?? "");
 
   async function save() {
     setBusy(true);
@@ -40,7 +41,7 @@ export function ContactHeader({ contact, readOnly = false }: { contact: Contact;
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           id: contact.id,
-          patch: { name, phone, email, type, zone: buyerProfile.zones?.filter(Boolean).join(", ") || zone, budget, nif, idDocument, address, buyerProfile },
+          patch: { name, phone, email, type, zone: buyerProfile.zones?.filter(Boolean).join(", ") || zone, budget, nif, idDocument, address, birthDate, buyerProfile },
         }),
       });
       if (!res.ok) {
@@ -142,6 +143,10 @@ export function ContactHeader({ contact, readOnly = false }: { contact: Contact;
         <label className="block sm:col-span-2">
           <span className="mb-1 block text-xs font-medium text-muted-foreground">Morada</span>
           <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Preencher quando necessário" className="input" />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">Data de nascimento</span>
+          <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="input" />
         </label>
       </div>
 

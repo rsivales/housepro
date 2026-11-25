@@ -13,6 +13,9 @@ import { mayEditProperty } from "@/lib/portfolio/server";
 import { listDealTasks, listTransactionManagerCandidates } from "@/lib/db/deal-tasks";
 import { TransactionChecklist } from "@/components/process/transaction-checklist";
 import { TransactionManagerPanel } from "@/components/process/transaction-manager-panel";
+import { listDealOffers, dealOfferRef } from "@/lib/db/deal-offers";
+import { DealOffersPanel } from "@/components/process/deal-offers-panel";
+import { dealTeamOrStaffAllowed } from "@/lib/db/deal-permissions";
 
 export const metadata: Metadata = { title: "Negócio — Helix" };
 
@@ -33,6 +36,11 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
     .select("id,occurred_at,amount,data,document_name")
     .eq("deal_id",id).eq("kind","proposal").order("occurred_at",{ascending:false}).limit(50):{data:[]};
   const canDownload=Boolean(deal.propertyId&&await mayEditProperty(session.agent,deal.propertyId));
+  const offers = await listDealOffers(id);
+  const canActOnOffers = dealTeamOrStaffAllowed(session.agent, {
+    agencyId: deal.agencyId,
+    team: [deal.angariadorId, deal.consultorCompradorId, deal.coordenadorId].filter((v): v is string => Boolean(v)),
+  });
 
   const showTransactionManager = ["reserva", "cpcv", "escritura", "concluido"].includes(deal.stage);
   const [tasks, tmCandidates] = showTransactionManager
@@ -48,6 +56,14 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
         <ArrowLeft className="size-4" /> CRM · Negócios
       </Link>
       <DealDetailView deal={deal} agencies={agencies} canManage={staff} />
+      <div className="mt-6">
+        <DealOffersPanel
+          dealId={id}
+          initialOffers={offers}
+          reference={dealOfferRef(id)}
+          canAct={canActOnOffers}
+        />
+      </div>
       {showTransactionManager && (
         <div className="mt-6 space-y-6">
           {staff && (

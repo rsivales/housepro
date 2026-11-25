@@ -1077,6 +1077,7 @@ function mapLeadRow(r: Row): Lead {
     unassigned: r.unassigned != null ? Boolean(r.unassigned) : undefined,
     zone: (r.zone as string) ?? undefined,
     budget: (r.budget as string) ?? undefined,
+    creditStatus: (r.credit_status as Lead["creditStatus"]) ?? undefined,
     language: (r.language as string) ?? undefined,
     specialty: (r.specialty as string) ?? undefined,
     offeredTo: Array.isArray(r.offered_to) ? (r.offered_to as string[]) : undefined,
@@ -1685,6 +1686,21 @@ export async function updateLeadStage(input: {
       actor_name: input.actorName ?? null,
       to_val: String(input.stage),
     });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Define/limpa o estado de crédito da lead (etiqueta de relance no cartão). */
+export async function updateLeadCreditStatus(input: {
+  leadId: string;
+  creditStatus: Lead["creditStatus"] | null;
+}): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true; // demo: assume aplicado
+  try {
+    const supabase = await createClient();
+    await supabase.from("leads").update({ credit_status: input.creditStatus }).eq("id", input.leadId);
     return true;
   } catch {
     return false;

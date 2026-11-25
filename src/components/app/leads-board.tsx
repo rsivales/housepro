@@ -3,10 +3,12 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Home, Loader2, Phone, X, Mail, MapPin, Wallet, Calendar, Tag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home, Loader2, Phone, X, Mail, MapPin, Wallet, Calendar, Tag, SlidersHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { LEAD_PIPELINES, type LeadPipeline } from "@/lib/data/lead-pipelines";
+import { scoreBand } from "@/lib/meta/scoring";
+import { LEAD_CREDIT_STATUS_LABEL, type LeadCreditStatus } from "@/lib/data/leads";
 
 export interface LeadCard {
   id: string;
@@ -25,9 +27,30 @@ export interface LeadCard {
   budget?: string;
   qualification?: string;
   score?: number;
+  creditStatus?: LeadCreditStatus;
   campaignId?: string;
   formId?: string;
   createdAt?: string;
+}
+
+/** Cor da etiqueta de crédito — visível de relance, sem abrir a lead. */
+const CREDIT_BADGE: Record<LeadCreditStatus, string> = {
+  aprovado: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  nao_aprovado: "bg-destructive/15 text-destructive",
+  pendente: "bg-gold/15 text-gold-foreground",
+};
+
+/** "há X min/h/d" a partir da data de criação — para ver a urgência de relance. */
+function timeAgo(iso?: string): string | undefined {
+  if (!iso) return undefined;
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return undefined;
+  const min = Math.round(ms / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `há ${h} h`;
+  return `há ${Math.round(h / 24)} d`;
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -60,10 +83,29 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
   const router = useRouter();
   const [busy, setBusy] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<LeadCard | null>(null);
+  const [creditOverride, setCreditOverride] = React.useState<Record<string, LeadCreditStatus | undefined>>({});
+  const [showFilters, setShowFilters] = React.useState(false);
+  const [q, setQ] = React.useState("");
+  const [urgencyFilter, setUrgencyFilter] = React.useState<"" | "Quente" | "Morna" | "Fria">("");
+  const [sourceFilter, setSourceFilter] = React.useState("");
+  const [creditFilter, setCreditFilter] = React.useState<"" | LeadCreditStatus>("");
 
   // Leads deste pipeline; as por classificar (sem pipeline) caem no 1.º pipeline.
   const isDefault = pipeline.key === LEAD_PIPELINES[0].key;
-  const mine = leads.filter((l) => l.pipeline === pipeline.key || (isDefault && !l.pipeline));
+  const ofPipeline = leads
+    .filter((l) => l.pipeline === pipeline.key || (isDefault && !l.pipeline))
+    .map((l) => (l.id in creditOverride ? { ...l, creditStatus: creditOverride[l.id] } : l));
+
+  const sources = [...new Set(ofPipeline.map((l) => l.source).filter((s): s is string => Boolean(s)))];
+  const term = q.trim().toLowerCase();
+  const mine = ofPipeline.filter((l) => {
+    if (term && !`${l.name} ${l.contact} ${l.email ?? ""} ${l.zone ?? ""} ${l.propertyRef ?? ""}`.toLowerCase().includes(term)) return false;
+    if (urgencyFilter && scoreBand(l.score ?? 0).label !== urgencyFilter) return false;
+    if (sourceFilter && l.source !== sourceFilter) return false;
+    if (creditFilter && l.creditStatus !== creditFilter) return false;
+    return true;
+  });
+  const filtersActive = Boolean(term || urgencyFilter || sourceFilter || creditFilter);
 
   async function post(leadId: string, stage: number, pipe?: string) {
     setBusy(leadId);
@@ -79,8 +121,66 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
     }
   }
 
+  async function postCredit(leadId: string, creditStatus: LeadCreditStatus | undefined) {
+    setBusy(leadId);
+    setCreditOverride((prev) => ({ ...prev, [leadId]: creditStatus }));
+    try {
+      const res = await fetch("/api/leads/credit-status", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ leadId, creditStatus: creditStatus ?? null }),
+      });
+      if (res.ok) router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
-    <div className="mt-6 flex gap-4 overflow-x-auto pb-4">
+    <div>
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+      <input
+        type="search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Pesquisar por nome, contacto, zona, imóvel…"
+        className="h-9 min-w-48 flex-1 rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring"
+      />
+      <button
+        type="button"
+        onClick={() => setShowFilters((v) => !v)}
+        className={cn(
+          "inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium",
+          (showFilters || filtersActive) && "border-primary/40 bg-primary/5 text-primary"
+        )}
+      >
+        <SlidersHorizontal className="size-3.5" /> Filtros{filtersActive ? " ·" : ""}
+      </button>
+    </div>
+    {showFilters && (
+      <div className="mt-2 flex flex-wrap gap-2">
+        <select value={urgencyFilter} onChange={(e) => setUrgencyFilter(e.target.value as typeof urgencyFilter)} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none">
+          <option value="">Urgência: todas</option>
+          <option value="Quente">🔴 Quente</option>
+          <option value="Morna">🟡 Morna</option>
+          <option value="Fria">⚪ Fria</option>
+        </select>
+        <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none">
+          <option value="">Origem: todas</option>
+          {sources.map((s) => <option key={s} value={s}>{SOURCE_LABEL[s] ?? s}</option>)}
+        </select>
+        <select value={creditFilter} onChange={(e) => setCreditFilter(e.target.value as typeof creditFilter)} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none">
+          <option value="">Crédito: todos</option>
+          {(Object.keys(LEAD_CREDIT_STATUS_LABEL) as LeadCreditStatus[]).map((k) => <option key={k} value={k}>{LEAD_CREDIT_STATUS_LABEL[k]}</option>)}
+        </select>
+        {filtersActive && (
+          <button type="button" onClick={() => { setQ(""); setUrgencyFilter(""); setSourceFilter(""); setCreditFilter(""); }} className="text-sm text-muted-foreground hover:text-foreground">
+            Limpar filtros
+          </button>
+        )}
+      </div>
+    )}
+    <div className="mt-2 flex gap-4 overflow-x-auto pb-4">
       {pipeline.stages.map((label, i) => {
         const cards = mine.filter((l) => (l.stage ?? 0) === i);
         return (
@@ -121,6 +221,21 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
                           <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium capitalize text-muted-foreground">{l.source}</span>
                         )}
                       </div>
+                      {/* Urgência + tempo desde a captura + crédito — tudo visível sem abrir a lead */}
+                      <div className="mt-1 flex flex-wrap items-center gap-1">
+                        {(() => {
+                          const band = scoreBand(l.score ?? 0);
+                          return <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", band.badge)}>{band.label}</span>;
+                        })()}
+                        {timeAgo(l.createdAt) && (
+                          <span className="text-[10px] text-muted-foreground">{timeAgo(l.createdAt)}</span>
+                        )}
+                        {l.creditStatus && (
+                          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", CREDIT_BADGE[l.creditStatus])}>
+                            {LEAD_CREDIT_STATUS_LABEL[l.creditStatus]}
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">{l.contact}</p>
                       {l.propertyRef && (
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -132,8 +247,8 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
                     </div>
                   </div>
 
-                  {/* Classificar noutro pipeline */}
-                  <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                  {/* Classificar noutro pipeline + estado de crédito */}
+                  <div className="mt-2 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={l.pipeline ?? (isDefault ? pipeline.key : "")}
                       onChange={(e) => post(l.id, 0, e.target.value)}
@@ -142,6 +257,18 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
                     >
                       {LEAD_PIPELINES.map((p) => (
                         <option key={p.key} value={p.key}>Pipeline: {p.label}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={l.creditStatus ?? ""}
+                      onChange={(e) => void postCredit(l.id, (e.target.value || undefined) as LeadCreditStatus | undefined)}
+                      aria-label="Estado do crédito"
+                      disabled={busy !== null}
+                      className="w-32 shrink-0 rounded-md border border-input bg-transparent px-2 py-1 text-xs outline-none focus-visible:border-ring"
+                    >
+                      <option value="">Crédito: —</option>
+                      {(Object.keys(LEAD_CREDIT_STATUS_LABEL) as LeadCreditStatus[]).map((k) => (
+                        <option key={k} value={k}>{LEAD_CREDIT_STATUS_LABEL[k]}</option>
                       ))}
                     </select>
                   </div>
@@ -169,6 +296,7 @@ export function LeadsBoard({ pipeline, leads }: { pipeline: LeadPipeline; leads:
       })}
 
       {selected && <LeadDetail lead={selected} onClose={() => setSelected(null)} />}
+    </div>
     </div>
   );
 }
@@ -214,9 +342,13 @@ function LeadDetail({ lead, onClose }: { lead: LeadCard; onClose: () => void }) 
               {QUALIFICATION_LABEL[lead.qualification] ?? lead.qualification}
             </span>
           )}
-          {typeof lead.score === "number" && (
-            <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              Pontuação: {lead.score}
+          {typeof lead.score === "number" && (() => {
+            const band = scoreBand(lead.score ?? 0);
+            return <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", band.badge)}>{band.label} · {lead.score}</span>;
+          })()}
+          {lead.creditStatus && (
+            <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", CREDIT_BADGE[lead.creditStatus])}>
+              {LEAD_CREDIT_STATUS_LABEL[lead.creditStatus]}
             </span>
           )}
         </div>

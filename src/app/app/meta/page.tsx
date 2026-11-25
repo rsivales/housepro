@@ -23,11 +23,12 @@ import {
   META_CONNECTION_STATUS,
   isCommercialCampaign,
 } from "@/lib/data/meta";
+import { AgentFacebookPages } from "@/components/meta/agent-facebook-pages";
 import { TestLeadButton } from "@/components/meta/test-lead-button";
 
 export const metadata: Metadata = { title: "Meta CRM — campanhas e leads" };
 
-export default async function MetaPage() {
+export default async function MetaPage({ searchParams }: { searchParams: Promise<{ facebook?: string }> }) {
   const session = await getSession();
   if (!session) redirect("/entrar");
 
@@ -37,6 +38,7 @@ export default async function MetaPage() {
     listUnassignedMetaLeads(),
   ]);
 
+  const { facebook } = await searchParams;
   const conn = META_CONNECTION_STATUS[connection.status];
   const comerciais = campaigns.filter((c) => isCommercialCampaign(c.type));
   const recrutamento = campaigns.filter((c) => c.type === "RECRUITMENT");
@@ -91,6 +93,8 @@ export default async function MetaPage() {
             </p>
           )}
         </div>
+
+        {!session.demo && !session.viewingAs && <AgentFacebookPages agentId={session.agent.id} status={facebook} />}
 
         {/* Navegação do módulo */}
         <div className="mt-6 flex flex-wrap gap-2">

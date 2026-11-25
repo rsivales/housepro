@@ -1,0 +1,13 @@
+# Facebook Lead Ads por consultor
+
+Cada consultor entra no Helix com a sua conta profissional, indica o ID da Página e escolhe Compradores ou Proprietários. O Facebook devolve apenas as Páginas que a conta pode autorizar. Uma Página tem um único titular no Helix e a ligação ao Facebook é independente da identidade Supabase. Uma Página desligada conserva o titular para impedir apropriação automática por outra conta. Uma transferência deve ser tratada pela administração após confirmar a autorização de ambas as partes.
+
+O webhook individual resolve o titular exclusivamente pela Página do evento assinado. Guarda a lead no pipeline escolhido, com o titular como proprietário e consultor atribuído. Guarda também os IDs da Página e formulário e as respostas. As regras de distribuição de campanhas do webhook anterior ficam fora deste fluxo individual. A notificação depende do trigger de novas leads já ativo no Supabase da HousePro. A gravação da lead, respostas e atividade é atómica. Reentregas usam o índice único de external_id. Erros transitórios devolvem 503 ao Meta.
+
+## Configuração antes da publicação
+
+1. Aplicar a migração individual depois das bases 0020 e 0021 já instaladas no projeto HousePro.
+2. Configurar no servidor META_APP_ID, META_APP_SECRET, META_VERIFY_TOKEN, META_GRAPH_VERSION, META_AGENT_ORIGIN e META_AGENT_TOKEN_KEY. O origin deve ser o endereço HTTPS público do Helix, sem barra final. A chave deve ser gerada com 32 bytes aleatórios em Base64 e guardada no gestor de segredos. Rotacionar a chave exige voltar a ligar as Páginas com a chave nova.
+3. Na aplicação Meta, configurar Facebook Login, autorizar o callback /api/meta/connections/callback e obter acesso às permissões pedidas no login. Configurar Webhooks no objeto Page e no campo leadgen, com o callback /api/meta/agent-webhook. Confirmar o acesso a leads no negócio Meta. Cada consultor autoriza a própria Página no Helix. Nenhum consultor precisa de fornecer a palavra-passe ao Helix.
+4. Antes da troca, identificar Páginas que usam o webhook anterior e ligar cada uma ao consultor certo. Testar duas Páginas com consultores diferentes. Confirmar titular, pipeline, resposta original e visibilidade por utilizador. Reentregar uma lead e verificar que existe uma única linha. Testar também assinatura inválida, Página desligada e tentativa de associação de uma Página já atribuída.
+5. Depois de confirmar os testes no Meta e no Helix, encaminhar os webhooks Meta para o novo URL e definir META_AGENT_CUTOVER=1 para desativar a receção nas duas rotas antigas. Desligar no Helix elimina a credencial local e suspende a ingestão da Página. Para remover a subscrição Meta, usar as definições de integrações da Página.

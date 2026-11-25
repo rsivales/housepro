@@ -16,11 +16,12 @@ import {
 } from "@/lib/data/contacts";
 
 /** Cor do selo de urgência (mesmo esquema do CRM: quente/morna/fria). */
+/** Cores vivas (fundo sólido), para se distinguirem de relance na lista. */
 const TEMPERATURE_BADGE: Record<ReturnType<typeof buyerTemperature>, string> = {
-  quente: "bg-primary/15 text-primary",
-  morno: "bg-gold/15 text-gold-foreground",
-  frio: "bg-secondary text-muted-foreground",
-  por_qualificar: "bg-secondary text-muted-foreground",
+  quente: "bg-red-600 text-white",
+  morno: "bg-amber-400 text-amber-950",
+  frio: "bg-blue-600 text-white",
+  por_qualificar: "bg-slate-700 text-white",
 };
 
 const FINANCING_LABEL: Record<NonNullable<BuyerProfile["financing"]>, string> = {
@@ -32,9 +33,9 @@ const FINANCING_LABEL: Record<NonNullable<BuyerProfile["financing"]>, string> = 
 
 const FINANCING_BADGE: Record<NonNullable<BuyerProfile["financing"]>, string> = {
   capitais_proprios: "bg-secondary text-muted-foreground",
-  aprovado: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  em_analise: "bg-gold/15 text-gold-foreground",
-  por_iniciar: "bg-destructive/15 text-destructive",
+  aprovado: "bg-emerald-600 text-white",
+  em_analise: "bg-amber-400 text-amber-950",
+  por_iniciar: "bg-red-600 text-white",
 };
 
 /**

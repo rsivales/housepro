@@ -64,7 +64,7 @@ export function scoreLead(lead: Partial<Lead>): ScoreResult {
 
 /** Etiqueta curta do nível de pontuação (para badges). */
 export function scoreBand(score: number): { label: string; badge: string } {
-  if (score >= 70) return { label: "Quente", badge: "bg-primary/15 text-primary" };
-  if (score >= 40) return { label: "Morna", badge: "bg-gold/15 text-gold-foreground" };
-  return { label: "Fria", badge: "bg-secondary text-muted-foreground" };
+  if (score >= 70) return { label: "Quente", badge: "bg-red-600 text-white" };
+  if (score >= 40) return { label: "Morna", badge: "bg-amber-400 text-amber-950" };
+  return { label: "Fria", badge: "bg-blue-600 text-white" };
 }

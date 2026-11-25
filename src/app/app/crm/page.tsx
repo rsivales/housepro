@@ -69,6 +69,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
     budget: l.budget,
     qualification: l.qualification,
     score: l.score,
+    creditStatus: l.creditStatus,
     campaignId: l.campaignId,
     formId: l.formId,
     createdAt: l.createdAt,

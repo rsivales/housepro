@@ -3,10 +3,12 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Home, Loader2, Phone, X, Mail, MapPin, Wallet, Calendar, Tag, GripVertical, Trash2, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home, Loader2, Phone, X, Mail, MapPin, Wallet, Calendar, Tag, GripVertical, Trash2, RotateCcw, SlidersHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { hasPipelinePhone, LEAD_PIPELINES, type LeadPipeline } from "@/lib/data/lead-pipelines";
+import { scoreBand } from "@/lib/meta/scoring";
+import { LEAD_CREDIT_STATUS_LABEL, type LeadCreditStatus } from "@/lib/data/leads";
 
 import { useBoardDrag } from "./use-deal-drag";
 
@@ -28,9 +30,30 @@ export interface LeadCard {
   budget?: string;
   qualification?: string;
   score?: number;
+  creditStatus?: LeadCreditStatus;
   campaignId?: string;
   formId?: string;
   createdAt?: string;
+}
+
+/** Cor da etiqueta de crédito — visível de relance, sem abrir a lead. */
+const CREDIT_BADGE: Record<LeadCreditStatus, string> = {
+  aprovado: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  nao_aprovado: "bg-destructive/15 text-destructive",
+  pendente: "bg-gold/15 text-gold-foreground",
+};
+
+/** "há X min/h/d" a partir da data de criação — para ver a urgência de relance. */
+function timeAgo(iso?: string): string | undefined {
+  if (!iso) return undefined;
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return undefined;
+  const min = Math.round(ms / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `há ${h} h`;
+  return `há ${Math.round(h / 24)} d`;
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -65,25 +88,43 @@ export function LeadsBoard({ pipeline, leads, pipelines }: { pipeline: LeadPipel
   const [selected, setSelected] = React.useState<LeadCard | null>(null);
 
   const [showArchived, setShowArchived] = React.useState(false);
+  const [showFilters, setShowFilters] = React.useState(false);
+  const [q, setQ] = React.useState("");
+  const [urgencyFilter, setUrgencyFilter] = React.useState<"" | "Quente" | "Morna" | "Fria">("");
+  const [sourceFilter, setSourceFilter] = React.useState("");
+  const [creditFilter, setCreditFilter] = React.useState<"" | LeadCreditStatus>("");
   const [feedback, setFeedback] = React.useState("");
   const [updated, setUpdated] = React.useState<Record<string, Partial<LeadCard>>>({});
   const isDefault = pipeline.key === LEAD_PIPELINES[0].key;
   const all = leads.map((lead) => ({ ...lead, ...updated[lead.id] })).filter(
     (l) => hasPipelinePhone(l.contact) && (l.pipeline === pipeline.key || (isDefault && !l.pipeline)),
   );
-  const archived = all.filter((l) => l.archived);
-  const mine = all.filter((l) => !l.archived);
+  const sources = [...new Set(all.map((l) => l.source).filter((s): s is string => Boolean(s)))];
+  const term = q.trim().toLowerCase();
+  const filtered = all.filter((l) => {
+    if (term && !`${l.name} ${l.contact} ${l.email ?? ""} ${l.zone ?? ""} ${l.propertyRef ?? ""}`.toLowerCase().includes(term)) return false;
+    if (urgencyFilter && scoreBand(l.score ?? 0).label !== urgencyFilter) return false;
+    if (sourceFilter && l.source !== sourceFilter) return false;
+    if (creditFilter && l.creditStatus !== creditFilter) return false;
+    return true;
+  });
+  const archived = filtered.filter((l) => l.archived);
+  const mine = filtered.filter((l) => !l.archived);
+  const filtersActive = Boolean(term || urgencyFilter || sourceFilter || creditFilter);
   const stages = pipeline.stages.map((label, i) => ({ stage: String(i), label }));
 
-  async function save(leadId: string, change: { stage: number; pipeline: string } | { archived: boolean }) {
+  async function save(leadId: string, change: { stage: number; pipeline: string } | { archived: boolean } | { creditStatus: LeadCreditStatus | undefined }) {
     if (busy) return;
     setBusy(leadId);
     setFeedback("");
     try {
+      // JSON.stringify omite "undefined" — "creditStatus" precisa de chegar
+      // como null explícito à API para limpar a etiqueta ("Crédito: —").
+      const wire = "creditStatus" in change ? { ...change, creditStatus: change.creditStatus ?? null } : change;
       const res = await fetch("/api/leads/board", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ leadId, ...change }),
+        body: JSON.stringify({ leadId, ...wire }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -109,6 +150,49 @@ export function LeadsBoard({ pipeline, leads, pipelines }: { pipeline: LeadPipel
     {dragging.drag && !dragging.drag.keyboard && <div className="pointer-events-none fixed z-50 rounded-lg border bg-card px-3 py-2 text-sm shadow-lg" style={{ left: dragging.drag.x + 14, top: dragging.drag.y + 14 }}>
       {mine.find((l) => l.id === dragging.drag?.id)?.name}
     </div>}
+
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+      <input
+        type="search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Pesquisar por nome, contacto, zona, imóvel…"
+        className="h-9 min-w-48 flex-1 rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring"
+      />
+      <button
+        type="button"
+        onClick={() => setShowFilters((v) => !v)}
+        className={cn(
+          "inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium",
+          (showFilters || filtersActive) && "border-primary/40 bg-primary/5 text-primary"
+        )}
+      >
+        <SlidersHorizontal className="size-3.5" /> Filtros{filtersActive ? " ·" : ""}
+      </button>
+    </div>
+    {showFilters && (
+      <div className="mt-2 flex flex-wrap gap-2">
+        <select value={urgencyFilter} onChange={(e) => setUrgencyFilter(e.target.value as typeof urgencyFilter)} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none">
+          <option value="">Urgência: todas</option>
+          <option value="Quente">🔴 Quente</option>
+          <option value="Morna">🟡 Morna</option>
+          <option value="Fria">⚪ Fria</option>
+        </select>
+        <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none">
+          <option value="">Origem: todas</option>
+          {sources.map((s) => <option key={s} value={s}>{SOURCE_LABEL[s] ?? s}</option>)}
+        </select>
+        <select value={creditFilter} onChange={(e) => setCreditFilter(e.target.value as typeof creditFilter)} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm outline-none">
+          <option value="">Crédito: todos</option>
+          {(Object.keys(LEAD_CREDIT_STATUS_LABEL) as LeadCreditStatus[]).map((k) => <option key={k} value={k}>{LEAD_CREDIT_STATUS_LABEL[k]}</option>)}
+        </select>
+        {filtersActive && (
+          <button type="button" onClick={() => { setQ(""); setUrgencyFilter(""); setSourceFilter(""); setCreditFilter(""); }} className="text-sm text-muted-foreground hover:text-foreground">
+            Limpar filtros
+          </button>
+        )}
+      </div>
+    )}
     <div ref={dragging.board} className="mt-6 flex gap-4 overflow-x-auto pb-4">
       {pipeline.stages.map((label, i) => {
         const cards = mine.filter((l) => Math.max(0, Math.min(l.stage ?? 0, pipeline.stages.length - 1)) === i);
@@ -146,6 +230,21 @@ export function LeadsBoard({ pipeline, leads, pipelines }: { pipeline: LeadPipel
                           <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium capitalize text-muted-foreground">{l.source}</span>
                         )}
                       </div>
+                      {/* Urgência + tempo desde a captura + crédito — tudo visível sem abrir a lead */}
+                      <div className="mt-1 flex flex-wrap items-center gap-1">
+                        {(() => {
+                          const band = scoreBand(l.score ?? 0);
+                          return <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", band.badge)}>{band.label}</span>;
+                        })()}
+                        {timeAgo(l.createdAt) && (
+                          <span className="text-[10px] text-muted-foreground">{timeAgo(l.createdAt)}</span>
+                        )}
+                        {l.creditStatus && (
+                          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", CREDIT_BADGE[l.creditStatus])}>
+                            {LEAD_CREDIT_STATUS_LABEL[l.creditStatus]}
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">{l.contact}</p>
                       {l.propertyRef && (
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -157,8 +256,8 @@ export function LeadsBoard({ pipeline, leads, pipelines }: { pipeline: LeadPipel
                     </div>
                   </div>
 
-                  {/* Classificar noutro pipeline */}
-                  <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                  {/* Classificar noutro pipeline + estado de crédito */}
+                  <div className="mt-2 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={l.pipeline ?? (isDefault ? pipeline.key : "")}
                       onChange={(e) => post(l.id, 0, e.target.value)}
@@ -168,6 +267,18 @@ export function LeadsBoard({ pipeline, leads, pipelines }: { pipeline: LeadPipel
                     >
                       {pipelines.map((p) => (
                         <option key={p.key} value={p.key}>Pipeline: {p.label}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={l.creditStatus ?? ""}
+                      onChange={(e) => void save(l.id, { creditStatus: (e.target.value || undefined) as LeadCreditStatus | undefined })}
+                      aria-label="Estado do crédito"
+                      disabled={busy !== null}
+                      className="w-32 shrink-0 rounded-md border border-input bg-transparent px-2 py-1 text-xs outline-none focus-visible:border-ring"
+                    >
+                      <option value="">Crédito: —</option>
+                      {(Object.keys(LEAD_CREDIT_STATUS_LABEL) as LeadCreditStatus[]).map((k) => (
+                        <option key={k} value={k}>{LEAD_CREDIT_STATUS_LABEL[k]}</option>
                       ))}
                     </select>
                   </div>
@@ -262,9 +373,13 @@ function LeadDetail({ lead, onClose }: { lead: LeadCard; onClose: () => void }) 
               {QUALIFICATION_LABEL[lead.qualification] ?? lead.qualification}
             </span>
           )}
-          {typeof lead.score === "number" && (
-            <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              Pontuação: {lead.score}
+          {typeof lead.score === "number" && (() => {
+            const band = scoreBand(lead.score ?? 0);
+            return <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", band.badge)}>{band.label} · {lead.score}</span>;
+          })()}
+          {lead.creditStatus && (
+            <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", CREDIT_BADGE[lead.creditStatus])}>
+              {LEAD_CREDIT_STATUS_LABEL[lead.creditStatus]}
             </span>
           )}
         </div>

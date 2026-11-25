@@ -23,6 +23,11 @@ export async function POST(request: Request) {
   let patch: Record<string, unknown>;
   if (typeof body.archived === "boolean") {
     patch = { crm_archived_at: body.archived ? new Date().toISOString() : null };
+  } else if (typeof body.creditStatus === "string" || body.creditStatus === null) {
+    if (body.creditStatus !== null && !["aprovado", "nao_aprovado", "pendente"].includes(body.creditStatus)) {
+      return NextResponse.json({ error: "Estado de crédito inválido." }, { status: 400 });
+    }
+    patch = { credit_status: body.creditStatus };
   } else {
     if (!hasPipelinePhone(lead.contact)) return NextResponse.json({ error: "Esta lead não tem um telefone válido." }, { status: 422 });
     const pipeline = (await crmLeadPipelines(agent, false)).find((p) => p.key === body.pipeline);

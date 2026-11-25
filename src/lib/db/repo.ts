@@ -1100,6 +1100,7 @@ function mapLeadRow(r: Row): Lead {
     unassigned: r.unassigned != null ? Boolean(r.unassigned) : undefined,
     zone: (r.zone as string) ?? undefined,
     budget: (r.budget as string) ?? undefined,
+    creditStatus: (r.credit_status as Lead["creditStatus"]) ?? undefined,
     language: (r.language as string) ?? undefined,
     specialty: (r.specialty as string) ?? undefined,
     offeredTo: Array.isArray(r.offered_to) ? (r.offered_to as string[]) : undefined,

@@ -18,14 +18,48 @@ import {
  * Lista e criação de contactos. Pesquisa por nome/contacto e filtro por tipo.
  * Reutiliza o design system (Card/Button + tokens). Funciona em demo.
  */
+type KpiKey = "quente" | "morno" | "frio" | "por_qualificar" | "credito" | "depende_venda" | "casa_para_vender" | "atraso";
+
+const KPI_TEST: Record<KpiKey, (c: Contact, today: string) => boolean> = {
+  quente: (c) => buyerTemperature(c.buyerProfile) === "quente",
+  morno: (c) => buyerTemperature(c.buyerProfile) === "morno",
+  frio: (c) => buyerTemperature(c.buyerProfile) === "frio",
+  por_qualificar: (c) => buyerTemperature(c.buyerProfile) === "por_qualificar",
+  credito: (c) => ["em_analise", "por_iniciar"].includes(c.buyerProfile?.financing ?? ""),
+  depende_venda: (c) => Boolean(c.buyerProfile?.dependsOnSale),
+  casa_para_vender: (c) => Boolean(c.buyerProfile?.hasHomeToSell || c.buyerProfile?.hasHomeToExchange),
+  atraso: (c, today) => Boolean(c.buyerProfile?.nextContactAt && c.buyerProfile.nextContactAt < today),
+};
+
+const KPI_LABEL: Record<KpiKey, string> = {
+  quente: "Compra até 3 meses",
+  morno: "Compra em 4–6 meses",
+  frio: "Mais de 6 meses",
+  por_qualificar: "Por qualificar",
+  credito: "Crédito por resolver",
+  depende_venda: "Dependem de venda",
+  casa_para_vender: "Casa para vender / permuta",
+  atraso: "Seguimento em atraso",
+};
+
+/**
+ * Lista e criação de contactos. Pesquisa por nome/contacto, filtro por tipo e
+ * pelos indicadores de compradores (cartões clicáveis: clicar filtra a lista
+ * de relance, clicar outra vez limpa o filtro).
+ */
 export function ContactsManager({ initial }: { initial: Contact[] }) {
   const [list, setList] = React.useState<Contact[]>(initial);
   const [q, setQ] = React.useState("");
   const [filter, setFilter] = React.useState<ContactType | "todos">("todos");
+  const [kpi, setKpi] = React.useState<KpiKey | null>(null);
   const [open, setOpen] = React.useState(false);
+
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon" }).format(new Date());
+  const buyers = list.filter((c) => ["comprador", "investidor"].includes(c.type) && c.buyerProfile?.active !== false);
 
   const filtered = list.filter((c) => {
     if (filter !== "todos" && c.type !== filter) return false;
+    if (kpi && !KPI_TEST[kpi](c, today)) return false;
     if (!q.trim()) return true;
     const s = `${c.name} ${c.phone ?? ""} ${c.email ?? ""} ${c.zone ?? ""}`.toLowerCase();
     return s.includes(q.trim().toLowerCase());
@@ -33,6 +67,26 @@ export function ContactsManager({ initial }: { initial: Contact[] }) {
 
   return (
     <div>
+      <div className="my-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {(Object.keys(KPI_LABEL) as KpiKey[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setKpi((v) => (v === key ? null : key))}
+            className={`rounded-2xl border p-4 text-left transition-colors ${kpi === key ? "border-primary bg-primary/5" : "bg-card hover:bg-secondary/40"}`}
+          >
+            <p className="text-sm text-muted-foreground">{KPI_LABEL[key]}</p>
+            <p className="mt-2 text-2xl font-semibold">{buyers.filter((c) => KPI_TEST[key](c, today)).length}</p>
+          </button>
+        ))}
+      </div>
+      {kpi && (
+        <p className="mb-3 text-sm text-muted-foreground">
+          A filtrar por <strong className="text-foreground">{KPI_LABEL[kpi]}</strong> ·{" "}
+          <button type="button" onClick={() => setKpi(null)} className="font-semibold text-primary hover:underline">Limpar</button>
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-48">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

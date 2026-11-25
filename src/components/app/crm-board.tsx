@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Undo2,
   X,
+  Bell,
 } from "lucide-react";
 
 import { DealCommission } from "./deal-commission";
@@ -138,6 +139,7 @@ export function CrmBoard({
   const [deals, setDeals] = React.useState(initial);
   const [expandedDeals, setExpandedDeals] = React.useState<string[]>([]);
   const [creditFilter, setCreditFilter] = React.useState<CreditStage | "">("");
+  const [notifyMsg, setNotifyMsg] = React.useState<{ id: string; ok: boolean; text: string } | null>(null);
   React.useEffect(() => setDeals(initial), [initial]);
   const saving = React.useRef(false);
   const [moveNotice, setMoveNotice] = React.useState("");
@@ -363,6 +365,28 @@ export function CrmBoard({
 
   function markLost(dealId: string) {
     setStage(dealId, "cancelado");
+  }
+
+  async function notifyCredit(dealId: string) {
+    setBusy(dealId);
+    setNotifyMsg(null);
+    try {
+      const res = await fetch("/api/deals/credit-notify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dealId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setNotifyMsg(
+        res.ok
+          ? { id: dealId, ok: true, text: `Notificado: ${data.to}` }
+          : { id: dealId, ok: false, text: data.error ?? "Não foi possível notificar." },
+      );
+    } catch {
+      setNotifyMsg({ id: dealId, ok: false, text: "Não foi possível notificar." });
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function setCreditStage(dealId: string, creditStage: CreditStage) {
@@ -860,7 +884,7 @@ export function CrmBoard({
                           </div>
                         </div>
                       </Link>
-                      <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+                      <div className="mt-1.5 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <select
                           value={d.creditStage}
                           onChange={(e) => void setCreditStage(d.id, e.target.value as CreditStage)}
@@ -876,7 +900,20 @@ export function CrmBoard({
                             <option key={c.stage} value={c.stage}>{c.label}</option>
                           ))}
                         </select>
+                        <button
+                          type="button"
+                          disabled={busy !== null}
+                          onClick={() => void notifyCredit(d.id)}
+                          title="Notificar o comprador sobre o estado do crédito"
+                          aria-label="Notificar sobre o estado do crédito"
+                          className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        >
+                          <Bell className="size-3.5" />
+                        </button>
                       </div>
+                      {notifyMsg?.id === d.id && (
+                        <p className={cn("mt-1 text-[11px]", notifyMsg.ok ? "text-primary" : "text-destructive")}>{notifyMsg.text}</p>
+                      )}
                       <div className="mt-2 flex items-center justify-between">
                         <span className="font-display text-base">
                           {d.amount ? formatEuro(d.amount) : "—"}

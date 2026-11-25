@@ -11,7 +11,7 @@ export function MediaUploadField({ label, help, value, alt, area = "landing-page
   help: string;
   value?: string;
   alt?: string;
-  area?: "banners" | "articles" | "stories" | "brand" | "landing-pages";
+  area?: "banners" | "articles" | "stories" | "brand" | "landing-pages" | "campaigns";
   onUploaded: (url: string) => void;
   onAltChange?: (alt: string) => void;
 }) {

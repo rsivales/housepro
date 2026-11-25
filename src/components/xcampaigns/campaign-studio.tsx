@@ -11,9 +11,11 @@ import {
   Save,
   Mail,
   Eye,
+  ListPlus,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { MediaUploadField } from "@/components/admin/media-upload-field";
 import {
   EMAIL_TYPE_LABEL,
   EMAIL_TEMPLATES,
@@ -27,14 +29,16 @@ import {
   type EmailBlockType,
   type Segment,
   type EmailStats,
+  type EmailList,
 } from "@/lib/data/xcampaigns";
 import { CONTACT_TYPE_LABEL, type ContactType } from "@/lib/data/contacts";
 
 const uid = () => `b-${Math.random().toString(36).slice(2, 8)}`;
 const EDITABLE: EmailBlockType[] = ["heading", "text", "button"];
 
-export function CampaignStudio({ initial }: { initial: EmailCampaign[] }) {
+export function CampaignStudio({ initial, initialLists }: { initial: EmailCampaign[]; initialLists: EmailList[] }) {
   const [list, setList] = React.useState<EmailCampaign[]>(initial);
+  const [lists, setLists] = React.useState<EmailList[]>(initialLists);
   const [editing, setEditing] = React.useState(false);
 
   return (
@@ -52,6 +56,9 @@ export function CampaignStudio({ initial }: { initial: EmailCampaign[] }) {
 
       {editing ? (
         <Editor
+          lists={lists}
+          onListCreated={(l) => setLists((prev) => [l, ...prev])}
+          onListDeleted={(id) => setLists((prev) => prev.filter((l) => l.id !== id))}
           onDone={(c) => {
             if (c) setList((prev) => [c, ...prev.filter((x) => x.id !== c.id)]);
             setEditing(false);
@@ -103,7 +110,12 @@ function StatsRow({ stats }: { stats: EmailStats }) {
   );
 }
 
-function Editor({ onDone }: { onDone: (c: EmailCampaign | null) => void }) {
+function Editor({ onDone, lists, onListCreated, onListDeleted }: {
+  onDone: (c: EmailCampaign | null) => void;
+  lists: EmailList[];
+  onListCreated: (l: EmailList) => void;
+  onListDeleted: (id: string) => void;
+}) {
   const [name, setName] = React.useState("");
   const [type, setType] = React.useState<EmailCampaignType>("promocao_imovel");
   const [subject, setSubject] = React.useState("");
@@ -113,6 +125,38 @@ function Editor({ onDone }: { onDone: (c: EmailCampaign | null) => void }) {
   const [stats, setStats] = React.useState<EmailStats | null>(null);
   const [recipients, setRecipients] = React.useState<number | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [listBusy, setListBusy] = React.useState(false);
+
+  async function saveAsList() {
+    const name = window.prompt("Nome da lista (ex.: \"Leads frias > 90 dias\")");
+    if (!name?.trim()) return;
+    setListBusy(true);
+    try {
+      const res = await fetch("/api/xcampaigns/lists", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), segment: seg }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Não foi possível guardar a lista.");
+      onListCreated(data.list as EmailList);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao guardar a lista.");
+    } finally {
+      setListBusy(false);
+    }
+  }
+
+  async function removeList(id: string) {
+    if (!window.confirm("Apagar esta lista guardada?")) return;
+    setListBusy(true);
+    try {
+      await fetch(`/api/xcampaigns/lists/${id}`, { method: "DELETE" });
+      onListDeleted(id);
+    } finally {
+      setListBusy(false);
+    }
+  }
 
   function applyTemplate(key: string) {
     const t = EMAIL_TEMPLATES.find((x) => x.key === key);
@@ -244,6 +288,17 @@ function Editor({ onDone }: { onDone: (c: EmailCampaign | null) => void }) {
                     className="input mt-1"
                   />
                 )}
+                {b.type === "image" && (
+                  <div className="mt-1">
+                    <MediaUploadField
+                      label="Imagem do email"
+                      help="JPG, PNG, WEBP ou AVIF. É comprimida automaticamente."
+                      area="campaigns"
+                      value={b.imageUrl}
+                      onUploaded={(url) => setBlocks((p) => p.map((x) => (x.id === b.id ? { ...x, imageUrl: url } : x)))}
+                    />
+                  </div>
+                )}
               </div>
             ))}
             {blocks.length === 0 && <p className="py-4 text-center text-xs text-muted-foreground">Adiciona blocos ao email.</p>}
@@ -269,6 +324,24 @@ function Editor({ onDone }: { onDone: (c: EmailCampaign | null) => void }) {
               dias
             </label>
           </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+            <Button type="button" size="sm" variant="ghost" disabled={listBusy} onClick={saveAsList}>
+              <ListPlus className="size-4" /> Guardar este segmento como lista
+            </Button>
+          </div>
+          {lists.length > 0 && (
+            <div className="mt-3 border-t pt-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Listas guardadas</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {lists.map((l) => (
+                  <span key={l.id} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
+                    <button type="button" onClick={() => setSeg(l.segment)} className="hover:text-foreground">{l.name}</button>
+                    <button type="button" aria-label={`Apagar lista ${l.name}`} onClick={() => removeList(l.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="size-3" /></button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -325,7 +398,12 @@ function BlockPreview({ block }: { block: EmailBlock }) {
     case "property":
       return <div className="rounded-lg border bg-secondary/40 p-3 text-sm">🏠 Imóvel {block.propertyRef || "—"}</div>;
     case "image":
-      return <div className="grid h-24 place-items-center rounded-lg bg-secondary text-xs text-muted-foreground">Imagem</div>;
+      return block.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={block.imageUrl} alt="" className="w-full rounded-lg object-cover" />
+      ) : (
+        <div className="grid h-24 place-items-center rounded-lg bg-secondary text-xs text-muted-foreground">Imagem</div>
+      );
     case "divider":
       return <hr className="border-border" />;
     case "spacer":

@@ -27,6 +27,7 @@ export type EmailCampaignType =
   | "aniversario"
   | "nutricao"
   | "reativacao"
+  | "avaliacao_gratuita"
   | "automacao";
 
 export const EMAIL_TYPE_LABEL: Record<EmailCampaignType, string> = {
@@ -44,6 +45,7 @@ export const EMAIL_TYPE_LABEL: Record<EmailCampaignType, string> = {
   aniversario: "Aniversário",
   nutricao: "Nutrição",
   reativacao: "Reativação",
+  avaliacao_gratuita: "Avaliação gratuita",
   automacao: "Automação",
 };
 
@@ -152,6 +154,21 @@ export function selectRecipients(contacts: Contact[], seg: Segment, now?: Date):
   return contacts.filter((c) => matchSegment(c, seg, now));
 }
 
+// ── Listas de email guardadas (audiências reutilizáveis) ────────────────────
+
+/**
+ * Lista de email guardada: um segmento com nome, reutilizável em várias
+ * campanhas sem ter de reconfigurar os critérios de cada vez (ex.: "Leads
+ * frias > 90 dias", "Compradores Algarve", "Proprietários sem venda").
+ */
+export interface EmailList {
+  id: string;
+  name: string;
+  segment: Segment;
+  ownerId: string;
+  createdAt: string;
+}
+
 // ── Envio (sandbox) e estatísticas ───────────────────────────────────────────
 
 export type EmailStatus = "rascunho" | "agendada" | "sandbox" | "enviada";
@@ -242,12 +259,75 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
   },
   {
     key: "reativacao",
-    name: "Reativação",
+    name: "Reativação — contacto direto",
     type: "reativacao",
     subject: "Continuamos à sua procura, {nome}?",
     blocks: [
       { id: "b1", type: "text", text: "Olá {nome}, há algum tempo que não falamos. Ainda procura casa?" },
       { id: "b2", type: "button", text: "Retomar a procura", url: "{link}" },
+      { id: "b3", type: "text", text: "{assinatura}" },
+    ],
+  },
+  {
+    key: "reativacao-novidades",
+    name: "Reativação — novidades do mercado",
+    type: "reativacao",
+    subject: "{nome}, o mercado em {localizacao} mudou — vale a pena retomar",
+    blocks: [
+      { id: "b1", type: "heading", text: "Há novidades que pode querer ver" },
+      { id: "b2", type: "text", text: "Olá {nome}, desde a última vez que falámos surgiram novos imóveis e condições de crédito diferentes em {localizacao}. Posso enviar-lhe uma seleção atualizada?" },
+      { id: "b3", type: "button", text: "Quero ver as novidades", url: "{link}" },
+      { id: "b4", type: "text", text: "{assinatura}" },
+    ],
+  },
+  {
+    key: "compradores-sugestao",
+    name: "Compradores — sugestão de imóveis",
+    type: "compradores",
+    subject: "{nome}, encontrámos imóveis que podem interessar-lhe",
+    blocks: [
+      { id: "b1", type: "heading", text: "Selecionámos estes para si" },
+      { id: "b2", type: "property", propertyRef: "HP-1048" },
+      { id: "b3", type: "text", text: "Olá {nome}, com base no que procura em {localizacao}, este imóvel pode ser uma boa opção. Quer agendar uma visita?" },
+      { id: "b4", type: "button", text: "Marcar visita", url: "{link}" },
+      { id: "b5", type: "text", text: "{assinatura}" },
+    ],
+  },
+  {
+    key: "compradores-resumo-semanal",
+    name: "Compradores — resumo semanal",
+    type: "compradores",
+    subject: "Os novos imóveis da semana para si, {nome}",
+    blocks: [
+      { id: "b1", type: "heading", text: "Novidades desta semana" },
+      { id: "b2", type: "text", text: "Olá {nome}, aqui fica a seleção de imóveis que entraram esta semana e encaixam no seu perfil de procura." },
+      { id: "b3", type: "property", propertyRef: "HP-1048" },
+      { id: "b4", type: "divider" },
+      { id: "b5", type: "button", text: "Ver todos os imóveis", url: "{link}" },
+      { id: "b6", type: "text", text: "{assinatura}" },
+    ],
+  },
+  {
+    key: "avaliacao-gratuita",
+    name: "Avaliação gratuita — oferta direta",
+    type: "avaliacao_gratuita",
+    subject: "{nome}, sabe quanto vale a sua casa hoje?",
+    blocks: [
+      { id: "b1", type: "heading", text: "Avaliação gratuita e sem compromisso" },
+      { id: "b2", type: "text", text: "Olá {nome}, o mercado em {localizacao} tem estado a mudar. Quer saber quanto vale hoje o seu imóvel? Fazemos a avaliação sem qualquer custo ou compromisso." },
+      { id: "b3", type: "button", text: "Pedir avaliação gratuita", url: "{link}" },
+      { id: "b4", type: "text", text: "{assinatura}" },
+    ],
+  },
+  {
+    key: "avaliacao-gratuita-proprietarios",
+    name: "Avaliação gratuita — proprietários inativos",
+    type: "avaliacao_gratuita",
+    subject: "Atualize o valor do seu imóvel, {nome}",
+    blocks: [
+      { id: "b1", type: "text", text: "Olá {nome}, há algum tempo que não atualizamos o valor do seu imóvel. Os preços em {localizacao} têm vindo a mudar — vale a pena confirmar se ainda está bem posicionado." },
+      { id: "b2", type: "button", text: "Atualizar avaliação", url: "{link}" },
+      { id: "b3", type: "text", text: "{assinatura}" },
     ],
   },
 ];

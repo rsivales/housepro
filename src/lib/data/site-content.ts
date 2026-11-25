@@ -244,7 +244,7 @@ async function compressImage(file: File): Promise<Blob> {
 /** Comprime, envia para o Storage e só devolve depois de existir um URL público. */
 export async function uploadSiteImage(
   file: File,
-  area: "banners" | "articles" | "stories" | "brand" | "landing-pages" | "profile",
+  area: "banners" | "articles" | "stories" | "brand" | "landing-pages" | "profile" | "campaigns",
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("invalid_image");

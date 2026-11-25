@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Mail } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
-import { listEmailCampaigns } from "@/lib/db/repo";
+import { listEmailCampaigns, listEmailLists } from "@/lib/db/repo";
 import { CampaignStudio } from "@/components/xcampaigns/campaign-studio";
 
 export const metadata: Metadata = { title: "X Campaigns — email marketing" };
@@ -13,7 +13,10 @@ export default async function XCampaignsPage() {
   const session = await getSession();
   if (!session) redirect("/entrar");
 
-  const campaigns = await listEmailCampaigns(session.agent.id);
+  const [campaigns, lists] = await Promise.all([
+    listEmailCampaigns(session.agent.id),
+    listEmailLists(session.agent.id),
+  ]);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -35,7 +38,7 @@ export default async function XCampaignsPage() {
         </p>
 
         <div className="mt-6">
-          <CampaignStudio initial={campaigns} />
+          <CampaignStudio initial={campaigns} initialLists={lists} />
         </div>
       </div>
     </div>

@@ -2436,6 +2436,7 @@ import {
   emailCampaignsByOwner as demoEmailCampaignsByOwner,
   type EmailCampaign,
   type EmailStats,
+  type EmailList,
 } from "@/lib/data/xcampaigns";
 
 function mapEmailCampaign(r: Row): EmailCampaign {
@@ -2507,6 +2508,67 @@ export async function createEmailCampaign(input: {
     return { ...campaign, id: data ? String(data.id) : campaign.id };
   } catch {
     return campaign;
+  }
+}
+
+function mapEmailList(r: Row): EmailList {
+  return {
+    id: String(r.id),
+    name: String(r.name ?? ""),
+    segment: (r.segment as EmailList["segment"]) ?? {},
+    ownerId: String(r.owner_id ?? ""),
+    createdAt: String(r.created_at ?? new Date().toISOString()),
+  };
+}
+
+/** Listas de email guardadas (audiências reutilizáveis) do consultor. */
+export async function listEmailLists(ownerId: string): Promise<EmailList[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("email_lists")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .order("created_at", { ascending: false });
+    return (data ?? []).map(mapEmailList);
+  } catch {
+    return [];
+  }
+}
+
+/** Guarda o segmento atual como lista reutilizável. */
+export async function createEmailList(input: {
+  ownerId: string;
+  name: string;
+  segment: EmailList["segment"];
+}): Promise<EmailList | null> {
+  if (!isSupabaseConfigured()) {
+    return { id: `el-${Date.now()}`, name: input.name, segment: input.segment, ownerId: input.ownerId, createdAt: new Date().toISOString() };
+  }
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("email_lists")
+      .insert({ owner_id: input.ownerId, name: input.name, segment: input.segment })
+      .select("*")
+      .single();
+    if (error || !data) return null;
+    return mapEmailList(data);
+  } catch {
+    return null;
+  }
+}
+
+/** Remove uma lista guardada (só o dono). */
+export async function deleteEmailList(id: string, ownerId: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) return true;
+  try {
+    const supabase = await createClient();
+    await supabase.from("email_lists").delete().eq("id", id).eq("owner_id", ownerId);
+    return true;
+  } catch {
+    return false;
   }
 }
 

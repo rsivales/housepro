@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Política de Privacidade (RGPD)",
 };
 
-const LAST_UPDATED = "9 de outubro de 2026";
+const LAST_UPDATED = "23 de novembro de 2026";
 
 export default function PrivacidadePage() {
   return (
@@ -91,6 +91,68 @@ export default function PrivacidadePage() {
               dados fora do Espaço Económico Europeu, asseguramos a
               existência de garantias adequadas nos termos dos artigos 44.º
               a 49.º do RGPD.
+            </p>
+          </section>
+
+          <section id="google-calendar">
+            <h2 className="font-medium text-foreground">
+              Integração com o Google Calendar
+            </h2>
+            <p className="mt-1">
+              A plataforma Helix, usada pelos consultores {site.brand}, permite
+              que cada consultor ligue, por iniciativa própria, a sua conta
+              Google para enviar visitas, reuniões e tarefas para a sua
+              agenda. Esta ligação só é feita com autorização expressa do
+              consultor no ecrã de consentimento da Google e pode ser
+              desligada a qualquer momento.
+            </p>
+            <p className="mt-2">
+              Com essa autorização, o Helix acede apenas ao seguinte: (i) a
+              lista das agendas de que o consultor é proprietário, para que
+              escolha em qual quer receber os eventos; e (ii) a criação e
+              atualização, nessa agenda, dos eventos que o consultor decide
+              enviar a partir do Helix. O Helix não importa, não lê para
+              outros fins nem altera os restantes eventos da agenda.
+            </p>
+            <p className="mt-2">
+              Os eventos enviados podem incluir o tipo de marcação, data e
+              hora, duração, local, referência do imóvel, nome do contacto e
+              notas associadas. Estes dados passam a ficar também guardados
+              na conta Google do consultor, sujeitos à política de
+              privacidade da Google.
+            </p>
+            <p className="mt-2">
+              A autorização de acesso concedida pela Google é guardada de
+              forma cifrada e é usada exclusivamente para as funções acima.
+              Os dados obtidos através das APIs da Google não são vendidos,
+              não são usados para publicidade nem para treinar modelos de
+              inteligência artificial e não são transferidos para terceiros,
+              salvo quando necessário para prestar esta funcionalidade ou
+              para cumprir uma obrigação legal. Ao desligar a conta no Helix,
+              essa autorização é apagada dos nossos sistemas. O consultor
+              pode também retirar o acesso em{" "}
+              <a
+                href="https://myaccount.google.com/permissions"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                myaccount.google.com/permissions
+              </a>
+              .
+            </p>
+            <p className="mt-2">
+              A utilização e a transferência, pelo Helix, de informação
+              recebida das APIs da Google cumprem a{" "}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Política de Dados do Utilizador dos Serviços de API da Google
+              </a>
+              , incluindo os requisitos de Utilização Limitada (Limited Use).
             </p>
           </section>
 

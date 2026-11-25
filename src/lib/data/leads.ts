@@ -16,6 +16,9 @@ export type LeadQualification =
   | "desqualificado"
   | "duplicado";
 
+/** Estado do crédito do lead comprador — etiqueta visível de relance. */
+export type LeadCreditStatus = "aprovado" | "nao_aprovado" | "pendente";
+
 /** Consentimento/base legal (RGPD) associado à captação da lead. */
 export interface LeadConsent {
   /** Base legal (ex.: "consentimento", "interesse legítimo"). */
@@ -135,6 +138,8 @@ export interface Lead {
   emailStatus?: string;
   /** Ano fiscal usado na simulação (calculadora de mais-valias). */
   fiscalYear?: number;
+  /** Estado do crédito (aprovado/não aprovado/pendente) — etiqueta de relance. */
+  creditStatus?: LeadCreditStatus;
 }
 
 /** Leads de exemplo (modo demo, sem Supabase) — associadas ao consultor Rui. */
@@ -224,6 +229,12 @@ export const LEAD_QUALIFICATION_LABEL: Record<LeadQualification, string> = {
   qualificado: "Qualificada",
   desqualificado: "Desqualificada",
   duplicado: "Duplicada",
+};
+
+export const LEAD_CREDIT_STATUS_LABEL: Record<LeadCreditStatus, string> = {
+  aprovado: "Crédito aprovado",
+  nao_aprovado: "Crédito não aprovado",
+  pendente: "Crédito pendente",
 };
 
 /**

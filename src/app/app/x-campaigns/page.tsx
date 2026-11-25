@@ -5,6 +5,7 @@ import { ArrowLeft, Mail } from "lucide-react";
 
 import { getSession } from "@/lib/supabase/auth";
 import { listEmailCampaigns, listEmailLists } from "@/lib/db/repo";
+import { emailDeliveryCredentials } from "@/lib/email-delivery";
 import { CampaignStudio } from "@/components/xcampaigns/campaign-studio";
 
 export const metadata: Metadata = { title: "X Campaigns — email marketing" };
@@ -13,10 +14,12 @@ export default async function XCampaignsPage() {
   const session = await getSession();
   if (!session) redirect("/entrar");
 
-  const [campaigns, lists] = await Promise.all([
+  const [campaigns, lists, delivery] = await Promise.all([
     listEmailCampaigns(session.agent.id),
     listEmailLists(session.agent.id),
+    emailDeliveryCredentials(),
   ]);
+  const emailEnabled = delivery.enabled && Boolean(delivery.sender) && Boolean(delivery.apiKey);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -33,12 +36,13 @@ export default async function XCampaignsPage() {
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           Email marketing integrado com o CRM: blocos, personalização, segmentação
-          e envio em sandbox. Nenhum email real é enviado sem credenciais e
-          autorização.{session.demo && " Dados de exemplo."}
+          e envio {emailEnabled ? "real (Resend) ou em sandbox" : "em sandbox"}.
+          {!emailEnabled && " Nenhum email real é enviado sem credenciais configuradas."}
+          {session.demo && " Dados de exemplo."}
         </p>
 
         <div className="mt-6">
-          <CampaignStudio initial={campaigns} initialLists={lists} />
+          <CampaignStudio initial={campaigns} initialLists={lists} emailEnabled={emailEnabled} />
         </div>
       </div>
     </div>

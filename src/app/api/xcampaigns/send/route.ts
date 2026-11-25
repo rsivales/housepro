@@ -1,22 +1,32 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { listContactsByOwner, listSuppressions, listLeadsByEmailList, recordSandboxSend } from "@/lib/db/repo";
-import { selectRecipients, simulateSend, type Segment } from "@/lib/data/xcampaigns";
+import {
+  listContactsByOwner,
+  listSuppressions,
+  listLeadsByEmailList,
+  getEmailCampaignById,
+  recordSandboxSend,
+} from "@/lib/db/repo";
+import { emailDeliveryCredentials } from "@/lib/email-delivery";
+import { selectRecipients, simulateSend, renderVariables, renderBlocksHtml, type Segment, type MergeVar } from "@/lib/data/xcampaigns";
+
+const MAX_REAL_RECIPIENTS = 200;
 
 /**
- * X Campaigns — ENVIO EM SANDBOX. Calcula os destinatários pelo segmento (+
- * leads atribuídas diretamente à lista, quando se envia para uma lista
- * guardada), respeita as supressões (unsubscribe/devoluções), simula as
- * estatísticas de entrega e regista o email na cronologia. NUNCA envia
- * emails reais aqui.
- *  POST { campaignId, subject, segment, listId? }
+ * X Campaigns — envio. Por defeito simula (SANDBOX): calcula os destinatários
+ * pelo segmento (+ leads atribuídas diretamente à lista, quando se envia para
+ * uma lista guardada), respeita as supressões e regista o email na cronologia
+ * sem enviar nada real. Com { real: true } e o Resend configurado, envia a
+ * sério — pedido explícito do utilizador, nunca automático.
+ *  POST { campaignId, subject, segment, listId?, real? }
  */
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Sessão inválida." }, { status: 401 });
 
-  let body: { campaignId?: string; subject?: string; segment?: Segment; listId?: string };
+  let body: { campaignId?: string; subject?: string; segment?: Segment; listId?: string; real?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -43,15 +53,71 @@ export async function POST(request: Request) {
     return true;
   });
 
-  const stats = simulateSend(recipients.length);
+  if (!body.real) {
+    const stats = simulateSend(recipients.length);
+    await recordSandboxSend({
+      campaignId: String(body.campaignId),
+      subject: String(body.subject),
+      recipients: recipients.map((c) => ({ contactId: c.id, email: c.email, name: c.name })),
+      stats,
+      actorId: session.demo ? undefined : session.agent.id,
+      actorName: session.agent.name,
+    });
+    return NextResponse.json({ stats, recipients: recipients.length, sandbox: true, demo: session.demo });
+  }
+
+  // ── Envio real (Resend) — pedido explícito do utilizador ───────────────────
+  if (session.demo) return NextResponse.json({ error: "Envio real indisponível em modo demo." }, { status: 403 });
+  const delivery = await emailDeliveryCredentials();
+  if (!delivery.enabled || !delivery.sender || !delivery.apiKey) {
+    return NextResponse.json({ error: "Configure o Resend antes do envio real." }, { status: 503 });
+  }
+  const campaign = await getEmailCampaignById(String(body.campaignId), session.agent.id);
+  if (!campaign) return NextResponse.json({ error: "Campanha indisponível." }, { status: 404 });
+  if (recipients.length === 0) return NextResponse.json({ error: "Sem destinatários para este segmento." }, { status: 422 });
+  if (recipients.length > MAX_REAL_RECIPIENTS) {
+    return NextResponse.json({ error: `Máximo de ${MAX_REAL_RECIPIENTS} destinatários por envio real — estreite o segmento ou divida em várias campanhas.` }, { status: 422 });
+  }
+
+  let delivered = 0;
+  const montraLink = `https://www.housepro.pt/consultor/${session.agent.id}`;
+  for (const r of recipients) {
+    const ctx: Partial<Record<MergeVar, string>> = {
+      nome: r.name || "Cliente",
+      consultor: session.agent.name,
+      agencia: session.agent.agency || "HousePro",
+      link: montraLink,
+      assinatura: session.agent.name,
+    };
+    const idempotency = createHash("sha256").update(`xcampaign/${campaign.id}:${(r.email ?? "").toLowerCase()}`).digest("hex");
+    try {
+      const result = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { authorization: `Bearer ${delivery.apiKey}`, "content-type": "application/json", "Idempotency-Key": idempotency },
+        body: JSON.stringify({
+          from: delivery.sender,
+          to: [r.email],
+          subject: renderVariables(String(body.subject), ctx),
+          html: renderBlocksHtml(campaign.blocks, ctx),
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (result.ok) delivered++;
+    } catch {
+      /* conta como falha deste destinatário, continua os restantes */
+    }
+  }
+
+  const stats = { sent: recipients.length, delivered, opened: 0, clicked: 0, bounced: recipients.length - delivered, unsubscribed: 0 };
   await recordSandboxSend({
     campaignId: String(body.campaignId),
     subject: String(body.subject),
     recipients: recipients.map((c) => ({ contactId: c.id, email: c.email, name: c.name })),
     stats,
-    actorId: session.demo ? undefined : session.agent.id,
+    actorId: session.agent.id,
     actorName: session.agent.name,
+    sandbox: false,
   });
 
-  return NextResponse.json({ stats, recipients: recipients.length, sandbox: true, demo: session.demo });
+  return NextResponse.json({ stats, recipients: recipients.length, sandbox: false });
 }

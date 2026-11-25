@@ -2485,6 +2485,18 @@ export async function listEmailCampaigns(ownerId: string): Promise<EmailCampaign
   }
 }
 
+/** Uma campanha de email do consultor, pelo id (envio real precisa dos blocos). */
+export async function getEmailCampaignById(id: string, ownerId: string): Promise<EmailCampaign | null> {
+  if (!isSupabaseConfigured()) return demoEmailCampaignsByOwner(ownerId).find((c) => c.id === id) ?? null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("email_campaigns").select("*").eq("id", id).eq("owner_id", ownerId).maybeSingle();
+    return data ? mapEmailCampaign(data) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Cria uma campanha de email (dual). */
 export async function createEmailCampaign(input: {
   ownerId: string;
@@ -2609,13 +2621,16 @@ export async function recordSandboxSend(input: {
   stats: EmailStats;
   actorId?: string;
   actorName?: string;
+  /** false = envio real (Resend); true (por defeito) = simulação sandbox. */
+  sandbox?: boolean;
 }): Promise<boolean> {
   if (!isSupabaseConfigured()) return true;
+  const sandbox = input.sandbox ?? true;
   try {
     const supabase = await createClient();
     await supabase
       .from("email_campaigns")
-      .update({ status: "sandbox", stats: input.stats })
+      .update({ status: sandbox ? "sandbox" : "enviada", stats: input.stats })
       .eq("id", input.campaignId);
     if (input.recipients.length) {
       await supabase.from("email_sends").insert(
@@ -2623,8 +2638,8 @@ export async function recordSandboxSend(input: {
           campaign_id: input.campaignId,
           contact_id: r.contactId ?? null,
           email: r.email ?? null,
-          status: "sandbox",
-          sandbox: true,
+          status: sandbox ? "sandbox" : "enviado",
+          sandbox,
         }))
       );
       // Cronologia de cada contacto conhecido.
@@ -2633,7 +2648,7 @@ export async function recordSandboxSend(input: {
           await addContactActivity({
             contactId: r.contactId,
             type: "email",
-            title: `Email (sandbox): ${input.subject}`,
+            title: `Email${sandbox ? " (sandbox)" : ""}: ${input.subject}`,
             direction: "out",
             actorId: input.actorId,
             actorName: input.actorName,

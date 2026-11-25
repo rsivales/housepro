@@ -107,6 +107,39 @@ export function renderVariables(text: string, ctx: Partial<Record<MergeVar, stri
   });
 }
 
+const escapeHtml = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
+
+/**
+ * Converte os blocos do editor em HTML de email, já com as variáveis
+ * substituídas pelo contexto do destinatário. Função pura, testável — usada
+ * só no ENVIO REAL (a pré-visualização do editor renderiza os blocos em React).
+ */
+export function renderBlocksHtml(blocks: EmailBlock[], ctx: Partial<Record<MergeVar, string>>): string {
+  const t = (s?: string) => escapeHtml(renderVariables(s ?? "", ctx));
+  const parts = blocks.map((b) => {
+    switch (b.type) {
+      case "heading":
+        return `<h2 style="margin:0 0 12px;font-size:20px;color:#10213e">${t(b.text)}</h2>`;
+      case "text":
+        return `<p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#333">${t(b.text)}</p>`;
+      case "button":
+        return `<p style="margin:0 0 20px"><a href="${escapeHtml(renderVariables(b.url ?? "#", ctx))}" style="display:inline-block;padding:10px 22px;background:#C1272D;color:#fff;border-radius:24px;text-decoration:none;font-weight:bold;font-size:14px">${t(b.text)}</a></p>`;
+      case "image":
+        return b.imageUrl ? `<p style="margin:0 0 16px"><img src="${escapeHtml(b.imageUrl)}" alt="" width="560" style="width:100%;height:auto;border-radius:12px"/></p>` : "";
+      case "property":
+        return `<p style="margin:0 0 16px;padding:12px;border:1px solid #eee;border-radius:12px;font-size:14px">🏠 Imóvel ${escapeHtml(b.propertyRef ?? "")} — <a href="https://www.housepro.pt/imoveis?ref=${encodeURIComponent(b.propertyRef ?? "")}">ver imóvel</a></p>`;
+      case "divider":
+        return `<hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>`;
+      case "spacer":
+        return `<div style="height:16px"></div>`;
+      default:
+        return "";
+    }
+  });
+  return `<div style="max-width:600px;margin:auto;font-family:Arial,sans-serif">${parts.join("")}</div>`;
+}
+
 // ── Segmentação ──────────────────────────────────────────────────────────────
 
 export interface Segment {

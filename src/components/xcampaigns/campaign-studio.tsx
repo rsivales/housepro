@@ -36,7 +36,7 @@ import { CONTACT_TYPE_LABEL, type ContactType } from "@/lib/data/contacts";
 const uid = () => `b-${Math.random().toString(36).slice(2, 8)}`;
 const EDITABLE: EmailBlockType[] = ["heading", "text", "button"];
 
-export function CampaignStudio({ initial, initialLists }: { initial: EmailCampaign[]; initialLists: EmailList[] }) {
+export function CampaignStudio({ initial, initialLists, emailEnabled = false }: { initial: EmailCampaign[]; initialLists: EmailList[]; emailEnabled?: boolean }) {
   const [list, setList] = React.useState<EmailCampaign[]>(initial);
   const [lists, setLists] = React.useState<EmailList[]>(initialLists);
   const [editing, setEditing] = React.useState(false);
@@ -57,6 +57,7 @@ export function CampaignStudio({ initial, initialLists }: { initial: EmailCampai
       {editing ? (
         <Editor
           lists={lists}
+          emailEnabled={emailEnabled}
           onListCreated={(l) => setLists((prev) => [l, ...prev])}
           onListDeleted={(id) => setLists((prev) => prev.filter((l) => l.id !== id))}
           onDone={(c) => {
@@ -110,11 +111,12 @@ function StatsRow({ stats }: { stats: EmailStats }) {
   );
 }
 
-function Editor({ onDone, lists, onListCreated, onListDeleted }: {
+function Editor({ onDone, lists, onListCreated, onListDeleted, emailEnabled }: {
   onDone: (c: EmailCampaign | null) => void;
   lists: EmailList[];
   onListCreated: (l: EmailList) => void;
   onListDeleted: (id: string) => void;
+  emailEnabled: boolean;
 }) {
   const [name, setName] = React.useState("");
   const [type, setType] = React.useState<EmailCampaignType>("promocao_imovel");
@@ -122,7 +124,8 @@ function Editor({ onDone, lists, onListCreated, onListDeleted }: {
   const [blocks, setBlocks] = React.useState<EmailBlock[]>([]);
   const [seg, setSeg] = React.useState<Segment>({});
   const [selectedListId, setSelectedListId] = React.useState<string | null>(null);
-  const [busy, setBusy] = React.useState<null | "save" | "send">(null);
+  const [busy, setBusy] = React.useState<null | "save" | "send" | "sendReal">(null);
+  const [sentReal, setSentReal] = React.useState(false);
   const [stats, setStats] = React.useState<EmailStats | null>(null);
   const [recipients, setRecipients] = React.useState<number | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -181,12 +184,13 @@ function Editor({ onDone, lists, onListCreated, onListDeleted }: {
     });
   }
 
-  async function save(send: boolean) {
+  async function save(send: boolean, real = false) {
     if (!name || !subject) {
       setError("Indica nome e assunto.");
       return;
     }
-    setBusy(send ? "send" : "save");
+    if (real && !window.confirm("Isto envia emails REAIS para os destinatários deste segmento. Não há desfazer. Continuar?")) return;
+    setBusy(send ? (real ? "sendReal" : "send") : "save");
     setError(null);
     try {
       const res = await fetch("/api/xcampaigns", {
@@ -205,12 +209,13 @@ function Editor({ onDone, lists, onListCreated, onListDeleted }: {
       const sres = await fetch("/api/xcampaigns/send", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ campaignId: campaign.id, subject, segment: seg, listId: selectedListId ?? undefined }),
+        body: JSON.stringify({ campaignId: campaign.id, subject, segment: seg, listId: selectedListId ?? undefined, real: real || undefined }),
       });
       const sdata = await sres.json();
-      if (!sres.ok) throw new Error(sdata?.error ?? "Falha no envio sandbox.");
+      if (!sres.ok) throw new Error(sdata?.error ?? (real ? "Falha no envio." : "Falha no envio sandbox."));
       setStats(sdata.stats as EmailStats);
       setRecipients(sdata.recipients as number);
+      setSentReal(Boolean(real));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -354,14 +359,21 @@ function Editor({ onDone, lists, onListCreated, onListDeleted }: {
           <Button onClick={() => save(true)} disabled={busy !== null}>
             {busy === "send" ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Enviar em sandbox
           </Button>
+          {emailEnabled && (
+            <Button onClick={() => save(true, true)} disabled={busy !== null} variant="destructive">
+              {busy === "sendReal" ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Enviar a sério
+            </Button>
+          )}
           <Button variant="ghost" onClick={() => onDone(null)}>Fechar</Button>
         </div>
 
         {stats && (
           <div className="rounded-2xl border bg-card p-4 shadow-sm">
-            <p className="text-sm font-medium">Enviado em sandbox — {recipients} destinatário(s)</p>
+            <p className="text-sm font-medium">{sentReal ? "Enviado" : "Enviado em sandbox"} — {recipients} destinatário(s)</p>
             <StatsRow stats={stats} />
-            <p className="mt-2 text-[11px] text-muted-foreground">Simulação — nenhum email real foi enviado.</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              {sentReal ? "Envio real via Resend." : "Simulação — nenhum email real foi enviado."}
+            </p>
           </div>
         )}
       </div>

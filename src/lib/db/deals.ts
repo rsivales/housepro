@@ -500,6 +500,10 @@ export async function advanceDeal(
       propertyStatus = dealStageToStatus(toStage);
     }
   }
+  if (toStage === "escritura" && !["escritura", "concluido"].includes(String(deal.stage))) {
+    const { celebrateEscritura } = await import("@/lib/institutional/escritura-celebration");
+    void celebrateEscritura(dealId).catch(() => { /* best-effort, nunca falha o avanço de fase */ });
+  }
   return { ok: true, propertyStatus, ...(warning ? { warning } : {}) };
 }
 

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/supabase/auth";
 import { isNetworkFinanceAdmin } from "@/lib/data/finance-access";
 import { InstitutionalMessagesManager } from "@/components/admin/institutional-messages-manager";
+import { CelebrationTemplateManager } from "@/components/admin/celebration-template-manager";
 
 export const metadata = { title: "Envios institucionais — Helix" };
 
@@ -19,6 +20,7 @@ export default async function InstitutionalPage() {
         consultores ou brokers — cada combinação com a sua própria mensagem, ativada só quando estiver pronta.
         Usa <code className="rounded bg-secondary px-1">{"{nome}"}</code> para personalizar com o nome do destinatário.
       </p>
+      <CelebrationTemplateManager />
       <InstitutionalMessagesManager />
     </main>
   );

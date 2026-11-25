@@ -4,6 +4,9 @@ import { getSession } from "@/lib/supabase/auth";
 import { getPropertyById, claimContactIfUnowned } from "@/lib/db/repo";
 import { dealTeamOrStaffAllowed } from "@/lib/db/deal-permissions";
 import { getDealGate, updateDeal } from "@/lib/db/deals";
+import type { CreditStage } from "@/lib/data/deal";
+
+const CREDIT_STAGES: CreditStage[] = ["sem_credito", "pedido", "aprovacao", "avaliacao", "escritura_marcada"];
 
 /** Edita comprador (nome ou contacto ligado), comissão estimada e partilha
  *  com outra agência de um negócio existente. Nunca mexe na fase (ver
@@ -20,6 +23,7 @@ export async function POST(request: Request) {
     buyerContactId?: string | null;
     sellerName?: string;
     amount?: number;
+    creditStage?: string;
     coBroker?: boolean;
     coBrokerAgencyId?: string | null;
     coBrokerSplitType?: "percent" | "fixed";
@@ -58,6 +62,11 @@ export async function POST(request: Request) {
   if ("sellerName" in body) patch.sellerName = body.sellerName;
   if ("amount" in body && body.amount != null)
     patch.amount = Number(body.amount);
+  if ("creditStage" in body) {
+    if (!CREDIT_STAGES.includes(body.creditStage as CreditStage))
+      return NextResponse.json({ error: "Estado de crédito inválido." }, { status: 400 });
+    patch.creditStage = body.creditStage as CreditStage;
+  }
   if ("coBroker" in body) {
     patch.coBroker = Boolean(body.coBroker);
     patch.coBrokerAgencyId = body.coBrokerAgencyId ?? null;

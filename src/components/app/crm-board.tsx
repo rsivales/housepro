@@ -24,8 +24,24 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatEuro } from "@/lib/format";
-import { DEAL_STEPS, dealStageToStatus } from "@/lib/data/deal";
+import { DEAL_STEPS, CREDIT_STEPS, dealStageToStatus, type CreditStage } from "@/lib/data/deal";
 import type { DealListItem } from "@/lib/db/deals";
+
+/** Cor viva do estado de crédito — mesmo esquema usado nos quadros de leads. */
+const CREDIT_BADGE: Record<CreditStage, string> = {
+  sem_credito: "bg-secondary text-muted-foreground",
+  pedido: "bg-amber-400 text-amber-950",
+  aprovacao: "bg-emerald-600 text-white",
+  avaliacao: "bg-blue-600 text-white",
+  escritura_marcada: "bg-red-600 text-white",
+};
+const CREDIT_LABEL: Record<CreditStage, string> = {
+  sem_credito: "Crédito: —",
+  pedido: "Pedido",
+  aprovacao: "Aprovação",
+  avaliacao: "Avaliação",
+  escritura_marcada: "Escritura marcada",
+};
 import { dealPipelineSummary } from "@/lib/commission/deal-pipeline-summary";
 import { STATUS_LABEL } from "@/lib/data/status";
 import type { PropertyStatus } from "@/lib/data/types";
@@ -346,6 +362,21 @@ export function CrmBoard({
 
   function markLost(dealId: string) {
     setStage(dealId, "cancelado");
+  }
+
+  async function setCreditStage(dealId: string, creditStage: CreditStage) {
+    setBusy(dealId);
+    setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, creditStage } : d)));
+    try {
+      const res = await fetch("/api/deals/update", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dealId, creditStage }),
+      });
+      if (res.ok) router.refresh();
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function removeDeal(dealId: string) {
@@ -808,6 +839,23 @@ export function CrmBoard({
                           </div>
                         </div>
                       </Link>
+                      <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={d.creditStage}
+                          onChange={(e) => void setCreditStage(d.id, e.target.value as CreditStage)}
+                          disabled={busy !== null}
+                          aria-label="Estado do crédito"
+                          className={cn(
+                            "w-full rounded-md border-0 px-2 py-1 text-[11px] font-medium outline-none",
+                            CREDIT_BADGE[d.creditStage],
+                          )}
+                        >
+                          <option value="sem_credito">{CREDIT_LABEL.sem_credito}</option>
+                          {CREDIT_STEPS.map((c) => (
+                            <option key={c.stage} value={c.stage}>{c.label}</option>
+                          ))}
+                        </select>
+                      </div>
                       <div className="mt-2 flex items-center justify-between">
                         <span className="font-display text-base">
                           {d.amount ? formatEuro(d.amount) : "—"}

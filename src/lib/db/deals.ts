@@ -8,7 +8,7 @@ import { effectiveCommission } from "@/lib/data/commission";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { syncPropertyStatusFromDeal } from "@/lib/db/property-status";
 import { DEFAULT_REGIME, regimeForCalculator, type CommissionRegime } from "@/lib/data/commission-regime";
-import type { DealStage } from "@/lib/data/deal";
+import type { DealStage, CreditStage } from "@/lib/data/deal";
 
 export type CommissionType = "percent" | "fixed";
 
@@ -25,6 +25,8 @@ export interface DealListItem {
   sellerName: string;
   amount: number;
   stage: DealStage;
+  /** Via paralela de crédito do comprador — independente da fase transacional. */
+  creditStage: CreditStage;
   commissionType: CommissionType;
   commissionPct: number | null;
   commissionFixed: number | null;
@@ -69,6 +71,7 @@ interface DealRow {
   seller_name: string | null;
   amount: number | null;
   stage: string;
+  credit_stage?: string | null;
   commission_type: string | null;
   commission_pct: number | null;
   commission_fixed: number | null;
@@ -163,6 +166,7 @@ function mapDeal(r: DealRow): DealListItem {
     sellerName: r.seller_name ?? "",
     amount,
     stage: (r.stage as DealStage) ?? "proposta_enviada",
+    creditStage: (r.credit_stage as CreditStage) ?? "sem_credito",
     commissionType,
     commissionPct,
     commissionFixed,
@@ -227,7 +231,7 @@ function mapDealDetail(r: DealRow): DealDetail {
 }
 
 const DEAL_COLS =
-  "id, property_id, buyer_name, buyer_contact_id, seller_name, amount, stage, commission_type, commission_pct, commission_fixed, co_broker, co_broker_agency_id, co_broker_split_type, co_broker_split_pct, co_broker_split_fixed, updated_at, agency_id, angariador_id, consultor_comprador_id, coordenador_id, escritura_at, cpcv_deadline_at, transaction_manager_id";
+  "id, property_id, buyer_name, buyer_contact_id, seller_name, amount, stage, credit_stage, commission_type, commission_pct, commission_fixed, co_broker, co_broker_agency_id, co_broker_split_type, co_broker_split_pct, co_broker_split_fixed, updated_at, agency_id, angariador_id, consultor_comprador_id, coordenador_id, escritura_at, cpcv_deadline_at, transaction_manager_id";
 
 const SELECT = `${DEAL_COLS}, property:properties!property_id(reference, title, cover_url, operation, commission_justification, commission_split)`;
 
@@ -382,6 +386,7 @@ export async function updateDeal(
     buyerContactId?: string | null;
     sellerName?: string;
     amount?: number;
+    creditStage?: CreditStage;
     coBroker?: boolean;
     coBrokerAgencyId?: string | null;
     coBrokerSplitType?: CommissionType;
@@ -394,6 +399,7 @@ export async function updateDeal(
   const dbPatch: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   };
+  if ("creditStage" in patch) dbPatch.credit_stage = patch.creditStage;
   if ("buyerName" in patch) dbPatch.buyer_name = patch.buyerName || null;
   if ("buyerContactId" in patch)
     dbPatch.buyer_contact_id = patch.buyerContactId || null;

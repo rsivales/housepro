@@ -3,11 +3,11 @@ import { after } from "next/server";
 import { validateBuyerProfile } from "@/lib/matching/profile";
 import { runMatching } from "@/lib/matching/server";
 import { visibleLeadRows } from "@/lib/db/lead-access";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/supabase/auth";
-import { createContact, listContactsByOwner } from "@/lib/db/repo";
+import { mapContact, listContactsByOwner } from "@/lib/db/repo";
 import type { ContactType } from "@/lib/data/contacts";
 
 /**
@@ -54,33 +54,18 @@ export async function POST(request: Request) {
   try { buyerProfile = validateBuyerProfile(body.buyerProfile ?? {}); } catch(e) { return NextResponse.json({error:e instanceof Error ? e.message : "Qualificação inválida."},{status:422}); }
   if (body.leadId) {
     const [lead] = await visibleLeadRows(session.agent, body.leadId);
-    if (!lead || ![lead.owner_id,lead.assigned_agent_id].includes(session.agent.id)) return NextResponse.json({error:"Só o responsável pode qualificar a lead."},{status:403});
-    if (lead.contact_id) return NextResponse.json({error:"Esta lead já tem ficha de contacto. Abra-a para qualificar."},{status:409});
+    if (!lead || (lead.assigned_agent_id || lead.owner_id) !== session.agent.id) return NextResponse.json({error:"Só o responsável pode criar a ficha da lead."},{status:403});
   }
   try {
-  const contact = await createContact({
-    buyerProfile,
-    name: String(body.name),
-    phone: body.phone,
-    email: body.email,
-    type: body.type ?? "outro",
-    ownerId: session.agent.id,
-    agencyId: session.agent.agencyId || undefined,
-    zone: body.zone,
-    budget: body.budget,
-    language: body.language,
-    source: body.source ?? "manual",
-    nif: body.nif,
-    idDocument: body.idDocument,
-    address: body.address,
-  });
-  if (contact.ownerId !== session.agent.id) return NextResponse.json({error:"Já existe uma ficha acompanhada por outro agente. Contacte-o para evitar duplicação."},{status:409});
-  if (body.leadId) {
-    const sb=await createClient();
-    const {data,error}=await sb.from("leads").update({contact_id:contact.id}).eq("id",body.leadId).is("contact_id",null).select("id");
-    if(error || !data?.length) return NextResponse.json({error:"Contacto guardado, mas não foi possível associar a lead. Abra a ficha nos Contactos."},{status:409});
-  }
-  after(async () => { await runMatching({ contactId: contact.id }); });
-  return NextResponse.json({ contact, demo: session.demo });
-  } catch { return NextResponse.json({error:"Não foi possível guardar o contacto. Tente novamente."},{status:500}); }
+    const {data,error} = await createAdminClient().rpc("save_contact_identity",{p_actor:session.agent.id,p_data:{...body,...(body.buyerProfile ? {buyerProfile} : {})},p_lead:body.leadId || null});
+    if(error) {
+      if(error.code === "23505") return NextResponse.json({error:"Este telefone ou email já existe. Procure a ficha nos contactos."},{status:409});
+      throw new Error("contact_save_failed");
+    }
+    if(data.conflict) return NextResponse.json({error:data.error},{status:409});
+    const contact=mapContact(data.contact);
+    if (data.exists && !body.leadId) return NextResponse.json({error:"Este contacto já existe. Abra a ficha existente.",existingContactId:contact.id},{status:409});
+    after(async () => { await runMatching({ contactId: contact.id }); });
+    return NextResponse.json({contact,exists:data.exists,linked:data.linked});
+  } catch { return NextResponse.json({error:"Não foi possível guardar o contacto. Não foi criada uma ficha parcial. Tente novamente."},{status:500}); }
 }

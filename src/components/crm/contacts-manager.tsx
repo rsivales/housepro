@@ -105,9 +105,10 @@ export function CreateForm({ onCreated, initial, leadId }: { onCreated: (c: Cont
   const [name, setName] = React.useState(initial?.name ?? "");
   const [phone, setPhone] = React.useState(initial?.phone ?? "");
   const [email, setEmail] = React.useState(initial?.email ?? "");
-  const [type, setType] = React.useState<ContactType>("comprador");
+  const [type, setType] = React.useState<ContactType>(initial?.type ?? "comprador");
   const [zone, setZone] = React.useState(initial?.zone ?? "");
   const [busy, setBusy] = React.useState(false);
+  const [existingId,setExistingId] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
@@ -121,7 +122,7 @@ export function CreateForm({ onCreated, initial, leadId }: { onCreated: (c: Cont
         body: JSON.stringify({ name, phone: phone || undefined, email: email || undefined, type, source: initial?.source ?? "manual", zone: buyerProfile.zones?.filter(Boolean).join(", ") || zone || undefined, buyerProfile, leadId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Não foi possível criar.");
+      if (!res.ok) { if(data.existingContactId) setExistingId(data.existingContactId); throw new Error(data?.error ?? "Não foi possível criar."); }
       onCreated(data.contact as Contact);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
@@ -160,7 +161,7 @@ export function CreateForm({ onCreated, initial, leadId }: { onCreated: (c: Cont
         </label>
       </div>
       {["comprador","investidor"].includes(type) && <BuyerFields value={buyerProfile} onChange={setBuyerProfile}/>}
-      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+      {existingId && <a className="text-sm underline" href={`/app/contactos/${existingId}`}>Abrir contacto existente</a>}{error && <p className="mt-3 text-sm text-destructive">{error}</p>}
       <div className="mt-4">
         <Button type="submit" disabled={busy}>
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Criar contacto

@@ -127,7 +127,7 @@ export function ContactTimeline({
                   <p className="text-sm font-medium">{a.title}</p>
                   <span className="shrink-0 text-[11px] text-muted-foreground">{fmt(a.at)}</span>
                 </div>
-                {a.body && <p className="mt-1 text-sm text-muted-foreground">{a.body}</p>}
+                {a.body && <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">{a.body}</p>}
                 {(a.actorName || a.propertyRef) && (
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     {[a.actorName, a.propertyRef].filter(Boolean).join(" · ")}

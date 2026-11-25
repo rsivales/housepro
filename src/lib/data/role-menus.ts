@@ -11,7 +11,7 @@ export function menuForRole(role: RoleKey): RoleMenuGroup[] {
   if (role === "advogado") return [{ title: "Jurídico", items: [{ label: "LegalFlow", href: "/app/legalflow" }, { label: "Documentos", href: "/app/legalflow" }] }];
   if (role === "parceiro") return [{ title: "Parceiro", items: [{ label: "X Market", href: "/app/x-market" }, { label: "Perfil", href: "/app/perfil" }] }];
   if (role === "recrutamento") return [{ title: "Recrutamento", items: [{ label: "Pipeline de recrutamento", href: "/app/meta/pipeline" }, { label: "Agenda", href: "/app/agenda" }] }];
-  if (role === "marketing") return [{ title: "Marketing", items: [{ label: "Imóveis da agência", href: "/app/imoveis?scope=agency" }, { label: "Campanhas", href: "/app/x-campaigns" }, { label: "Meta / Facebook", href: "/app/meta" }, { label: "Relatórios", href: "/app/observabilidade" }] }];
+  if (role === "marketing") return [{ title: "Marketing", items: [{ label: "Imóveis da agência", href: "/app/imoveis?scope=agency" }, { label: "Landing Pages", href: "/app/marketing/landing-pages" }, { label: "Campanhas", href: "/app/x-campaigns" }, { label: "Meta / Facebook", href: "/app/meta" }, { label: "Relatórios", href: "/app/observabilidade" }] }];
   if (role === "apoio") return [{ title: "Apoio", items: [...commercial, ...property, ...operation] }];
   const groups: RoleMenuGroup[] = [{ title: "Comercial", items: commercial }, { title: "Imóveis", items: property }, { title: "Operação", items: operation }];
   if (["admin", "diretor", "coordenador"].includes(role)) groups.push({ title: "Gestão", items: management });

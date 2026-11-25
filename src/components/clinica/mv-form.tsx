@@ -6,13 +6,16 @@ import { ArrowRight, ArrowLeft, Check, Loader2, Lock, AlertCircle, RefreshCw, Ma
 
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
-import { validateStep, TAXAS_MARGINAIS, parseCampaign,runSimulation,buildEmailReport, type MvSubmission } from "@/lib/tools/mais-valias-funnel";
+import { validateStep, TAXAS_MARGINAIS, parseCampaign,runSimulation,buildEmailReport,renderMvReportEmail, type MvSubmission } from "@/lib/tools/mais-valias-funnel";
+import { calcularImtNoAno, suportaImtHistorico, IMT_FONTES, type Finalidade, type Localizacao } from "@/lib/tools/imt";
 
 const KEY = "hp:mais-valias";
 const BASE_STEPS = ["Imóvel", "Despesas", "Situação fiscal", "Contacto"] as const;
 const YEARS = Array.from({ length: 41 }, (_, i) => String(new Date().getFullYear() + 1 - i));
 const bs: React.CSSProperties = { borderColor: "var(--border)" };
 const inputCls = "mt-1.5 h-11 w-full rounded-xl border bg-[var(--card)] px-3 text-sm outline-none focus-visible:ring-[3px]";
+const eur = (n:number) => new Intl.NumberFormat("pt-PT",{style:"currency",currency:"EUR"}).format(n);
+const amount = (v?:string) => Number((v??"").replace(/[^\d,.-]/g,"").replace(/\.(?=\d{3}(\D|$))/g,"").replace(",",".")) || 0;
 
 function Err({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -32,18 +35,30 @@ function Num({ label, hint, value, onChange, prefix = "€", id, error }: { labe
   );
 }
 
-export function MvForm({mode="public",consultantRef,readOnly=false}:{mode?:"public"|"professional";consultantRef?:string;readOnly?:boolean}={}) {
+export function MvForm({mode="public",consultantRef,consultant,readOnly=false}:{mode?:"public"|"professional";consultantRef?:string;consultant?:{name?:string;email?:string;photo?:string;publicTitle?:string};readOnly?:boolean}={}) {
   const professional=mode==="professional";
   const storageKey=professional?`${KEY}:professional:${consultantRef??"demo"}`:KEY;
   const STEPS=professional?["Imóvel","Despesas","Situação fiscal","Resultado"]:BASE_STEPS;
   const [preview,setPreview]=React.useState<ReturnType<typeof runSimulation>|null>(null);
   const [copyMessage,setCopyMessage]=React.useState("");
+  const [showEmailPreview,setShowEmailPreview]=React.useState(false);
   const trackMv=(event:Parameters<typeof track>[0])=>{if(!professional)track(event);};
   const [step, setStep] = React.useState(0);
   const [d, setD] = React.useState<MvSubmission>({ aquisicao: "compra", quota: "100", residencia: "residente" });
+  const [showImt,setShowImt]=React.useState(false);
+  const [imtFin,setImtFin]=React.useState<Finalidade>("hpp");
+  const [imtLoc,setImtLoc]=React.useState<Localizacao>("continente");
+  const [imtVpt,setImtVpt]=React.useState("");
+  const [imtJovem,setImtJovem]=React.useState(false);
+  const [imtDate,setImtDate]=React.useState("");
+  const [imtError,setImtError]=React.useState("");
+  const appliedImt=React.useRef(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [status, setStatus] = React.useState<"idle" | "loading" | "error" | "retry" | "success" | "duplicate">("idle");
   const [started, setStarted] = React.useState(false);
+  const [intakeUrl,setIntakeUrl]=React.useState("");
+  const [intakeStatus,setIntakeStatus]=React.useState("");
+  const [intakeReplies,setIntakeReplies]=React.useState<{id:string;client_name:string;completed_at:string;answers:Partial<MvSubmission>}[]>([]);
 
   React.useEffect(() => {
     try { const raw = sessionStorage.getItem(storageKey); if (raw) setD((p) => ({ ...p, ...JSON.parse(raw) })); } catch { /* ignore */ }
@@ -52,11 +67,14 @@ export function MvForm({mode="public",consultantRef,readOnly=false}:{mode?:"publ
 
   function persist(next: MvSubmission) {
     setD(next);
-    try { const { consent, marketingConsent, ...rest } = next; void consent; void marketingConsent; sessionStorage.setItem(storageKey, JSON.stringify(rest)); } catch { /* ignore */ }
+    try { const { consent, marketingConsent, rendimentoColetavel, rendimentoConjuge, ...rest } = next; void consent; void marketingConsent; void rendimentoColetavel; void rendimentoConjuge; sessionStorage.setItem(storageKey, JSON.stringify(rest)); } catch { /* ignore */ }
   }
   function patch(p: Partial<MvSubmission>) {
     if (!started) { setStarted(true); trackMv("mv_sim_start"); }
     setErrors((prev) => { if (!Object.keys(prev).length) return prev; const n = { ...prev }; for (const k of Object.keys(p)) delete n[k]; return n; });
+    const changedAcquisition = "valorAquisicao" in p || "anoAquisicao" in p || "aquisicao" in p;
+    if (changedAcquisition && appliedImt.current) { p = { ...p, imt: "", selo: "" }; appliedImt.current = false; }
+    if ("imt" in p || "selo" in p) appliedImt.current = false;
     persist({ ...d, ...p });
   }
   function next() {
@@ -72,6 +90,16 @@ export function MvForm({mode="public",consultantRef,readOnly=false}:{mode?:"publ
     setStep((s) => Math.min(3, s + 1));
   }
   function back() { setErrors({}); setStep((s) => Math.max(0, s - 1)); }
+
+  async function createIntake(send:boolean){
+    setIntakeStatus("A preparar o pedido…");
+    try{
+      const res=await fetch("/api/mais-valias/recolha",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:d.email,name:d.name,send})});
+      const j=await res.json();if(!res.ok)throw new Error(j.error||"Não foi possível preparar a ligação.");
+      setIntakeUrl(j.url);setIntakeStatus(send?(j.sent?"Convite enviado por email.":"Convite não enviado; copie a ligação ou tente novamente."):"Ligação pronta. Partilhe-a apenas com o cliente.");
+    }catch(e){setIntakeStatus(e instanceof Error?e.message:"Falha na ligação.");}
+  }
+  async function loadIntakes(){try{const r=await fetch("/api/mais-valias/recolha",{cache:"no-store"});if(!r.ok)throw new Error();const j=await r.json();setIntakeReplies((j.requests??[]).filter((x:{completed_at:string})=>x.completed_at));setIntakeStatus("Respostas disponíveis abaixo.");}catch{setIntakeStatus("Não foi possível consultar as respostas.");}}
 
   const [emailSent, setEmailSent] = React.useState(false);
 
@@ -123,7 +151,7 @@ export function MvForm({mode="public",consultantRef,readOnly=false}:{mode?:"publ
         ))}
       </ol>
 
-      {professional&&step===3&&preview&&<section className="mt-6 space-y-4 rounded-xl border bg-secondary/30 p-5"><h3 className="text-lg font-semibold">Resultado da simulação</h3><div className="grid gap-3 sm:grid-cols-2">{[["Mais-valia estimada",preview.maisValiaBruta],["Aquisição corrigida",preview.aquisicaoCorrigida],["Despesas consideradas",preview.despesasElegiveis],["Base potencialmente tributável",preview.baseTributavel]].map(([label,value])=><div className="rounded-xl border bg-card p-3" key={String(label)}><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold">{new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(Number(value))}</p></div>)}</div><p className="text-sm"><strong>Imposto estimado:</strong> {preview.impostoEstimado===null?"Por apurar — depende do enquadramento fiscal e restantes rendimentos.":new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(preview.impostoEstimado)}</p><p className="text-sm">Reinvestimento considerado: {new Intl.NumberFormat('pt-PT',{style:'percent',maximumFractionDigits:1}).format(preview.reinvestimentoFracao)}.</p><ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">{preview.notes.map((note,i)=><li key={i}>{note}</li>)}</ul><p className="text-xs text-muted-foreground">Motor {preview.engineVersion} · ano fiscal {preview.fiscalYear}. A metodologia e os campos são partilhados com o simulador público.</p><button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(buildEmailReport(d,preview).text);setCopyMessage("Resumo copiado.");}catch{setCopyMessage("Não foi possível copiar o resumo.");}}} className="rounded-xl border bg-card px-4 py-3 text-sm font-semibold">Copiar relatório completo</button>{copyMessage&&<p role="status" className="text-sm">{copyMessage}</p>}</section>}
+      {professional&&step===3&&preview&&<section className="mt-6 space-y-4 rounded-xl border bg-secondary/30 p-5"><img src="/brand/housepro-designer-red.png" width="170" alt="HousePro"/><h3 className="text-lg font-semibold">Resultado da simulação</h3><div className="grid gap-3 sm:grid-cols-2">{[["Mais-valia estimada",preview.maisValiaBruta],["Aquisição corrigida",preview.aquisicaoCorrigida],["Despesas consideradas",preview.despesasElegiveis],["Base potencialmente tributável",preview.baseTributavel]].map(([label,value])=><div className="rounded-xl border bg-card p-3" key={String(label)}><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold">{new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(Number(value))}</p></div>)}</div><p className="text-sm"><strong>Variação indicativa do IRS:</strong> {preview.impostoEstimado===null?"Por apurar — confirme os dados fiscais e o enquadramento.":new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(preview.impostoEstimado)}</p><p className="text-sm">Reinvestimento considerado: {new Intl.NumberFormat('pt-PT',{style:'percent',maximumFractionDigits:1}).format(preview.reinvestimentoFracao)}.</p><ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">{preview.notes.map((note,i)=><li key={i}>{note}</li>)}</ul><p className="text-xs text-muted-foreground">Motor {preview.engineVersion} · ano fiscal {preview.fiscalYear}.</p><p className="text-sm font-bold">Estimativa indicativa. Não constitui liquidação de IRS nem substitui aconselhamento fiscal.</p><div className="flex flex-wrap gap-2"><button type="button" onClick={()=>setShowEmailPreview(v=>!v)} className="rounded-xl border bg-card px-4 py-3 text-sm font-semibold">{showEmailPreview?"Fechar":"Ver"} pré-visualização do email</button><button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(buildEmailReport(d,preview).text);setCopyMessage("Resumo copiado.");}catch{setCopyMessage("Não foi possível copiar o resumo.");}}} className="rounded-xl border bg-card px-4 py-3 text-sm font-semibold">Copiar relatório completo</button></div>{showEmailPreview&&<iframe title="Pré-visualização do relatório ao cliente" sandbox="" srcDoc={renderMvReportEmail(buildEmailReport(d,preview),consultant)} className="h-[620px] w-full rounded-lg border bg-white"/>}{copyMessage&&<p role="status" className="text-sm">{copyMessage}</p>}</section>}
       <div className="mt-6">
         {step === 0 && (
           <fieldset className="space-y-4">
@@ -169,6 +197,19 @@ export function MvForm({mode="public",consultantRef,readOnly=false}:{mode?:"publ
           <fieldset className="space-y-4">
             <legend className="font-display text-lg">Despesas e encargos</legend>
             <p className="text-sm text-muted-foreground">Indique o que se aplica — deixe em branco o resto. A dedutibilidade de cada despesa depende de comprovativos e das regras aplicáveis.</p>
+            {d.aquisicao==="compra"&&<section className="rounded-xl border bg-secondary/30 p-4 sm:p-5" aria-label="Calcular impostos pagos na compra">
+              <button type="button" aria-expanded={showImt} onClick={()=>setShowImt(v=>!v)} className="text-left font-semibold text-[var(--hp-navy)]">{showImt?"−":"+"} Não se lembra do IMT e do Selo? Calcular aqui</button>
+              {showImt&&<div className="mt-4 space-y-4 text-sm">
+                <p>Usamos o valor e o ano de compra indicados no passo anterior. Escolha a finalidade <strong>à data da compra</strong>.</p>
+                <div className="grid gap-3 sm:grid-cols-2"><label>Finalidade à data da compra<select className={inputCls} value={imtFin} onChange={e=>setImtFin(e.target.value as Finalidade)}><option value="hpp">Habitação própria e permanente</option><option value="secundaria">Segunda habitação, arrendamento ou investimento</option><option value="terreno">Prédio urbano não habitacional / terreno</option><option value="rustico">Prédio rústico</option></select></label><label>Localização<select className={inputCls} value={imtLoc} onChange={e=>setImtLoc(e.target.value as Localizacao)}><option value="continente">Continente</option><option value="ra">Açores / Madeira</option></select></label></div>
+                <div className="grid gap-3 sm:grid-cols-2"><Num id="mv-imt-vpt" label="VPT na data da compra, se souber" value={imtVpt} onChange={setImtVpt} hint="O imposto usa o maior entre preço da escritura e VPT."/><label>Data da compra (necessária para IMT Jovem de 2024)<input type="date" className={inputCls} value={imtDate} onChange={e=>setImtDate(e.target.value)}/></label></div>
+                {imtFin==="hpp"&&Number(d.anoAquisicao)>=2024&&<label className="flex items-start gap-2"><input type="checkbox" checked={imtJovem} onChange={e=>setImtJovem(e.target.checked)}/>Beneficiei de IMT Jovem na primeira habitação, até 35 anos (confirmar condições na liquidação)</label>}
+                {!suportaImtHistorico(Number(d.anoAquisicao))?<p className="rounded-lg border border-amber-300 bg-amber-50 p-3">Ainda não temos uma tabela histórica validada para {d.anoAquisicao||"este ano"}. Consulte a escritura ou a liquidação no Portal das Finanças e introduza os montantes abaixo. Não aplicamos a tabela atual a uma compra antiga.</p>:<button type="button" className="rounded-lg bg-[var(--hp-navy)] px-4 py-2.5 font-semibold text-white" onClick={()=>{try{if(imtDate&&Number(imtDate.slice(0,4))!==Number(d.anoAquisicao))throw new Error("A data deve corresponder ao ano de aquisição.");const r=calcularImtNoAno({fin:imtFin,loc:imtLoc,preco:amount(d.valorAquisicao),vpt:amount(imtVpt),jovem:imtFin==="hpp"&&imtJovem},Number(d.anoAquisicao),imtDate||undefined);if(!r.base)throw new Error("Indique o valor da compra no passo anterior.");patch({imt:r.imt.toFixed(2),selo:r.isAquisicao.toFixed(2)});appliedImt.current=true;setImtError(`Aplicados: IMT ${eur(r.imt)} e Selo da aquisição ${eur(r.isAquisicao)} (base ${eur(r.base)}).`);}catch(e){setImtError(e instanceof Error?e.message:"Não foi possível calcular.");}}}>Calcular e usar no relatório</button>}
+                {imtError&&<p role="status">{imtError}</p>}
+                {suportaImtHistorico(Number(d.anoAquisicao))&&<a href={IMT_FONTES[Number(d.anoAquisicao)]} target="_blank" rel="noopener noreferrer" className="underline">Ver tabela da Autoridade Tributária para {d.anoAquisicao}</a>}
+                <p className="text-xs text-muted-foreground">Estimativa para compra simples, sem outras isenções ou regimes especiais. Use os valores efetivamente pagos se tiver as liquidações. O Selo do crédito não é somado a esta despesa.</p>
+              </div>}
+            </section>}
             <div className="grid gap-4 sm:grid-cols-2">
               <Num id="mv-imt" label="IMT" value={d.imt} onChange={(v) => patch({ imt: v })} />
               <Num id="mv-selo" label="Imposto do Selo" value={d.selo} onChange={(v) => patch({ selo: v })} />
@@ -213,6 +254,21 @@ export function MvForm({mode="public",consultantRef,readOnly=false}:{mode?:"publ
               </select>
               <p className="mt-1 text-xs text-muted-foreground">Só usado para estimar o imposto. Sem esta informação, enviamos apenas a base tributável.</p>
             </div>
+            {professional&&<section className="rounded-xl border border-slate-200 p-4 sm:p-5">
+              <button type="button" aria-expanded={!!d.advanced} onClick={()=>patch({advanced:!d.advanced})} className="w-full text-left font-semibold text-[var(--hp-navy)]">{d.advanced?"−":"+"} Avançado · apuramento fiscal e agregado</button>
+              {d.advanced&&<div className="mt-4 space-y-4">
+                <p className="text-sm text-muted-foreground">Peça apenas os dados necessários. O rendimento coletável anual deve excluir esta venda. Pode ser comunicado pelo cliente por ligação privada, telefone ou presencialmente, com registo da autorização.</p>
+                <div className="grid gap-4 sm:grid-cols-2"><Num id="mv-rend" label="Rendimento coletável anual sem esta venda" value={d.rendimentoColetavel} onChange={v=>patch({rendimentoColetavel:v})} error={errors.rendimentoColetavel}/><Num id="mv-dep" label="Número de dependentes" prefix="" value={d.dependentes} onChange={v=>patch({dependentes:v})} error={errors.dependentes}/></div>
+                <div className="grid gap-4 sm:grid-cols-2"><Num id="mv-vpt" label="Valor considerado para IMT na venda, se superior ao preço" value={d.vptRealizacao} onChange={v=>patch({vptRealizacao:v})}/><div className="grid grid-cols-2 gap-2"><label className="text-sm">Data da aquisição<input type="date" value={d.dataAquisicao??""} onChange={e=>patch({dataAquisicao:e.target.value})} className={inputCls}/><Err msg={errors.dataAquisicao}/></label><label className="text-sm">Data prevista da venda<input type="date" value={d.dataVenda??""} onChange={e=>patch({dataVenda:e.target.value})} className={inputCls}/><Err msg={errors.dataVenda}/></label></div></div>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!d.tributacaoConjunta} onChange={e=>patch({tributacaoConjunta:e.target.checked})}/>Tributação conjunta (casado ou unido de facto)</label>
+                {d.tributacaoConjunta&&<Num id="mv-conj" label="Rendimento coletável anual do cônjuge, sem esta venda" value={d.rendimentoConjuge} onChange={v=>patch({rendimentoConjuge:v})} error={errors.rendimentoConjuge}/>}
+                {d.hpp&&d.reinvestimento&&<div className="space-y-2 rounded-lg bg-slate-50 p-4"><p className="font-semibold">Condições do reinvestimento</p>{([['domicilioFiscal12Meses','Domicílio fiscal na habitação nos 12 meses anteriores'],['reinvestimentoNoPrazo','Reinvestimento entre 24 meses antes e 36 meses após a venda'],['reinvestimentoFundosProprios','Reinvestimento elegível com capitais próprios e intenção declarada no IRS']] as const).map(([key,label])=><label key={key} className="flex items-start gap-2 text-sm"><input type="checkbox" checked={!!d[key]} onChange={e=>patch({[key]:e.target.checked})}/>{label}</label>)}</div>}
+                <div className="space-y-2"><p className="font-semibold">Situações para análise individual</p>{([['apoioPublicoRelevante','Apoio público relevante para aquisição ou obras'],['outroGanhoMesmoAno','Outras mais-valias ou menos-valias imobiliárias no mesmo ano'],['situacaoEspecial','Reforma/65+, não residente, herança complexa ou outro regime especial']] as const).map(([key,label])=><label key={key} className="flex items-start gap-2 text-sm"><input type="checkbox" checked={!!d[key]} onChange={e=>patch({[key]:e.target.checked})}/>{label}</label>)}</div>
+                <div className="grid gap-3 sm:grid-cols-2"><div><label htmlFor="mv-origem" className="text-sm font-medium">Como foram recolhidos os dados?</label><select id="mv-origem" value={d.dataSource??""} onChange={e=>patch({dataSource:e.target.value as MvSubmission['dataSource']})} className={inputCls}><option value="">Ainda não recolhidos</option><option value="cliente_ligacao">Ligação preenchida pelo cliente</option><option value="email">Email do cliente</option><option value="telefone">Telefonema</option><option value="presencial">Consulta na agência</option></select></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!d.consentRecorded} onChange={e=>patch({consentRecorded:e.target.checked})}/>Cliente informado e autorização registada</label></div>
+                <Err msg={errors.consentRecorded}/>
+                <p className="text-xs text-muted-foreground">Os dependentes ajudam a contextualizar o caso, mas deduções, taxa adicional de solidariedade e outras regras não integram a estimativa da variação da coleta. Confirme os valores com contabilista.</p>
+              </div>}
+            </section>}
           </fieldset>
         )}
 
@@ -237,6 +293,7 @@ export function MvForm({mode="public",consultantRef,readOnly=false}:{mode?:"publ
                 <Err msg={errors.phone} />
               </div>
             </div>
+            {professional&&!readOnly&&<div className="rounded-xl border bg-slate-50 p-4"><p className="font-semibold">Pedir dados fiscais em falta ao cliente</p><p className="mt-1 text-sm text-muted-foreground">A ligação privada expira em 7 dias. Envie-a por email ou copie-a para combinar um telefonema ou consulta presencial.</p><div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={()=>createIntake(false)} className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold">Criar ligação privada</button><button type="button" onClick={()=>createIntake(true)} disabled={!d.email} className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold disabled:opacity-50">Pedir por email</button><button type="button" onClick={loadIntakes} className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold">Ver respostas recebidas</button></div>{intakeUrl&&<div className="mt-2 break-all text-xs"><a href={intakeUrl} className="underline">{intakeUrl}</a> <button type="button" onClick={()=>navigator.clipboard.writeText(intakeUrl)} className="font-bold underline">Copiar</button></div>}{intakeReplies.map(item=><button type="button" key={item.id} onClick={()=>{persist({...d,...item.answers,advanced:true,dataSource:"cliente_ligacao",consentRecorded:true});setStep(2);setPreview(null);}} className="mt-2 block w-full rounded-lg border bg-white p-2 text-left text-sm">Importar respostas de {item.client_name||"cliente"} · {new Date(item.completed_at).toLocaleDateString('pt-PT')}</button>)}{intakeStatus&&<p role="status" className="mt-2 text-xs">{intakeStatus}</p>}</div>}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="mv-pref" className="text-sm font-medium">Preferência de contacto</label>
@@ -252,7 +309,7 @@ export function MvForm({mode="public",consultantRef,readOnly=false}:{mode?:"publ
             <div className="space-y-2 rounded-xl border p-3" style={bs}>
               <label className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
                 <input type="checkbox" checked={!!d.consent} onChange={(e) => patch({ consent: e.target.checked })} className="mt-0.5 size-4 shrink-0" />
-                <span>Autorizo o tratamento dos meus dados para enviar o relatório e responder ao pedido, nos termos da <Link href="/privacidade" className="font-medium underline">Política de Privacidade</Link>. (RGPD)</span>
+                <span>{professional?"Confirmo que o cliente autorizou o tratamento dos dados necessários para esta simulação e o envio do relatório, nos termos da Política de Privacidade HousePro.":<>Autorizo o tratamento dos meus dados para enviar o relatório e responder ao pedido, nos termos da <Link href="/privacidade" className="font-medium underline">Política de Privacidade</Link>. (RGPD)</>}</span>
               </label>
               <Err msg={errors.consent} />
               <label className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">

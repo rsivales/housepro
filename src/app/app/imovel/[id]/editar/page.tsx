@@ -67,7 +67,7 @@ export default async function EditarImovelPage({ params }: { params: Promise<{ i
   });
 
   return (
-    <div><PropertyForm
+    <div><div className="mx-auto max-w-5xl px-4 pt-6"><Link className="inline-flex rounded-md border px-4 py-2 text-sm" href={`/app/relatorios-proprietario?imovel=${id}`}>Relatórios ao proprietário</Link><Link className="ml-3 inline-flex rounded-md border px-4 py-2 text-sm" href={`/app/atividade-imovel?imovel=${id}`}>Fotografar ficha de visita / proposta · Histórico</Link></div><PropertyForm
       mode="edit"
       propertyId={id}
       initial={draftFromProperty(property)}

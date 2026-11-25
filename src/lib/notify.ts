@@ -1,3 +1,5 @@
+import { agentRecipients } from "@/lib/email-recipients";
+import { operationalLead } from "@/lib/leads/identity";
 import { houseproEmail } from "@/lib/email-template";
 import { emailDeliveryCredentials } from "@/lib/email-delivery";
 import type { Lead } from "@/lib/data/leads";
@@ -33,6 +35,7 @@ export async function notifyLead(
   ctx: NotifyContext = {}
 ): Promise<string[]> {
   const channels: string[] = [];
+  if(!operationalLead(lead)) return channels;
   const title = INTENT_LABEL[lead.intent] ?? "Nova lead";
   const linhas = [
     `${title} — HousePro`,
@@ -64,9 +67,7 @@ export async function notifyLead(
   // 2) Email via Resend
   const delivery = await emailDeliveryCredentials();
   const resendKey = delivery.enabled ? delivery.apiKey : undefined;
-  const to = [ctx.agentEmail, delivery.notifyEmail].filter(
-    Boolean
-  ) as string[];
+  const {to,cc} = resendKey ? await agentRecipients(lead.assignedAgentId || lead.ownerId, delivery.notifyEmail).catch(()=>({to:[],cc:[]})) : {to:[],cc:[]};
   const from = delivery.sender;
   if (resendKey && to.length && from) {
     try {
@@ -80,6 +81,7 @@ export async function notifyLead(
           from,
           reply_to: delivery.notifyEmail,
           to,
+          cc,
           subject: `${title}${ctx.propertyRef ? ` · ${ctx.propertyRef}` : ""}`,
           text,
           html: houseproEmail(title, text),
@@ -108,11 +110,15 @@ export async function notifyGeneric(opts: {
   subject: string;
   text: string;
   to?: (string | undefined)[];
+  agentId?: string;
+  html?: string;
+  replyTo?: string;
+  privateReport?: boolean;
 }): Promise<string[]> {
   const channels: string[] = [];
 
   const webhook = process.env.LEAD_WEBHOOK_URL;
-  if (webhook) {
+  if (webhook && !opts.privateReport) {
     try {
       const res = await fetch(webhook, {
         method: "POST",
@@ -128,7 +134,8 @@ export async function notifyGeneric(opts: {
 
   const delivery = await emailDeliveryCredentials();
   const resendKey = delivery.enabled ? delivery.apiKey : undefined;
-  const to = (opts.to ?? [delivery.notifyEmail]).filter(Boolean) as string[];
+  const recipients = opts.agentId ? await agentRecipients(opts.agentId,delivery.notifyEmail).catch(()=>({to:[],cc:[]})) : {to:(opts.to ?? [delivery.notifyEmail]).filter(Boolean) as string[],cc:[] as string[]};
+  const {to,cc}=recipients;
   const from = delivery.sender;
   if (resendKey && to.length && from) {
     try {
@@ -138,7 +145,7 @@ export async function notifyGeneric(opts: {
           authorization: `Bearer ${resendKey}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ from, reply_to: delivery.notifyEmail, to, subject: opts.subject, text: opts.text, html: houseproEmail(opts.subject, opts.text) }),
+        body: JSON.stringify({ from, reply_to: opts.replyTo||delivery.notifyEmail, to, cc, subject: opts.subject, text: opts.text, html: opts.html||houseproEmail(opts.subject, opts.text) }),
         signal: AbortSignal.timeout(8000),
       });
       if (res.ok) channels.push("email");

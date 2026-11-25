@@ -30,6 +30,8 @@ export interface AgencyNewsItem {
   title: string;
   body: string;
   date: string;
+  category?: "Comunidade" | "Mercado local" | "Recrutamento" | "Tecnologia" | "Projetos" | "Agência";
+  image?: string;
 }
 
 /** Prémio/distinção da agência (mostrado na ficha pública). */

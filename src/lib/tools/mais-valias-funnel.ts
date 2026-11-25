@@ -5,6 +5,8 @@
  * e-mail (onde os valores são apresentados — nunca no website).
  */
 import type { NewLead } from "@/lib/db/repo";
+import {escapeHtml} from "@/lib/email-template";
+import {AGENCY_INDEPENDENCE_NOTICE} from "@/lib/brand-disclaimer";
 import { parseCampaign, resolveConsultant, isValidEmail, isValidPhone } from "@/lib/valuation";
 import {
   calcularMaisValias, ENGINE_VERSION, FISCAL_YEAR, LAST_REVIEWED, SOURCES,
@@ -41,6 +43,14 @@ export interface MvSubmission {
   valorReinvestido?: string;
   divida?: string;
   taxaMarginal?: string; // rate as string; "-1" = não indicar
+  advanced?: boolean;
+  rendimentoColetavel?: string; rendimentoConjuge?: string;
+  tributacaoConjunta?: boolean; dependentes?: string;
+  domicilioFiscal12Meses?: boolean; reinvestimentoNoPrazo?: boolean; reinvestimentoFundosProprios?: boolean;
+  apoioPublicoRelevante?: boolean; outroGanhoMesmoAno?: boolean; situacaoEspecial?: boolean;
+  dataSource?: "cliente_ligacao" | "email" | "telefone" | "presencial";
+  consentRecorded?: boolean;
+  vptRealizacao?: string; dataAquisicao?: string; dataVenda?: string;
   // Etapa 4 — Contacto
   name?: string; email?: string; phone?: string;
   contactPreference?: "telefone" | "whatsapp" | "email";
@@ -73,11 +83,20 @@ export function validateStep(step: number, s: MvSubmission): Record<string, stri
     if (s.phone && !isValidPhone(s.phone)) e.phone = "Telefone inválido.";
     if (!s.consent) e.consent = "É necessário o seu consentimento para tratarmos o pedido e enviar o relatório.";
   }
+  if(step===2&&s.advanced){
+    if(s.rendimentoColetavel && (num(s.rendimentoColetavel)<0||num(s.rendimentoColetavel)>100000000))e.rendimentoColetavel="Indique um rendimento coletável válido.";
+    if(s.rendimentoConjuge && (num(s.rendimentoConjuge)<0||num(s.rendimentoConjuge)>100000000))e.rendimentoConjuge="Indique um rendimento válido.";
+    if(s.tributacaoConjunta&&s.rendimentoColetavel&&!s.rendimentoConjuge)e.rendimentoConjuge="Indique o rendimento coletável do cônjuge (0 se não houver).";
+    if(s.dependentes&&(!Number.isInteger(num(s.dependentes))||num(s.dependentes)>30||num(s.dependentes)<0))e.dependentes="Indique o número de dependentes.";
+    if((s.rendimentoColetavel||s.rendimentoConjuge)&&(!s.dataSource||!s.consentRecorded))e.consentRecorded="Registe a forma de recolha e a autorização do cliente antes de utilizar rendimentos fiscais.";
+    if(s.dataAquisicao&&s.anoAquisicao&&Number(s.dataAquisicao.slice(0,4))!==Number(s.anoAquisicao))e.dataAquisicao="A data deve coincidir com o ano de aquisição.";
+    if(s.dataVenda&&s.anoVenda&&Number(s.dataVenda.slice(0,4))!==Number(s.anoVenda))e.dataVenda="A data deve coincidir com o ano de venda.";
+  }
   return e;
 }
 
 export function validateSubmission(s: MvSubmission): Record<string, string> {
-  return { ...validateStep(0, s), ...validateStep(3, s) };
+  return { ...validateStep(0, s), ...validateStep(2, s), ...validateStep(3, s) };
 }
 
 /** Converte a submissão no input do motor fiscal. */
@@ -108,6 +127,19 @@ export function toEngineInput(s: MvSubmission): MaisValiasInput {
     valorReinvestido: num(s.valorReinvestido) || undefined,
     divida: num(s.divida) || undefined,
     taxaMarginalEstimada: rate > 0 ? rate : undefined,
+    rendimentoColetavel:s.advanced&&s.rendimentoColetavel!==undefined&&s.rendimentoColetavel!==""?num(s.rendimentoColetavel):undefined,
+    rendimentoConjuge:s.advanced&&s.tributacaoConjunta?num(s.rendimentoConjuge):undefined,
+    tributacaoConjunta:s.advanced&&!!s.tributacaoConjunta,
+    dependentes:s.advanced?num(s.dependentes):undefined,
+    domicilioFiscal12Meses:s.advanced?s.domicilioFiscal12Meses:undefined,
+    reinvestimentoNoPrazo:s.advanced?s.reinvestimentoNoPrazo:undefined,
+    reinvestimentoFundosProprios:s.advanced?s.reinvestimentoFundosProprios:undefined,
+    apoioPublicoRelevante:s.advanced&&s.apoioPublicoRelevante,
+    outroGanhoMesmoAno:s.advanced&&s.outroGanhoMesmoAno,
+    situacaoEspecial:s.advanced&&s.situacaoEspecial,
+    vptRealizacao:s.advanced?num(s.vptRealizacao):undefined,
+    dataAquisicao:s.advanced?s.dataAquisicao:undefined,
+    dataVenda:s.advanced?s.dataVenda:undefined,
   };
 }
 
@@ -180,6 +212,8 @@ export function buildEmailReport(s: MvSubmission, r: MaisValiasResult): { subjec
     `• Reinvestimento: ${s.reinvestimento ? "sim" : "não"} · Valor: ${eur(num(s.valorReinvestido))}`,
     `• Dívida: ${eur(num(s.divida))}`,
     `• Taxa marginal indicada: ${input.taxaMarginalEstimada != null ? `${input.taxaMarginalEstimada * 100}%` : "não indicada"}`,
+    input.rendimentoColetavel!==undefined?`• Rendimento coletável sem a venda: ${eur(input.rendimentoColetavel)}${input.tributacaoConjunta?` · cônjuge: ${eur(input.rendimentoConjuge??0)}`:""}`:null,
+    s.advanced?`• Agregado: ${input.tributacaoConjunta?"tributação conjunta":"individual"} · dependentes: ${input.dependentes??0}`:null,
     `• Ano de aquisição: ${s.anoAquisicao ?? "—"} · Ano de venda: ${s.anoVenda ?? "—"}`,
     `• Percentagem de propriedade: ${s.quota ?? "100"}%`,
     `• Residência fiscal: ${s.residencia ?? "residente"}`,
@@ -191,7 +225,7 @@ export function buildEmailReport(s: MvSubmission, r: MaisValiasResult): { subjec
     r.reinvestimentoFracao > 0 ? `• Reinvestimento aplicado: ${Math.round(r.reinvestimentoFracao * 100)}%` : null,
     `• Base potencialmente sujeita a tributação (50%): ${eur(r.baseTributavel)}`,
     r.impostoEstimado != null
-      ? `• Imposto estimado (com a taxa indicada): ${eur(r.impostoEstimado)}`
+      ? `• Variação indicativa do IRS pela venda: ${eur(r.impostoEstimado)}`
       : "• Imposto final: depende dos restantes rendimentos, agregado familiar e regras aplicáveis ao seu caso.",
     "",
     "NOTAS",
@@ -202,13 +236,27 @@ export function buildEmailReport(s: MvSubmission, r: MaisValiasResult): { subjec
     `Ano fiscal considerado: ${r.fiscalYear} · Última revisão: ${LAST_REVIEWED} · Versão: ${r.engineVersion}`,
     "Fontes: " + SOURCES.join("; ") + ".",
     "",
-    "NOTA IMPORTANTE",
+    "NOTA IMPORTANTE — ESTIMATIVA, NÃO É LIQUIDAÇÃO DE IRS",
     "Esta ferramenta fornece uma estimativa meramente indicativa, baseada nos dados introduzidos e nas regras gerais aplicáveis. Não substitui aconselhamento fiscal, contabilístico ou jurídico, nem constitui uma liquidação oficial da Autoridade Tributária.",
     "",
     "Um consultor HousePro poderá contactá-lo para ajudar a interpretar a simulação e esclarecer o seu caso.",
+    AGENCY_INDEPENDENCE_NOTICE,
   ].filter(Boolean) as string[];
 
   return { subject: "A sua simulação de mais-valias imobiliárias", text: linhas.join("\n") };
+}
+
+export function renderMvReportEmail(report:{subject:string;text:string},agent?:{name?:string;email?:string;photo?:string;publicTitle?:string}){
+  const safe=escapeHtml;
+  const paragraphs=report.text.split("\n").map(line=>{
+    if(line.startsWith("NOTA IMPORTANTE"))return `<p style="font-size:15px;font-weight:800;color:#A31621;margin:24px 0 8px">${safe(line)}</p>`;
+    if(line.startsWith("Esta ferramenta fornece"))return `<p style="font-weight:700;line-height:1.6;color:#27364b">${safe(line)}</p>`;
+    if(["RESUMO DOS DADOS","ESTIMATIVA","NOTAS","METODOLOGIA E FONTES"].includes(line))return `<h2 style="font-size:14px;letter-spacing:1px;color:#0D3B66;border-top:1px solid #e7edf1;padding-top:16px;margin:22px 0 9px">${safe(line)}</h2>`;
+    return line?`<p style="margin:5px 0;line-height:1.6">${safe(line)}</p>`:"";
+  }).join("");
+  const photo=agent?.photo&&/^https:\/\//.test(agent.photo)?`<img src="${safe(agent.photo)}" alt="Fotografia do consultor" width="68" height="68" style="border-radius:50%;object-fit:cover">`:"";
+  const consultant=agent?.name?`<tr><td style="padding:22px 32px;border-top:1px solid #e5e7eb"><table role="presentation"><tr><td style="padding-right:15px">${photo}</td><td><strong>${safe(agent.name)}</strong><br>${safe(agent.publicTitle||"Consultor imobiliário HousePro")}<br>${agent.email?`<a href="mailto:${safe(agent.email)}" style="color:#A31621">${safe(agent.email)}</a>`:""}</td></tr></table></td></tr>`:"";
+  return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f3f5f7;color:#182638;font-family:Arial,sans-serif"><table role="presentation" width="100%"><tr><td align="center" style="padding:28px 10px"><table role="presentation" width="600" style="width:100%;max-width:600px;background:white;border:1px solid #e5e7eb"><tr><td style="border-top:6px solid #0D3B66;padding:24px 32px"><img src="https://housepro.pt/brand/housepro-designer-red.png" alt="HousePro" width="180" style="display:block;height:auto"></td></tr><tr><td style="padding:12px 32px 28px"><p style="color:#A31621;font-size:11px;letter-spacing:2px;font-weight:bold">CLÍNICA DE FINANÇAS · HOUSEPRO</p><h1 style="font-family:Georgia,serif;font-size:26px;color:#0D3B66">${safe(report.subject)}</h1><p style="text-align:right;margin:0"><img src="https://housepro.pt/brand/housepro-designer-mark.png" width="35" alt="" style="opacity:.16"></p>${paragraphs}</td></tr>${consultant}<tr><td style="background:#0D3B66;padding:20px 32px;color:white;font-size:12px">HousePro · Paixão pelo que fazemos<br><a href="https://housepro.pt/privacidade" style="color:white">Privacidade</a><p style="margin:12px 0 0;color:#cbd5e1;font-size:11px">${safe(AGENCY_INDEPENDENCE_NOTICE)}</p></td></tr></table></td></tr></table></body></html>`;
 }
 
 export function dedupeKey(s: MvSubmission): string {

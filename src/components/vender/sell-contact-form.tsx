@@ -19,7 +19,7 @@ export function SellContactForm() {
     <div className="sm:col-span-2"><p className="text-xs font-bold uppercase tracking-[.16em] text-[#d62832]">Fale connosco</p><h2 className="mt-1 font-display text-2xl">Quer vender bem? Comecemos por conversar.</h2></div>
     <input required name="name" placeholder="O seu nome" className="h-12 rounded-xl border px-4 text-sm" />
     <input required name="phone" inputMode="tel" placeholder="Telefone" className="h-12 rounded-xl border px-4 text-sm" />
-    <input name="email" type="email" placeholder="E-mail (opcional)" className="h-12 rounded-xl border px-4 text-sm" />
+    <input required name="email" type="email" placeholder="E-mail" className="h-12 rounded-xl border px-4 text-sm" />
     <input required name="location" placeholder="Freguesia ou concelho do imóvel" className="h-12 rounded-xl border px-4 text-sm" />
     <select required name="propertyType" defaultValue="" className="h-12 rounded-xl border bg-white px-4 text-sm"><option value="" disabled>Tipo de imóvel</option>{PROPERTY_TYPES.map(x=><option key={x}>{x}</option>)}</select>
     <select required name="propertyCondition" defaultValue="" className="h-12 rounded-xl border bg-white px-4 text-sm"><option value="" disabled>Estado do imóvel</option>{PROPERTY_CONDITIONS.map(x=><option key={x}>{x}</option>)}</select>

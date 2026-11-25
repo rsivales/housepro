@@ -10,6 +10,7 @@ import { TopConcelhos } from "@/components/home/top-concelhos";
 import { AgentAvatar } from "@/components/brand/agent-avatar";
 import { listPropertiesByAgency, listSoldByAgency, getAgencyBySlug, listActiveAgentsByAgency } from "@/lib/db/repo";
 import { applyOrdering } from "@/lib/data/ordering";
+import { AGENCY_INDEPENDENCE_NOTICE } from "@/lib/brand-disclaimer";
 import { topConcelhos } from "@/lib/data/concelhos";
 
 export async function generateMetadata({
@@ -57,6 +58,7 @@ export default async function AgenciaPage({
             {agency.description && (
               <p className="mt-3 max-w-2xl text-muted-foreground">{agency.description}</p>
             )}
+            <Link href={`/subscrever?agencia=${agency.id}`} className="mt-5 inline-flex rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Receber novidades desta agência</Link>
 
             {agency.services && agency.services.length > 0 && (
               <div className="mt-5 flex flex-wrap gap-2">
@@ -161,12 +163,16 @@ export default async function AgenciaPage({
               </h2>
               <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {agency.news.map((n) => (
-                  <article key={n.id} className="rounded-2xl border bg-card p-5 shadow-sm">
+                  <article key={n.id} className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+                    {n.image && <div className="aspect-[16/9] bg-secondary" style={{backgroundImage: "url(" + JSON.stringify(n.image) + ")", backgroundSize: "cover", backgroundPosition: "center"}} role="img" aria-label={n.title} />}
+                    <div className="p-5">
                     <p className="text-xs text-muted-foreground">
+                      {n.category && <span className="mr-2 font-semibold uppercase text-primary">{n.category}</span>}
                       {new Date(n.date).toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" })}
                     </p>
                     <h3 className="mt-1 font-display text-lg">{n.title}</h3>
                     <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{n.body}</p>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -181,11 +187,9 @@ export default async function AgenciaPage({
               <strong className="font-medium text-foreground">
                 Gestão independente.
               </strong>{" "}
-              A agência {agency.name} é gerida de forma autónoma e independente
-              pelos seus responsáveis. A marca HousePro disponibiliza a plataforma
-              e a montra online, mas não é responsável pela gestão, pelos atos,
-              contratos ou obrigações desta agência — que respondem exclusivamente
-              perante os seus próprios titulares.
+              A agência {agency.name} tem gestão autónoma. {AGENCY_INDEPENDENCE_NOTICE}
+              {agency.amiLicense && <> Licença de mediação imobiliária desta agência: AMI {agency.amiLicense}.</>}
+              {agency.nipc && <> NIPC: {agency.nipc}.</>}
             </p>
           </div>
         </section>

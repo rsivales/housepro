@@ -9,10 +9,11 @@ import { normalizeContactPhone } from "@/lib/phone";
 
 const CONTACT_KEY = "housepro:call-contact";
 
-type StoredContact = { name?: string; phone?: string };
+type StoredContact = { name?: string; phone?: string; email?: string };
 
 export function CallCaptureButton({
   telHref,
+  channel = "Chamada",
   agentName,
   propertyId,
   refId,
@@ -21,6 +22,7 @@ export function CallCaptureButton({
   ariaLabel,
 }: {
   telHref: string;
+  channel?: "Chamada" | "WhatsApp" | "SMS";
   agentName: string;
   propertyId?: string;
   refId?: string;
@@ -30,11 +32,12 @@ export function CallCaptureButton({
 }) {
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [consent, setConsent] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
-  const sessionKey = `housepro:call-registered:${propertyId ?? refId ?? agentName}`;
+  const sessionKey = `housepro:contact-registered:v2:${channel}:${propertyId ?? refId ?? agentName}`;
 
   React.useEffect(() => {
     if (!open) return;
@@ -42,6 +45,7 @@ export function CallCaptureButton({
       const stored = JSON.parse(localStorage.getItem(CONTACT_KEY) || "{}") as StoredContact;
       setName(stored.name ?? "");
       setPhone(stored.phone ?? "");
+      setEmail(stored.email ?? "");
     } catch {
       // O formulário continua vazio se o armazenamento estiver indisponível.
     }
@@ -62,7 +66,7 @@ export function CallCaptureButton({
   }, [open, submitting]);
 
   function start() {
-    track("pdp_call_click");
+    track(channel === "WhatsApp" ? "pdp_whatsapp_click" : channel === "SMS" ? "pdp_sms_click" : "pdp_call_click");
     if (propertyId) recordEngagement(propertyId, "contact");
     try {
       if (sessionStorage.getItem(sessionKey) === "1") {
@@ -97,16 +101,17 @@ export function CallCaptureButton({
         body: JSON.stringify({
           propertyId,
           ref: refId,
-          channel: "Chamada identificada",
+          channel: channel === "Chamada" ? "Chamada identificada" : channel,
           clientName: name.trim(),
           clientPhone: normalized,
+          clientEmail: email.trim(),
           consent: true,
           pageUrl: window.location.href,
         }),
       });
       if (!response.ok) throw new Error("save_failed");
       try {
-        localStorage.setItem(CONTACT_KEY, JSON.stringify({ name: name.trim(), phone: normalized }));
+        localStorage.setItem(CONTACT_KEY, JSON.stringify({ name: name.trim(), phone: normalized, email: email.trim() }));
         sessionStorage.setItem(sessionKey, "1");
       } catch {
         // O registo no Helix já foi concluído; storage é apenas conveniência.
@@ -130,18 +135,21 @@ export function CallCaptureButton({
           <section role="dialog" aria-modal="true" aria-labelledby="call-capture-title" className="w-full rounded-t-3xl bg-white p-5 text-left shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[.16em] text-[var(--hp-red)]">Contacto telefónico</p>
-                <h2 id="call-capture-title" className="mt-1 text-xl font-semibold text-[var(--hp-navy)]">Antes de ligar a {agentName}</h2>
+                <p className="text-xs font-semibold uppercase tracking-[.16em] text-[var(--hp-red)]">{channel === "Chamada" ? "Contacto telefónico" : `Contacto por ${channel}`}</p>
+                <h2 id="call-capture-title" className="mt-1 text-xl font-semibold text-[var(--hp-navy)]">Antes de contactar {agentName}</h2>
               </div>
               <button type="button" onClick={() => setOpen(false)} aria-label="Fechar" className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--hp-navy)] hover:bg-black/5"><X className="size-5" /></button>
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">Indique o seu número para podermos ligar de volta caso a chamada não seja atendida ou seja interrompida.</p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">Deixe nome, telefone e email para o consultor poder responder e acompanhar o seu pedido.</p>
             <form onSubmit={submit} className="mt-5 space-y-4">
-              <label className="block text-sm font-medium text-[var(--hp-navy)]">Nome <span className="font-normal text-slate-500">(opcional)</span>
-                <input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" className="mt-1.5 min-h-12 w-full rounded-xl border px-3 outline-none focus:border-[var(--hp-navy)] focus:ring-2 focus:ring-[var(--hp-navy)]/15" />
+              <label className="block text-sm font-medium text-[var(--hp-navy)]">Nome
+                <input required value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" className="mt-1.5 min-h-12 w-full rounded-xl border px-3 outline-none focus:border-[var(--hp-navy)] focus:ring-2 focus:ring-[var(--hp-navy)]/15" />
               </label>
               <label className="block text-sm font-medium text-[var(--hp-navy)]">Número de telefone
-                <input value={phone} onChange={(event) => setPhone(event.target.value)} required autoFocus type="tel" inputMode="tel" autoComplete="tel" placeholder="Ex.: 912 345 678" className="mt-1.5 min-h-12 w-full rounded-xl border px-3 outline-none focus:border-[var(--hp-navy)] focus:ring-2 focus:ring-[var(--hp-navy)]/15" />
+                <input value={phone} onChange={(event) => setPhone(event.target.value)} required type="tel" inputMode="tel" autoComplete="tel" placeholder="Ex.: 912 345 678" className="mt-1.5 min-h-12 w-full rounded-xl border px-3 outline-none focus:border-[var(--hp-navy)] focus:ring-2 focus:ring-[var(--hp-navy)]/15" />
+              </label>
+              <label className="block text-sm font-medium text-[var(--hp-navy)]">Email
+                <input required type="email" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" className="mt-1.5 min-h-12 w-full rounded-xl border px-3" />
               </label>
               <label className="flex items-start gap-3 text-xs leading-5 text-slate-600">
                 <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-1 size-4 shrink-0 accent-[var(--hp-red)]" />
@@ -150,7 +158,7 @@ export function CallCaptureButton({
               {error && <p role="alert" className="text-sm font-medium text-[var(--hp-red)]">{error}</p>}
               <button disabled={submitting} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--hp-red)] px-5 text-sm font-semibold text-white disabled:opacity-60">
                 {submitting ? <Loader2 className="size-4 animate-spin" /> : <Phone className="size-4" />}
-                {submitting ? "A guardar…" : "Guardar e ligar agora"}
+                {submitting ? "A guardar…" : channel === "Chamada" ? "Guardar e ligar agora" : `Guardar e abrir ${channel}`}
               </button>
             </form>
           </section>

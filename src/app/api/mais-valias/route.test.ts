@@ -13,7 +13,7 @@ describe("capital gains intake recovery",()=>{
   const res=await POST(request(submission,"failure"));
   expect(res.status).toBe(503);expect(mocks.email).not.toHaveBeenCalled();expect(mocks.notify).not.toHaveBeenCalled();
  });
- it("saves a complete report and the real consultant reference before emailing",async()=>{
+ it("keeps sensitive report details out of the lead and webhook",async()=>{
   const order:string[]=[];
   mocks.create.mockImplementationOnce(async input=>{order.push("save");return {...input,id:"saved-id",status:"novo",createdAt:new Date().toISOString()};});
   mocks.email.mockImplementationOnce(async()=>{order.push("email");return [];});
@@ -21,6 +21,7 @@ describe("capital gains intake recovery",()=>{
   expect(res.status).toBe(200);expect(await res.json()).toMatchObject({id:"saved-id",emailStatus:"pendente"});
   expect(order).toEqual(["save","email"]);
   const saved=mocks.create.mock.calls[0][0];
-  expect(saved.ownerId).toBe(submission.ref);expect(saved.message).toContain("Base potencialmente sujeita a tributação");expect(saved.message).toContain("Valor de venda");
+  expect(saved.ownerId).toBe(submission.ref);expect(saved.message).not.toContain("Base potencialmente sujeita a tributação");expect(saved.message).not.toContain("320000");
+  expect(mocks.email.mock.calls[0][0]).toMatchObject({privateReport:true});
  });
 });

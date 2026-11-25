@@ -7,6 +7,7 @@ import { ArrowLeft, ImagePlus, RotateCcw } from "lucide-react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { UploadProgress, type UploadState } from "@/components/admin/upload-progress";
 import { PendingNewsQueue } from "@/components/admin/pending-news-queue";
+import { NewsCommentsBoard } from "@/components/admin/news-comments-board";
 import { getNews, newsImage, type NewsItem } from "@/lib/data/news";
 import { readNewsImages, writeNewsImages, loadSiteContent, uploadSiteImage, uploadErrorMessage, type NewsImageMap } from "@/lib/data/site-content";
 
@@ -59,6 +60,7 @@ export default function ArtigosAdminPage() {
         <div className="mt-8">
           <PendingNewsQueue />
         </div>
+        <NewsCommentsBoard articles={articles.map(a => ({ id: a.id, title: a.title }))} />
 
         <h2 className="mt-2 font-display text-xl">Imagens dos artigos publicados</h2>
         <div className="mt-4 space-y-3">

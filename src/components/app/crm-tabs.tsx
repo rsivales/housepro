@@ -19,6 +19,7 @@ export function CrmTabs({
   agencies = [],
   prefill,
   canManage = false,
+  viewerId,
 }: {
   deals: DealListItem[];
   leads: LeadCard[];
@@ -27,6 +28,7 @@ export function CrmTabs({
   prefill?: CrmBoardPrefill;
   /** Staff (coordenação/direção/admin) — pode apagar negócios. */
   canManage?: boolean;
+  viewerId: string;
 }) {
   const [tab, setTab] = React.useState<string>("negocios");
 
@@ -103,7 +105,7 @@ export function CrmTabs({
 
       <div className="mt-6">
         {!pipeline ? (
-          <CrmBoard initial={deals} agencies={agencies} prefill={prefill} canManage={canManage} />
+          <CrmBoard initial={deals} agencies={agencies} prefill={prefill} canManage={canManage} viewerId={viewerId} />
         ) : (
           <div>
             <p className="text-sm font-medium text-primary">Área do consultor</p>

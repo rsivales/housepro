@@ -1,3 +1,4 @@
+import { requestIdentity } from "@/lib/leads/identity";
 import { NextResponse } from "next/server";
 
 import { getPropertyById, getAgentPublicById, createLead } from "@/lib/db/repo";
@@ -30,8 +31,9 @@ export async function POST(request: Request) {
   const propertyId = body.propertyId ? String(body.propertyId) : undefined;
   const ref = body.ref ? String(body.ref) : undefined;
 
-  if (!name || !contact) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+  const identity = requestIdentity(name,contact,body.email);
+  if (!identity) {
+    return NextResponse.json({ error: "Indique nome, telefone válido e email válido." }, { status: 400 });
   }
   if (!consent) {
     return NextResponse.json({ error: "consent_required" }, { status: 400 });
@@ -69,9 +71,9 @@ export async function POST(request: Request) {
     propertyRef: property?.reference,
     ownerId: owner?.id ?? ownerId,
     referrerId,
-    name,
-    contact,
-    email: body.email ? String(body.email) : undefined,
+    name:identity.name,
+    contact:identity.phone,
+    email:identity.email,
     intent,
     message: body.message ? String(body.message) : undefined,
     preferredAt: body.preferredAt ? String(body.preferredAt) : undefined,

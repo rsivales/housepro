@@ -3,6 +3,7 @@ import { Mail, MapPin, Globe } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 import { site, fullAddress } from "@/lib/site";
+import { AGENCY_INDEPENDENCE_NOTICE } from "@/lib/brand-disclaimer";
 
 const SOCIAL: { label: string; href: string; path: string }[] = [
   { label: "Instagram", href: "https://instagram.com/", path: "M12 2.2c3.2 0 3.6 0 4.9.07 1.17.05 1.8.25 2.23.42.56.22.96.48 1.38.9.42.42.68.82.9 1.38.17.42.37 1.06.42 2.23.06 1.27.07 1.65.07 4.85s0 3.58-.07 4.85c-.05 1.17-.25 1.8-.42 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.17-1.06.37-2.23.42-1.27.06-1.65.07-4.85.07s-3.58 0-4.85-.07c-1.17-.05-1.8-.25-2.23-.42a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.17-.42-.37-1.06-.42-2.23C2.2 15.58 2.2 15.2 2.2 12s0-3.58.07-4.85c.05-1.17.25-1.8.42-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.17 1.06-.37 2.23-.42C8.42 2.2 8.8 2.2 12 2.2Zm0 3.05A6.75 6.75 0 1 0 18.75 12 6.75 6.75 0 0 0 12 5.25Zm0 11.13A4.38 4.38 0 1 1 16.38 12 4.38 4.38 0 0 1 12 16.38Zm6.96-11.4a1.58 1.58 0 1 1-1.58-1.58 1.58 1.58 0 0 1 1.58 1.58Z" },
@@ -15,6 +16,7 @@ const COLS: { title: string; links: { label: string; href: string }[] }[] = [
     title: "Imóveis",
     links: [
       { label: "Comprar", href: "/imoveis?operacao=comprar" },
+      { label: "IMT na compra", href: "/ferramentas/imt" },
       { label: "Arrendar", href: "/imoveis?operacao=arrendar" },
       { label: "Investir", href: "/investir" },
       { label: "Vender", href: "/vender" },
@@ -24,7 +26,9 @@ const COLS: { title: string; links: { label: string; href: string }[] }[] = [
     title: "Apoio",
     links: [
       { label: "Ferramentas", href: "/ferramentas" },
+      { label: "Calcular IMT e Selo", href: "/ferramentas/imt" },
       { label: "Guia HousePro", href: "/noticias" },
+      { label: "Subscrever newsletter", href: "/subscrever?origem=rodape" },
       { label: "Crédito", href: "/credito" },
       { label: "FAQ", href: "/ferramentas" },
     ],
@@ -108,6 +112,7 @@ export function PublicFooter() {
           <p>© {new Date().getFullYear()} HousePro · {site.legalName} · AMI {site.amiLicense} · {fullAddress}</p>
           <p>Resultados de ferramentas indicativos e sem valor contratual.</p>
         </div>
+        <p className="mt-3 max-w-4xl text-xs leading-relaxed text-muted-foreground">{AGENCY_INDEPENDENCE_NOTICE}</p>
       </div>
     </footer>
   );

@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
+import { AGENCY_INDEPENDENCE_NOTICE } from "@/lib/brand-disclaimer";
 import {
   ArrowRight,
   BarChart3,
@@ -61,6 +62,7 @@ export function CreditLanding() {
     [country, setCountry] = React.useState("Portugal"),
     [name, setName] = React.useState(""),
     [email, setEmail] = React.useState(""),
+    [phone,setPhone] = React.useState(""),
     [consent, setConsent] = React.useState(false),
     [status, setStatus] = React.useState<"idle" | "sending" | "sent" | "error">(
       "idle",
@@ -93,6 +95,8 @@ export function CreditLanding() {
           channel: "credito_habitacao",
           clientName: name,
           clientEmail: email,
+          clientPhone:phone,
+          consent,
           objetivo: `${goals[goal].label} · ${price} € · ${years} anos · ${holders} titular(es)`,
         }),
       });
@@ -485,6 +489,9 @@ export function CreditLanding() {
                   placeholder="O seu nome"
                 />
               </label>
+              <label className="field-label mt-4">Telefone
+                <input required type="tel" className="field" value={phone} onChange={e=>setPhone(e.target.value)} autoComplete="tel" />
+              </label>
               <label className="field-label mt-4">
                 E-mail
                 <input
@@ -635,6 +642,7 @@ export function CreditLanding() {
             As simulações são indicativas e não constituem proposta de crédito.
           </p>
         </div>
+        <p className="mx-auto max-w-[1440px] px-6 pb-6 text-[11px] leading-relaxed text-[#586a7e] lg:px-12">{AGENCY_INDEPENDENCE_NOTICE}</p>
       </footer>
       <style jsx global>{`
         .field-label {

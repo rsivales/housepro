@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { DEAL_STEPS, type DealStage } from "@/lib/data/deal";
 import type { PropertyStatus } from "@/lib/data/types";
+import { listClientDealTasks, type DealTask } from "@/lib/db/deal-tasks";
 
 /** Garante um token de portal do proprietário para o imóvel e devolve-o. */
 export async function ensureOwnerToken(propertyId: string): Promise<string | null> {
@@ -28,6 +29,9 @@ export interface OwnerPortal {
   leadsCount: number;
   dealStage: DealStage | null;
   milestones: { stage: DealStage; label: string; reached: boolean; at?: string }[];
+  dealId: string | null;
+  /** Só as tarefas destinadas ao vendedor — acompanha, nunca valida. */
+  tasks: DealTask[];
 }
 
 /** Dados (só leitura) do portal do proprietário a partir do token. */
@@ -40,6 +44,22 @@ export async function getOwnerPortalData(token: string): Promise<OwnerPortal | n
     .eq("owner_token", token)
     .maybeSingle();
   if (!p) return null;
+  return buildOwnerPortal(p);
+}
+
+/** Imóveis associados ao email verificado da conta do proprietário. Não
+ * expõe tokens nem associa imóveis apenas por um nome semelhante. */
+export async function getOwnerPortalsByEmail(email: string): Promise<OwnerPortal[]> {
+  if (!hasServiceRole() || !email.trim()) return [];
+  const { data, error } = await createAdminClient().from("properties")
+    .select("id, reference, title, municipality, status, off_market, interest")
+    .eq("owner_email", email.trim().toLowerCase()).limit(20);
+  if (error) return [];
+  return Promise.all((data ?? []).map(buildOwnerPortal));
+}
+
+async function buildOwnerPortal(p: { id: unknown; reference?: unknown; title?: unknown; municipality?: unknown; status?: unknown; off_market?: unknown; interest?: unknown }): Promise<OwnerPortal> {
+  const sb = createAdminClient();
   const id = String(p.id);
   const ref = String(p.reference ?? "");
 
@@ -56,7 +76,7 @@ export async function getOwnerPortalData(token: string): Promise<OwnerPortal | n
   const { count: leadsCount } = await sb
     .from("leads")
     .select("id", { count: "exact", head: true })
-    .eq("property_id", id);
+    .eq("property_id", id).eq("interaction_only",false);
 
   // Negócio mais recente + eventos (marcos da transação).
   const { data: deal } = await sb
@@ -88,6 +108,8 @@ export async function getOwnerPortalData(token: string): Promise<OwnerPortal | n
     at: reachedAt.get(s.stage) || undefined,
   }));
 
+  const tasks = deal?.id ? await listClientDealTasks(String(deal.id), "seller") : [];
+
   return {
     ref,
     title: String(p.title ?? ""),
@@ -100,5 +122,7 @@ export async function getOwnerPortalData(token: string): Promise<OwnerPortal | n
     leadsCount: leadsCount ?? 0,
     dealStage: (deal?.stage as DealStage) ?? null,
     milestones,
+    dealId: deal?.id ? String(deal.id) : null,
+    tasks,
   };
 }

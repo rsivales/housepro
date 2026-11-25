@@ -8,7 +8,7 @@ import {
 
 const full: ValuationSubmission = {
   location: "Faro", propertyType: "Apartamento", propertyCondition: "Bom estado",
-  name: "Maria", email: "maria@example.com", phone: "", consent: true,
+  name: "Maria", email: "maria@example.com", phone: "912345678", consent: true,
   reason: "Quero conhecer o valor", timeframe: "Ainda não decidi",
 };
 
@@ -27,9 +27,10 @@ describe("validação por etapas", () => {
     expect(e.contact).toBeTruthy();
     expect(e.consent).toBeTruthy();
   });
-  it("aceita telefone OU email como contacto", () => {
-    expect(validateStep(2, { name: "A", phone: "912345678", consent: true })).toEqual({});
-    expect(validateStep(2, { name: "A", email: "a@b.pt", consent: true })).toEqual({});
+  it("exige telefone E email", () => {
+    expect(validateStep(2, { name: "A", phone: "912345678", consent: true }).contact).toBeTruthy();
+    expect(validateStep(2, { name: "A", email: "a@b.pt", consent: true }).contact).toBeTruthy();
+    expect(validateStep(2, { name: "A", phone:"912345678", email:"a@b.pt", consent:true })).toEqual({});
   });
   it("submissão completa é válida", () => {
     expect(validateSubmission(full)).toEqual({});

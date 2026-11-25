@@ -1,6 +1,7 @@
+import { operationalLead } from "./identity";
 import type {Lead} from "@/lib/data/leads";
 export const FOLLOWUP_ACTIONS={contactado:"Contacto realizado",tentativa:"Tentativa sem resposta",aguarda_cliente:"Aguarda resposta do cliente",acompanhamento:"Acompanhamento agendado",encerrado:"Encerrar acompanhamento"} as const;
-export function leadHasContact(l:Pick<Lead,"contact"|"email">){return Boolean(l.email?.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)||(l.contact??"").match(/^[+\d\s().-]{7,}$/)||(l.contact??"").match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/));}
+export function leadHasContact(l:Pick<Lead,"contact"|"email">){return operationalLead(l);}
 export function firstActionNeeded(l:Lead){return leadHasContact(l)&&l.status==="novo"&&!l.contactedAt&&!l.lastFollowupAt&&l.followupState!=="encerrado";}
 export function followupDue(l:Lead,now=new Date()){return leadHasContact(l)&&l.followupState!=="encerrado"&&!["perdido","convertido"].includes(l.status)&&Boolean(l.nextFollowupAt&&Date.parse(l.nextFollowupAt)<=now.getTime());}
 export function validateFollowup(v:unknown){

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
 import { site, fullAddress } from "@/lib/site";
+import { AGENCY_INDEPENDENCE_NOTICE } from "@/lib/brand-disclaimer";
 
 function FooterCol({
   title,
@@ -51,6 +52,7 @@ export function SiteFooter() {
               title="HousePro"
               links={[
                 { label: "Crédito habitação", href: "/credito" },
+                { label: "Calculadora de IMT e Selo", href: "/ferramentas/imt" },
                 { label: "Avaliação", href: "/avaliacao-imovel" },
                 { label: "Área de cliente", href: "/cliente" },
                 { label: "Indicar um amigo", href: "/indicar" },
@@ -79,6 +81,7 @@ export function SiteFooter() {
             nacional. Tratamos os seus dados nos termos da Política de
             Privacidade (RGPD).
           </p>
+          <p className="max-w-4xl leading-relaxed">{AGENCY_INDEPENDENCE_NOTICE}</p>
         </div>
       </div>
     </footer>

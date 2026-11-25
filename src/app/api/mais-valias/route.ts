@@ -6,7 +6,7 @@ import { agentEmail } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import {
-  validateSubmission, runSimulation, buildLead, buildEmailReport, dedupeKey,
+  validateSubmission, runSimulation, buildLead, buildEmailReport, renderMvReportEmail, dedupeKey,
   type MvSubmission,
 } from "@/lib/tools/mais-valias-funnel";
 
@@ -59,16 +59,24 @@ export async function POST(request: Request) {
   const report = buildEmailReport(s, result);
   const newLead = buildLead(s, result, "pendente");
   if (s.ref) { newLead.ownerId = s.ref; newLead.assignedAgentId = s.ref; }
-  newLead.message = `${newLead.message}\n\n${report.text}`;
+  // Dados fiscais não pertencem à ficha geral de leads.
   let lead;
   try {
     lead = await createLead(newLead);
   } catch {
     return NextResponse.json({ error: "persist_failed", retry: true }, { status: 503 });
   }
+  // Relatório completo isolado da ficha de lead; nunca enviar valores ao webhook.
+  if(isSupabaseConfigured()){
+    const {error:reportError}=await createAdminClient().from("mais_valias_reports").upsert({
+      lead_id:lead.id,submission:{...s,consent:!!s.consent,consentRecorded:!!s.consentRecorded},calculation:result,
+    },{onConflict:"lead_id"});
+    if(reportError)return NextResponse.json({error:"report_persist_failed",retry:true},{status:503});
+  }
+  const owner = lead.ownerId ? await getAgentPublicById(lead.ownerId) : undefined;
   let emailChannels: string[] = [];
   try {
-    emailChannels = await notifyGeneric({ subject: report.subject, text: report.text, to: [s.email] });
+    emailChannels = await notifyGeneric({ subject: report.subject, text: report.text, html:renderMvReportEmail(report,owner), replyTo:owner?agentEmail(owner):undefined, privateReport:true,to: [s.email] });
   } catch { /* saved for manual follow-up */ }
   const emailStatus = emailChannels.includes("email") ? "enviado" : "pendente";
   if (isSupabaseConfigured()) {
@@ -78,7 +86,6 @@ export async function POST(request: Request) {
   RECENT.set(key, { time: now, id: lead.id, emailStatus, needsAnalysis: result.needsAnalysis });
 
   // Notifica o consultor atribuído (best-effort).
-  const owner = lead.ownerId ? await getAgentPublicById(lead.ownerId) : undefined;
   try {
     await notifyLead(lead, { agentName: owner?.name, agentEmail: owner ? agentEmail(owner) : undefined, channel: "Calculadora mais-valias" });
   } catch { /* best-effort */ }

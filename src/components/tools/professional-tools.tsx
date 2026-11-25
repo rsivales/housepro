@@ -19,7 +19,7 @@ const TABS = [
   { id: "maisvalias", label: "Mais-valias", icon: Coins },
 ] as const;
 
-export function ProfessionalTools({consultantRef,readOnly=false,initialTab="imt"}:{consultantRef:string;readOnly?:boolean;initialTab?:"imt"|"credito"|"maisvalias"}) {
+export function ProfessionalTools({consultantRef,consultant,readOnly=false,initialTab="imt"}:{consultantRef:string;consultant?:{name?:string;email?:string;photo?:string;publicTitle?:string};readOnly?:boolean;initialTab?:"imt"|"credito"|"maisvalias"}) {
   const [tab, setTab] = React.useState<(typeof TABS)[number]["id"]>(initialTab);
   const publicHref = tab === "maisvalias" ? "/ferramentas/calculadora-mais-valias" : tab === "credito" ? "/credito" : "/ferramentas/imt";
 
@@ -92,7 +92,7 @@ export function ProfessionalTools({consultantRef,readOnly=false,initialTab="imt"
           {tab === "maisvalias" && (
             <>
               <p className="mb-6 rounded-xl border bg-secondary/40 p-4 text-sm text-muted-foreground">Estimativa de trabalho. Confirme sempre o enquadramento fiscal e os comprovativos antes de aconselhar o cliente.</p>
-              <div className="hp rounded-2xl"><MvForm mode="professional" consultantRef={consultantRef} readOnly={readOnly}/><div className="mt-5"><MethodologyLink/></div></div>
+              <div className="hp rounded-2xl"><MvForm mode="professional" consultantRef={consultantRef} consultant={consultant} readOnly={readOnly}/><div className="mt-5"><MethodologyLink/></div></div>
             </>
           )}
         </div>

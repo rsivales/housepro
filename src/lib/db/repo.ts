@@ -1,3 +1,4 @@
+import { operationalLead } from "@/lib/leads/identity";
 import {commissionCycles} from "@/lib/db/commission-cycles";
 import { leadAccessScope } from "@/lib/data/lead-access";
 import { isCommercialAgent } from "@/lib/data/agent-directory";
@@ -541,7 +542,9 @@ export async function insertNotifications(
  *  Sem `ids`, marca todas as não lidas — usado por "marcar todas como lidas". */
 export async function markNotificationsRead(userId: string, ids?: string[]): Promise<void> {
   if (!isSupabaseConfigured()) return;
-  const supabase = await createClient();
+  // The session-scoped client may be subject to RLS that silently updates zero rows.
+  // The authenticated API supplies the user ID; the admin query is strictly scoped to it.
+  const supabase = createAdminClient();
   let q = supabase.from("notifications").update({ read: true }).eq("user_id", userId);
   q = ids ? q.in("id", ids) : q.eq("read", false);
   const { error } = await q;
@@ -1053,7 +1056,7 @@ export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
     .select("*, property:properties!property_id(cover_url,reference)")
     .eq("owner_id", agentId)
     .order("created_at", { ascending: false });
-  return (data ?? []).map(mapLeadRow);
+  return (data ?? []).filter(operationalLead).map(mapLeadRow);
 }
 
 /** Mapeia uma linha da tabela `leads` para o modelo Lead (inclui campos Meta). */
@@ -1343,7 +1346,7 @@ export async function listMetaLeadsByAgent(agentId: string): Promise<Lead[]> {
       .not("campaign_id", "is", null)
       .or(`assigned_agent_id.eq.${agentId},commercial_origin_id.eq.${agentId}`)
       .order("created_at", { ascending: false });
-    return (data ?? []).map(mapLeadRow);
+    return (data ?? []).filter(operationalLead).map(mapLeadRow);
   } catch {
     return metaLeadsByAgent(agentId);
   }
@@ -1360,7 +1363,7 @@ export async function listUnassignedMetaLeads(): Promise<Lead[]> {
       .not("campaign_id", "is", null)
       .eq("unassigned", true)
       .order("created_at", { ascending: false });
-    return (data ?? []).map(mapLeadRow);
+    return (data ?? []).filter(operationalLead).map(mapLeadRow);
   } catch {
     return unassignedMetaLeads();
   }
@@ -1374,7 +1377,7 @@ export async function listAllMetaLeads(pipeline?: string): Promise<Lead[]> {
     let q = supabase.from("leads").select("*").not("campaign_id", "is", null);
     if (pipeline) q = q.eq("pipeline", pipeline);
     const { data } = await q.order("created_at", { ascending: false });
-    return (data ?? []).map(mapLeadRow);
+    return (data ?? []).filter(operationalLead).map(mapLeadRow);
   } catch {
     return allMetaLeads(pipeline);
   }
@@ -1800,7 +1803,7 @@ import {
   type Visit,
 } from "@/lib/data/contacts";
 
-function mapContact(r: Row): Contact {
+export function mapContact(r: Row): Contact {
   return {
     id: String(r.id),
     name: String(r.name ?? ""),

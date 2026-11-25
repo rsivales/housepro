@@ -49,6 +49,9 @@ export interface DealDetail extends DealListItem {
   angariadorId: string | null;
   consultorCompradorId: string | null;
   coordenadorId: string | null;
+  escrituraAt: string | null;
+  cpcvDeadlineAt: string | null;
+  transactionManagerId: string | null;
   buyerContact: {
     id: string;
     name: string;
@@ -80,6 +83,9 @@ interface DealRow {
   angariador_id?: string | null;
   consultor_comprador_id?: string | null;
   coordenador_id?: string | null;
+  escritura_at?: string | null;
+  cpcv_deadline_at?: string | null;
+  transaction_manager_id?: string | null;
   property?:
     | {
         reference?: string;
@@ -203,6 +209,11 @@ function mapDealDetail(r: DealRow): DealDetail {
       ? String(r.consultor_comprador_id)
       : null,
     coordenadorId: r.coordenador_id ? String(r.coordenador_id) : null,
+    escrituraAt: r.escritura_at ?? null,
+    cpcvDeadlineAt: r.cpcv_deadline_at ?? null,
+    transactionManagerId: r.transaction_manager_id
+      ? String(r.transaction_manager_id)
+      : null,
     buyerContact: bc?.id
       ? {
           id: String(bc.id),
@@ -216,7 +227,7 @@ function mapDealDetail(r: DealRow): DealDetail {
 }
 
 const DEAL_COLS =
-  "id, property_id, buyer_name, buyer_contact_id, seller_name, amount, stage, commission_type, commission_pct, commission_fixed, co_broker, co_broker_agency_id, co_broker_split_type, co_broker_split_pct, co_broker_split_fixed, updated_at, agency_id, angariador_id, consultor_comprador_id, coordenador_id";
+  "id, property_id, buyer_name, buyer_contact_id, seller_name, amount, stage, commission_type, commission_pct, commission_fixed, co_broker, co_broker_agency_id, co_broker_split_type, co_broker_split_pct, co_broker_split_fixed, updated_at, agency_id, angariador_id, consultor_comprador_id, coordenador_id, escritura_at, cpcv_deadline_at, transaction_manager_id";
 
 const SELECT = `${DEAL_COLS}, property:properties!property_id(reference, title, cover_url, operation, commission_justification, commission_split)`;
 

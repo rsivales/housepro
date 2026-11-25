@@ -18,6 +18,15 @@ export async function mayEditProperty(agent: Agent, id: string) {
   });
   return !error && data === true;
 }
+export async function mayReadProperty(agent: Agent, id: string) {
+  if (!hasServiceRole()) return false;
+  const { data, error } = await createAdminClient().rpc("portfolio_allowed", {
+    p_actor: agent.id,
+    p_property: id,
+    p_kind: "read",
+  });
+  return !error && data === true;
+}
 export function operationError(message: string) {
   if (/forbidden/.test(message))
     return {

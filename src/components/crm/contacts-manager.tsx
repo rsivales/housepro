@@ -2,17 +2,40 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Plus, Loader2, Search, ChevronRight, Phone, Mail } from "lucide-react";
+import { Plus, Loader2, Search, ChevronRight, Phone, Mail, Upload } from "lucide-react";
 
 import { BuyerFields } from "@/components/matching/buyer-fields";
 import { OcrCapture } from "@/components/matching/ocr-capture";
 import { buyerTemperature, TEMPERATURE_LABEL, type BuyerProfile } from "@/lib/matching/profile";
+import { parseContactsCsv } from "@/lib/data/contacts-import";
 import { Button } from "@/components/ui/button";
 import {
   CONTACT_TYPE_LABEL,
   type Contact,
   type ContactType,
 } from "@/lib/data/contacts";
+
+/** Cor do selo de urgência (mesmo esquema do CRM: quente/morna/fria). */
+const TEMPERATURE_BADGE: Record<ReturnType<typeof buyerTemperature>, string> = {
+  quente: "bg-primary/15 text-primary",
+  morno: "bg-gold/15 text-gold-foreground",
+  frio: "bg-secondary text-muted-foreground",
+  por_qualificar: "bg-secondary text-muted-foreground",
+};
+
+const FINANCING_LABEL: Record<NonNullable<BuyerProfile["financing"]>, string> = {
+  capitais_proprios: "Capitais próprios",
+  aprovado: "Crédito aprovado",
+  em_analise: "Crédito em análise",
+  por_iniciar: "Precisa de apoio no crédito",
+};
+
+const FINANCING_BADGE: Record<NonNullable<BuyerProfile["financing"]>, string> = {
+  capitais_proprios: "bg-secondary text-muted-foreground",
+  aprovado: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  em_analise: "bg-gold/15 text-gold-foreground",
+  por_iniciar: "bg-destructive/15 text-destructive",
+};
 
 /**
  * Lista e criação de contactos. Pesquisa por nome/contacto e filtro por tipo.
@@ -53,6 +76,41 @@ export function ContactsManager({ initial }: { initial: Contact[] }) {
   const [filter, setFilter] = React.useState<ContactType | "todos">("todos");
   const [kpi, setKpi] = React.useState<KpiKey | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [importing, setImporting] = React.useState(false);
+  const [importMsg, setImportMsg] = React.useState<string | null>(null);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportMsg(null);
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const { rows, errors } = parseContactsCsv(text);
+      if (rows.length === 0) {
+        setImportMsg(errors[0] ?? "Nenhuma linha válida encontrada.");
+        return;
+      }
+      const res = await fetch("/api/contacts/import", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Não foi possível importar.");
+      setList((prev) => [...(data.created as Contact[]), ...prev]);
+      const parts = [`${data.created.length} criado(s)`];
+      if (data.duplicates) parts.push(`${data.duplicates} já existente(s)`);
+      if (data.failed) parts.push(`${data.failed} com erro`);
+      setImportMsg(`Importação concluída — ${parts.join(", ")}.`);
+    } catch (err) {
+      setImportMsg(err instanceof Error ? err.message : "Erro ao importar o ficheiro.");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon" }).format(new Date());
   const buyers = list.filter((c) => ["comprador", "investidor"].includes(c.type) && c.buyerProfile?.active !== false);
@@ -97,10 +155,15 @@ export function ContactsManager({ initial }: { initial: Contact[] }) {
             className="input pl-9"
           />
         </div>
+        <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={importing}>
+          {importing ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />} Importar CSV/Excel
+        </Button>
+        <input ref={fileRef} type="file" accept=".csv,text/csv,.tsv,text/tab-separated-values" className="hidden" onChange={onImportFile} />
         <Button size="sm" onClick={() => setOpen((v) => !v)}>
           <Plus className="size-4" /> Novo contacto
         </Button>
       </div>
+      {importMsg && <p className="mt-2 text-sm text-muted-foreground">{importMsg}</p>}
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {(["todos", ...Object.keys(CONTACT_TYPE_LABEL)] as (ContactType | "todos")[]).map((t) => (
@@ -132,8 +195,20 @@ export function ContactsManager({ initial }: { initial: Contact[] }) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{c.name}</p>
-              {["comprador","investidor"].includes(c.type) && <p className="text-sm text-muted-foreground">{TEMPERATURE_LABEL[buyerTemperature(c.buyerProfile)]}</p>}
-              <p className="flex items-center gap-2 truncate text-xs text-muted-foreground">
+              {["comprador","investidor"].includes(c.type) && (() => {
+                const temp = buyerTemperature(c.buyerProfile);
+                return (
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${TEMPERATURE_BADGE[temp]}`}>{TEMPERATURE_LABEL[temp]}</span>
+                    {c.buyerProfile?.financing && (
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${FINANCING_BADGE[c.buyerProfile.financing]}`}>
+                        {FINANCING_LABEL[c.buyerProfile.financing]}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+              <p className="mt-0.5 flex items-center gap-2 truncate text-xs text-muted-foreground">
                 {c.phone && (<span className="inline-flex items-center gap-1"><Phone className="size-3" />{c.phone}</span>)}
                 {c.email && (<span className="inline-flex items-center gap-1"><Mail className="size-3" />{c.email}</span>)}
               </p>

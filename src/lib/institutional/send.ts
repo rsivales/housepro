@@ -81,11 +81,12 @@ async function logSent(occasionKey: string, audience: string, year: number, reci
   });
 }
 
-async function sendOne(subject: string, body: string, recipient: Recipient, eyebrow: string): Promise<boolean> {
+async function sendOne(subject: string, body: string, imageUrl: string | null, recipient: Recipient, eyebrow: string): Promise<boolean> {
   const delivery = await emailDeliveryCredentials();
   if (!delivery.enabled || !delivery.apiKey || !delivery.sender) return false;
   const personalSubject = renderName(subject, recipient.name);
-  const html = houseproEmailShell(personalSubject, `<h1 style="font-size:24px;margin:0 0 20px">${personalSubject}</h1><div style="font-size:16px;line-height:1.7;white-space:pre-line">${renderName(body, recipient.name)}</div>`, eyebrow);
+  const banner = imageUrl ? `<img src="${imageUrl}" alt="" width="536" style="display:block;width:100%;max-width:536px;height:auto;border-radius:10px;margin:0 0 24px">` : "";
+  const html = houseproEmailShell(personalSubject, `${banner}<h1 style="font-size:24px;margin:0 0 20px">${personalSubject}</h1><div style="font-size:16px;line-height:1.7;white-space:pre-line">${renderName(body, recipient.name)}</div>`, eyebrow);
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -106,7 +107,7 @@ async function runOccasion(occasionKey: OccasionKey, year: number): Promise<{ se
   for (const audience of audiences) {
     const { data: msg } = await sb
       .from("institutional_messages")
-      .select("subject,body,enabled")
+      .select("subject,body,image_url,enabled")
       .eq("occasion_key", occasionKey)
       .eq("audience", audience)
       .maybeSingle();
@@ -114,7 +115,7 @@ async function runOccasion(occasionKey: OccasionKey, year: number): Promise<{ se
     const recipients = await audienceRecipients(audience);
     for (const r of recipients) {
       if (await alreadySent(occasionKey, audience, year, r.email)) { skipped++; continue; }
-      const ok = await sendOne(msg.subject, msg.body, r, `HOUSEPRO · ${OCCASION_LABEL[occasionKey].toUpperCase()}`);
+      const ok = await sendOne(msg.subject, msg.body, msg.image_url ?? null, r, `HOUSEPRO · ${OCCASION_LABEL[occasionKey].toUpperCase()}`);
       if (ok) { await logSent(occasionKey, audience, year, r); sent++; } else skipped++;
     }
   }
@@ -128,7 +129,7 @@ async function runBirthdays(now: Date, year: number): Promise<{ sent: number; sk
   const day = now.getUTCDate();
   let sent = 0, skipped = 0;
 
-  const { data: msgs } = await sb.from("institutional_messages").select("audience,subject,body,enabled").eq("occasion_key", "aniversario").eq("enabled", true);
+  const { data: msgs } = await sb.from("institutional_messages").select("audience,subject,body,image_url,enabled").eq("occasion_key", "aniversario").eq("enabled", true);
   for (const msg of msgs ?? []) {
     const audience = msg.audience as Audience;
     let candidates: Recipient[] = [];
@@ -148,7 +149,7 @@ async function runBirthdays(now: Date, year: number): Promise<{ sent: number; sk
     }
     for (const r of candidates) {
       if (await alreadySent("aniversario", audience, year, r.email)) { skipped++; continue; }
-      const ok = await sendOne(msg.subject, msg.body, r, "HOUSEPRO · ANIVERSÁRIO");
+      const ok = await sendOne(msg.subject, msg.body, msg.image_url ?? null, r, "HOUSEPRO · ANIVERSÁRIO");
       if (ok) { await logSent("aniversario", audience, year, r); sent++; } else skipped++;
     }
   }

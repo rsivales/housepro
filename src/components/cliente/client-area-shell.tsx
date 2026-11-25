@@ -1,14 +1,10 @@
 import Link from "next/link";
-import { ArrowUpRight, Building2, Home, Newspaper, Store } from "lucide-react";
+import { ArrowUpRight, Newspaper } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 
-const tabs = [
-  { href: "/cliente/comprador", label: "Comprar", icon: Home },
-  { href: "/cliente/vendedor", label: "Vender", icon: Store },
-  { href: "/cliente/investidor", label: "Investir", icon: Building2 },
-];
+const AREA_LABEL = { comprador: "Comprar", vendedor: "Vender", investidor: "Investir" } as const;
 
 export function ClientAreaShell({
   active, eyebrow, title, description, image, hideHero = false, children,
@@ -24,9 +20,12 @@ export function ClientAreaShell({
   return <div className="min-h-dvh bg-[#f5f6f8] text-[#0b1f3a] dark:bg-[#0b1528] dark:text-white">
     <SiteHeader />
     <main className="mx-auto max-w-6xl px-4 pb-16 pt-5 sm:px-6 sm:pt-8">
-      <nav aria-label="Áreas do cliente" className="mb-5 flex gap-2 overflow-x-auto pb-1">
-        {tabs.map(tab => <Link key={tab.href} href={tab.href} aria-current={active === tab.href.split("/").pop() ? "page" : undefined} className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${active === tab.href.split("/").pop() ? "border-[#a31621] bg-[#a31621] text-white" : "border-[#d7dfe8] bg-white text-[#0b1f3a] hover:border-[#a31621] dark:border-white/20 dark:bg-white/10 dark:text-white"}`}><tab.icon className="size-4" />{tab.label}</Link>)}
-      </nav>
+      <div className="mb-4 flex items-center justify-between gap-2 text-xs">
+        <span className="rounded-full border border-[#d7dfe8] bg-white px-3 py-1 font-semibold text-[#0b1f3a] dark:border-white/20 dark:bg-white/10 dark:text-white">
+          A sua área: {AREA_LABEL[active]}
+        </span>
+        <Link href="/cliente/escolher-perfil" className="font-medium text-[#a31621] hover:underline">Mudar de área</Link>
+      </div>
       {!hideHero && <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-[#0b1f3a] text-white shadow-xl shadow-[#0b1f3a]/10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover object-center" />

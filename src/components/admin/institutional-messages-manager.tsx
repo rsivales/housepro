@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Loader2, Save } from "lucide-react";
 import { OCCASION_LABEL, type OccasionKey } from "@/lib/data/holidays";
+import { occasionCopy, premiumEmailHtml } from "@/lib/email/housepro-premium";
 
 const AUDIENCE_LABEL: Record<string, string> = { clientes: "Clientes", consultores: "Consultores", brokers: "Brokers" };
 const OCCASIONS: (OccasionKey | "aniversario")[] = ["natal", "pascoa", "carnaval", "abril_25", "halloween", "santos_populares", "dia_mae", "dia_pai", "aniversario"];
@@ -70,8 +71,8 @@ export function InstitutionalMessagesManager() {
                   </div>
                   {open === key ? (
                     <EditForm
-                      initialSubject={r?.subject ?? ""}
-                      initialBody={r?.body ?? ""}
+                      initialSubject={r?.subject || occasionCopy(occasion, audience).subject}
+                      initialBody={r?.body || occasionCopy(occasion, audience).body}
                       initialEnabled={r?.enabled ?? false}
                       busy={busy === key}
                       onCancel={() => setOpen(null)}
@@ -99,6 +100,7 @@ function EditForm({ initialSubject, initialBody, initialEnabled, busy, onCancel,
   const [subject, setSubject] = React.useState(initialSubject);
   const [body, setBody] = React.useState(initialBody);
   const [enabled, setEnabled] = React.useState(initialEnabled);
+  const [preview, setPreview] = React.useState(false);
   return (
     <div className="mt-2 space-y-2">
       <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Assunto (pode usar {nome})" className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none" />
@@ -106,6 +108,8 @@ function EditForm({ initialSubject, initialBody, initialEnabled, busy, onCancel,
       <label className="flex items-center gap-2 text-xs text-muted-foreground">
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> Ativar envio automático
       </label>
+      <button type="button" onClick={() => setPreview((v) => !v)} className="text-xs font-semibold text-primary underline underline-offset-2">{preview ? "Fechar pré-visualização" : "Pré-visualizar email premium"}</button>
+      {preview && <iframe title="Pré-visualização do email HousePro" sandbox="" srcDoc={premiumEmailHtml(subject, body)} className="h-[490px] w-full rounded-xl border bg-white" />}
       <div className="flex gap-2">
         <button type="button" disabled={busy} onClick={() => onSave(subject, body, enabled)} className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-60">
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Guardar

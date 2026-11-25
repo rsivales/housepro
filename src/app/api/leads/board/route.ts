@@ -28,6 +28,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Estado de crédito inválido." }, { status: 400 });
     }
     patch = { credit_status: body.creditStatus };
+  } else if (typeof body.emailListId === "string" || body.emailListId === null) {
+    if (body.emailListId !== null) {
+      const { data: list } = await sb.from("email_lists").select("id").eq("id", body.emailListId).eq("owner_id", agent.id).maybeSingle();
+      if (!list) return NextResponse.json({ error: "Lista indisponível." }, { status: 400 });
+    }
+    patch = { email_list_id: body.emailListId };
   } else {
     if (!hasPipelinePhone(lead.contact)) return NextResponse.json({ error: "Esta lead não tem um telefone válido." }, { status: 422 });
     const pipeline = (await crmLeadPipelines(agent, false)).find((p) => p.key === body.pipeline);

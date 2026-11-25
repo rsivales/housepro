@@ -121,6 +121,7 @@ function Editor({ onDone, lists, onListCreated, onListDeleted }: {
   const [subject, setSubject] = React.useState("");
   const [blocks, setBlocks] = React.useState<EmailBlock[]>([]);
   const [seg, setSeg] = React.useState<Segment>({});
+  const [selectedListId, setSelectedListId] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState<null | "save" | "send">(null);
   const [stats, setStats] = React.useState<EmailStats | null>(null);
   const [recipients, setRecipients] = React.useState<number | null>(null);
@@ -204,7 +205,7 @@ function Editor({ onDone, lists, onListCreated, onListDeleted }: {
       const sres = await fetch("/api/xcampaigns/send", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ campaignId: campaign.id, subject, segment: seg }),
+        body: JSON.stringify({ campaignId: campaign.id, subject, segment: seg, listId: selectedListId ?? undefined }),
       });
       const sdata = await sres.json();
       if (!sres.ok) throw new Error(sdata?.error ?? "Falha no envio sandbox.");
@@ -335,7 +336,7 @@ function Editor({ onDone, lists, onListCreated, onListDeleted }: {
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {lists.map((l) => (
                   <span key={l.id} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
-                    <button type="button" onClick={() => setSeg(l.segment)} className="hover:text-foreground">{l.name}</button>
+                    <button type="button" onClick={() => { setSeg(l.segment); setSelectedListId(l.id); }} className={selectedListId === l.id ? "font-semibold text-primary" : "hover:text-foreground"}>{l.name}</button>
                     <button type="button" aria-label={`Apagar lista ${l.name}`} onClick={() => removeList(l.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="size-3" /></button>
                   </span>
                 ))}

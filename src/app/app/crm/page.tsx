@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/supabase/auth";
 import { isStaff } from "@/lib/data/roles";
 import { listDeals } from "@/lib/db/deals";
-import { listLeadsByAgent, listAgenciesReal, getPropertyById } from "@/lib/db/repo";
+import { listLeadsByAgent, listAgenciesReal, getPropertyById, listEmailLists } from "@/lib/db/repo";
 import { commissionLabel } from "@/lib/data/commission";
 import { CrmTabs } from "@/components/app/crm-tabs";
 import type { LeadCard } from "@/components/app/leads-board";
@@ -21,12 +21,13 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   const staff = isStaff(session.agent);
   const { propertyId } = await searchParams;
 
-  const [deals, leadRows, agencyList, prefillProperty, pipelines] = await Promise.all([
+  const [deals, leadRows, agencyList, prefillProperty, pipelines, emailLists] = await Promise.all([
     listDeals(session.agent.id, false),
     listLeadsByAgent(session.agent.id),
     listAgenciesReal(),
     propertyId ? getPropertyById(propertyId) : Promise.resolve(undefined),
     crmLeadPipelines(session.agent, session.demo),
+    listEmailLists(session.agent.id),
   ]);
   // Outras agências (para "partilha com outra agência") — exclui a própria.
   const agencies = agencyList
@@ -70,6 +71,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
     qualification: l.qualification,
     score: l.score,
     creditStatus: l.creditStatus,
+    emailListId: l.emailListId,
     campaignId: l.campaignId,
     formId: l.formId,
     createdAt: l.createdAt,
@@ -77,7 +79,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <CrmTabs deals={deals} leads={leads} pipelines={pipelines} agencies={agencies} prefill={prefill} canManage={staff} viewerId={session.agent.id} />
+      <CrmTabs deals={deals} leads={leads} pipelines={pipelines} agencies={agencies} prefill={prefill} canManage={staff} viewerId={session.agent.id} emailLists={emailLists} />
     </div>
   );
 }

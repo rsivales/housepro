@@ -8,6 +8,7 @@ import { CrmBoard, type CrmBoardOption, type CrmBoardPrefill } from "@/component
 import { LeadsBoard, type LeadCard } from "@/components/app/leads-board";
 import { CUSTOM_PIPELINE_KEY, DEFAULT_CUSTOM_STAGES, validPipelineSettings, type LeadPipeline } from "@/lib/data/lead-pipelines";
 import type { DealListItem } from "@/lib/db/deals";
+import type { EmailList } from "@/lib/data/xcampaigns";
 
 /** CRM com pipelines SEPARADOS: Negócios (transação) e Leads (compradores /
  *  proprietários). As leads que entram classificam-se no seu próprio pipeline,
@@ -20,6 +21,7 @@ export function CrmTabs({
   prefill,
   canManage = false,
   viewerId,
+  emailLists = [],
 }: {
   deals: DealListItem[];
   leads: LeadCard[];
@@ -29,6 +31,7 @@ export function CrmTabs({
   /** Staff (coordenação/direção/admin) — pode apagar negócios. */
   canManage?: boolean;
   viewerId: string;
+  emailLists?: EmailList[];
 }) {
   const [tab, setTab] = React.useState<string>("negocios");
 
@@ -116,7 +119,7 @@ export function CrmTabs({
             {canManage && CUSTOM_PIPELINE_KEY.test(pipeline.key) && <button type="button" className="mt-3 inline-flex items-center gap-1 text-sm text-primary" onClick={() => {
               setError(""); setEditor({ key: pipeline.key, name: pipeline.label, stages: [...pipeline.stages] });
             }}><Pencil className="size-4" /> Editar pipeline</button>}
-            <LeadsBoard pipeline={pipeline} leads={leads} pipelines={available} />
+            <LeadsBoard pipeline={pipeline} leads={leads} pipelines={available} emailLists={emailLists} />
           </div>
         )}
       </div>

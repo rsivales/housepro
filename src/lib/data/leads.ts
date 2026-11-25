@@ -144,6 +144,8 @@ export interface Lead {
   fiscalYear?: number;
   /** Estado do crédito (aprovado/não aprovado/pendente) — etiqueta de relance. */
   creditStatus?: LeadCreditStatus;
+  /** Lista de email guardada a que esta lead foi atribuída diretamente. */
+  emailListId?: string;
 }
 
 /** Leads de exemplo (modo demo, sem Supabase) — associadas ao consultor Rui. */

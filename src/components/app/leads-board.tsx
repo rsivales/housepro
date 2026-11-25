@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { hasPipelinePhone, LEAD_PIPELINES, type LeadPipeline } from "@/lib/data/lead-pipelines";
 import { scoreBand } from "@/lib/meta/scoring";
 import { LEAD_CREDIT_STATUS_LABEL, type LeadCreditStatus } from "@/lib/data/leads";
+import type { EmailList } from "@/lib/data/xcampaigns";
 
 import { useBoardDrag } from "./use-deal-drag";
 
@@ -31,6 +32,7 @@ export interface LeadCard {
   qualification?: string;
   score?: number;
   creditStatus?: LeadCreditStatus;
+  emailListId?: string;
   campaignId?: string;
   formId?: string;
   createdAt?: string;
@@ -82,7 +84,7 @@ const ACCENT = ["bg-slate-400", "bg-sky-400", "bg-violet-400", "bg-amber-400", "
 
 /** Kanban de LEADS de um pipeline (compradores/proprietários). Separado dos
  *  negócios: as leads entram e classificam-se aqui, com fases próprias. */
-export function LeadsBoard({ pipeline, leads, pipelines }: { pipeline: LeadPipeline; leads: LeadCard[]; pipelines: LeadPipeline[] }) {
+export function LeadsBoard({ pipeline, leads, pipelines, emailLists = [] }: { pipeline: LeadPipeline; leads: LeadCard[]; pipelines: LeadPipeline[]; emailLists?: EmailList[] }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<LeadCard | null>(null);
@@ -113,14 +115,18 @@ export function LeadsBoard({ pipeline, leads, pipelines }: { pipeline: LeadPipel
   const filtersActive = Boolean(term || urgencyFilter || sourceFilter || creditFilter);
   const stages = pipeline.stages.map((label, i) => ({ stage: String(i), label }));
 
-  async function save(leadId: string, change: { stage: number; pipeline: string } | { archived: boolean } | { creditStatus: LeadCreditStatus | undefined }) {
+  async function save(leadId: string, change: { stage: number; pipeline: string } | { archived: boolean } | { creditStatus: LeadCreditStatus | undefined } | { emailListId: string | undefined }) {
     if (busy) return;
     setBusy(leadId);
     setFeedback("");
     try {
-      // JSON.stringify omite "undefined" — "creditStatus" precisa de chegar
-      // como null explícito à API para limpar a etiqueta ("Crédito: —").
-      const wire = "creditStatus" in change ? { ...change, creditStatus: change.creditStatus ?? null } : change;
+      // JSON.stringify omite "undefined" — "creditStatus"/"emailListId" precisam
+      // de chegar como null explícito à API para limpar a etiqueta.
+      const wire = "creditStatus" in change
+        ? { ...change, creditStatus: change.creditStatus ?? null }
+        : "emailListId" in change
+          ? { ...change, emailListId: change.emailListId ?? null }
+          : change;
       const res = await fetch("/api/leads/board", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -244,6 +250,14 @@ export function LeadsBoard({ pipeline, leads, pipelines }: { pipeline: LeadPipel
                             {LEAD_CREDIT_STATUS_LABEL[l.creditStatus]}
                           </span>
                         )}
+                        {l.emailListId && (() => {
+                          const el = emailLists.find((x) => x.id === l.emailListId);
+                          return el ? (
+                            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              📧 {el.name}
+                            </span>
+                          ) : null;
+                        })()}
                       </div>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">{l.contact}</p>
                       {l.propertyRef && (
@@ -282,6 +296,23 @@ export function LeadsBoard({ pipeline, leads, pipelines }: { pipeline: LeadPipel
                       ))}
                     </select>
                   </div>
+
+                  {emailLists.length > 0 && (
+                    <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={l.emailListId ?? ""}
+                        onChange={(e) => void save(l.id, { emailListId: e.target.value || undefined })}
+                        aria-label="Lista de email"
+                        disabled={busy !== null}
+                        className="w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs outline-none focus-visible:border-ring"
+                      >
+                        <option value="">Lista de email: —</option>
+                        {emailLists.map((el) => (
+                          <option key={el.id} value={el.id}>Lista: {el.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="mt-2 flex items-center justify-end gap-1 border-t pt-2" onClick={(e) => e.stopPropagation()}>
                     <button type="button" {...dragging.handle(l.id, String(i))}

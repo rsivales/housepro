@@ -2,7 +2,7 @@ import {describe,it,expect,vi,beforeEach} from 'vitest';
 const m=vi.hoisted(()=>({session:vi.fn(),deals:vi.fn()}));
 vi.mock('@/lib/supabase/auth',()=>({getSession:m.session}));
 vi.mock('@/lib/db/deals',()=>({listDeals:m.deals}));
-vi.mock('@/lib/db/repo',()=>({listLeadsByAgent:async()=>[],listAgenciesReal:async()=>[],getPropertyById:async()=>undefined}));
+vi.mock('@/lib/db/repo',()=>({listLeadsByAgent:async()=>[],listAgenciesReal:async()=>[],getPropertyById:async()=>undefined,listEmailLists:async()=>[]}));
 vi.mock('@/lib/db/crm-lead-pipelines',()=>({crmLeadPipelines:async()=>[]}));
 vi.mock('@/components/app/crm-tabs',()=>({CrmTabs:()=>null}));
 import CrmPage from './page';

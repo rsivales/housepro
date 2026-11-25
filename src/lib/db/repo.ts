@@ -1059,6 +1059,18 @@ export async function listLeadsByAgent(agentId: string): Promise<Lead[]> {
   return (data ?? []).filter(operationalLead).map(mapLeadRow);
 }
 
+/** Leads do consultor atribuídas diretamente a uma lista de email (envio em massa). */
+export async function listLeadsByEmailList(agentId: string, emailListId: string): Promise<Lead[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("owner_id", agentId)
+    .eq("email_list_id", emailListId);
+  return (data ?? []).map(mapLeadRow);
+}
+
 /** Mapeia uma linha da tabela `leads` para o modelo Lead (inclui campos Meta). */
 function mapLeadRow(r: Row): Lead {
   const propJoin = (Array.isArray(r.property) ? r.property[0] : r.property) as
@@ -1104,6 +1116,7 @@ function mapLeadRow(r: Row): Lead {
     zone: (r.zone as string) ?? undefined,
     budget: (r.budget as string) ?? undefined,
     creditStatus: (r.credit_status as Lead["creditStatus"]) ?? undefined,
+    emailListId: (r.email_list_id as string) ?? undefined,
     language: (r.language as string) ?? undefined,
     specialty: (r.specialty as string) ?? undefined,
     offeredTo: Array.isArray(r.offered_to) ? (r.offered_to as string[]) : undefined,

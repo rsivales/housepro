@@ -190,7 +190,7 @@ export function TransactionChecklist({
                   </p>
                   <ul className="mt-2 space-y-2">
                     {items.map((t) => (
-                      <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5">
+                      <li id={`tarefa-${t.id}`} key={t.id} className="flex scroll-mt-28 flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5 target:border-primary target:bg-primary/5">
                         <div className="min-w-0 flex-1">
                           <p className={cn("text-sm", (t.status === "validated" || t.status === "waived") && "text-muted-foreground line-through")}>
                             {t.title}

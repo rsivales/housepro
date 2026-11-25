@@ -10,6 +10,7 @@ import {
   recordSandboxSend,
 } from "@/lib/db/repo";
 import { emailDeliveryCredentials } from "@/lib/email-delivery";
+import { houseproEmailShell } from "@/lib/email-template";
 import { selectRecipients, simulateSend, renderVariables, renderBlocksHtml, type Segment, type MergeVar } from "@/lib/data/xcampaigns";
 
 const MAX_REAL_RECIPIENTS = 200;
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
       assinatura: session.agent.name,
     };
     const idempotency = createHash("sha256").update(`xcampaign/${campaign.id}:${(r.email ?? "").toLowerCase()}`).digest("hex");
+    const subject = renderVariables(String(body.subject), ctx);
     try {
       const result = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -97,8 +99,8 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           from: delivery.sender,
           to: [r.email],
-          subject: renderVariables(String(body.subject), ctx),
-          html: renderBlocksHtml(campaign.blocks, ctx),
+          subject,
+          html: houseproEmailShell(subject, renderBlocksHtml(campaign.blocks, ctx), "HOUSEPRO · X CAMPAIGNS"),
         }),
         signal: AbortSignal.timeout(10000),
       });

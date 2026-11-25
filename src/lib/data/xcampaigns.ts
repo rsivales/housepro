@@ -137,7 +137,7 @@ export function renderBlocksHtml(blocks: EmailBlock[], ctx: Partial<Record<Merge
         return "";
     }
   });
-  return `<div style="max-width:600px;margin:auto;font-family:Arial,sans-serif">${parts.join("")}</div>`;
+  return parts.join("");
 }
 
 // ── Segmentação ──────────────────────────────────────────────────────────────

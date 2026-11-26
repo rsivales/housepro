@@ -9,6 +9,14 @@ export const OCCASION_COPY: Record<string, { subject: string; body: string }> = 
   dia_pai: { subject: "Um dia especial para todos os pais | HousePro", body: "Olá {nome},\n\nHoje celebramos os laços, os ensinamentos e as memórias que ficam para sempre.\n\nUm feliz Dia do Pai!\nEquipa HousePro" },
   aniversario: { subject: "Feliz aniversário, {nome}! | HousePro", body: "Olá {nome},\n\nHoje é o seu dia! Desejamos-lhe um aniversário feliz, cheio de saúde, alegria e bons momentos.\n\nQue o novo ano de vida lhe traga tudo o que mais deseja.\n\nParabéns!\nEquipa HousePro" },
 };
+export const FONT_STACKS: Record<string, string> = {
+  arial: "Arial,Helvetica,sans-serif",
+  georgia: "Georgia,'Times New Roman',serif",
+  verdana: "Verdana,Geneva,sans-serif",
+};
+export const FONT_LABEL: Record<string, string> = { arial: "Arial (padrão)", georgia: "Georgia (clássica)", verdana: "Verdana (moderna)" };
+export const BANNER_POSITION_LABEL: Record<string, string> = { topo: "No topo", meio: "A meio, depois do título" };
+
 export function occasionCopy(occasion: string, audience: string) {
   const base = OCCASION_COPY[occasion] ?? OCCASION_COPY.natal;
   if (audience === "consultores") return { ...base, body: base.body.replace("Equipa HousePro", "A direção HousePro") };
@@ -18,10 +26,13 @@ export function occasionCopy(occasion: string, audience: string) {
 export function escapeEmailHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
-export function premiumEmailHtml(subject: string, body: string, imageUrl?: string | null, logoUrl?: string) {
+export function premiumEmailHtml(subject: string, body: string, imageUrl?: string | null, fontFamily?: string, bannerPosition?: string, logoUrl?: string) {
   const safeSubject = escapeEmailHtml(subject.replaceAll("{nome}", "Ana"));
   const safeBody = escapeEmailHtml(body.replaceAll("{nome}", "Ana")).replace(/\n/g, "<br>");
   const logo = logoUrl && /^https:\/\//.test(logoUrl) ? `<img src="${escapeEmailHtml(logoUrl)}" alt="HousePro" width="205" style="display:block;max-width:205px;height:auto;border:0">` : '<span style="font-size:26px;font-weight:800;letter-spacing:2px;color:#fff">HOUSEPRO</span>';
   const banner = imageUrl && /^https:\/\//.test(imageUrl) ? `<img src="${escapeEmailHtml(imageUrl)}" alt="" width="524" style="display:block;width:100%;max-width:524px;height:auto;border-radius:10px;margin:0 0 24px">` : "";
-  return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f2f5f8;font-family:Arial,Helvetica,sans-serif;color:#10243e"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f2f5f8;padding:28px 12px"><tr><td align="center"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;background:#fff;border-radius:18px;overflow:hidden"><tr><td style="background:#0D3B66;padding:30px 38px;border-bottom:5px solid #A31621">${logo}</td></tr><tr><td style="padding:42px 38px 30px">${banner}<p style="color:#A31621;font-size:11px;letter-spacing:2px;font-weight:700;margin:0 0 15px">HOUSEPRO · PAIXÃO PELO QUE FAZEMOS</p><h1 style="font-size:27px;line-height:1.25;margin:0 0 26px;color:#0D3B66">${safeSubject}</h1><div style="font-size:16px;line-height:1.85;color:#34455a">${safeBody}</div></td></tr><tr><td style="padding:23px 38px;background:#f7f9fb;border-top:1px solid #e8edf2"><p style="font-size:12px;line-height:1.7;color:#64748b;margin:0">HousePro · Algarve<br>Paixão pelo que fazemos</p></td></tr></table></td></tr></table></body></html>`;
+  const bannerTop = bannerPosition === "meio" ? "" : banner;
+  const bannerMiddle = bannerPosition === "meio" ? banner : "";
+  const font = FONT_STACKS[fontFamily ?? "arial"] ?? FONT_STACKS.arial;
+  return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f2f5f8;font-family:Arial,Helvetica,sans-serif;color:#10243e"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f2f5f8;padding:28px 12px"><tr><td align="center"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;background:#fff;border-radius:18px;overflow:hidden"><tr><td style="background:#0D3B66;padding:30px 38px;border-bottom:5px solid #A31621">${logo}</td></tr><tr><td style="padding:42px 38px 30px;font-family:${font}">${bannerTop}<p style="color:#A31621;font-size:11px;letter-spacing:2px;font-weight:700;margin:0 0 15px">HOUSEPRO · PAIXÃO PELO QUE FAZEMOS</p><h1 style="font-size:27px;line-height:1.25;margin:0 0 26px;color:#0D3B66">${safeSubject}</h1>${bannerMiddle}<div style="font-size:16px;line-height:1.85;color:#34455a">${safeBody}</div></td></tr><tr><td style="padding:23px 38px;background:#f7f9fb;border-top:1px solid #e8edf2"><p style="font-size:12px;line-height:1.7;color:#64748b;margin:0">HousePro · Algarve<br>Paixão pelo que fazemos</p></td></tr></table></td></tr></table></body></html>`;
 }

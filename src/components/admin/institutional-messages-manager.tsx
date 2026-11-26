@@ -1,15 +1,27 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Image as ImageIcon, X } from "lucide-react";
 import { OCCASION_LABEL, type OccasionKey } from "@/lib/data/holidays";
-import { occasionCopy, premiumEmailHtml } from "@/lib/email/housepro-premium";
+import { occasionCopy, premiumEmailHtml, FONT_LABEL, BANNER_POSITION_LABEL } from "@/lib/email/housepro-premium";
 
 const AUDIENCE_LABEL: Record<string, string> = { clientes: "Clientes", consultores: "Consultores", brokers: "Brokers" };
 const OCCASIONS: (OccasionKey | "aniversario")[] = ["natal", "pascoa", "carnaval", "abril_25", "halloween", "santos_populares", "dia_mae", "dia_pai", "aniversario"];
 const AUDIENCES = ["clientes", "consultores", "brokers"] as const;
+const FONT_OPTIONS = ["arial", "georgia", "verdana"] as const;
+const BANNER_POSITION_OPTIONS = ["topo", "meio"] as const;
 
-interface Row { occasion_key: string; audience: string; subject: string; body: string; enabled: boolean; updated_at: string | null }
+interface Row {
+  occasion_key: string;
+  audience: string;
+  subject: string;
+  body: string;
+  image_url: string | null;
+  font_family: string;
+  banner_position: string;
+  enabled: boolean;
+  updated_at: string | null;
+}
 
 export function InstitutionalMessagesManager() {
   const [rows, setRows] = React.useState<Row[] | null>(null);
@@ -25,7 +37,16 @@ export function InstitutionalMessagesManager() {
     return rows?.find((r) => r.occasion_key === occasion && r.audience === audience);
   }
 
-  async function save(occasion: string, audience: string, subject: string, body: string, enabled: boolean) {
+  async function save(
+    occasion: string,
+    audience: string,
+    subject: string,
+    body: string,
+    imageUrl: string | null,
+    fontFamily: string,
+    bannerPosition: string,
+    enabled: boolean,
+  ) {
     const key = `${occasion}:${audience}`;
     setBusy(key);
     setMessage("");
@@ -33,11 +54,17 @@ export function InstitutionalMessagesManager() {
       const res = await fetch("/api/admin/institutional-messages", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ occasionKey: occasion, audience, subject, body, enabled }),
+        body: JSON.stringify({ occasionKey: occasion, audience, subject, body, imageUrl, fontFamily, bannerPosition, enabled }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
-      setRows((prev) => prev?.map((r) => (r.occasion_key === occasion && r.audience === audience ? { ...r, subject, body, enabled } : r)) ?? null);
+      setRows((prev) =>
+        prev?.map((r) =>
+          r.occasion_key === occasion && r.audience === audience
+            ? { ...r, subject, body, image_url: imageUrl, font_family: fontFamily, banner_position: bannerPosition, enabled }
+            : r,
+        ) ?? null,
+      );
       setOpen(null);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Não foi possível guardar.");
@@ -73,10 +100,15 @@ export function InstitutionalMessagesManager() {
                     <EditForm
                       initialSubject={r?.subject || occasionCopy(occasion, audience).subject}
                       initialBody={r?.body || occasionCopy(occasion, audience).body}
+                      initialImageUrl={r?.image_url ?? null}
+                      initialFontFamily={r?.font_family || "arial"}
+                      initialBannerPosition={r?.banner_position || "topo"}
                       initialEnabled={r?.enabled ?? false}
                       busy={busy === key}
                       onCancel={() => setOpen(null)}
-                      onSave={(subject, body, enabled) => save(occasion, audience, subject, body, enabled)}
+                      onSave={(subject, body, imageUrl, fontFamily, bannerPosition, enabled) =>
+                        save(occasion, audience, subject, body, imageUrl, fontFamily, bannerPosition, enabled)
+                      }
                     />
                   ) : (
                     <button type="button" onClick={() => setOpen(key)} className="mt-2 text-xs font-medium text-primary hover:underline">
@@ -93,25 +125,127 @@ export function InstitutionalMessagesManager() {
   );
 }
 
-function EditForm({ initialSubject, initialBody, initialEnabled, busy, onCancel, onSave }: {
-  initialSubject: string; initialBody: string; initialEnabled: boolean; busy: boolean;
-  onCancel: () => void; onSave: (subject: string, body: string, enabled: boolean) => void;
+function EditForm({
+  initialSubject,
+  initialBody,
+  initialImageUrl,
+  initialFontFamily,
+  initialBannerPosition,
+  initialEnabled,
+  busy,
+  onCancel,
+  onSave,
+}: {
+  initialSubject: string;
+  initialBody: string;
+  initialImageUrl: string | null;
+  initialFontFamily: string;
+  initialBannerPosition: string;
+  initialEnabled: boolean;
+  busy: boolean;
+  onCancel: () => void;
+  onSave: (subject: string, body: string, imageUrl: string | null, fontFamily: string, bannerPosition: string, enabled: boolean) => void;
 }) {
   const [subject, setSubject] = React.useState(initialSubject);
   const [body, setBody] = React.useState(initialBody);
+  const [imageUrl, setImageUrl] = React.useState(initialImageUrl);
+  const [fontFamily, setFontFamily] = React.useState(initialFontFamily);
+  const [bannerPosition, setBannerPosition] = React.useState(initialBannerPosition);
+  const [uploading, setUploading] = React.useState(false);
+  const [imageError, setImageError] = React.useState("");
   const [enabled, setEnabled] = React.useState(initialEnabled);
   const [preview, setPreview] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  async function uploadImage(file: File) {
+    setUploading(true);
+    setImageError("");
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res = await fetch("/api/admin/institutional-messages/image", { method: "POST", body: form });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error);
+      setImageUrl(d.url);
+    } catch (e) {
+      setImageError(e instanceof Error ? e.message : "Não foi possível enviar a imagem.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="mt-2 space-y-2">
       <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Assunto (pode usar {nome})" className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none" />
       <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Mensagem (pode usar {nome})" rows={4} className="w-full rounded-md border border-input bg-transparent p-2 text-sm outline-none" />
+      <div>
+        <span className="text-xs font-medium text-muted-foreground">Imagem do email (postal)</span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) uploadImage(file);
+          }}
+        />
+        {imageUrl ? (
+          <div className="mt-1.5 flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageUrl} alt="Imagem do email" className="h-16 w-28 rounded-md border object-cover" />
+            <button type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()} className="rounded-md border px-2 py-1 text-xs disabled:opacity-60">
+              {uploading ? <Loader2 className="size-3.5 animate-spin" /> : "Substituir"}
+            </button>
+            <button type="button" disabled={uploading} onClick={() => setImageUrl(null)} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-destructive disabled:opacity-60">
+              <X className="size-3.5" /> Retirar
+            </button>
+          </div>
+        ) : (
+          <button type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()} className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs disabled:opacity-60">
+            {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <ImageIcon className="size-3.5" />} Carregar imagem
+          </button>
+        )}
+        {imageError && <p className="mt-1 text-xs text-destructive">{imageError}</p>}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block text-xs">
+          <span className="font-medium text-muted-foreground">Tipo de letra</span>
+          <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="mt-1 h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none">
+            {FONT_OPTIONS.map((f) => (
+              <option key={f} value={f}>{FONT_LABEL[f]}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs">
+          <span className="font-medium text-muted-foreground">Posição do banner</span>
+          <select value={bannerPosition} onChange={(e) => setBannerPosition(e.target.value)} className="mt-1 h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none">
+            {BANNER_POSITION_OPTIONS.map((p) => (
+              <option key={p} value={p}>{BANNER_POSITION_LABEL[p]}</option>
+            ))}
+          </select>
+        </label>
+      </div>
       <label className="flex items-center gap-2 text-xs text-muted-foreground">
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> Ativar envio automático
       </label>
       <button type="button" onClick={() => setPreview((v) => !v)} className="text-xs font-semibold text-primary underline underline-offset-2">{preview ? "Fechar pré-visualização" : "Pré-visualizar email premium"}</button>
-      {preview && <iframe title="Pré-visualização do email HousePro" sandbox="" srcDoc={premiumEmailHtml(subject, body)} className="h-[490px] w-full rounded-xl border bg-white" />}
+      {preview && (
+        <iframe
+          title="Pré-visualização do email HousePro"
+          sandbox=""
+          srcDoc={premiumEmailHtml(subject, body, imageUrl, fontFamily, bannerPosition)}
+          className="h-[490px] w-full rounded-xl border bg-white"
+        />
+      )}
       <div className="flex gap-2">
-        <button type="button" disabled={busy} onClick={() => onSave(subject, body, enabled)} className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-60">
+        <button
+          type="button"
+          disabled={busy || uploading}
+          onClick={() => onSave(subject, body, imageUrl, fontFamily, bannerPosition, enabled)}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-60"
+        >
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Guardar
         </button>
         <button type="button" onClick={onCancel} className="rounded-md border px-3 py-1.5 text-xs">Cancelar</button>

@@ -3,7 +3,7 @@ import "server-only";
 import { randomUUID, createHash, timingSafeEqual } from "node:crypto";
 import { createAdminClient, hasServiceRole } from "@/lib/supabase/admin";
 import { emailDeliveryCredentials } from "@/lib/email-delivery";
-import { houseproEmail } from "@/lib/email-template";
+import { escapeHtml, houseproEmail, houseproEmailShell } from "@/lib/email-template";
 import { matchBuyer, missingQualification, type MatchProperty } from "./engine";
 import { qualificationRef, validateBuyerProfile } from "./profile";
 type Row = Record<string, unknown>;
@@ -61,11 +61,28 @@ export async function runMatching(scope: MatchScope = {}) {
      const eligible=(recipient.id===buyer.id && result.buyerEligible)||(recipient.id===seller.id && result.propertyEligible);
      if(!recipient.email || !eligible)continue;
      const subject=ownBuyer?`Sugestão de imóvel · ${property.reference}`:`Comprador compatível · ${property.reference}`;
-     const text=[`Qualificação: ${ref}`,`Consultor do comprador: ${buyer.name}${buyer.email?` · ${buyer.email}`:""}`,`Imóvel: ${property.reference} · ${property.title}`,`ID: ${property.id}`,`Angariador: ${seller.name}${seller.email?` · ${seller.email}`:""}`,`${property.typology} · ${summary.zone} · ${new Intl.NumberFormat("pt-PT",{style:"currency",currency:"EUR"}).format(property.price)}`,`Estado: ${result.status}`,`Compatibilidade: ${result.score}% · ${result.exact?"Correspondência próxima":"Alternativa flexível"}`,...result.reasons,...result.warnings,`Ver imóvel: https://housepro.pt/imovel/${property.id}`,`Ver correspondências: https://housepro.pt/app/matches`,"Contacte o consultor responsável antes de apresentar uma proposta. O orçamento máximo do comprador não foi alterado. Configure os alertas na qualificação do contacto."].join("\n\n");
+     const priceFmt=new Intl.NumberFormat("pt-PT",{style:"currency",currency:"EUR"}).format(property.price);
+     const reasonsLine=result.reasons.length?result.reasons.join(" · "):null;
+     const warningsLine=result.warnings.length?`A confirmar: ${result.warnings.join(" · ")}`:null;
+     const imovelUrl=`https://housepro.pt/imovel/${property.id}`;
+     const contactoUrl=`https://housepro.pt/app/contactos/${c.id}`;
+     const text=[`${property.reference} · ${property.title}`,`${property.typology} · ${summary.zone} · ${priceFmt} · ${result.status}`,`Compatibilidade: ${result.score}% · ${result.exact?"Correspondência próxima":"Alternativa flexível"}`,`Comprador: ${buyer.name}${buyer.email?` · ${buyer.email}`:""}`,`Angariador: ${seller.name}${seller.email?` · ${seller.email}`:""}`,reasonsLine,warningsLine,`Ver imóvel: ${imovelUrl}`,ownBuyer?`Ver contacto: ${contactoUrl}`:null,`Ver correspondências: https://housepro.pt/app/matches`,"Contacte o consultor responsável antes de apresentar uma proposta.",`Ref: ${ref}`].filter(Boolean).join("\n\n");
+     const html=houseproEmailShell(subject,[
+      `<h1 style="font-size:26px;line-height:1.25;margin:0 0 24px">${escapeHtml(subject)}</h1>`,
+      `<p style="margin:0 0 12px">${escapeHtml(`${property.typology} · ${summary.zone} · ${priceFmt} · ${result.status}`)}</p>`,
+      `<p style="margin:0 0 12px">${escapeHtml(`Compatibilidade: ${result.score}% · ${result.exact?"Correspondência próxima":"Alternativa flexível"}`)}</p>`,
+      `<p style="margin:0 0 12px">Comprador: ${escapeHtml(String(buyer.name))}${buyer.email?` · <a href="mailto:${escapeHtml(String(buyer.email))}" style="color:#b91c28">${escapeHtml(String(buyer.email))}</a>`:""}<br>Angariador: ${escapeHtml(String(seller.name))}${seller.email?` · <a href="mailto:${escapeHtml(String(seller.email))}" style="color:#b91c28">${escapeHtml(String(seller.email))}</a>`:""}</p>`,
+      reasonsLine?`<p style="margin:0 0 12px">${escapeHtml(reasonsLine)}</p>`:"",
+      warningsLine?`<p style="margin:0 0 12px;color:#b45309">${escapeHtml(warningsLine)}</p>`:"",
+      `<p style="margin:0 0 8px"><a href="${imovelUrl}" style="color:#b91c28;text-decoration:underline">Ver imóvel · ${escapeHtml(property.reference)}</a></p>`,
+      ownBuyer?`<p style="margin:0 0 8px"><a href="${contactoUrl}" style="color:#b91c28;text-decoration:underline">Ver ficha do contacto</a></p>`:"",
+      `<p style="margin:0 0 20px"><a href="https://housepro.pt/app/matches" style="color:#b91c28;text-decoration:underline">Ver todas as correspondências</a></p>`,
+      `<p style="margin:0;color:#64748b;font-size:14px">Contacte o consultor responsável antes de apresentar uma proposta. Referência: ${escapeHtml(ref)}</p>`,
+     ].join(""));
      let recipients=recipientCache.get(String(recipient.id));
      if(!recipients){recipients=await agentRecipients(String(recipient.id),deliveryConfig.notifyEmail);recipientCache.set(String(recipient.id),recipients);}
      if(!recipients.to.length)continue;
-     const {error:queueError}=await db.from("match_email_outbox").upsert({match_id:saved.id,recipient_id:recipient.id,revision,payload:{to:recipients.to[0],cc:recipients.cc,subject,text}},{onConflict:"match_id,recipient_id,revision",ignoreDuplicates:true});if(queueError)throw new Error("matching_queue_failed");
+     const {error:queueError}=await db.from("match_email_outbox").upsert({match_id:saved.id,recipient_id:recipient.id,revision,payload:{to:recipients.to[0],cc:recipients.cc,subject,text,html}},{onConflict:"match_id,recipient_id,revision",ignoreDuplicates:true});if(queueError)throw new Error("matching_queue_failed");
     }
    }
   }
@@ -95,7 +112,7 @@ export async function deliverMatches(db: ReturnType<typeof createAdminClient>) {
   const now=new Date().toISOString();
   const {error:attemptError}=await db.from("match_email_outbox").update({attempts:job.attempts+1,first_attempt_at:job.first_attempt_at??now,last_attempt_at:now}).eq("id",job.id);if(attemptError)continue;
   try {
-   const r=await fetch("https://api.resend.com/emails",{method:"POST",headers:{authorization:`Bearer ${config.apiKey}`,"content-type":"application/json","Idempotency-Key":`housepro-match/${job.id}`},body:JSON.stringify({from:config.sender,to:[job.payload.to],cc:job.payload.cc??[],...(config.notifyEmail?{reply_to:config.notifyEmail}:{}),subject:job.payload.subject,text:job.payload.text,html:houseproEmail(job.payload.subject,job.payload.text,{label:"Ver correspondências no Helix",path:"/app/matches"})}),signal:AbortSignal.timeout(8000)});
+   const r=await fetch("https://api.resend.com/emails",{method:"POST",headers:{authorization:`Bearer ${config.apiKey}`,"content-type":"application/json","Idempotency-Key":`housepro-match/${job.id}`},body:JSON.stringify({from:config.sender,to:[job.payload.to],cc:job.payload.cc??[],...(config.notifyEmail?{reply_to:config.notifyEmail}:{}),subject:job.payload.subject,text:job.payload.text,html:job.payload.html??houseproEmail(job.payload.subject,job.payload.text,{label:"Ver correspondências no Helix",path:"/app/matches"})}),signal:AbortSignal.timeout(8000)});
    const data=await r.json().catch(()=>({}));
    if(r.ok && typeof data.id==="string") { const {error:saveError}=await db.from("match_email_outbox").update({state:"accepted",accepted_at:now,provider_id:data.id,error_code:null}).eq("id",job.id);if(!saveError)accepted++; }
    else {await db.from("match_email_outbox").update({error_code:`resend_${r.status}`,...(r.status>=400&&r.status<500&&r.status!==429?{state:"failed"}:{})}).eq("id",job.id);}

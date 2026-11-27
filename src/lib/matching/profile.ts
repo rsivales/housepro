@@ -21,7 +21,19 @@ export function buyerTemperature(p: BuyerProfile = {}) {
   return p.timeframeMonths <= 3 ? "quente" : p.timeframeMonths <= 6 ? "morno" : "frio";
 }
 export const TEMPERATURE_LABEL = { por_qualificar: "Por qualificar", quente: "Quente · até 3 meses", morno: "Morno · 4–6 meses", frio: "Frio · mais de 6 meses" };
-export function qualificationRef(id: string) { return `CQ-${id.replace(/-/g, "").toUpperCase()}`; }
+/** Hash puro em JS (sem node:crypto) para funcionar tanto no cliente como no servidor. */
+function shortHash(value: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < value.length; i++) {
+    h ^= value.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+/** Referência curta (6 dígitos) e legível para a qualificação de um contacto —
+ *  só para identificação humana (ex.: ao telefone); o acesso real é sempre
+ *  pela ficha do contacto (RLS), nunca por esta referência. */
+export function qualificationRef(id: string) { return `CQ-${String(shortHash(id) % 1000000).padStart(6, "0")}`; }
 /** One allowlist for manual edits and OCR suggestions. No implicit yes/no or budget inference. */
 export function validateBuyerProfile(value: unknown): BuyerProfile {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Qualificação inválida.");

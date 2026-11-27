@@ -6,7 +6,7 @@ import type { Property } from "@/lib/data/types";
  * periodicamente. (O push pela API fica para produção, com credenciais.)
  */
 
-const SITE = "https://www.housepro.pt";
+const SITE = "https://housepro.pt";
 
 const esc = (s: string) =>
   String(s ?? "").replace(

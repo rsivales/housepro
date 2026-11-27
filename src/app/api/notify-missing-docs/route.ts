@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   const st = docStatus(property.documents ?? [], property.sellerType === "empresa");
   const missing = st.missing.map(docLabel);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://housepro.pt";
   const url = `${siteUrl}/imovel/${property.id}`;
 
   const text = [

@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   // NEXT_PUBLIC_SITE_URL (ex.: o teu ...vercel.app ou beta.housepro.pt) para
   // não apontar ao domínio principal enquanto o site novo não o substitui.
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt"
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://housepro.pt"
   ),
   title: {
     default: "HousePro — Imobiliária | Comprar, arrendar e avaliar casas",

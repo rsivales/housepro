@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   const ownerId = referrerId ?? listingAgent ?? ref ?? "";
   const owner = ownerId ? await getAgentPublicById(ownerId) : undefined;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://housepro.pt";
   const propertyUrl = propertyId
     ? `${siteUrl}/imovel/${propertyId}${referrerId ? `?ref=${referrerId}` : ""}`
     : undefined;

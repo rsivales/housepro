@@ -30,7 +30,7 @@ import { OwnerLinkButton } from "@/components/property/owner-link-button";
 import { formatArea, formatEuro, formatPhone, publicPriceLabel, smsLink, telLink, whatsappLink } from "@/lib/format";
 import { site, postalAddressJsonLd } from "@/lib/site";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://housepro.pt";
 
 export async function generateMetadata({
   params,
@@ -106,7 +106,7 @@ export default async function ImovelPage({
   const publicRole = publicRoleLabel(contact);
 
   const hdrs = await headers();
-  const host = hdrs.get("host") ?? "www.housepro.pt";
+  const host = hdrs.get("host") ?? "housepro.pt";
   const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https";
   const propertyUrl = `${proto}://${host}/imovel/${property.id}${ref ? `?ref=${ref}` : ""}`;
 

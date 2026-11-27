@@ -22,12 +22,12 @@ import { getNews } from "@/lib/data/news";
 export const metadata: Metadata = {
   title: "HousePro — A casa certa muda tudo.",
   description:
-    "Comprar, vender ou investir em imóveis no Algarve, Lisboa e Porto — com uma equipa que conhece o mercado e escuta o que procura.",
+    "Comprar, vender ou investir em imóveis no Algarve — com uma equipa que conhece o mercado e escuta o que procura.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "HousePro — A casa certa muda tudo.",
     description:
-      "Comprar, vender ou investir — com paixão pelo que fazemos. Algarve · Lisboa · Porto.",
+      "Comprar, vender ou investir no Algarve — com paixão pelo que fazemos.",
     type: "website",
     locale: "pt_PT",
   },
@@ -39,9 +39,9 @@ const orgSchema = {
   "@type": "RealEstateAgent",
   name: "HousePro",
   description:
-    "Mediação imobiliária — comprar, vender e investir no Algarve, Lisboa e Porto.",
-  areaServed: ["Algarve", "Lisboa", "Porto"],
-  url: "https://www.housepro.pt/",
+    "Mediação imobiliária em Faro — comprar, vender e investir no Algarve.",
+  areaServed: ["Algarve"],
+  url: "https://housepro.pt/",
   slogan: "A casa certa muda tudo.",
 };
 

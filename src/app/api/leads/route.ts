@@ -93,7 +93,7 @@ export async function POST(request: Request) {
   }
 
   // Notifica o consultor (best-effort; não bloqueia a resposta em caso de falha).
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://housepro.pt";
   const notified = await notifyLead(lead, {
     agentName: owner?.name,
     agentEmail: owner ? agentEmail(owner) : undefined,

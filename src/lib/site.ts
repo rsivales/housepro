@@ -27,7 +27,7 @@ export const site = {
   },
   /** URL público. Em preview/produção vem de NEXT_PUBLIC_SITE_URL. */
   get url() {
-    return process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.housepro.pt";
+    return process.env.NEXT_PUBLIC_SITE_URL ?? "https://housepro.pt";
   },
   social: {
     instagram: "https://instagram.com/",

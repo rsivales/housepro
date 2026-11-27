@@ -81,7 +81,7 @@ export async function POST(request: Request) {
   }
 
   let delivered = 0;
-  const montraLink = `https://www.housepro.pt/consultor/${session.agent.id}`;
+  const montraLink = `https://housepro.pt/consultor/${session.agent.id}`;
   for (const r of recipients) {
     const ctx: Partial<Record<MergeVar, string>> = {
       nome: r.name || "Cliente",

@@ -33,7 +33,7 @@ export function toIdealistaXML(d: ImovelDraft): string {
   const images = Array.from(
     { length: d.fotosCount },
     (_, i) =>
-      `https://www.housepro.pt/media/${d.reference || d.id}/foto-${i + 1}.jpg`
+      `https://housepro.pt/media/${d.reference || d.id}/foto-${i + 1}.jpg`
   );
 
   return `<?xml version="1.0" encoding="UTF-8"?>

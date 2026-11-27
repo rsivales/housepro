@@ -128,7 +128,7 @@ export function renderBlocksHtml(blocks: EmailBlock[], ctx: Partial<Record<Merge
       case "image":
         return b.imageUrl ? `<p style="margin:0 0 16px"><img src="${escapeHtml(b.imageUrl)}" alt="" width="560" style="width:100%;height:auto;border-radius:12px"/></p>` : "";
       case "property":
-        return `<p style="margin:0 0 16px;padding:12px;border:1px solid #eee;border-radius:12px;font-size:14px">🏠 Imóvel ${escapeHtml(b.propertyRef ?? "")} — <a href="https://www.housepro.pt/imoveis?ref=${encodeURIComponent(b.propertyRef ?? "")}">ver imóvel</a></p>`;
+        return `<p style="margin:0 0 16px;padding:12px;border:1px solid #eee;border-radius:12px;font-size:14px">🏠 Imóvel ${escapeHtml(b.propertyRef ?? "")} — <a href="https://housepro.pt/imoveis?ref=${encodeURIComponent(b.propertyRef ?? "")}">ver imóvel</a></p>`;
       case "divider":
         return `<hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>`;
       case "spacer":

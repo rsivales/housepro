@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const res = await fetch(url, {
       headers: {
         // Nominatim exige um User-Agent identificável.
-        "user-agent": "HousePro/1.0 (https://www.housepro.pt)",
+        "user-agent": "HousePro/1.0 (https://housepro.pt)",
         "accept-language": "pt",
       },
       signal: AbortSignal.timeout(8000),
